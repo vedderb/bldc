@@ -132,6 +132,7 @@ bool lbm_symbol_list_entry_in_flash(char *str);
 
 extern lbm_value symbol_x;
 extern lbm_value symbol_y;
+extern lbm_value symbol_rest_args;
 
 #ifdef __cplusplus
 }

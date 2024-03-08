@@ -76,6 +76,7 @@ special_sym const special_symbols[] =  {
   {"sort"         , SYM_SORT},
   {"gc"           , SYM_PERFORM_GC},
   {"loop"         , SYM_LOOP},
+  {"rest-args"    , SYM_REST_ARGS},
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},
@@ -243,8 +244,8 @@ int lbm_symrepr_init(void) {
   symbol_table_size_strings = 0;
   symbol_table_size_strings_flash = 0;
 
-  lbm_uint x;
-  lbm_uint y;
+  lbm_uint x = 0;
+  lbm_uint y = 0;
   lbm_add_symbol("x", &x);
   lbm_add_symbol("y", &y);
   symbol_x = lbm_enc_sym(x);

@@ -536,9 +536,8 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr
     // all is as it should be (but no free cells)
     return ENC_SYM_MERROR;
   }
-  else {
-    return ENC_SYM_FATAL_ERROR;
-  }
+  // Unreachable, unless something very wrong
+  return ENC_SYM_FATAL_ERROR;
 }
 
 lbm_value lbm_heap_allocate_list(lbm_uint n) {
@@ -1064,6 +1063,28 @@ lbm_value lbm_list_drop(unsigned int n, lbm_value ls) {
   }
   return curr;
 }
+
+lbm_value lbm_index_list(lbm_value l, int32_t n) {
+  lbm_value curr = l;
+
+  if (n < 0) {
+    int32_t len = (int32_t)lbm_list_length(l);
+    n = len + n;
+    if (n < 0) return ENC_SYM_NIL;
+  }
+
+  while (lbm_is_cons(curr) &&
+          n > 0) {
+    curr = lbm_cdr(curr);
+    n --;
+  }
+  if (lbm_is_cons(curr)) {
+    return lbm_car(curr);
+  } else {
+    return ENC_SYM_NIL;
+  }
+}
+
 
 
 // Arrays are part of the heap module because their lifespan is managed

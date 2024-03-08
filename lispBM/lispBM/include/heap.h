@@ -510,6 +510,12 @@ lbm_value lbm_list_append(lbm_value list1, lbm_value list2);
  * \return The list with the n first elements removed.
  */
 lbm_value lbm_list_drop(unsigned int n, lbm_value ls);
+/** Index into a list.
+ * \param l List to index into.
+ * \param n Position to read out of the list.
+ * \return Value at position n of l or nil if out of bounds.
+ */
+lbm_value lbm_index_list(lbm_value l, int32_t n);
 
 // State and statistics
 /** Get a copy of the heap statistics structure.
