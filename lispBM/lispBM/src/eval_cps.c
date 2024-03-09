@@ -659,6 +659,28 @@ static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value en
   return res;
 }
 
+// Allocate a binding and attach it to a list (if so desired)
+static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cdr) {
+  if (lbm_heap_num_free() < 2) {
+    gc();
+    if (lbm_heap_num_free() < 2) {
+      error_ctx(ENC_SYM_MERROR);
+    }
+  }
+  lbm_cons_t* heap = lbm_heap_state.heap;
+  lbm_value binding_cell = lbm_heap_state.freelist;
+  lbm_uint binding_cell_ix = lbm_dec_ptr(binding_cell);
+  lbm_value list_cell = heap[binding_cell_ix].cdr;
+  lbm_uint list_cell_ix = lbm_dec_ptr(list_cell);
+  lbm_heap_state.freelist = heap[list_cell_ix].cdr;
+  lbm_heap_state.num_alloc += 2;
+  heap[binding_cell_ix].car = key;
+  heap[binding_cell_ix].cdr = val;
+  heap[list_cell_ix].car = binding_cell;
+  heap[list_cell_ix].cdr = the_cdr;
+  return list_cell;
+}
+
 #define CLO_PARAMS 0
 #define CLO_BODY   1
 #define CLO_ENV    2
@@ -2844,64 +2866,29 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   bool a_nil = args == ENC_SYM_NIL;
   bool p_nil = cdr_params == ENC_SYM_NIL;
 
-  if (lbm_heap_num_free() < 2) {
-    gc();
-    if (lbm_heap_num_free() < 2) {
-      error_ctx(ENC_SYM_MERROR);
-    }
-  }
-  lbm_cons_t* heap = lbm_heap_state.heap;
-  lbm_value cell0 = lbm_heap_state.freelist;
-  lbm_uint cell0_ix = lbm_dec_ptr(cell0);
-  lbm_value cell1 = heap[cell0_ix].cdr;
-  lbm_uint cell1_ix = lbm_dec_ptr(cell1);
-  lbm_heap_state.freelist = heap[cell1_ix].cdr;
-  lbm_heap_state.num_alloc += 2;
-
-  heap[cell0_ix].car = car_params;
-  heap[cell0_ix].cdr = ctx->r;
-  heap[cell1_ix].car = cell0;
-  heap[cell1_ix].cdr = clo_env;
-  clo_env = cell1;
+  lbm_value binder = allocate_binding(car_params, ctx->r, clo_env);
 
   if (!a_nil && !p_nil) {
     lbm_value car_args, cdr_args;
     get_car_and_cdr(args, &car_args, &cdr_args);
-    sptr[2] = clo_env;
+    sptr[2] = binder;
     sptr[3] = cdr_params;
     sptr[4] = cdr_args;
     stack_push(&ctx->K, CLOSURE_ARGS);
     ctx->curr_exp = car_args;
     ctx->curr_env = arg_env;
   } else if (p_nil && !a_nil) {
-
-    if (lbm_heap_num_free() < 2) {
-      gc();
-      if (lbm_heap_num_free() < 2) {
-        error_ctx(ENC_SYM_MERROR);
-      }
-    }
-    lbm_value rest0 = lbm_heap_state.freelist;
-    lbm_uint rest0_ix = lbm_dec_ptr(rest0);
-    lbm_value rest1 = heap[rest0_ix].cdr;
-    lbm_uint rest1_ix = lbm_dec_ptr(rest1);
-    lbm_heap_state.freelist = heap[rest1_ix].cdr;
-    lbm_heap_state.num_alloc += 2;
-    heap[rest0_ix].car = ENC_SYM_REST_ARGS;
-    heap[rest0_ix].cdr = ENC_SYM_NIL;
-    heap[rest1_ix].car = rest0;
-    heap[rest1_ix].cdr = clo_env;
-    clo_env = rest1;
-    sptr[2] = clo_env;
+    lbm_value rest_binder = allocate_binding(ENC_SYM_REST_ARGS, ENC_SYM_NIL, binder);
+    sptr[2] = rest_binder;
     sptr[3] = get_cdr(args);
-    sptr[4] = rest0; // last element of rest_args so far
+    sptr[4] = get_car(rest_binder); // last element of rest_args so far
     stack_push(&ctx->K, CLOSURE_ARGS_REST);
     ctx->curr_exp = get_car(args);
     ctx->curr_env = arg_env;
   } else if (a_nil && p_nil) {
     // Arguments and parameters match up in number
     lbm_stack_drop(&ctx->K, 5);
-    ctx->curr_env = clo_env;
+    ctx->curr_env = binder;
     ctx->curr_exp = exp;
   } else {
     lbm_set_error_reason((char*)lbm_error_str_num_args);
@@ -4094,16 +4081,10 @@ static void cont_application_start(eval_context_t *ctx) {
       lbm_value arg0, arg_rest;
       get_car_and_cdr(args, &arg0, &arg_rest);
       sptr[1] = cl[CLO_BODY];
-      if (lbm_is_symbol_nil(args)) {
-        if (lbm_is_symbol_nil(cl[CLO_PARAMS])) {
-          // No param closure
-          ctx->curr_exp = cl[CLO_BODY];
-          ctx->curr_env = cl[CLO_ENV];
-        } else {
-          ctx->app_cont = true;
-        }
-        lbm_stack_drop(&ctx->K, 2);
-      } else {
+      bool a_nil = lbm_is_symbol_nil(args);
+      bool p_nil = lbm_is_symbol_nil(cl[CLO_PARAMS]);
+
+      if (!a_nil && !p_nil) {
         lbm_value *reserved = stack_reserve(ctx, 4);
         reserved[0] = cl[CLO_ENV];
         reserved[1] = cl[CLO_PARAMS];
@@ -4111,7 +4092,30 @@ static void cont_application_start(eval_context_t *ctx) {
         reserved[3] = CLOSURE_ARGS;
         ctx->curr_exp = arg0;
         ctx->curr_env = arg_env;
+        return;
       }
+      if (a_nil && p_nil) {
+          // No params, No args
+        lbm_stack_drop(&ctx->K, 2);
+        ctx->curr_exp = cl[CLO_BODY];
+        ctx->curr_env = cl[CLO_ENV];
+        return;
+      }
+      if (p_nil) {
+        lbm_value rest_binder = allocate_binding(ENC_SYM_REST_ARGS, ENC_SYM_NIL, cl[CLO_ENV]);
+        lbm_value *reserved = stack_reserve(ctx, 4);
+        sptr[0] = arg_env;
+        sptr[1] = cl[CLO_BODY];
+        reserved[0] = rest_binder;
+        reserved[1] = get_cdr(args);
+        reserved[2] = get_car(rest_binder);
+        reserved[3] = CLOSURE_ARGS_REST;
+        ctx->curr_exp = get_car(args);
+        ctx->curr_env = arg_env;
+        return;
+      }
+      lbm_set_error_reason((char*)lbm_error_str_num_args);
+      error_at_ctx(ENC_SYM_EERROR, ctx->r);
     } break;
     case ENC_SYM_CONT:{
       /* Continuation created using call-cc.
