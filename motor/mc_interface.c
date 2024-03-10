@@ -1873,7 +1873,9 @@ void mc_interface_fault_stop(mc_fault_code fault, bool is_second_motor, bool is_
 }
 
 void mc_interface_mc_timer_isr(bool is_second_motor) {
+#if LED_ENABLE
 	ledpwm_update_pwm();
+#endif
 
 #ifdef HW_HAS_DUAL_MOTORS
 	motor_if_state_t *motor = is_second_motor ? (motor_if_state_t*)&m_motor_2 : (motor_if_state_t*)&m_motor_1;

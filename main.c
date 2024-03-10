@@ -29,9 +29,7 @@
 #include "mc_interface.h"
 #include "mcpwm.h"
 #include "mcpwm_foc.h"
-#include "ledpwm.h"
 #include "comm_usb.h"
-#include "ledpwm.h"
 #include "terminal.h"
 #include "hw.h"
 #include "app.h"
@@ -54,6 +52,9 @@
 #include "mempools.h"
 #include "events.h"
 #include "main.h"
+#ifdef LED_ENABLE
+#include "ledpwm.h"
+#endif
 #ifdef CAN_ENABLE
 #include "comm_can.h"
 
@@ -83,7 +84,9 @@
 
 // Private variables
 static THD_WORKING_AREA(periodic_thread_wa, 256);
+#if LED_ENABLE
 static THD_WORKING_AREA(led_thread_wa, 256);
+#endif
 static THD_WORKING_AREA(flash_integrity_check_thread_wa, 256);
 static volatile bool m_init_done = false;
 
@@ -102,6 +105,7 @@ static THD_FUNCTION(flash_integrity_check_thread, arg) {
 	}
 }
 
+#if LED_ENABLE
 static THD_FUNCTION(led_thread, arg) {
 	(void)arg;
 
@@ -147,6 +151,7 @@ static THD_FUNCTION(led_thread, arg) {
 		chThdSleepMilliseconds(10);
 	}
 }
+#endif
 
 static THD_FUNCTION(periodic_thread, arg) {
 	(void)arg;
@@ -239,8 +244,10 @@ int main(void) {
 	events_init();
 	timer_init(); // Initialize timer here to allow I2C in hw_init
 	hw_init_gpio();
+#if LED_ENABLE
 	LED_RED_OFF();
 	LED_GREEN_OFF();
+#endif
 
 	conf_general_init();
 
@@ -248,9 +255,11 @@ int main(void) {
 		// Loop here, it is not safe to run any code
 		while (1) {
 			chThdSleepMilliseconds(100);
+		#if LED_ENABLE
 			LED_RED_ON();
 			chThdSleepMilliseconds(75);
 			LED_RED_OFF();
+		#endif
 		}
 	}
 
@@ -293,7 +302,9 @@ int main(void) {
 #endif
 
 	// Threads
+#if LED_ENABLE
 	chThdCreateStatic(led_thread_wa, sizeof(led_thread_wa), NORMALPRIO, led_thread, NULL);
+#endif
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
 	chThdCreateStatic(flash_integrity_check_thread_wa, sizeof(flash_integrity_check_thread_wa), LOWPRIO, flash_integrity_check_thread, NULL);
 

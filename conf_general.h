@@ -109,6 +109,18 @@
 #endif
 
 /*
+ * Enable green and red LED
+ */
+#ifndef LED_ENABLE
+#define LED_ENABLE					1
+#endif
+
+#ifdef HW_HAS_NO_LED
+#undef LED_ENABLE
+#define LED_ENABLE 					0
+#endif
+
+/*
  * Servo output driver
  */
 #define SERVO_OUT_PULSE_MIN_US		1000	// Minimum pulse length in microseconds
