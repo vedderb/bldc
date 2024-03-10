@@ -3,18 +3,26 @@
 echo "BUILDING"
 
 make clean
-make gc
+make
 
-echo "PERFORMING TESTS:"
+date=$(date +"%Y-%m-%d_%H-%M")
+logfile="log_gc_${date}.log"
 
-expected_fails=("test_lisp_code_cps -t 360 -h 1024 test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 360 -s -h 1024 test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 360 -h 512 test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 360 -s -h 512 test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 360 -i -h 1024 test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 360 -i -s -h 1024 test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 360 -i -h 512 test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 360 -i -s -h 512 test_take_iota_0.lisp"
+if [ -n "$1" ]; then
+   logfile=$1
+fi
+
+
+echo "PERFORMING TESTS: " $date
+
+expected_fails=("test_lisp_code_cps -t 25 -h 1024 test_take_iota_0.lisp"
+                "test_lisp_code_cps -t 25 -s -h 1024 test_take_iota_0.lisp"
+                "test_lisp_code_cps -t 25 -h 512 test_take_iota_0.lisp"
+                "test_lisp_code_cps -t 25 -s -h 512 test_take_iota_0.lisp"
+                "test_lisp_code_cps -t 25 -i -h 1024 test_take_iota_0.lisp"
+                "test_lisp_code_cps -t 25 -i -s -h 1024 test_take_iota_0.lisp"
+                "test_lisp_code_cps -t 25 -i -h 512 test_take_iota_0.lisp"
+                "test_lisp_code_cps -t 25 -i -s -h 512 test_take_iota_0.lisp"
                )
 
 
@@ -46,68 +54,53 @@ for exe in *.exe; do
     echo "------------------------------------------------------------"
 done
 
-test_config=("-t 360 -h 32768"
-             "-t 360 -i -h 32768"
-              "-t 360 -s -h 32768"
-              "-t 360 -i -s -h 32768"
-              "-t 360 -h 16384"
-              "-t 360 -i -h 16384"
-              "-t 360 -s -h 16384"
-              "-t 360 -i -s -h 16384"
-              "-t 360 -h 8192"
-              "-t 360 -i -h 8192"
-              "-t 360 -s -h 8192"
-              "-t 360 -i -s -h 8192"
-              "-t 360 -h 4096"
-              "-t 360 -i -h 4096"
-              "-t 360 -s -h 4096"
-              "-t 360 -i -s -h 4096"
-              "-t 360 -h 2048"
-              "-t 360 -i -h 2048"
-              "-t 360 -s -h 2048"
-              "-t 360 -i -s -h 2048"
-              "-t 360 -h 1024"
-              "-t 360 -i -h 1024"
-              "-t 360 -s -h 1024"
-              "-t 360 -i -s -h 1024"
-              "-t 360 -h 512"
-              "-t 360 -i -h 512"
-              "-t 360 -s -h 512"
-              "-t 360 -i -s -h 512")
+test_config=("-t 25 -h 32768"
+             "-t 25 -i -h 32768"
+              "-t 25 -s -h 32768"
+              "-t 25 -i -s -h 32768"
+              "-t 25 -h 16384"
+              "-t 25 -i -h 16384"
+              "-t 25 -s -h 16384"
+              "-t 25 -i -s -h 16384"
+              "-t 25 -h 8192"
+              "-t 25 -i -h 8192"
+              "-t 25 -s -h 8192"
+              "-t 25 -i -s -h 8192"
+              "-t 25 -h 4096"
+              "-t 25 -i -h 4096"
+              "-t 25 -s -h 4096"
+              "-t 25 -i -s -h 4096"
+              "-t 25 -h 2048"
+              "-t 25 -i -h 2048"
+              "-t 25 -s -h 2048"
+              "-t 25 -i -s -h 2048"
+              "-t 25 -h 1024"
+              "-t 25 -i -h 1024"
+              "-t 25 -s -h 1024"
+              "-t 25 -i -s -h 1024"
+              "-t 25 -h 512"
+              "-t 25 -i -h 512"
+              "-t 25 -s -h 512"
+              "-t 25 -i -s -h 512")
 
-#"test_lisp_code_cps_nc"
 for prg in "test_lisp_code_cps" ; do
     for arg in "${test_config[@]}"; do
+        echo "Configuration: " $arg
         for lisp in *.lisp; do
-
-            ./$prg $arg $lisp
-
+            tmp_file=$(mktemp)
+            ./$prg $arg $lisp > $tmp_file
             result=$?
-
-            echo "------------------------------------------------------------"
-            #echo $arg
             if [ $result -eq 1 ]
             then
                 success_count=$((success_count+1))
-                echo $lisp SUCCESS
             else
-
-                #!/bin/bash
-                # foo=('foo bar' 'foo baz' 'bar baz')
-                # bar=$(printf ",%s" "${foo[@]}")
-                # bar=${bar:1}
-
-                # echo $bar
-                str=$(printf "%s " "$prg $arg $lisp")
-                #echo $str
-
                 failing_tests+=("$prg $arg $lisp")
                 fail_count=$((fail_count+1))
-                #echo $failing_tests
 
                 echo $lisp FAILED
+                cat $tmp_file >> $logfile
             fi
-            echo "------------------------------------------------------------"
+            rm $tmp_file
         done
     done
 done

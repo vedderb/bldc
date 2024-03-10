@@ -27,34 +27,44 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 22
+#define LBM_MINOR_VERSION 23
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
-#define LBM_VERSION_STRING "0.22.0"
+#define LBM_VERSION_STRING "0.23.0"
+
 
 /*! \page changelog Changelog
-DEC 26 2024: Version 0.22.0
+MAR 9 2024: Version 0.23.0
+  - rest-args functionality added to function application of lambda defined function.
+  - Improved x86 REPL.
+  - Refernce manual is generated from LispBM script.
+  - Optional env arguments for eval and eval-program.
+  - Backwards indexing in setix using negative numbers.
+  - Bug fix: type promotion
+  - Bug fix: addition and subtraction of byte values
+
+DEC 26 2023: Version 0.22.0
   - Built-in sort operation on lists.
   - Built-in list-merge operation.
   - Bugfix in map.
   - Literal forms for special characters.
 
 
-NOV 28 2024: Version 0.21.0
+NOV 28 2023: Version 0.21.0
   - Removed partial evaluation.
   - Added a built-in loop.
   - Modification to built-in implementation of map.
   - Addition of pointer-reversal garbage collector. Not on by default.
   - Improved error messages.
 
-NOV 1 2024: Version 0.20.0
+NOV 1 2023: Version 0.20.0
   - Added lbm_set_error_suspect function to enable extension authors to point out in more detail what is wrong.
   - Improvement to error messages in some cases.
   - Changed behavior of set family on functions when variable is not already bound (now an error).
   - Fix of bug in flat_value handling.
 
-OCT 8 2024: Version 0.19.0
+OCT 8 2023: Version 0.19.0
   - Error message and callback on GC stack overflow.
   - Functions for gc stack size statistics added.
   - GC does not look at constant values.

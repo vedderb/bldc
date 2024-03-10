@@ -3502,7 +3502,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
 
   /* Attempt to extract tokens from the character stream */
   int n = 0;
-  lbm_value res;
+  lbm_value res = ENC_SYM_NIL;
   unsigned int string_len = 0;
 
   /*
@@ -3515,7 +3515,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
       error_ctx(ENC_SYM_FATAL_ERROR);
     }
     ctx->app_cont = true;
-    lbm_uint do_next;
+    lbm_uint do_next = 0;
     switch(match) {
     case TOKOPENPAR:
       sptr[0] = ENC_SYM_NIL;

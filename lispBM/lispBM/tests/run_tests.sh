@@ -8,6 +8,10 @@ make
 date=$(date +"%Y-%m-%d_%H-%M")
 logfile="log_${date}.log"
 
+if [ -n "$1" ]; then
+   logfile=$1
+fi
+
 echo "PERFORMING TESTS: " $date
 
 expected_fails=("test_lisp_code_cps -h 1024 test_take_iota_0.lisp"

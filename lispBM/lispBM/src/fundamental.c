@@ -531,7 +531,7 @@ static lbm_value fundamental_lt(lbm_value *args, lbm_uint nargs, eval_context_t 
   (void) ctx;
 
   lbm_uint a = args[0];
-  lbm_uint b;
+  lbm_uint b = ENC_SYM_NIL;
   bool r = true;
   bool ok = true;
 
@@ -562,7 +562,7 @@ static lbm_value fundamental_gt(lbm_value *args, lbm_uint nargs, eval_context_t 
   (void) ctx;
 
   lbm_uint a = args[0];
-  lbm_uint b;
+  lbm_uint b = ENC_SYM_NIL;
   bool r = true;
   bool ok = true;
 
@@ -593,7 +593,7 @@ static lbm_value fundamental_leq(lbm_value *args, lbm_uint nargs, eval_context_t
   (void) ctx;
 
   lbm_uint a = args[0];
-  lbm_uint b;
+  lbm_uint b = ENC_SYM_NIL;
   bool r = true;
   bool ok = true;
 
@@ -624,7 +624,7 @@ static lbm_value fundamental_geq(lbm_value *args, lbm_uint nargs, eval_context_t
   (void) ctx;
 
   lbm_uint a = args[0];
-  lbm_uint b;
+  lbm_uint b = ENC_SYM_NIL;
   bool r = true;
   bool ok = true;
 
