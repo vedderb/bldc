@@ -66,6 +66,14 @@ int conf_custom_cfg_num(void) {
 	return res;
 }
 
+int conf_custom_get_cfg_xml(int conf_ind, uint8_t **data) {
+	if (conf_ind != 0 || m_get_cfg_xml == 0) {
+		return 0;
+	}
+
+	return m_get_cfg_xml(data);
+}
+
 void conf_custom_process_cmd(unsigned char *data, unsigned int len,
 		void(*reply_func)(unsigned char *data, unsigned int len)) {
 	COMM_PACKET_ID packet_id;

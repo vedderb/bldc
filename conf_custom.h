@@ -30,6 +30,7 @@ void conf_custom_add_config(
 		int (*get_cfg_xml)(uint8_t **data));
 void conf_custom_clear_configs(void);
 int conf_custom_cfg_num(void);
+int conf_custom_get_cfg_xml(int conf_ind, uint8_t **data);
 void conf_custom_process_cmd(unsigned char *data, unsigned int len,
 		void(*reply_func)(unsigned char *data, unsigned int len));
 

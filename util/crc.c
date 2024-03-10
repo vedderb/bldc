@@ -89,7 +89,7 @@ void crc32_reset(void) {
 	CRC->CR |= CRC_CR_RESET;
 }
 
-uint32_t crc32_with_init(uint8_t *buf, uint32_t len, uint32_t cksum) {
+uint32_t crc32_with_init(const uint8_t *buf, uint32_t len, uint32_t cksum) {
 	cksum = ~cksum;
 
 	while (len--) {
@@ -99,7 +99,6 @@ uint32_t crc32_with_init(uint8_t *buf, uint32_t len, uint32_t cksum) {
 			uint32_t mask = -(cksum & 1);
 			cksum = (cksum >> 1) ^ (0xEDB88320 & mask);
 		}
-
 	}
 
 	return ~cksum;

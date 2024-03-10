@@ -286,6 +286,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		strcpy((char*)(send_buffer + ind), FW_NAME);
 		ind += strlen(FW_NAME) + 1;
 
+		buffer_append_uint32(send_buffer, main_calc_hw_crc(), &ind);
+
 		fw_version_sent_cnt++;
 
 		reply_func(send_buffer, ind);
