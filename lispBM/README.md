@@ -5933,13 +5933,41 @@ The express can use the remote peripheral to drive addressable LEDs on any pin. 
 
 | Platforms | Firmware |
 |---|---|
-| Express | 6.02+ |
+| Express | 6.05+ |
 
 ```clj
-(rgbled-init pin num-leds optLedType)
+(rgbled-init pin)
 ```
 
-Initialize the rgbled-driver on pin for num-leds LEDs. The optional argument optLedType was added in firmware 6.05 and specifies the type of LEDs. If it is omitted type 0 (GRB) is used. The available types are:
+Initialize the rgbled-driver on pin. If the driver already is initialized it will be de-initialized first.
+
+---
+
+#### rgbled-deinit
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(rgbled-deinit)
+```
+
+De-initialize the rgbled-driver and release the resources it used. If data is currently sent to the LEDs this function will block until that is done.
+
+---
+
+#### rgbled-buffer
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(rgbled-buffer num-leds optLedType)
+```
+
+Creates an LED-buffer for num-leds leds. The optional argument optLedType specifies the type of LEDs. If it is omitted type 0 (GRB) is used. The available types are:
 
 | Number | LED Type |
 |---|---|
@@ -5951,26 +5979,9 @@ Initialize the rgbled-driver on pin for num-leds LEDs. The optional argument opt
 Example:
 
 ```clj
-; This is the LED on the DevKitM-1
-(rgbled-init 8 1)
-
-; 10 GRBW-LEDs connected to pin 20 (rx) on the VESC Express
-(rgbled-init 20 10 2)
+; Create a buffer for 10 GRBW-LEDs
+(def strip1 (rgbled-buffer 10 2))
 ```
-
----
-
-#### rgbled-deinit
-
-| Platforms | Firmware |
-|---|---|
-| Express | 6.02+ |
-
-```clj
-(rgbled-deinit)
-```
-
-De-initialize the rgbled-driver and release the resources it used.
 
 ---
 
@@ -5978,17 +5989,69 @@ De-initialize the rgbled-driver and release the resources it used.
 
 | Platforms | Firmware |
 |---|---|
-| Express | 6.02+ |
+| Express | 6.05+ |
 
 ```clj
-(rgbled-color led-num color)
+(rgbled-color buffer led-num color)
 ```
 
-Set LED led-num to color. The color is a number in WRGB8888 format. When the white color is used the type must be u32 as all 32 bits are needed then. Example:
+Set LED led-num to color in buffer. The color is a number in WRGB8888 format. When the white color is used the type must be u32 as all 32 bits are needed then. Buffer is must be created with rgbled-buffer. Example:
 
 ```clj
-(rgbled-color 0 0x00FF0000u32) ; Set the first LED to red
-(rgbled-color 1 0xFF000000u32) ; Set the second LED to white
+(def strip1 (rgbled-buffer 10 2))
+
+(rgbled-color strip1 0 0x00FF0000u32) ; Set the first LED to red
+(rgbled-color strip1 1 0xFF000000u32) ; Set the second LED to white
+```
+
+Note: This function only updates the color in the buffer. To show the new color the function rgbled-update must be used.
+
+---
+
+#### rgbled-update
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(rgbled-update buffer)
+```
+
+Send buffer to the LEDs.
+
+### Multiple LED-strips
+
+It is possible to use multiple pins to drive different LED-strips. Even different types of LEDs can be used on the different pins. To do that more than one buffer can be used and rgbled-init can be used to move the driver to a different pin. Example:
+
+```clj
+; In this example a strip with 10 GRBW-LEDs is connected to
+; pin 20 and another strip with 10 GRB-LEDs is conneced to pin 21.
+
+; Buffer for 10 GRBW-LEDs
+(def strip1 (rgbled-buffer 10 2))
+; Buffer for 10 GRB-LEDs
+(def strip2 (rgbled-buffer 10 0))
+
+; Write some colors to the buffers of the
+; two strips
+
+(rgbled-color strip1 0 0x330000)
+(rgbled-color strip1 1 0x22000000u32)
+(rgbled-color strip1 9 0x003311)
+
+(rgbled-color strip2 0 0x330000)
+(rgbled-color strip2 1 0x22000000u32)
+(rgbled-color strip2 6 0x330011)
+
+; Start the driver on pin 20 and send the first buffer
+(rgbled-init 20)
+(rgbled-update strip1)
+
+; Now move the driver to pin 21 and send the other buffer. This
+; function will block until the previous update has finished.
+(rgbled-init 21)
+(rgbled-update strip2)
 ```
 
 ---
