@@ -413,6 +413,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp("Verbose errors %s", verbose_now ? "Enabled" : "Disabled");
 			} else {
 				if (repl_buffer) {
+					lispif_unlock_lbm();
 					break;
 				}
 
