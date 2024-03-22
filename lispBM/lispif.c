@@ -772,6 +772,11 @@ static bool const_heap_write(lbm_uint ix, lbm_uint w) {
 		return true;
 	}
 
+	if (const_heap_ptr[ix] != 0xffffffff) {
+		commands_printf_lisp("Attempted to write to const heap at %d, but it is already occupied", ix);
+		return false;
+	}
+
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
