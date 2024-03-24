@@ -239,8 +239,8 @@
 #define HW_SPI_PIN_MISO			6
 
 // PAS sensor
-#define HW_PAS1_PORT HW_ICU_GPIO
-#define HW_PAS1_PIN HW_ICU_PIN
+//#define HW_PAS1_PORT HW_ICU_GPIO
+//#define HW_PAS1_PIN HW_ICU_PIN
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]

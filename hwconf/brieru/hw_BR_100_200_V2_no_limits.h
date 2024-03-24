@@ -16,10 +16,10 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
-#ifndef HW_BR_85_200_V2_no_limits_H_
-#define HW_BR_85_200_V2_no_limits_H_ 
+#ifndef HW_BR_100_200_no_limits_H_ 
+#define HW_BR_100_200_no_limits_H_ 
 
-#define HW_NAME					"BRIESC_85_200_V2_no_limits"
+#define HW_NAME					"BRIESC_100_200_V2_no_limits"
 
 
 // HW properties
@@ -29,19 +29,15 @@
 #define HW_HAS_PHASE_FILTERS
 //#define HW_HAS_CURRENT_FILTER
 
-//#define HW_HAS_BRIERU_POWERSWITCH
-
 // Macros
-#define LED_GREEN_GPIO			GPIOB
-#define LED_GREEN_PIN			5
 #define LED_RED_GPIO			GPIOB
 #define LED_RED_PIN				7
 
-#define LED_GREEN_ON()			palSetPad(LED_GREEN_GPIO, LED_GREEN_PIN)
-#define LED_GREEN_OFF()			palClearPad(LED_GREEN_GPIO, LED_GREEN_PIN)
+
+#define LED_GREEN_ON()			false
+#define LED_GREEN_OFF()			false
 #define LED_RED_ON()			palSetPad(LED_RED_GPIO, LED_RED_PIN)
 #define LED_RED_OFF()			palClearPad(LED_RED_GPIO, LED_RED_PIN)
-
 
 #define PHASE_FILTER_GPIO		GPIOC
 #define PHASE_FILTER_PIN		9
@@ -132,7 +128,7 @@
 #define V_REG					3.30
 #endif
 #ifndef VIN_R1
-#define VIN_R1					56000.0
+#define VIN_R1					64000.0
 #endif
 #ifndef VIN_R2
 #define VIN_R2					2200.0
@@ -246,8 +242,10 @@
 #define HW_SPI_PIN_MISO			6
 
 // PAS sensor
-#define HW_PAS1_PORT HW_ICU_GPIO
-#define HW_PAS1_PIN HW_ICU_PIN
+//#define HW_PAS1_PORT HW_ICU_GPIO
+//#define HW_PAS1_PIN HW_ICU_PIN
+//#define HW_PAS2_PORT HW_ICU_GPIO
+//#define HW_PAS2_PIN HW_ICU_PIN
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
@@ -266,11 +264,11 @@
 // Default motor setting overrides
 // Default setting overrides
 #define MCCONF_L_MIN_VOLTAGE			36.0	// Minimum input voltage
-#define MCCONF_L_MAX_VOLTAGE			80.0	// Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE			85.0	// Maximum input voltage
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #define MCCONF_FOC_F_ZV					30000.0
 #define MCCONF_L_MAX_ABS_CURRENT		300.0	// The maximum absolute current above which a fault is generated
-#define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
+#define MCCONF_FOC_SAMPLE_V0_V7			FOC_CONTROL_SAMPLE_MODE_V0_V7_INTERPOL	// Run control loop
 #define MCCONF_L_IN_CURRENT_MAX			60.0	// Input current limit in Amperes (Upper)
 #define MCCONF_L_IN_CURRENT_MIN			-10.0	// Input current limit in Amperes (Lower)
 #define MCCONF_FOC_CURRENT_FILTER_CONST	0.8		// Filter constant for the filtered currents
@@ -281,7 +279,9 @@
 #define MCCONF_L_LIM_TEMP_FET_END       85      // MOSFET Temp Cutoff End
 #define MCCONF_FOC_SAT_COMP_MODE		SAT_COMP_DISABLED		// Stator saturation compensation mode
 #define MCCONF_FOC_CC_DECOUPLING		FOC_CC_DECOUPLING_DISABLED // Current controller decoupling
-#define MCCONF_FOC_OBSERVER_TYPE		FOC_OBSERVER_ORTEGA_ORIGINAL // Position observer type for FOC
+#define MCCONF_FOC_OBSERVER_TYPE		FOC_OBSERVER_MXLEMMING // Position observer type for FOC
+#define MCCONF_FOC_CURRENT_SAMPLE_MODE	FOC_CURRENT_SAMPLE_MODE_ALL_SENSORS
+#define MCCONF_FOC_DT_US				0.1 // Microseconds for dead time compensation
 #define MCCONF_M_HALL_EXTRA_SAMPLES		2 // Extra samples for filtering when reading hall sensors
 #define MCCONF_SI_MOTOR_POLES			30 // Motor pole count
 #define MCCONF_SI_GEAR_RATIO			1 // Gear ratio
@@ -304,10 +304,10 @@
 #define APPCONF_PPM_THROTTLE_EXP_MODE		THR_EXP_POLY
 
 // Setting limits
-#define HW_LIM_CURRENT			-400.0, 400.0
-#define HW_LIM_CURRENT_IN		-200.0, 200.0
-#define HW_LIM_CURRENT_ABS		0.0, 540.0
-#define HW_LIM_VIN				25.0, 96.0
+#define HW_LIM_CURRENT			-500.0, 500.0
+#define HW_LIM_CURRENT_IN		-300.0, 300.0
+#define HW_LIM_CURRENT_ABS		0.0, 650.0
+#define HW_LIM_VIN				25.0, 100.0
 #define HW_LIM_ERPM				-100e3, 100e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.96
