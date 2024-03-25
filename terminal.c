@@ -323,7 +323,7 @@ void terminal_process_string(char *str) {
 				mcconf->motor_type = MOTOR_TYPE_FOC;
 				mc_interface_set_configuration(mcconf);
 				float tmp_r = 0.0;
-				int fault = mcpwm_foc_measure_resistance(current, 2000, true, &tmp_r);
+				int fault = mcpwm_foc_measure_resistance(current, 2000, true, &tmp_r, true);
 				if(fault == FAULT_CODE_NONE) {
 					commands_printf("Resistance: %.6f ohm\n", (double)tmp_r);
 				} else {
