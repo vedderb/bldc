@@ -45,6 +45,7 @@ LBM supports signed and unsigned integer types as well as float and double. The 
    - u64    - unsigned 64bit value.
    - f32    - (float) a 32bit floating point value.
    - f64    - (double) a 64bit floating point value.
+
 The byte and the char value have identical representation and type, thus char is an unsigned 8 bit type in LBM. 
 
 An integer literal is interpreted to be of type `i`, a 28/56bit signed integer value.  A literal with decimal point is interpreted to be a type `f32` or float value. 
@@ -55,6 +56,7 @@ So for example:
 
    - `1b`     - Specifies a byte typed value of 1
    - `1.0f64` - Specifies a 64bit float with value 1.0.
+
 **Note** that it is an absolute requirement to include a decimal when writing a floating point literal in LBM. 
 
 We are trying to make type conversions feel familar to people who are familiar with the C programming language. On a 32bit platform LBM numerical types are ordered according to: `byte < i < u < i32 < u32 < i64 < u64 < float < double`.  Operations such as `(+ a b)`, figures out the largest type according to the ordering above and converts all the values to this largest type. 
@@ -63,11 +65,13 @@ Example:
 
    - `(+ 1u 3i32)` - Promotes the 1u value type i32 and performs the addition, resulting in 4i32.
    - `(+ 1  3.14)` - Here the value 1 is of type `i` which is smaller than `f32`, the result 4.14f32.
+
 A potential source of confusion is that `f32` is a larger type than `i64` and `u64`. this means that if you, for example, add 1.0 to an `i64` value you will get an `f32` back. If you instead wanted the float to be converted into a double before the addition, this has to be done manually. 
 
 Example: 
 
    -  `(+ (to-double 1.0) 5i64)`    - Manually convert a value to double.
+
 The `type-of` operation can be used to query a value for its type. On the numerical types the `type-of` operation answers as follows: 
 
    - `(type-of 1b)`     -> `type-char`
@@ -80,6 +84,7 @@ The `type-of` operation can be used to query a value for its type. On the numeri
    - `(type-of 1.0)`    -> `type-float`
    - `(type-of 1.0f64)` -> `type-double`
 
+
 ### Overflow behaviour
 
 Operations on fixed bitwidth mumerical types can lead to overflow. The ranges representable in 32bit LBMs integer types are the following: 
@@ -91,6 +96,7 @@ Operations on fixed bitwidth mumerical types can lead to overflow. The ranges re
    - `type-u32`   : 0- 4294967295
    - `type-i64`   : -9223372036854775808 - 9223372036854775807
    - `type-u64`   : 0 - 18446744073709551615
+
 <table>
 <tr>
 <td> Example </td> <td> Result </td>
@@ -357,19 +363,19 @@ All Values in LBM are encoded in one way or another. The encoded value holds add
 The chart below shows the time it takes to perform 10 million additions on the x86 architecture (a i7-6820HQ) in 32Bit mode. The difference in cost is negligible between the types `byte` - `u32` with a huge increase in cost for 64 bit types. 
 
 All Integer types | 32Bit or smaller
-:---:|:---:|
+|:---:|:---:|
 ![Performance of 10 million additions at various types on x86 32bit](./images/millions.png) | ![Performance of 10 million additions at various types on x86 32bit](./images/millions_zoom.png)
 
 The charts below compare floating point operations to `u32` operations on x86 32Bit. There is little difference in cost of `f32` and `u32` operations, but a large increase in cost when going to `f64` (double). 
 
 `f32` and `f64` vs `u32` | `f32` vs `u32`
-:---:|:---:|
+|:---:|:---:|
 ![Performance of floating point additions on x86 32bit](./images/float_x86_32.png) | ![Performance floating point additions on x86 32bit](./images/float_x86_32_zoom.png)
 
 In 64Bit mode the x86 version of LBM shows negligible differences in cost of additions at different types. 
 
 All Integer types | `f32` and `f64` vs `u32`
-:---:|:---:|
+|:---:|:---:|
 ![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png) | ![Performance of floating point additions on x86 64bit](./images/float_x86_64.png)
 
 On 64Bit x86 the difference in cost is little accross all LBM types. 
@@ -379,25 +385,25 @@ For addition performance on embedded systems, we use the the EDU VESC motorcontr
 On ESP32C3, a 160MHz 32Bit RISCV core, time is measured over 100000 additions.  There is a more pronounced gap between 28Bit and smaller types and the 32Bit types here. Likely because of the differences in encoding of 28Bit or less types and 32Bit types. 
 
 All Integer types | 32Bit or smaller
-:---:|:---:|
+|:---:|:---:|
 ![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv.png) | ![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv_zoom.png)
 
 On RISCV the difference in cost between `u32` and `f32` operations is small. This is a bit surprising as the ESP32C3 does not have a floating point unit. It is possible that the encoding/decoding of numbers is dominating the cost of any numerical opeation. 
 
 `f32` and `f64` vs `u32` | `f32` vs `u32`
-:---:|:---:|
+|:---:|:---:|
 ![Performance of floating point additions on ESP32C3 RISCV](./images/float_riscv.png) | ![Performance floating point additions on ESP32C3 RISCV](./images/float_riscv_zoom.png)
 
 On the STM32F4 at 168MHz (an EDU VESC) The results are similar to ESP32 but slower.  The slower performance on the VESC compared to the VESC_Express ESP32 may be caused by the VESC firmware running motorcontrol interrups at a high frequency. 
 
 All Integer types | 32Bit or smaller
-:---:|:---:|
+|:---:|:---:|
 ![Performance of 100000 addtions at various types on STM32F4](./images/thousands_arm.png) | ![Performance of 100000 additions at various types on STM32F4](./images/thousands_arm_zoom.png)
 
 The cost of `f32` operations compared to `u32` on the STM32F4 shows little differences.  As expected there is a jump up in cost when going to 64Bit. 
 
 `f32` and `f64` vs `u32` | `f32` vs `u32`
-:---:|:---:|
+|:---:|:---:|
 ![Performance of floating point additions on STM32F4](./images/float_stm.png) | ![Performance floating point additions on STM32F4](./images/float_stm_zoom.png)
 
 In general, on 32Bit platforms, the cost of operations on numerical types that are 32Bit or less are about equal in cost. The costs presented here was created by timing a large number of 2 argument additions. Do not see these measurements as the "truth carved in stone", LBM performance keeps changing over time as we make improvements, but use them as a rough guiding principle.  If anything can be taken away from this it is to stay away from 64Bit value operations in your tightest and most time critical loops. 
@@ -405,11 +411,53 @@ In general, on 32Bit platforms, the cost of operations on numerical types that a
 
 ## Syntax and semantics
 
-### Syntax overview
+Opinions on Lisp syntax varies widely depending on a persons programming experience and preferences. If you look around, or ask around you could find any of the following, and probably more views on lisp syntax: 
 
-### Function application
+   - **Concise and expressive** Lisp syntax is quite minimalist, you can do a lot with very little syntax to learn about.
+   - **Uniform and elegant** Data and code are represented in the same way. This property is called Homoiconicity.
+   - **Too many parenthesis** A common complaint is that it can be easy to get lost in all the parantheses. While it may be easy to write lisp, it can be very hard to read someone elses code.
 
-### Special forms
+Lisp programs are written using S-expressions, a notation introduced by [McCarthy](http://www-formal.stanford.edu/jmc/recursive.pdf). An S-expression describes a tree in an unambiguous way. An example of an S-expression is `(+ 1 2)` and the tree it represents is shown below: 
+
+![Graph representaion of s-expression](./images/add_one_two.png)
+
+Another example `(+ (* a a) (* b b))` which as a lisp program means $a^2 + b^2$: 
+
+![Graph representaion of s-expression](./images/sum_of_squares.png)
+
+In Lisp, which stands for "LISt Processor", a list is a right leaning tree ending in the symbol "nil". By convention these right leaning expressions are easy to write and requires only a few parentheses. The example below shows how the list created by lisp program `(list 1 2 3 4)` is represented as a tree: 
+
+![Graph representaion of s-expression](./images/list_1234.png)
+
+A left leaning structure requires full parenthesization and can be expressed in lisp as `(cons (cons (cons (cons nil 4) 3) 2) 1)`. 
+
+![Graph representaion of s-expression](./images/snoc_1234.png)
+
+The conventions strongly favor the right leaning case. 
+
+There are no two different trees that correspond to a given S-expression and thus parsing of S-expressions is unambiguous. The unambiguous nature of S-expressions is useful in areas other than lisp programming as well. [KiCad](https://dev-docs.kicad.org/en/file-formats/sexpr-intro/) uses S-expressions to represent tree data in some of its file formats. Apperantly [WebAssembly](https://developer.mozilla.org/en-US/docs/WebAssembly/Understanding_the_text_format) uses S-expressions as well to describe WebAssembly modules 
+
+
+S-expressions are built from two things, **Atoms** and **Pairs** of S-expressions. So an S-expression is either: 
+
+
+   -  An **Atom** *a* 
+   -  A **Pair** *a*,*b* of S-expressions `(a . b)` 
+
+In LispBM the set of atoms consist of: 
+
+   - Numbers: Such as `1`, `2`, `3.14`, `65b`, `2u32`
+   - Strings: Such as "hello world", "door" ...
+   - Byte Arrays: Such as [1 2 3 4 5]
+   - Symbols: Such as `a`, `lambda`, `define`, `kurt-russel` ...
+
+In LispBM a pair of S-expressions is created by an application of `cons` as `(cons a b)` which creates the pair `(a . b)`. Convention is that `(e0 e1 ... eN)` = `(e0 . ( e1 . ... ( eN . nil)))`. 
+
+### The meaning (semantics) that LispBM imposes on S-Expressions
+
+The S-expressions from the previous section are just trees. The Lisp evaluator provides a computational interepretation for such trees. Not all trees make sense as lisp programs. This section is about those trees that do make sense and what they mean to the Lisp evaluator. 
+
+### Concurrency and Semantics
 
 # Reference
 
@@ -2958,7 +3006,7 @@ Special forms looks a lot like functions but they are allowed to break the norms
 
 ### if
 
-Conditionals are written as `(if cond-expr then-expr else-expr)`.  If the cond-expr evaluates to <a href="#nil"> nil </a> the else-expr will be evaluated.  for any other value of cond-expr the then-expr will be evaluated. 
+Conditionals are written as `(if cond-expr then-expr else-exp)`.  If the cond-expr evaluates to <a href="#nil"> nil </a> the else-expr will be evaluated.  for any other value of cond-expr the then-expr will be evaluated. 
 
 <table>
 <tr>
@@ -3366,6 +3414,52 @@ Local environments are created using let. The let binding in lispbm allows for m
 
 ```clj
 1
+```
+
+
+</td>
+</tr>
+</table>
+
+You can deconstruct composite values while let binding. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(let (((a b) (list 1 2)))
+     (+ a b))
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(let (((a . as) (list 1 2 3 4 5 6)))
+     (cons a (reverse as)))
+```
+
+
+</td>
+<td>
+
+```clj
+(1 6 5 4 3 2)
 ```
 
 
@@ -3811,6 +3905,52 @@ The var special form allows local bindings in a progn expression. A var expressi
 
 ```clj
 30
+```
+
+
+</td>
+</tr>
+</table>
+
+You can deconstruct composite value while var binding. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(progn (var (a b) (list 1 2))
+       (+ a b))
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(progn (var (a . as) (list 1 2 3 4 5 6))
+       (cons a (reverse as)))
+```
+
+
+</td>
+<td>
+
+```clj
+(1 6 5 4 3 2)
 ```
 
 
@@ -5794,6 +5934,7 @@ The `no_match` symbol is returned from pattern matching if no case matches the e
 
 
 
+
 ---
 
 
@@ -6606,6 +6747,7 @@ The `read_error` symbol is returned if the reader cannot parse the input code. R
 
 
 
+
 ---
 
 
@@ -6631,6 +6773,7 @@ Evaluation error happens on programs that may be syntactically correct (LispBM h
 
 
 
+
 ---
 
 
@@ -6645,6 +6788,7 @@ The program you have written requires more memory.
 
 
 
+
 ---
 
 
@@ -6653,6 +6797,7 @@ The program you have written requires more memory.
 The `fatal_error` symbol is returned in cases where the LispBM runtime system cannot proceed. Something is corrupt and it is not safe to continue. 
 
    - If this happens please send the program and the full error message to blog.joel.svensson@gmail.com. It will be much appreciated.
+
 
 
 
@@ -6668,6 +6813,7 @@ The `out_of_stack` symbol is returned if the evaluator runs out of continuation 
 
 
 
+
 ---
 
 
@@ -6677,6 +6823,7 @@ The `division_by_zero` symbol is returned when dividing by zero.
 
    - Check your math.
    - Add 0-checks into your code at a strategic position.
+
 
 
 
@@ -6723,6 +6870,7 @@ A `@const-start` opened block should be closed with a `@const-end`. Constant blo
 
 (+ (f 1) 2)
 ```
+
 
 
 ---
@@ -7454,5 +7602,5 @@ Convert any numerical value to a double precision floating point value. If the i
 
 ---
 
-This document was generated by LispBM version 0.22.0 
+This document was generated by LispBM version 0.23.0 
 

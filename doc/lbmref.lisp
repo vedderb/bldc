@@ -136,6 +136,10 @@
     (rend "</table>\n\n")
     })
 
+(defun str-merge-list (strs)
+  (match strs
+         ( nil "" )
+         ( ((? s) . (? ss)) (str-merge s (str-merge-list ss)))))
 
 (defun render-it (rend ss)
   (match ss
@@ -151,7 +155,7 @@
            }
            )
          ( (para (? x)) { (map (lambda (s) (rend (str-merge s " "))) x) (rend "\n\n") } )
-         ( (verb (? x)) (map (lambda (s) (rend s)) x))
+         ( (verb (? x)) { (map (lambda (s) (rend s)) x) (rend "\n") } )
          ( hline (rend "\n---\n\n"))
          ( newline (rend "\n"))
          ( (bold (? s))
@@ -162,7 +166,7 @@
            (rend (str-merge "![" alt "](" url " \"" alt "\")")))
          ( (image-pair (? cap0) (? txt0) (? fig0) (? cap1) (? txt1) (? fig1))
            (rend (str-merge cap0 " | " cap1 "\n"
-                            ":---:|:---:|\n"
+                            "|:---:|:---:|\n"
                             "![" txt0 "](" fig0 ") | ![" txt1 "](" fig1 ")\n\n")))
          ( (s-exp-graph (? img-name) (? code))
            {
@@ -235,7 +239,7 @@
   (list 'image-pair cap0 txt0 fig0 cap1 txt1 fig1))
 
 (defun s-exp-graph (img-name code)
-  (list 's-exp-graph code))
+  (list 's-exp-graph img-name code))
 
 (defun semantic-step (c1 c2 prop)
   (list 'semantic-step c1 c2 prop))
@@ -573,23 +577,93 @@
   )
 
 
+(defun semantics ()
+  (section 3 "The meaning (semantics) that LispBM imposes on S-Expressions"
+           (list
+            (para (list "The S-expressions from the previous section are just trees. The Lisp evaluator"
+                        "provides a computational interepretation for such trees. Not all trees make sense"
+                        "as lisp programs. This section is about those trees that do make sense and"
+                        "what they mean to the Lisp evaluator."
+                        ))
+            ))
+  )
+
+
+(defun concurrency-and-semantics ()
+  (section 3 "Concurrency and Semantics"
+           (list
+            )
+           ))
+
 
 (define ch-syntax-semantics
   (section 2 "Syntax and semantics"
            (list
-            (section 3 "Syntax overview"
-                     (list
+            (para (list "Opinions on Lisp syntax varies widely depending on a persons programming experience and preferences."
+                        "If you look around, or ask around you could find any of the following, and probably more views on lisp syntax:"
+                        ))
+            (bullet (list "**Concise and expressive** Lisp syntax is quite minimalist, you can do a lot with very little syntax to learn about."
+                          "**Uniform and elegant** Data and code are represented in the same way. This property is called Homoiconicity."
+                          "**Too many parenthesis** A common complaint is that it can be easy to get lost in all the parantheses. While it may be easy to write lisp, it can be very hard to read someone elses code."
+                          ))
+            (para (list "Lisp programs are written using S-expressions, a notation introduced by"
+                        "[McCarthy](http://www-formal.stanford.edu/jmc/recursive.pdf). An"
+                        "S-expression describes a tree in an unambiguous way."
+                        "An example of an S-expression is `(+ 1 2)` and the tree it represents is shown below:"
+                        ))
+            (s-exp-graph "add_one_two" '(+ 1 2)
+                         )
+            (para (list "Another example `(+ (* a a) (* b b))` which as a lisp program means $a^2 + b^2$:"
+                        ))
+            (s-exp-graph "sum_of_squares" '(+ (* a a) (* b b))
+                         )
+            (para (list "In Lisp, which stands for \"LISt Processor\", a list is a right leaning tree ending in the symbol \"nil\"."
+                        "By convention these right leaning expressions are easy to write and requires only a few parentheses. The"
+                        "example below shows how the list created by lisp program `(list 1 2 3 4)` is represented as a tree:"
+                        ))
+            (s-exp-graph "list_1234" (list 1 2 3 4)
+                         )
+            (para (list "A left leaning structure requires full parenthesization and can be expressed in lisp as"
+                        "`(cons (cons (cons (cons nil 4) 3) 2) 1)`."
+                        ))
+            (s-exp-graph "snoc_1234" (cons (cons (cons (cons nil 4) 3) 2) 1)
+                         )
+            (para (list "The conventions strongly favor the right leaning case."
+                        ))
+            (para (list "There are no two different trees that correspond to a given S-expression and thus parsing of S-expressions is unambiguous."
+                        "The unambiguous nature of S-expressions is useful in areas other than lisp programming as well."
+                        "[KiCad](https://dev-docs.kicad.org/en/file-formats/sexpr-intro/) uses S-expressions to represent tree data in some of its"
+                        "file formats. Apperantly [WebAssembly](https://developer.mozilla.org/en-US/docs/WebAssembly/Understanding_the_text_format)"
+                        "uses S-expressions as well to describe WebAssembly modules"
+                        ))
+            (newline)
+            (para (list "S-expressions are built from two things, **Atoms** and **Pairs** of S-expressions."
+                        "So an S-expression is either:"
+                        ))
+            (newline)
+            (bullet (list " An **Atom** *a* "
+                          " A **Pair** *a*,*b* of S-expressions `(a . b)` "
+                          ))
+            (para (list "In LispBM the set of atoms consist of:"
+                        ))
+            (bullet (list "Numbers: Such as `1`, `2`, `3.14`, `65b`, `2u32`"
+                          "Strings: Such as \"hello world\", \"door\" ..."
+                          "Byte Arrays: Such as [1 2 3 4 5]"
+                          "Symbols: Such as `a`, `lambda`, `define`, `kurt-russel` ..."
+                          ))
+            (para (list "In LispBM a pair of S-expressions is created by an application of `cons` as `(cons a b)`"
+                        "which creates the pair `(a . b)`. Convention is that `(e0 e1 ... eN)` = `(e0 . ( e1 . ... ( eN . nil)))`."
+                        ))
+            (semantics)
+            (concurrency-and-semantics)
+            
                       )
-                     )
-            (section 3 "Function application"
-                     (list
-                      )
-                     )
-            (section 3 "Special forms"
-                     (list
-                      )
-                     )
-           )))
+           )
+  )
+           
+
+
+
 
 
 
@@ -1191,7 +1265,7 @@
 (define special-form-if
   (ref-entry "if"
              (list
-              (para (list "Conditionals are written as `(if cond-expr then-expr else-expr)`.  If"
+              (para (list "Conditionals are written as `(if cond-expr then-expr else-exp)`.  If"
                           "the cond-expr evaluates to <a href=\"#nil\"> nil </a> the else-expr will"
                           "be evaluated.  for any other value of cond-expr the then-expr will be"
                           "evaluated."
@@ -1281,6 +1355,13 @@
                             (g (lambda (x) (if (= x 0) 1 (f (- x 1))))))
                         (f 11))
                       ))
+              (para (list "You can deconstruct composite values while let binding."
+                          ))
+              (code '(( let ( ( (a b) (list 1 2) ) ) (+ a b))
+                      ( let ( ( (a . as) (list 1 2 3 4 5 6)) ) (cons a (reverse as) ))
+                      ))
+              
+              
               end)))
 
 (define special-form-loop
@@ -1446,6 +1527,11 @@
 
               (code '((progn (var a 10) (var b 20) (+ a b))
                       (progn (var a 10) (var b (+ a 10)) (+ a b))
+                      ))
+              (para (list "You can deconstruct composite value while var binding."
+                          ))
+              (code '((progn (var (a b) (list 1 2)) (+ a b))
+                      (progn (var (a . as) (list 1 2 3 4 5 6)) (cons a (reverse as)))
                       ))
               end)))
 
