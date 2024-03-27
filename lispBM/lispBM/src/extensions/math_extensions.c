@@ -21,6 +21,11 @@
 
 #include <math.h>
 
+#ifdef __STRICT_ANSI__
+#define isnanf isnan
+#define isinff isinf
+#endif
+
 // Math
 
 static lbm_value ext_sin(lbm_value *args, lbm_uint argn) {
@@ -126,6 +131,62 @@ static lbm_value ext_round(lbm_value *args, lbm_uint argn) {
    }
  }
 
+
+static lbm_value ext_is_nan(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    lbm_uint t = lbm_type_of(args[0]);
+    switch(t) {
+    case LBM_TYPE_DOUBLE:
+      if (isnan(lbm_dec_double(args[0]))) {
+        res = ENC_SYM_TRUE;
+      } else {
+        res = ENC_SYM_NIL;
+      }
+      break;
+    case LBM_TYPE_FLOAT:
+      if (isnanf(lbm_dec_float(args[0]))) {
+        res = ENC_SYM_TRUE;
+      } else {
+        res = ENC_SYM_NIL;
+      }
+      break;
+    default:
+      res = ENC_SYM_NIL;
+      break;
+    }     
+  }
+  return res;
+}
+
+static lbm_value ext_is_inf(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    lbm_uint t = lbm_type_of(args[0]);
+    switch(t) {
+    case LBM_TYPE_DOUBLE:
+      if (isinf(lbm_dec_double(args[0]))) {
+        res = ENC_SYM_TRUE;
+      } else {
+        res = ENC_SYM_NIL;
+      }
+      break;
+    case LBM_TYPE_FLOAT:
+      if (isinff(lbm_dec_float(args[0]))) {
+        res = ENC_SYM_TRUE;
+      } else {
+        res = ENC_SYM_NIL;
+      }
+      break;
+    default:
+      res = ENC_SYM_NIL;
+      break;
+    }     
+  }
+  return res;
+}
+
+
 bool lbm_math_extensions_init(void) {
 
   bool res = true;
@@ -146,5 +207,7 @@ bool lbm_math_extensions_init(void) {
   res = res && lbm_add_extension("round", ext_round);
   res = res && lbm_add_extension("deg2rad", ext_deg2rad);
   res = res && lbm_add_extension("rad2deg", ext_rad2deg);
+  res = res && lbm_add_extension("is-nan", ext_is_nan);
+  res = res && lbm_add_extension("is-inf", ext_is_inf);
   return res;
 }
