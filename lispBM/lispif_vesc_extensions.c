@@ -1772,6 +1772,16 @@ static lbm_value ext_get_rpm(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(mc_interface_get_rpm());
 }
 
+static lbm_value ext_get_rpm_fast(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_rpm_fast());
+}
+
+static lbm_value ext_get_rpm_faster(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_rpm_faster());
+}
+
 static lbm_value ext_get_pos(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_pid_pos_now());
@@ -5154,6 +5164,8 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-est-ind", ext_foc_est_ind);
 	lbm_add_extension("get-duty", ext_get_duty);
 	lbm_add_extension("get-rpm", ext_get_rpm);
+	lbm_add_extension("get-rpm-fast", ext_get_rpm_fast);
+	lbm_add_extension("get-rpm-faster", ext_get_rpm_faster);
 	lbm_add_extension("get-pos", ext_get_pos);
 	lbm_add_extension("get-temp-fet", ext_get_temp_fet);
 	lbm_add_extension("get-temp-mot", ext_get_temp_mot);

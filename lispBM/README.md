@@ -1296,7 +1296,35 @@ Get duty cycle. Range -1.0 to 1.0.
 (get-rpm)
 ```
 
-Get motor RPM. Negative values mean that the motor spins in the reverse direction.
+Get motor ERPM. Negative values mean that the motor spins in the reverse direction.
+
+---
+
+#### get-rpm-fast
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(get-rpm-fast)
+```
+
+Same as get-rpm, but with less filtering. This give the RPM-estimation lower latency at the cost of more noise.
+
+---
+
+#### get-rpm-faster
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.05+ |
+
+```clj
+(get-rpm-faster)
+```
+
+Same as get-rpm-fast, but with even less filtering. This give the RPM-estimation even lower latency at the cost of even more noise.
 
 ---
 
