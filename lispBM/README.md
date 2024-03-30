@@ -515,9 +515,9 @@ Same as get-imu-gyro, but derotates the result first. This means that the angula
 | ESC, Express | 6.00+ |
 
 ```clj
-(send-data dataList)
+(send-data dataList optInterface optCanId)
 ```
-Send a list of custom app data to VESC Tool. This can be read from a Qml script for example.
+Send a list of custom app data on the commands-interface of the type COMM_CUSTOM_APP_DATA. This can be read from a Qml script in VESC Tool for example or from another node on the CAN-bus.
 
 Example of sending the numbers 1, 2, 3 and 4:
 
@@ -526,6 +526,20 @@ Example of sending the numbers 1, 2, 3 and 4:
 ```
 
 *dataList* can be a list or a [byte array](#byte-arrays).
+
+The optional argument optInterface (introduced in FW 6.05) can be used to specify which interface to use and the optional argument optCanId can be used to specify which CAN-device to send the message to when using the CAN interface. The available interfaces are:
+
+| Number | Interface Type |
+|---|---|
+| 0 | The last interface data was received on (default) |
+| 1 | USB |
+| 2 | CAN (requires the argument optCanId) |
+| 3 | UART on comm-header |
+| 4 | UART builtin (depending on hardware) |
+| 5 | UART extra (depending on hardware) |
+| 6 | WiFi local (express) |
+| 7 | WiFi TCP Hub (express) |
+| 8 | BLE (express) |
 
 ---
 

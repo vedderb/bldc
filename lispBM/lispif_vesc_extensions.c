@@ -52,6 +52,8 @@
 #include "buffer.h"
 #include "crc.h"
 #include "shutdown.h"
+#include "app.h"
+#include "comm_usb.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -1045,13 +1047,79 @@ static lbm_value ext_get_imu_gyro_derot(lbm_value *args, lbm_uint argn) {
 	return imu_data;
 }
 
+static void send_app_data(unsigned char *data, unsigned int len, int interface, int can_id) {
+	int32_t index = 0;
+	uint8_t *send_buffer_global = mempools_get_packet_buffer();
+	send_buffer_global[index++] = COMM_CUSTOM_APP_DATA;
+	memcpy(send_buffer_global + index, data, len);
+	index += len;
+
+	switch (interface) {
+	case 0:
+		commands_send_packet(send_buffer_global, index);
+		break;
+
+	case 1:
+		comm_usb_send_packet(send_buffer_global, index);
+		break;
+
+	case 2:
+		comm_can_send_buffer(can_id, send_buffer_global, index, 0);
+		break;
+
+	case 3:
+		app_uartcomm_send_packet(send_buffer_global, index, 0);
+		break;
+
+	case 4:
+		app_uartcomm_send_packet(send_buffer_global, index, 1);
+		break;
+
+	case 5:
+		app_uartcomm_send_packet(send_buffer_global, index, 2);
+		break;
+
+	default:
+		break;
+	}
+
+
+	mempools_free_packet_buffer(send_buffer_global);
+}
+
 static lbm_value ext_send_data(lbm_value *args, lbm_uint argn) {
-	if (argn != 1 || (!lbm_is_cons(args[0]) && !lbm_is_array_r(args[0]))) {
-		return ENC_SYM_EERROR;
+	if (argn != 1 && argn != 2 && argn != 3) {
+		lbm_set_error_reason((char*)lbm_error_str_num_args);
+		return ENC_SYM_TERROR;
+	}
+
+	if (!lbm_is_cons(args[0]) && !lbm_is_array_r(args[0])) {
+		lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+		return ENC_SYM_TERROR;
+	}
+
+	int interface = 0;
+	if (argn >= 2) {
+		if (!lbm_is_number(args[1])) {
+			lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+			return ENC_SYM_TERROR;
+		}
+
+		interface = lbm_dec_as_i32(args[1]);
+	}
+
+	int can_id = 0;
+	if (argn >= 3) {
+		if (!lbm_is_number(args[2])) {
+			lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+			return ENC_SYM_TERROR;
+		}
+
+		can_id = lbm_dec_as_i32(args[2]);
 	}
 
 	lbm_value curr = args[0];
-	const int max_len = 50;
+	const int max_len = 100;
 	uint8_t to_send[max_len];
 	uint8_t *to_send_ptr = to_send;
 	int ind = 0;
@@ -1078,7 +1146,7 @@ static lbm_value ext_send_data(lbm_value *args, lbm_uint argn) {
 		}
 	}
 
-	commands_send_app_data(to_send_ptr, ind);
+	send_app_data(to_send_ptr, ind, interface, can_id);
 
 	return ENC_SYM_TRUE;
 }
