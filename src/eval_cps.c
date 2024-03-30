@@ -2805,6 +2805,50 @@ static void apply_rest_args(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
   ctx->app_cont = true;
 }
 
+/* (rotate list-expr dist/dir-expr) */
+static void apply_rotate(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  if (nargs == 2 && lbm_is_list(args[0]) && lbm_is_number(args[1])) {
+    int len = -1;
+    lbm_value ls = ENC_SYM_NIL;
+    WITH_GC(ls, lbm_list_copy(&len, args[0]));
+    int dist = lbm_dec_as_i32(args[1]);
+    if (len > 0 && dist != 0) {
+      int d = dist;
+      if (dist > 0) {
+        ls = lbm_list_destructive_reverse(ls);
+      } else {
+        d = -dist;
+      }
+
+      lbm_value start = ls;
+      lbm_value end = ENC_SYM_NIL;
+      lbm_value curr = start;
+      while (lbm_is_cons(curr)) {
+        end = curr;
+        curr = get_cdr(curr);
+      }
+      
+      for (int i = 0; i < d; i ++) {
+        lbm_value a = start;
+        start = lbm_cdr(start);
+        lbm_set_cdr(a, ENC_SYM_NIL);
+        lbm_set_cdr(end, a);
+        end = a;
+      }
+      ls = start;
+      if (dist > 0) {
+        ls = lbm_list_destructive_reverse(ls);
+      }  
+    }
+    lbm_stack_drop(&ctx->K, nargs+1);
+    ctx->app_cont = true;
+    ctx->r = ls;
+    return;
+  }
+  error_ctx(ENC_SYM_EERROR);
+}
+
+
 /***************************************************/
 /* Application lookup table                        */
 
@@ -2833,6 +2877,7 @@ static const apply_fun fun_table[] =
    apply_merge,
    apply_sort,
    apply_rest_args,
+   apply_rotate,
   };
 
 /***************************************************/

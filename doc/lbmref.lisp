@@ -1807,6 +1807,41 @@
                          ))
               end)))
 
+(define lists-reverse
+  (ref-entry "reverse"
+             (list
+              (para (list "`reverse` creates a list containing the same elements as an existing list but in reverse order."
+                          "The form of a `reverse` expression is `(reverse list-exp)`."
+                          ))
+              (program '(((define apa (list 1 2 3 4 5 6 7 8 9 10))
+                          (reverse apa)
+                          )
+                         ))
+              end)))
+
+
+(define lists-rotate
+  (ref-entry "rotate"
+             (list
+              (para (list "`rotate` creates a list containing the same elements as an existing list but rotated some number of step along a direction."
+                          "The form of a `reverse` expression is `(rotate list-exp dist-expr)`."
+                          "The sign of the value dist-expr evaluates to, decides direction of rotation."
+                          ))
+              (code '((define apa (list 1 2 3 4 5 6 7 8 9 10))
+                      (rotate apa 1)
+                      (rotate apa -1)
+                      (rotate apa 3)
+                      (rotate apa -3)
+                      ))
+              (para (list "Rotating a list in the negative direction is slightly faster than rotating in the positive direction."
+                          "The chart below shows the time 1 Million 3 step rotations take in each direction at varying"
+                          "list lengths."
+                          "The data is collected on x86."
+                          ))
+              (image "Performance of list rotate" "images/rotate_pos_neg.png")
+              end)))
+
+
 (define lists-merge
   (ref-entry "merge"
              (list
@@ -1872,6 +1907,8 @@
             lists-setcdr
             lists-take
             lists-drop
+            lists-reverse
+            lists-rotate
             lists-merge
             lists-sort
             )))

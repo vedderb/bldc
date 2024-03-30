@@ -1021,6 +1021,7 @@ lbm_value lbm_list_copy(int *m, lbm_value list) {
   } else if (*m == -1) {
     *m = (int)n; // TODO: smaller range in target variable.
   }
+  if (copy_n == 0) return ENC_SYM_NIL;
   lbm_uint new_list = lbm_heap_allocate_list(copy_n);
   if (lbm_is_symbol(new_list)) return new_list;
   lbm_value curr_targ = new_list;

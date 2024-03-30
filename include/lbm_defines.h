@@ -340,6 +340,7 @@
 #define SYM_MERGE                 0x30013
 #define SYM_SORT                  0x30014
 #define SYM_REST_ARGS             0x30015
+#define SYM_ROTATE                0x30016
 
 #define SYMBOL_KIND(X)          ((X) >> 16)
 #define SYMBOL_KIND_SPECIAL     0
@@ -474,6 +475,7 @@
 #define ENC_SYM_MERGE                 ENC_SYM(SYM_MERGE)
 #define ENC_SYM_SORT                  ENC_SYM(SYM_SORT)
 #define ENC_SYM_REST_ARGS             ENC_SYM(SYM_REST_ARGS)
+#define ENC_SYM_ROTATE                ENC_SYM(SYM_ROTATE)
 
 #define ENC_SYM_ADD           ENC_SYM(SYM_ADD)
 #define ENC_SYM_SUB           ENC_SYM(SYM_SUB)
