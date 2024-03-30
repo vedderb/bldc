@@ -4944,6 +4944,152 @@ apa
 ---
 
 
+### reverse
+
+`reverse` creates a list containing the same elements as an existing list but in reverse order. The form of a `reverse` expression is `(reverse list-exp)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define apa (list 1 2 3 4 5 6 7 8 9 10))
+(reverse apa)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(10 9 8 7 6 5 4 3 2 1)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### rotate
+
+`rotate` creates a list containing the same elements as an existing list but rotated some number of step along a direction. The form of a `reverse` expression is `(rotate list-exp dist-expr)`. The sign of the value dist-expr evaluates to, decides direction of rotation. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define apa (list 1 2 3 4 5 6 7 8 9 10))
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3 4 5 6 7 8 9 10)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(rotate apa 1)
+```
+
+
+</td>
+<td>
+
+```clj
+(10 1 2 3 4 5 6 7 8 9)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(rotate apa -1)
+```
+
+
+</td>
+<td>
+
+```clj
+(2 3 4 5 6 7 8 9 10 1)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(rotate apa 3)
+```
+
+
+</td>
+<td>
+
+```clj
+(8 9 10 1 2 3 4 5 6 7)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(rotate apa -3)
+```
+
+
+</td>
+<td>
+
+```clj
+(4 5 6 7 8 9 10 1 2 3)
+```
+
+
+</td>
+</tr>
+</table>
+
+Rotating a list in the negative direction is slightly faster than rotating in the positive direction. The chart below shows the time 1 Million 3 step rotations take in each direction at varying list lengths. The data is collected on x86. 
+
+![Performance of list rotate](images/rotate_pos_neg.png "Performance of list rotate")
+
+
+---
+
+
 ### merge
 
 `merge` merges two lists that are ordered according to a comparator into a single ordered list. The form of a `merge` expression is `(merge comparator-exp list-exp1 list-exp2)`. 

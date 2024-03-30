@@ -77,6 +77,7 @@ special_sym const special_symbols[] =  {
   {"gc"           , SYM_PERFORM_GC},
   {"loop"         , SYM_LOOP},
   {"rest-args"    , SYM_REST_ARGS},
+  {"rotate"       , SYM_ROTATE},
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},
