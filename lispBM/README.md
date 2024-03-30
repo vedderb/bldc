@@ -5992,7 +5992,7 @@ De-initialize the rgbled-driver and release the resources it used. If data is cu
 | Express | 6.05+ |
 
 ```clj
-(rgbled-buffer num-leds optLedType)
+(rgbled-buffer num-leds optLedType optGammaCorr)
 ```
 
 Creates an LED-buffer for num-leds leds. The optional argument optLedType specifies the type of LEDs. If it is omitted type 0 (GRB) is used. The available types are:
@@ -6004,11 +6004,16 @@ Creates an LED-buffer for num-leds leds. The optional argument optLedType specif
 | 2 | GRBW |
 | 3 | RGBW |
 
+The optional argument optGammaCorr can be set to enable gamma correction for this LED-buffer. Gamma correction makes the brightness non-linear matching the response of human eyes. Generally that makes colors look better and it is something that all monitors do. The downside is that fewer distinct colors are available as not all bits can be used.
+
 Example:
 
 ```clj
 ; Create a buffer for 10 GRBW-LEDs
 (def strip1 (rgbled-buffer 10 2))
+
+; Create a buffer for 10 GRB-LEDs with gamma-correction enabled
+(def strip2 (rgbled-buffer 10 0 1))
 ```
 
 ---
@@ -6020,16 +6025,26 @@ Example:
 | Express | 6.05+ |
 
 ```clj
-(rgbled-color buffer led-num color)
+(rgbled-color buffer led-num color optBrightness)
 ```
 
-Set LED led-num to color in buffer. The color is a number in WRGB8888 format. When the white color is used the type must be u32 as all 32 bits are needed then. Buffer is must be created with rgbled-buffer. Example:
+Set LED led-num to color in buffer. The color is a number in WRGB8888 format, alternatively a list of numbers in WRGB8888 format. When a list of numbers is used all colors after led-num will be set to the corresponding colors in the list. When the white color is used the type must be u32 as all 32 bits are needed then. Buffer must be created with rgbled-buffer. Example:
 
 ```clj
+; Create led-buffer and bind it to strip1
 (def strip1 (rgbled-buffer 10 2))
 
-(rgbled-color strip1 0 0x00FF0000u32) ; Set the first LED to red
-(rgbled-color strip1 1 0xFF000000u32) ; Set the second LED to white
+; Set the first LED to red
+(rgbled-color strip1 0 0x00FF0000u32)
+
+; Set the second LED to white
+(rgbled-color strip1 1 0xFF000000u32)
+
+; Set the second LED to white with 30 % brightness
+(rgbled-color strip1 1 0xFF000000u32 0.3)
+
+; Set LED 4 to white, LED 5 to red and LED 6 to green, all at 40 % brightness
+(rgbled-color strip1 4 '(0xFF000000u32 0x00FF0000u32 0x0000FF00u32) 0.4)
 ```
 
 Note: This function only updates the color in the buffer. To show the new color the function rgbled-update must be used.
