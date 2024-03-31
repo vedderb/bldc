@@ -38,7 +38,6 @@
 #include "packet.h"
 #include "encoder/encoder.h"
 #include "nrf_driver.h"
-#include "gpdrive.h"
 #include "confgenerator.h"
 #include "imu.h"
 #include "shutdown.h"
@@ -772,61 +771,6 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		send_buffer[ind++] = packet_id;
 		send_buffer[ind++] = NRF_PAIR_STARTED;
 		reply_func(send_buffer, ind);
-	} break;
-
-	case COMM_GPD_SET_FSW: {
-		timeout_reset();
-		int32_t ind = 0;
-		gpdrive_set_switching_frequency((float)buffer_get_int32(data, &ind));
-	} break;
-
-	case COMM_GPD_BUFFER_SIZE_LEFT: {
-		int32_t ind = 0;
-		uint8_t send_buffer[50];
-		send_buffer[ind++] = COMM_GPD_BUFFER_SIZE_LEFT;
-		buffer_append_int32(send_buffer, gpdrive_buffer_size_left(), &ind);
-		reply_func(send_buffer, ind);
-	} break;
-
-	case COMM_GPD_FILL_BUFFER: {
-		timeout_reset();
-		int32_t ind = 0;
-		while (ind < (int)len) {
-			gpdrive_add_buffer_sample(buffer_get_float32_auto(data, &ind));
-		}
-	} break;
-
-	case COMM_GPD_OUTPUT_SAMPLE: {
-		timeout_reset();
-		int32_t ind = 0;
-		gpdrive_output_sample(buffer_get_float32_auto(data, &ind));
-	} break;
-
-	case COMM_GPD_SET_MODE: {
-		timeout_reset();
-		int32_t ind = 0;
-		gpdrive_set_mode(data[ind++]);
-	} break;
-
-	case COMM_GPD_FILL_BUFFER_INT8: {
-		timeout_reset();
-		int32_t ind = 0;
-		while (ind < (int)len) {
-			gpdrive_add_buffer_sample_int((int8_t)data[ind++]);
-		}
-	} break;
-
-	case COMM_GPD_FILL_BUFFER_INT16: {
-		timeout_reset();
-		int32_t ind = 0;
-		while (ind < (int)len) {
-			gpdrive_add_buffer_sample_int(buffer_get_int16(data, &ind));
-		}
-	} break;
-
-	case COMM_GPD_SET_BUFFER_INT_SCALE: {
-		int32_t ind = 0;
-		gpdrive_set_buffer_int_scale(buffer_get_float32_auto(data, &ind));
 	} break;
 
 	case COMM_GET_VALUES_SETUP:

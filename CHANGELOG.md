@@ -53,6 +53,7 @@
 * Allow passive flux linkage measurement.
 * Fixed some braking glitches.
 * Configurable HFI error truncation to reject noise.
+* Removed GPDrive.
 
 ### 6.02
 #### 2023-03-12

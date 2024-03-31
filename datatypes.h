@@ -109,19 +109,10 @@ typedef enum {
 	TEMP_SENSOR_DISABLED
 } temp_sensor_type;
 
-// General purpose drive output mode
-typedef enum {
-	GPD_OUTPUT_MODE_NONE = 0,
-	GPD_OUTPUT_MODE_MODULATION,
-	GPD_OUTPUT_MODE_VOLTAGE,
-	GPD_OUTPUT_MODE_CURRENT
-} gpd_output_mode;
-
 typedef enum {
 	MOTOR_TYPE_BLDC = 0,
 	MOTOR_TYPE_DC,
-	MOTOR_TYPE_FOC,
-	MOTOR_TYPE_GPD
+	MOTOR_TYPE_FOC
 } mc_motor_type;
 
 // FOC current controller decoupling mode.
@@ -488,13 +479,6 @@ typedef struct {
 	float foc_fw_ramp_time;
 	float foc_fw_q_current_factor;
 	FOC_SPEED_SRC foc_speed_soure;
-
-	// GPDrive
-	int gpd_buffer_notify_left;
-	int gpd_buffer_interpol;
-	float gpd_current_filter_const;
-	float gpd_current_kp;
-	float gpd_current_ki;
 
 	PID_RATE sp_pid_loop_rate;
 

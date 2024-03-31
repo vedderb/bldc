@@ -589,11 +589,7 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 }
 
 static bool is_symbol_true_false(lbm_value v) {
-	bool res = lbm_is_symbol_true(v) || lbm_is_symbol_nil(v);
-	if (!res) {
-		lbm_set_error_reason("Argument must be t or nil (true or false)");
-	}
-	return res;
+	return lbm_is_symbol_true(v) || lbm_is_symbol_nil(v);;
 }
 
 // Various commands
@@ -1193,7 +1189,6 @@ static lbm_value ext_get_remote_state(lbm_value *args, lbm_uint argn) {
 
 static bool check_eeprom_addr(int addr) {
 	if (addr < 0 || addr > 127) {
-		lbm_set_error_reason("Address must be 0 to 127");
 		return false;
 	}
 
@@ -3474,8 +3469,6 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 			app_set_configuration(appconf);
 		}
 		res = ENC_SYM_TRUE;
-	} else {
-		lbm_set_error_reason("Parameter not recognized");
 	}
 
 	if (changed_mc == 2 || changed_app == 2) {
@@ -3829,7 +3822,6 @@ static lbm_value ext_conf_set_pid_offset(lbm_value *args, lbm_uint argn) {
 
 	float angle = lbm_dec_as_float(args[0]);
 	if (angle < -360.0 || angle > 360.0) {
-		lbm_set_error_reason("Invalid angle. Range should be -360 to 360.");
 		return ENC_SYM_TERROR;
 	}
 
@@ -4381,8 +4373,7 @@ static lbm_value ext_ioboard_get_adc(lbm_value *args, lbm_uint argn) {
 	int channel = lbm_dec_as_i32(args[1]);
 
 	if (channel < 1 || channel > 8) {
-		lbm_set_error_reason("Channel must be 1 - 8");
-		return ENC_SYM_EERROR;
+		return ENC_SYM_TERROR;
 	}
 
 	io_board_adc_values *val = 0;
@@ -4407,8 +4398,7 @@ static lbm_value ext_ioboard_get_digital(lbm_value *args, lbm_uint argn) {
 	int channel = lbm_dec_as_i32(args[1]);
 
 	if (channel < 1 || channel > 64) {
-		lbm_set_error_reason("Channel must be 1 - 64");
-		return ENC_SYM_EERROR;
+		return ENC_SYM_TERROR;
 	}
 
 	io_board_digial_inputs *val = comm_can_get_io_board_digital_in_id(id);
@@ -4964,7 +4954,6 @@ static lbm_value ext_buf_resize(lbm_value *args, lbm_uint argn) {
 		}
 		
 		if (new_size_signed < 0) {
-			lbm_set_error_reason("resulting size was negative");
 			return ENC_SYM_EERROR;
 		}
 		new_size = (uint32_t)new_size_signed;

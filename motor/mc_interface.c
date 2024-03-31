@@ -31,7 +31,6 @@
 #include "commands.h"
 #include "encoder/encoder.h"
 #include "buffer.h"
-#include "gpdrive.h"
 #include "comm_can.h"
 #include "shutdown.h"
 #include "app.h"
@@ -239,10 +238,6 @@ void mc_interface_init(void) {
 #endif
 		break;
 
-	case MOTOR_TYPE_GPD:
-		gpdrive_init(&motor_now()->m_conf);
-		break;
-
 	default:
 		break;
 	}
@@ -352,7 +347,6 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	if (motor->m_conf.motor_type != configuration->motor_type) {
 		mcpwm_deinit();
 		mcpwm_foc_deinit();
-		gpdrive_deinit();
 
 #ifdef HW_SET_SINGLE_MOTOR
 		if (configuration->motor_type == MOTOR_TYPE_FOC) {
@@ -376,10 +370,6 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 #else
 			mcpwm_foc_init((mc_configuration*)&m_motor_1.m_conf, (mc_configuration*)&m_motor_1.m_conf);
 #endif
-			break;
-
-		case MOTOR_TYPE_GPD:
-			gpdrive_init(&motor->m_conf);
 			break;
 
 		default:
@@ -410,10 +400,6 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 		mcpwm_foc_set_configuration((mc_configuration*)&motor->m_conf);
 		break;
 
-	case MOTOR_TYPE_GPD:
-		gpdrive_set_configuration(&motor->m_conf);
-		break;
-
 	default:
 		break;
 	}
@@ -431,10 +417,6 @@ bool mc_interface_dccal_done(void) {
 
 	case MOTOR_TYPE_FOC:
 		ret = mcpwm_foc_is_dccal_done();
-		break;
-
-	case MOTOR_TYPE_GPD:
-		ret = gpdrive_is_dccal_done();
 		break;
 
 	default:
@@ -710,11 +692,6 @@ void mc_interface_set_brake_current(float current) {
 
 	case MOTOR_TYPE_FOC:
 		mcpwm_foc_set_brake_current(DIR_MULT * current);
-		break;
-
-	case MOTOR_TYPE_GPD:
-		// For timeout to stop the output
-		gpdrive_set_mode(GPD_OUTPUT_MODE_NONE);
 		break;
 
 	default:
@@ -1052,10 +1029,6 @@ float mc_interface_get_sampling_frequency_now(void) {
 		ret = mcpwm_foc_get_sampling_frequency_now();
 		break;
 
-	case MOTOR_TYPE_GPD:
-		ret = gpdrive_get_switching_frequency_now();
-		break;
-
 	default:
 		break;
 	}
@@ -1375,10 +1348,6 @@ float mc_interface_get_last_inj_adc_isr_duration(void) {
 		ret = mcpwm_foc_get_last_adc_isr_duration();
 		break;
 
-	case MOTOR_TYPE_GPD:
-		ret = gpdrive_get_last_adc_isr_duration();
-		break;
-
 	default:
 		break;
 	}
@@ -1387,10 +1356,6 @@ float mc_interface_get_last_inj_adc_isr_duration(void) {
 }
 
 float mc_interface_read_reset_avg_motor_current(void) {
-	if (motor_now()->m_conf.motor_type == MOTOR_TYPE_GPD) {
-		return gpdrive_get_current_filtered();
-	}
-
 	float res = motor_now()->m_motor_current_sum / motor_now()->m_motor_current_iterations;
 	motor_now()->m_motor_current_sum = 0.0;
 	motor_now()->m_motor_current_iterations = 0.0;
@@ -1398,10 +1363,6 @@ float mc_interface_read_reset_avg_motor_current(void) {
 }
 
 float mc_interface_read_reset_avg_input_current(void) {
-	if (motor_now()->m_conf.motor_type == MOTOR_TYPE_GPD) {
-		return gpdrive_get_current_filtered() * gpdrive_get_modulation();
-	}
-
 	float res = motor_now()->m_input_current_sum / motor_now()->m_input_current_iterations;
 	motor_now()->m_input_current_sum = 0.0;
 	motor_now()->m_input_current_iterations = 0.0;
@@ -3000,10 +2961,6 @@ static THD_FUNCTION(fault_stop_thread, arg) {
 
 		case MOTOR_TYPE_FOC:
 			mcpwm_foc_stop_pwm(fault_data_copy.is_second_motor);
-			break;
-
-		case MOTOR_TYPE_GPD:
-			gpdrive_set_mode(GPD_OUTPUT_MODE_NONE);
 			break;
 
 		default:
