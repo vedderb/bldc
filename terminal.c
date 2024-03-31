@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "ch.h"
 #include "hal.h"
 #include "terminal.h"
@@ -1354,3 +1357,4 @@ void terminal_unregister_callback(void(*cbf)(int argc, const char **argv)) {
 	}
 }
 
+#pragma GCC pop_options

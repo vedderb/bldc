@@ -18,6 +18,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "lispif.h"
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
@@ -5590,3 +5593,5 @@ bool lispif_symbol_to_io(lbm_uint sym, stm32_gpio_t **port, uint32_t *pin) {
 #endif
 	return false;
 }
+
+#pragma GCC pop_options
