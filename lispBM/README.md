@@ -6113,6 +6113,178 @@ It is possible to use multiple pins to drive different LED-strips. Even differen
 
 ---
 
+## Color Manipulation
+
+The following functions are useful for manipulating colors and lists of colors. The color format used here is RGB888 (or WRGB8888), which is compatible with both the display and the RGB LED extensions. This format is just a u32-number and it is also compatible with common hexadecimal color codes found in most color pickers and HTML color tables.
+
+---
+
+#### color-make
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(color-make red green blue optWhite)
+```
+
+Make color from individual color components. The components can be expressed in 0 to 255 or as floating point 0.0 to 1.0 (in any combination). optWhite is an optional argument for the white component, which often is used in RGBW LED-strips. Example:
+
+```clj
+(color-make 37 150 90) ; Creates the color 0x2596be
+(color-make 0.146 0.59 0.747) ; Creates the color 0x2596be
+```
+
+---
+
+#### color-split
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(color-split color optMode)
+```
+
+Split color into a list of components. The optional argument optMode can be used to define how the color is split. The options are:
+
+| Number | Mode |
+|---|---|
+| 0 | (red green blue) |
+| 1 | (red green blue white) |
+| 2 | (red-float green-float blue-float) |
+| 3 | (red-float green-float blue-float white-float) |
+
+Example:
+
+```clj
+(color-split 0x123456)
+> (18 52 86)
+
+(color-split 0x123456 1)
+> (18 52 86 0)
+
+(color-split 0x50123456u32 1)
+> (18 52 86 80)
+
+(color-split 0x123456 2)
+> (0.070588f32 0.203922f32 0.337255f32)
+
+(color-split 0x123456 3)
+> (0.070588f32 0.203922f32 0.337255f32 0.000000f32)
+
+(color-split (color-make 123 250 99))
+> (123 250 99)
+```
+
+---
+
+#### color-mix
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(color-mix color1 color2 ratio)
+```
+
+Mix color1 with color2 with mix-ratio ratio. Ratio has a range of 0.0 to 1.0. Ratio 0.0 will result in color1 and ratio 1.0 will result in color2. The argument color1 can be a single color or a list of colors. If it is a list of colors a list with the mixed colors will be returned.
+
+Example:
+
+```clj
+; Helper function to print colors as components
+(defun print-color (c)
+    (if (eq (type-of c) type-list)
+        (print (map (fn (x) (color-split x 1)) c))
+        (print (color-split c 1))
+    )
+)
+
+(print-color (color-mix (color-make 123 250 99) (color-make 12 25 9) 0.3))
+> (89 182 71 0)
+
+(print-color (color-mix '(0x224488 0x111111 0x222222) 0x446699 0.5))
+> ((51 85 144 0) (42 59 85 0) (51 68 93 0))
+```
+
+---
+
+#### color-add
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(color-add color1 color2)
+```
+
+Add color2 to color1. The components are truncated at 255. As with color-mix, the argument color1 can be a single color or a list with colors. Example:
+
+```clj
+; Helper function to print colors as components
+(defun print-color (c)
+    (if (eq (type-of c) type-list)
+        (print (map (fn (x) (color-split x 1)) c))
+        (print (color-split c 1))
+    )
+)
+
+(print-color (color-add (color-make 123 250 99) (color-make 12 25 9)))
+> (135 255 108 0)
+
+(print-color (color-add '(0x224488 0x111111 0x222222) 0x446699))
+> ((102 170 255 0) (85 119 170 0) (102 136 187 0))
+```
+
+#### color-sub
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(color-sub color1 color2)
+```
+
+Subtract color2 from color1. The components are truncated at 0. As with color-mix, the argument color1 can be a single color or a list with colors.
+
+---
+
+#### color-scale
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(color-sub color factor)
+```
+
+Scale color with factor. The result is truncated between 0 to 255. As with color-mix, the argument color can be a single color or a list with colors. The argument factor is a scaling factor. Example:
+
+```clj
+; Helper function to print colors as components
+(defun print-color (c)
+    (if (eq (type-of c) type-list)
+        (print (map (fn (x) (color-split x 1)) c))
+        (print (color-split c 1))
+    )
+)
+
+(print-color (color-scale (color-make 123 250 99) 2.0))
+> (246 255 198 0)
+
+(print-color (color-scale '(0x224488 0x111111 0x222222) 0.6))
+> ((20 40 81 0) (10 10 10 0) (20 20 20 0))
+```
+
+---
+
 ## Sleep Modes
 
 ---
