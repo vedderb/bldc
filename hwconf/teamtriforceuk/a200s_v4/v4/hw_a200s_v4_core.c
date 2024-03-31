@@ -26,7 +26,6 @@
 #include "terminal.h"
 #include "mcpwm.h"
 #include "mcpwm_foc.h"
-#include "gpdrive.h"
 #include "app.h"
 #include "mempools.h"
 #include "timeout.h"
@@ -373,7 +372,6 @@ static void terminal_cmd_doublepulse(int argc, const char** argv)
 	utick = (int)(SYSTEM_CORE_CLOCK / 1000000);
 	mcpwm_deinit();
 	mcpwm_foc_deinit();
-	gpdrive_deinit();
 
 	TIM_Cmd(TIM1, DISABLE);
 	TIM_Cmd(TIM4, DISABLE);
@@ -479,10 +477,6 @@ static void terminal_cmd_doublepulse(int argc, const char** argv)
 
 	case MOTOR_TYPE_FOC:
 		mcpwm_foc_init(mcconf, mcconf);
-		break;
-
-	case MOTOR_TYPE_GPD:
-		gpdrive_init(mcconf);
 		break;
 
 	default:
