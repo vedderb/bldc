@@ -1317,6 +1317,24 @@ static lbm_value fundamental_drop(lbm_value *args, lbm_uint nargs, eval_context_
   return lbm_list_drop(lbm_dec_as_u32(args[1]), args[0]);
 }
 
+static lbm_value fundamental_member(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
+  (void) ctx;
+  lbm_value res = ENC_SYM_TERROR;
+  if (nargs == 2 && lbm_is_list(args[0])) {
+    res = ENC_SYM_NIL;
+    lbm_value curr = args[0];
+
+    while (lbm_is_cons(curr)) {
+      if (struct_eq(lbm_car(curr), args[1])) {
+        res = args[0];
+        break;
+      }
+      curr = lbm_cdr(curr);
+    }
+  }
+  return res;
+}
+
 const fundamental_fun fundamental_table[] =
   {fundamental_add,
    fundamental_sub,
@@ -1376,4 +1394,5 @@ const fundamental_fun fundamental_table[] =
    fundamental_reg_event_handler,
    fundamental_take,
    fundamental_drop,
+   fundamental_member,
   };

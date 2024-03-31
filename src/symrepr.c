@@ -210,6 +210,7 @@ special_sym const special_symbols[] =  {
   {"event-register-handler", SYM_REG_EVENT_HANDLER},
   {"take"           , SYM_TAKE},
   {"drop"           , SYM_DROP},
+  {"member"         , SYM_MEMBER},
 
   // fast access in list
   {"ix"             , SYM_IX},
