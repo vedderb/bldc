@@ -312,6 +312,7 @@
 #define SYM_REG_EVENT_HANDLER   0x20037
 #define SYM_TAKE                0x20038
 #define SYM_DROP                0x20039
+#define SYM_MEMBER              0x2003A
 
 // Apply funs:
 // Get their arguments in evaluated form on the stack.
@@ -535,5 +536,6 @@
 #define ENC_SYM_REG_EVENT_HANDLER   ENC_SYM(SYM_REG_EVENT_HANDLER)
 #define ENC_SYM_TAKE                ENC_SYM(SYM_TAKE)
 #define ENC_SYM_DROP                ENC_SYM(SYM_DROP)
+#define ENC_SYM_MEMBER              ENC_SYM(SYM_MEMBER)
 
 #endif

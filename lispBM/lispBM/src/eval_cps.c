@@ -1752,6 +1752,21 @@ static void eval_define(eval_context_t *ctx) {
   error_at_ctx(ENC_SYM_EERROR, ctx->curr_exp);
 }
 
+
+/* Eval lambda is cheating, a lot! It does this
+   for performance reasons. The cheats are that
+   1. When  closure is created, a reference to the local env
+   in which the lambda was evaluated is added to the closure.
+   Ideally it should have created a list of free variables in the function
+   and then looked up the values of these creating a new environment.
+   2. The global env is considered global constant. As there is no copying
+   of environment bindings into the closure, undefine may break closures.
+
+   Correct closure creation is a lot more expensive than what happens here.
+   However, one can try to write programs in such a way that closures are created
+   seldomly. If one does that the space-usage benefits of "correct" closures
+   may outweigh the performance gain of "incorrect" ones.
+ */
 // (lambda param-list body-exp) -> (closure param-list body-exp env)
 static void eval_lambda(eval_context_t *ctx) {
   lbm_value cdr = get_cdr(ctx->curr_exp);
@@ -1921,6 +1936,7 @@ static void eval_var(eval_context_t *ctx) {
 
     lbm_value v_exp = get_cadr(args);
     stack_push_3(&ctx->K, new_env, key, PROGN_VAR);
+    ctx->curr_env = new_env; // So binding body knows binding (enables recursion)
     ctx->curr_exp = v_exp;
     return;
     }

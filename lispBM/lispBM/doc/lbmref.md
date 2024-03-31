@@ -4944,6 +4944,58 @@ apa
 ---
 
 
+### member
+
+`member` checks if a list contains a given element. The form of a `member` expression is `(member list-exp exp)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(member (list 1 2 3) 5)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(member (list 1 2 3) 2)
+```
+
+
+</td>
+<td>
+
+```clj
+(1 2 3)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
 ### reverse
 
 `reverse` creates a list containing the same elements as an existing list but in reverse order. The form of a `reverse` expression is `(reverse list-exp)`. 
