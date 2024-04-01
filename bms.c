@@ -24,6 +24,9 @@
  * this module to interpret CAN-messages from it properly.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "bms.h"
 #include "buffer.h"
 #include "utils_math.h"
@@ -592,3 +595,5 @@ void bms_send_status_can(void) {
 	buffer_append_float32_auto(buffer, m_values.wh_cnt_dis_total, &send_index);
 	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_AH_WH_DIS_TOTAL << 8), buffer, send_index);
 }
+
+#pragma GCC pop_options

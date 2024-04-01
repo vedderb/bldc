@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "ch.h"
 #include "hal.h"
 #include "hw.h"
@@ -1048,3 +1051,5 @@ float lispif_get_ppm(void) {
 
 	return servo_val;
 }
+
+#pragma GCC pop_options

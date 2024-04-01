@@ -17,6 +17,9 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include <string.h>
 #include <math.h>
 #include <stdio.h>
@@ -1467,3 +1470,5 @@ static THD_FUNCTION(canard_thread, arg) {
 		chThdSleepMilliseconds(1);
 	}
 }
+
+#pragma GCC pop_options

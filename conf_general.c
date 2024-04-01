@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "conf_general.h"
 #include "ch.h"
 #include "eeprom.h"
@@ -2198,3 +2201,5 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 
 	return res;
 }
+
+#pragma GCC pop_options

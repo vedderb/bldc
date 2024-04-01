@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "servo_dec.h"
 #include "stm32f4xx_conf.h"
 #include "ch.h"
@@ -24,9 +27,7 @@
 #include "hw.h"
 #include "utils_math.h"
 
-/*
- * Settings
- */
+// Settings
 #define SERVO_NUM				1
 #define TIMER_FREQ				1000000
 
@@ -206,3 +207,5 @@ float servodec_get_last_pulse_len(int servo_num) {
 bool servodec_is_running(void) {
 	return is_running;
 }
+
+#pragma GCC pop_options

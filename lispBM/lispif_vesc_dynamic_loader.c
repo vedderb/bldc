@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "lispif.h"
 #include "lispbm.h"
 
@@ -116,3 +119,5 @@ bool lispif_vesc_dynamic_loader(const char *str, const char **code) {
 
 	return false;
 }
+
+#pragma GCC pop_options

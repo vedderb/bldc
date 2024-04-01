@@ -165,6 +165,9 @@ static void update_hfi_samples(foc_hfi_samples samples, volatile motor_all_state
 	utils_sys_unlock_cnt();
 }
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 static void timer_reinit(int f_zv) {
 	utils_sys_lock_cnt();
 
@@ -2769,6 +2772,8 @@ void mcpwm_foc_print_state(void) {
 float mcpwm_foc_get_last_adc_isr_duration(void) {
 	return m_last_adc_isr_duration;
 }
+
+#pragma GCC pop_options
 
 void mcpwm_foc_tim_sample_int_handler(void) {
 	if (m_init_done) {

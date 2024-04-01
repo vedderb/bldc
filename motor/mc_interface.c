@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "mc_interface.h"
 #include "mcpwm.h"
 #include "mcpwm_foc.h"
@@ -1832,6 +1835,8 @@ void mc_interface_fault_stop(mc_fault_code fault, bool is_second_motor, bool is_
 		chEvtSignal(fault_stop_tp, (eventmask_t) 1);
 	}
 }
+
+#pragma GCC pop_options
 
 void mc_interface_mc_timer_isr(bool is_second_motor) {
 	ledpwm_update_pwm();

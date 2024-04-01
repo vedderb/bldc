@@ -18,6 +18,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "app.h"
 
 #include "ch.h"
@@ -300,3 +303,5 @@ static THD_FUNCTION(pas_thread, arg) {
 		}
 	}
 }
+
+#pragma GCC pop_options

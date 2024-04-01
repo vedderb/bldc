@@ -24,6 +24,9 @@
  * Documentation: http://uavcan.org/Implementations/Libcanard
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "canard_internals.h"
 #include <string.h>
 
@@ -1708,3 +1711,5 @@ CANARD_INTERNAL void freeBlock(CanardPoolAllocator* allocator, void* p)
     CANARD_ASSERT(allocator->statistics.current_usage_blocks > 0);
     allocator->statistics.current_usage_blocks--;
 }
+
+#pragma GCC pop_options

@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
@@ -360,3 +363,5 @@ int main(void) {
 		chThdSleepMilliseconds(10);
 	}
 }
+
+#pragma GCC pop_options

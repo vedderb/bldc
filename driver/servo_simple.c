@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "servo_simple.h"
 #include "ch.h"
 #include "hal.h"
@@ -102,3 +105,5 @@ void servo_simple_set_output(float out) {
 		HW_ICU_TIMER->CCR2 = (uint32_t)us;
 	}
 }
+
+#pragma GCC pop_options
