@@ -20,8 +20,6 @@
 #pragma GCC push_options
 #pragma GCC optimize ("Os")
 
-//#pragma GCC pop_options
-
 #include "ch.h"
 #include "hal.h"
 #include "terminal.h"
