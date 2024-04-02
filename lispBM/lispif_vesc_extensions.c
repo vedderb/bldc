@@ -1063,7 +1063,7 @@ static void send_app_data(unsigned char *data, unsigned int len, int interface, 
 		break;
 
 	case 2:
-		comm_can_send_buffer(can_id, send_buffer_global, index, 0);
+		comm_can_send_buffer(can_id, send_buffer_global, index, 3);
 		break;
 
 	case 3:
