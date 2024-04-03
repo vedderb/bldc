@@ -23,7 +23,8 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/runtime_extensions.c \
              $(LISPBM)/src/extensions/matvec_extensions.c \
              $(LISPBM)/src/extensions/random_extensions.c \
-             $(LISPBM)/src/extensions/loop_extensions.c
+             $(LISPBM)/src/extensions/loop_extensions.c \
+	     $(LISPBM)/src/extensions/set_extensions.c
 
 
 LISPBM_INC = -I$(LISPBM)/include \

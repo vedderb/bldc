@@ -20,12 +20,18 @@ ifdef HEAP_VIS
 	CCFLAGS += -DVISUALIZE_HEAP
 endif
 
+improved_closures: CCFLAGS += -m32 -DCLEAN_UP_CLOSURES
+improved_closures: repl clean_cl.h
+
 all: CCFLAGS += -m32 
 all: repl 
 
 all64: 	CCFLAGS += -DLBM64
 all64: repl 
 
+clean_cl.h: clean.lisp
+	./repl --store_env="clean_cl.env" --src=clean.lisp --terminate
+	xxd -i clean_cl.env clean_cl.h
 
 install: all
 	mkdir -p ~/.local/bin
