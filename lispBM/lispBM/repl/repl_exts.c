@@ -23,6 +23,11 @@
 #include <dirent.h>
 #include <sys/time.h>
 #include <sys/wait.h>
+#include "extensions/array_extensions.h"
+#include "extensions/string_extensions.h"
+#include "extensions/math_extensions.h"
+#include "extensions/runtime_extensions.h"
+#include "extensions/set_extensions.h"
 
 // Macro expanders
 
@@ -554,6 +559,9 @@ int init_exts(void) {
     return 0;
   }
   if (!lbm_runtime_extensions_init(false)) {
+    return 0;
+  }
+  if (!lbm_set_extensions_init()) {
     return 0;
   }
 

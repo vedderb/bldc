@@ -31,10 +31,6 @@
 #include "lispbm.h"
 #include "lbm_flat_value.h"
 #include "lbm_prof.h"
-#include "extensions/array_extensions.h"
-#include "extensions/string_extensions.h"
-#include "extensions/math_extensions.h"
-#include "extensions/runtime_extensions.h"
 
 #include "lbm_custom_type.h"
 #include "lbm_channel.h"
@@ -42,7 +38,9 @@
 
 #include "repl_exts.h"
 #include "repl_defines.h"
+#ifdef CLEAN_UP_CLOSURES
 #include "clean_cl.h"
+#endif
 
 
 #define GC_STACK_SIZE 256
@@ -64,7 +62,6 @@ bool terminate_after_startup = false;
 volatile lbm_cid startup_cid = -1;
 volatile lbm_cid store_result_cid = -1;
 volatile bool silent_mode = false;
-bool load_lib_clean_cl = false;
 
 
 void shutdown_procedure(void);
@@ -309,7 +306,6 @@ lbm_const_heap_t const_heap;
 #define STORE_RESULT         0x0403
 #define TERMINATE            0x0404
 #define SILENT_MODE          0x0405
-#define LOAD_LIB_CLEAN_CL    0x0406
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -320,7 +316,6 @@ struct option options[] = {
   {"store_res", required_argument, NULL, STORE_RESULT},
   {"terminate", no_argument, NULL, TERMINATE},
   {"silent", no_argument, NULL, SILENT_MODE},
-  {"lib_clean_cl", no_argument, NULL, LOAD_LIB_CLEAN_CL},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -386,7 +381,6 @@ void parse_opts(int argc, char **argv) {
       printf("    --terminate                   Terminate the REPL after evaluating the\n"\
              "                                  source files specified with --src/-s\n");
       printf("    --silent                      The REPL will print as little as possible\n");
-      printf("    --lib_clean_cl                Load the clean_cl library for closure cleaning\n");
       printf("\n");
       printf("Multiple sourcefiles can be added with multiple uses of the --src/-s flag.\n" \
              "Multiple sources are evaluated in sequence in the order they are specified\n" \
@@ -413,9 +407,6 @@ void parse_opts(int argc, char **argv) {
       break;
     case SILENT_MODE:
       silent_mode = true;
-      break;
-    case LOAD_LIB_CLEAN_CL:
-      load_lib_clean_cl=true;
       break;
     default:
       break;
@@ -534,12 +525,12 @@ int init_repl() {
   init_exts();
 
   /* Load clean_cl library into heap */
-  if (load_lib_clean_cl) { 
-    if (!load_flat_library(clean_cl_env, clean_cl_env_len)) {
-      printf("Error loading a flat library\n");
-      return 1;
-    }
+#ifdef CLEAN_UP_CLOSURES
+  if (!load_flat_library(clean_cl_env, clean_cl_env_len)) {
+    printf("Error loading a flat library\n");
+    return 1;
   }
+#endif
 
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");

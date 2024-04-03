@@ -1301,6 +1301,306 @@ nil
 
 ---
 
+
+### <
+
+Less than comparison. A less than comparison has the form `(> expr1 ... exprN)` and evaluates to `t` if expr1 is less than all of expr2 ... exprN. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(< 5 2)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(< 5 2)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(< 3.140000f32 1)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(< 1 3.140000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### >=
+
+Greater than or equal comparison. A greater than comparison has the form `(>= expr1 ... exprN)` and evaluates to `t` if expr1 is greater than or equal to all of expr2 ... exprN. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(>= 1 1)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(>= 5 2)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(>= 2 5)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(>= 3.140000f32 1)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(>= 1 3.140000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### <=
+
+Less than or equal comparison. A less than or equal comparison has the form `(<= expr1 ... exprN)` and evaluates to `t` if expr1 is less than or equal to all of expr2 ... exprN. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(<= 1 1)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(<= 5 2)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(<= 2 5)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(<= 3.140000f32 1)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(<= 1 3.140000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
 ## Boolean operators
 
 
@@ -4757,7 +5057,7 @@ The `setcar` is a destructive update of the car field of a cons-cell.
 
 
 ```clj
-(define apa '(1 . 2))
+(define apa '(42 . 2))
 (setcar apa 42)
 apa
 
@@ -4819,7 +5119,7 @@ The `setcdr` is a destructive update of the cdr field of a cons-cell.
 
 
 ```clj
-(define apa '(1 . 2))
+(define apa '(1 . 42))
 (setcdr apa 42)
 apa
 
@@ -4931,58 +5231,6 @@ apa
 
 ```clj
 (6 7 8 9 10)
-```
-
-
-</td>
-</tr>
-</table>
-
-
-
-
----
-
-
-### member
-
-`member` checks if a list contains a given element. The form of a `member` expression is `(member list-exp exp)`. 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(member (list 1 2 3) 5)
-```
-
-
-</td>
-<td>
-
-```clj
-nil
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-(member (list 1 2 3) 2)
-```
-
-
-</td>
-<td>
-
-```clj
-(1 2 3)
 ```
 
 
@@ -5342,7 +5590,7 @@ The `setassoc` function destructively updates a key-value mapping in an alist. T
 
 
 ```clj
-(define apa (list '(1 . horse) '(2 . donkey) '(3 . shark)))
+(define apa (list '(1 . horse) '(2 . llama) '(3 . shark)))
 (setassoc apa 2 'llama)
 
 ```
@@ -5844,7 +6092,7 @@ To clear a byte array the function bufclear can be used `(bufclear arr optByte o
 <td>
 
 ```clj
-(define data [255 255 255 255 255 255 255 255])
+(define data [255 170 170 170 170 170 1 1])
 ```
 
 
@@ -5852,7 +6100,7 @@ To clear a byte array the function bufclear can be used `(bufclear arr optByte o
 <td>
 
 ```clj
-[255 255 255 255 255 255 255 255]
+[255 170 170 170 170 170 1 1]
 ```
 
 
