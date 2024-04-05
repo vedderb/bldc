@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2024 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,15 +17,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef SERVO_SIMPLE_H_
-#define SERVO_SIMPLE_H_
+#ifndef DRIVER_PWM_SERVO_H_
+#define DRIVER_PWM_SERVO_H_
 
+#include <stdint.h>
 #include <stdbool.h>
 
-// Functions
-void servo_simple_init(void);
-void servo_simple_stop(void);
-bool servo_simple_is_running(void);
-void servo_simple_set_output(float out);
+uint32_t pwm_servo_init(uint32_t freq_hz);
+void pwm_servo_init_servo(void);
+void pwm_servo_stop(void);
+float pwm_servo_set_duty(float duty);
+void pwm_servo_set_servo_out(float output);
+bool pwm_servo_is_running(void);
 
-#endif /* SERVO_SIMPLE_H_ */
+#endif /* DRIVER_PWM_SERVO_H_ */

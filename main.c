@@ -42,7 +42,7 @@
 #include "commands.h"
 #include "timeout.h"
 #include "encoder/encoder.h"
-#include "servo_simple.h"
+#include "pwm_servo.h"
 #include "utils_math.h"
 #include "nrf_driver.h"
 #include "rfhelp.h"
@@ -78,7 +78,7 @@
  * TIM2: mcpwm_foc
  * TIM5: timer
  * TIM8: mcpwm
- * TIM3: servo_dec/Encoder (HW_R2)/servo_simple
+ * TIM3: servo_dec/Encoder (HW_R2)/pwm_servo
  * TIM4: WS2811/WS2812 LEDs/Encoder (other HW)
  *
  * DMA/stream	Device		Function

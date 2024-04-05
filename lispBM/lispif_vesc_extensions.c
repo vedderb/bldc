@@ -33,7 +33,7 @@
 #include "mc_interface.h"
 #include "timeout.h"
 #include "servo_dec.h"
-#include "servo_simple.h"
+#include "pwm_servo.h"
 #include "encoder/encoder.h"
 #include "comm_can.h"
 #include "bms.h"
@@ -637,7 +637,7 @@ static lbm_value ext_puts(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_set_servo(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(1);
-	servo_simple_set_output(lbm_dec_as_float(args[0]));
+	pwm_servo_set_servo_out(lbm_dec_as_float(args[0]));
 	return ENC_SYM_TRUE;
 }
 
@@ -4768,7 +4768,7 @@ static ICUConfig icucfg = {
 static lbm_value ext_icu_start(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(2);
 	servodec_stop();
-	servo_simple_stop();
+	pwm_servo_stop();
 
 	if (HW_ICU_DEV.state == ICU_ACTIVE) {
 		icuStopCapture(&HW_ICU_DEV);
@@ -5092,6 +5092,37 @@ static lbm_value ext_canmsg_send(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+// PWM
+
+static lbm_value ext_pwm_start(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_NUMBER_ALL();
+
+	if (argn < 1) {
+		lbm_set_error_reason((char*)lbm_error_str_num_args);
+		return ENC_SYM_TERROR;
+	}
+
+	servodec_stop();
+	pwm_servo_stop();
+	return lbm_enc_i(pwm_servo_init(lbm_dec_as_u32(args[0])));
+}
+
+static lbm_value ext_pwm_stop(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	pwm_servo_stop();
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_pwm_set_duty(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1);
+
+	if (!pwm_servo_is_running()) {
+		return ENC_SYM_EERROR;
+	}
+
+	return lbm_enc_float(pwm_servo_set_duty(lbm_dec_as_float(args[0])));
+}
+
 void lispif_load_vesc_extensions(void) {
 	lispif_stop_lib();
 
@@ -5392,6 +5423,11 @@ void lispif_load_vesc_extensions(void) {
 	// CAN-Messages
 	lbm_add_extension("canmsg-recv", ext_canmsg_recv);
 	lbm_add_extension("canmsg-send", ext_canmsg_send);
+
+	// PWM
+	lbm_add_extension("pwm-start", ext_pwm_start);
+	lbm_add_extension("pwm-stop", ext_pwm_stop);
+	lbm_add_extension("pwm-set-duty", ext_pwm_set_duty);
 
 	// Extra extensions
 	lbm_array_extensions_init();

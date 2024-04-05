@@ -43,7 +43,7 @@
 #include "encoder.h"
 #include "conf_general.h"
 #include "servo_dec.h"
-#include "servo_simple.h"
+#include "pwm_servo.h"
 #include "flash_helper.h"
 #include "mcpwm_foc.h"
 
@@ -1032,7 +1032,7 @@ void lispif_stop_lib(void) {
 
 float lispif_get_ppm(void) {
 	if (!servodec_is_running()) {
-		servo_simple_stop();
+		pwm_servo_stop();
 		servodec_init(0);
 	}
 

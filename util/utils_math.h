@@ -184,6 +184,14 @@ static inline void utils_truncate_number_int(int *number, int min, int max) {
 	}
 }
 
+static inline void utils_truncate_number_uint32(uint32_t *number, uint32_t min, uint32_t max) {
+	if (*number > max) {
+		*number = max;
+	} else if (*number < min) {
+		*number = min;
+	}
+}
+
 static inline void utils_truncate_number_abs(float *number, float max) {
 	if (*number > max) {
 		*number = max;

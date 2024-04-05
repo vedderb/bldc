@@ -29,7 +29,7 @@
 #include "comm_can.h"
 #include "imu.h"
 #include "crc.h"
-#include "servo_simple.h"
+#include "pwm_servo.h"
 #include "servo_dec.h"
 
 // Private variables
@@ -87,9 +87,9 @@ void app_set_configuration(app_configuration *conf) {
 				appconf.app_to_use != APP_PPM_UART &&
 				appconf.servo_out_enable) {
 			servodec_stop();
-			servo_simple_init();
+			pwm_servo_init_servo();
 		} else {
-			servo_simple_stop();
+			pwm_servo_stop();
 		}
 
 		switch (appconf.app_to_use) {

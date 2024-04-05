@@ -3061,6 +3061,54 @@ Read state of pin. Returns 1 if the pin is high, 0 otherwise.
 
 ---
 
+### Pulse-Width Modulation (PWM)
+
+A logic-level PWM-signal can be created on GPIO-pins for controlling various accessories.
+
+---
+
+#### pwm-start
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(pwm-start freq expressPin expressBits)
+```
+
+Start PWM-generation at frequency freq Hz. The arguments expressPin and expressBits are only used on the VESC Express and control which pin to use and how many bits of resolution to use (2 - 14 bits). On the ESC firmware the PPM/Servo-pin is always used. This function returns the actual frequency that will be used as some rounding can be done when setting up the timer.
+
+---
+
+#### pwm-stop
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(pwm-stop)
+```
+
+Stop PWM-output.
+
+---
+
+#### pwm-set-duty
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(pwm-set-duty dutyCycle)
+```
+
+Set PWM duty cycle. Range 0.0 to 1.0.
+
+---
+
 ### Input Capture (ICU)
 
 Input capture can be used to measure pulse lengths and periods on the PPM input pin. This can be used to measure the frequency and duty cycle of PWM-signals. The ICU driver was added in FW 6.02.
