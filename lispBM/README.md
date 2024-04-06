@@ -2871,6 +2871,34 @@ Same as uart-read-bytes, but will return when the byte end is read.
 
 ---
 
+#### uartcomm-start
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(uartcomm-start uart-num rx-pin tx-pin baudrate)
+```
+
+Start VESC Tool-compatible packet handler over UART. That allows VESC Tool to connect to those pins using an USB-SERIAL adapter. Uart-num can be 0 or 1 and any pins can be used. Multiple UARTs can be used simultaneously.
+
+---
+
+#### uartcomm-stop
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(uartcomm-stop uart-num)
+```
+
+Stop UARTCOMM on uart-num.
+
+---
+
 ### I2C
 
 ---
