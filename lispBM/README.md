@@ -5741,6 +5741,34 @@ When a SD-card is present in the VESC Express files can be listed, read, written
 
 ---
 
+#### f-connect
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-connect pin-mosi pin-miso pin-sck pin-cs optSpiSpeed)
+```
+
+Connect SD-card on pin-mosi, pin-miso, pin-sck and pin-cs. The optional argument optSpiSpeed can be used to specify the SPI speed (default 20000 Hz). Returns true on success, nil otherwise.
+
+---
+
+#### f-disconnect
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-disconnect)
+```
+
+Disconnect SD-card.
+
+---
+
 #### f-open
 
 | Platforms | Firmware |
