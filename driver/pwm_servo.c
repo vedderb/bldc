@@ -32,7 +32,7 @@
 // Private variables
 static volatile bool m_is_running = false;
 
-uint32_t pwm_servo_init(uint32_t freq_hz) {
+uint32_t pwm_servo_init(uint32_t freq_hz, float duty) {
 	// Ensure that there is no overflow and that the resolution is reasonable
 	utils_truncate_number_uint32(&freq_hz, TIM_CLOCK / 65000, TIM_CLOCK / 100);
 
@@ -46,14 +46,17 @@ uint32_t pwm_servo_init(uint32_t freq_hz) {
 	HW_ICU_TIMER->PSC = (uint16_t)((168000000 / 2) / TIM_CLOCK) - 1;
 	HW_ICU_TIMER->EGR = TIM_PSCReloadMode_Immediate;
 
+	utils_truncate_number(&duty, 0.0, 1.0);
+	uint32_t output = (uint32_t)((float)HW_ICU_TIMER->ARR * duty);
+
 	if (HW_ICU_CHANNEL == ICU_CHANNEL_1) {
 		HW_ICU_TIMER->CCER = TIM_OutputState_Enable;
 		HW_ICU_TIMER->CCMR1 = TIM_OCMode_PWM1 | TIM_OCPreload_Enable;
-		HW_ICU_TIMER->CCR1 = 0;
+		HW_ICU_TIMER->CCR1 = output;
 	} else if (HW_ICU_CHANNEL == ICU_CHANNEL_2) {
 		HW_ICU_TIMER->CCER = (TIM_OutputState_Enable << 4);
 		HW_ICU_TIMER->CCMR1 = (TIM_OCMode_PWM1 << 8) | (TIM_OCPreload_Enable << 8);
-		HW_ICU_TIMER->CCR2 = 0;
+		HW_ICU_TIMER->CCR2 = output;
 	}
 
 	HW_ICU_TIMER->CR1 |= TIM_CR1_ARPE;
@@ -68,7 +71,7 @@ uint32_t pwm_servo_init(uint32_t freq_hz) {
 }
 
 void pwm_servo_init_servo(void) {
-	pwm_servo_init(SERVO_OUT_RATE_HZ);
+	pwm_servo_init(SERVO_OUT_RATE_HZ, 0.0);
 }
 
 void pwm_servo_stop(void) {
@@ -86,7 +89,6 @@ float pwm_servo_set_duty(float duty) {
 	}
 
 	utils_truncate_number(&duty, 0.0, 1.0);
-
 	uint32_t output = (uint32_t)((float)HW_ICU_TIMER->ARR * duty);
 
 	if (HW_ICU_CHANNEL == ICU_CHANNEL_1) {

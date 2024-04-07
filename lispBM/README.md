@@ -3091,7 +3091,7 @@ Read state of pin. Returns 1 if the pin is high, 0 otherwise.
 
 ### Pulse-Width Modulation (PWM)
 
-A logic-level PWM-signal can be created on GPIO-pins for controlling various accessories.
+A logic-level PWM-signal can be created on GPIO-pins for controlling various accessories. The Express-platform supports up to 4 PWM-channels on any pins and the ESC-platform supports only one PWM-channel on the servo-pin. The arguments prefixed with express in the following functions are ignored on the ESC-platform.
 
 ---
 
@@ -3102,10 +3102,18 @@ A logic-level PWM-signal can be created on GPIO-pins for controlling various acc
 | ESC, Express | 6.05+ |
 
 ```clj
-(pwm-start freq expressPin expressBits)
+(pwm-start freq duty expressChannel expressPin optExpressBits)
 ```
 
-Start PWM-generation at frequency freq Hz. The arguments expressPin and expressBits are only used on the VESC Express and control which pin to use and how many bits of resolution to use (2 - 14 bits). On the ESC firmware the PPM/Servo-pin is always used. This function returns the actual frequency that will be used as some rounding can be done when setting up the timer.
+Start PWM-generation at frequency freq Hz and duty-cycle duty. The arguments expressChannel, expressPin and optExpressBits are only used on the Express-platform and control which channel and pin to use and optionally how many bits of resolution to use (2 - 14 bits, 10 bits default). On the ESC-platform the PPM/Servo-pin is always used. This function returns the actual frequency that will be used as some rounding can be done when setting up the timer. Example:
+
+```clj
+; Express: 2 kHz PWM with 20% duty, channel 0 pin 20, 12 bits resolution
+(pwm-start 2000 0.2 0 20 12)
+
+; ESC: 2 kHz PWM with 20% duty on the Servo/PPM-pin
+(pwm-start 2000 0.2)
+```
 
 ---
 
@@ -3116,10 +3124,10 @@ Start PWM-generation at frequency freq Hz. The arguments expressPin and expressB
 | ESC, Express | 6.05+ |
 
 ```clj
-(pwm-stop)
+(pwm-stop expressChannel)
 ```
 
-Stop PWM-output.
+Stop PWM-output. On the express-platform the channel must be specified.
 
 ---
 
@@ -3130,10 +3138,10 @@ Stop PWM-output.
 | ESC, Express | 6.05+ |
 
 ```clj
-(pwm-set-duty dutyCycle)
+(pwm-set-duty dutyCycle expressChannel)
 ```
 
-Set PWM duty cycle. Range 0.0 to 1.0.
+Set PWM duty cycle. Range 0.0 to 1.0. On the express-platform the channel must be specified.
 
 ---
 

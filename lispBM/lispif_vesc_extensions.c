@@ -5097,14 +5097,17 @@ static lbm_value ext_canmsg_send(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_pwm_start(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_NUMBER_ALL();
 
-	if (argn < 1) {
+	if (argn < 2) {
 		lbm_set_error_reason((char*)lbm_error_str_num_args);
 		return ENC_SYM_TERROR;
 	}
 
+	uint32_t freq = lbm_dec_as_u32(args[0]);
+	float duty = lbm_dec_as_float(args[1]);
+
 	servodec_stop();
 	pwm_servo_stop();
-	return lbm_enc_i(pwm_servo_init(lbm_dec_as_u32(args[0])));
+	return lbm_enc_i(pwm_servo_init(freq, duty));
 }
 
 static lbm_value ext_pwm_stop(lbm_value *args, lbm_uint argn) {
@@ -5114,7 +5117,12 @@ static lbm_value ext_pwm_stop(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_pwm_set_duty(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1);
+	LBM_CHECK_NUMBER_ALL();
+
+	if (argn < 1) {
+		lbm_set_error_reason((char*)lbm_error_str_num_args);
+		return ENC_SYM_TERROR;
+	}
 
 	if (!pwm_servo_is_running()) {
 		return ENC_SYM_EERROR;

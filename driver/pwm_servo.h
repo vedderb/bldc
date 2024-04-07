@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-uint32_t pwm_servo_init(uint32_t freq_hz);
+uint32_t pwm_servo_init(uint32_t freq_hz, float duty);
 void pwm_servo_init_servo(void);
 void pwm_servo_stop(void);
 float pwm_servo_set_duty(float duty);
