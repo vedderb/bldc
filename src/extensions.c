@@ -24,6 +24,7 @@
 #include <eval_cps.h>
 
 #include "extensions.h"
+#include "lbm_utils.h"
 
 static lbm_uint ext_max    = 0;
 static lbm_uint ext_num    = 0;
@@ -83,7 +84,7 @@ bool lbm_clr_extension(lbm_uint sym_id) {
 bool lbm_lookup_extension_id(char *sym_str, lbm_uint *ix) {
   for (lbm_uint i = 0; i < ext_max; i ++) {
     if(extension_table[i].name) {
-      if (strcmp(extension_table[i].name, sym_str) == 0) {
+      if (str_eq(extension_table[i].name, sym_str)) {
         *ix = i + EXTENSION_SYMBOLS_START;
         return true;
       }
@@ -99,7 +100,7 @@ bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   if (lbm_get_symbol_by_name(sym_str, &symbol)) {
     if (lbm_is_extension(lbm_enc_sym(symbol))) {
       // update the extension entry.
-      if (strcmp(extension_table[symbol - EXTENSION_SYMBOLS_START].name, sym_str) == 0) {
+      if (str_eq(extension_table[symbol - EXTENSION_SYMBOLS_START].name, sym_str)) {
         // Do not replace name ptr.
         extension_table[symbol - EXTENSION_SYMBOLS_START].fptr = ext;
         return true;
