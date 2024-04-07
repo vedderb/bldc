@@ -491,7 +491,7 @@ static void lift_array_flash(lbm_value flash_cell, char *data, lbm_uint num_elt)
   handle_flash_status(write_const_cdr(flash_cell, ENC_SYM_ARRAY_TYPE));
 }
 
-static void stack_push(lbm_stack_t *s, lbm_uint val) {
+static inline void stack_push(lbm_stack_t *s, lbm_uint val) {
   if (s->sp < s->size) {
     s->data[s->sp++] = val;
     if (s->sp > s->max_sp) s->max_sp = s->sp;
@@ -500,7 +500,7 @@ static void stack_push(lbm_stack_t *s, lbm_uint val) {
   error_ctx(ENC_SYM_STACK_ERROR);
 }
 
-static void stack_push_2(lbm_stack_t *s, lbm_uint v1, lbm_uint v2) {
+static inline void stack_push_2(lbm_stack_t *s, lbm_uint v1, lbm_uint v2) {
   if (s->sp + 1 < s->size) {
     lbm_uint *t = &s->data[s->sp];
     t[0] = v1;
@@ -512,7 +512,7 @@ static void stack_push_2(lbm_stack_t *s, lbm_uint v1, lbm_uint v2) {
   error_ctx(ENC_SYM_STACK_ERROR);
 }
 
-static void stack_push_3(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3) {
+static inline void stack_push_3(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3) {
   if (s->sp + 2 < s->size) {
     lbm_uint *t = &s->data[s->sp];
     t[0] = v1;
@@ -525,7 +525,7 @@ static void stack_push_3(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3) 
   error_ctx(ENC_SYM_STACK_ERROR);
 }
 
-static void stack_push_4(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4) {
+static inline void stack_push_4(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4) {
   if (s->sp + 3 < s->size) {
     lbm_uint *t = &s->data[s->sp];
     t[0] = v1;
@@ -539,7 +539,7 @@ static void stack_push_4(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, 
   error_ctx(ENC_SYM_STACK_ERROR);
 }
 
-static void stack_push_5(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4, lbm_uint v5) {
+static inline void stack_push_5(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4, lbm_uint v5) {
   if (s->sp + 4 < s->size) {
     lbm_uint *t = &s->data[s->sp];
     t[0] = v1;
@@ -554,7 +554,7 @@ static void stack_push_5(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, 
   error_ctx(ENC_SYM_STACK_ERROR);
 }
 
-static void stack_push_6(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4, lbm_uint v5, lbm_uint v6) {
+static inline void stack_push_6(lbm_stack_t *s, lbm_uint v1, lbm_uint v2, lbm_uint v3, lbm_uint v4, lbm_uint v5, lbm_uint v6) {
   if (s->sp + 5 < s->size) {
     lbm_uint *t = &s->data[s->sp];
     t[0] = v1;
@@ -720,8 +720,8 @@ static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cd
 #define LOOP_COND  1
 #define LOOP_BODY  2
 
-// (closure params exp env) -> [params, exp, env])
-static void extract_n(lbm_value curr, lbm_value *res, unsigned int n) {
+// (a b c) -> [a b c]
+static lbm_value extract_n(lbm_value curr, lbm_value *res, unsigned int n) {
   for (unsigned int i = 0; i < n; i ++) {
     if (lbm_is_ptr(curr)) {
       lbm_cons_t *cell = lbm_ref_cell(curr);
@@ -731,6 +731,7 @@ static void extract_n(lbm_value curr, lbm_value *res, unsigned int n) {
       error_ctx(ENC_SYM_TERROR);
     }
   }
+  return curr; // Rest of list is returned here.
 }
 
 static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg_count, eval_context_t *ctx) {
@@ -1741,25 +1742,21 @@ static void eval_callcc(eval_context_t *ctx) {
 }
 
 // (define sym exp)
+#define KEY 1
+#define VAL 2
 static void eval_define(eval_context_t *ctx) {
-  lbm_value args = get_cdr(ctx->curr_exp);
-  lbm_value key, rest_args;
-  get_car_and_cdr(args, &key, &rest_args);
-  lbm_value val_exp, rest_val;
-  get_car_and_cdr(rest_args, &val_exp, &rest_val);
+  lbm_value parts[3];
+  lbm_value rest = extract_n(ctx->curr_exp, parts, 3);
   lbm_uint *sptr = stack_reserve(ctx, 2);
-
-  if (lbm_is_symbol(key) && lbm_is_symbol_nil(rest_val)) {
-    lbm_uint sym_val = lbm_dec_sym(key);
-
-    sptr[0] = key;
-
+  if (lbm_is_symbol(parts[KEY]) && lbm_is_symbol_nil(rest)) {
+    lbm_uint sym_val = lbm_dec_sym(parts[KEY]);
+    sptr[0] = parts[KEY];
     if (sym_val >= RUNTIME_SYMBOLS_START) {
       sptr[1] = SET_GLOBAL_ENV;
       if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST) {
         stack_push(&ctx->K, MOVE_VAL_TO_FLASH_DISPATCH);
       }
-      ctx->curr_exp = val_exp;
+      ctx->curr_exp = parts[VAL];
       return;
     }
   }
@@ -1802,17 +1799,9 @@ static void eval_lambda(eval_context_t *ctx) {
 
 // (if cond-expr then-expr else-expr)
 static void eval_if(eval_context_t *ctx) {
-
   lbm_value cdr = get_cdr(ctx->curr_exp);
-  lbm_value exp, cddr;
-  get_car_and_cdr(cdr, &exp, &cddr);
-
-  lbm_uint *sptr = stack_reserve(ctx, 4);
-  sptr[0] = get_cadr(cddr); // else_branch
-  sptr[1] = get_car(cddr); // then_branch
-  sptr[2] = ctx->curr_env;
-  sptr[3] = IF;
-  ctx->curr_exp = exp;
+  stack_push_3(&ctx->K, get_cdr(cdr), ctx->curr_env, IF);
+  ctx->curr_exp = get_car(cdr);
 }
 
 // (cond (cond-expr-1 expr-1)
@@ -1833,12 +1822,11 @@ static void eval_cond(eval_context_t *ctx) {
     lbm_value condition = get_car(cond1);
     lbm_value body = get_cadr(cond1);
     lbm_value rest;
-    rest = cons_with_gc(ENC_SYM_COND, get_cddr(ctx->curr_exp), ENC_SYM_NIL);
-    lbm_uint *sptr = stack_reserve(ctx, 4);
-    sptr[0] = rest;
-    sptr[1] = body;
-    sptr[2] = ctx->curr_env;
-    sptr[3] = IF;
+    WITH_GC(rest, lbm_heap_allocate_list_init(2,
+                                              body, // Then branch
+                                              cons_with_gc(ENC_SYM_COND, get_cddr(ctx->curr_exp), ENC_SYM_NIL)));
+
+    stack_push_3(&ctx->K, rest, ctx->curr_env, IF);
     ctx->curr_exp = condition;
   }
 }
@@ -1962,7 +1950,12 @@ static void eval_var(eval_context_t *ctx) {
 
     lbm_value v_exp = get_cadr(args);
     stack_push_3(&ctx->K, new_env, key, PROGN_VAR);
-    ctx->curr_env = new_env; // So binding body knows binding (enables recursion)
+    // Activating the new environment before the evaluation of the value to be bound,
+    // means that other variables with same name will be shadowed already in the value
+    // body.
+    // The way closures work, the var-variable needs to be in scope during val evaluation
+    // for a recursive closure to be possible.
+    ctx->curr_env = new_env;
     ctx->curr_exp = v_exp;
     return;
     }
@@ -1973,11 +1966,10 @@ static void eval_var(eval_context_t *ctx) {
 
 // (setq x (...)) - same as (set 'x (...)) or (setvar 'x (...))
 static void eval_setq(eval_context_t *ctx) {
-  lbm_value args = get_cdr(ctx->curr_exp);
-  lbm_value sym = get_car(args);
-  lbm_value v_exp = get_cadr(args);
-  stack_push_3(&ctx->K, ctx->curr_env, sym, SETQ);
-  ctx->curr_exp = v_exp;
+  lbm_value parts[3];
+  extract_n(ctx->curr_exp, parts, 3);
+  stack_push_3(&ctx->K, ctx->curr_env, parts[1], SETQ);
+  ctx->curr_exp = parts[2];
 }
 
 static void eval_move_to_flash(eval_context_t *ctx) {
@@ -2001,9 +1993,9 @@ static void eval_loop(eval_context_t *ctx) {
 //      body-exp)
 static void eval_let(eval_context_t *ctx) {
   lbm_value env      = ctx->curr_env;
-  lbm_value binds    = get_cadr(ctx->curr_exp); // key value pairs.
-  lbm_value exp      = get_cadr(get_cdr(ctx->curr_exp)); // exp to evaluate in the new env.
-  let_bind_values_eval(binds, exp, env, ctx);
+  lbm_value parts[3];
+  extract_n(ctx->curr_exp, parts, 3);
+  let_bind_values_eval(parts[1], parts[2], env, ctx);
 }
 
 // (and exp0 ... expN)
@@ -2162,11 +2154,7 @@ static void cont_set_global_env(eval_context_t *ctx){
 }
 
 static void cont_resume(eval_context_t *ctx) {
-  lbm_value exp;
-  lbm_value env;
-  lbm_pop_2(&ctx->K, &env, &exp);
-  ctx->curr_exp = exp;
-  ctx->curr_env = env;
+  lbm_pop_2(&ctx->K, &ctx->curr_env, &ctx->curr_exp);
 }
 
 static void cont_progn_rest(eval_context_t *ctx) {
@@ -2177,16 +2165,14 @@ static void cont_progn_rest(eval_context_t *ctx) {
 
   lbm_value rest_car, rest_cdr;
   get_car_and_cdr(rest, &rest_car, &rest_cdr);
+  ctx->curr_exp = rest_car;
+  ctx->curr_env = env;
   if (lbm_is_symbol_nil(rest_cdr)) {
     // allow for tail recursion
-    ctx->curr_exp = rest_car;
-    ctx->curr_env = env;
     lbm_stack_drop(&ctx->K, 3);
   } else {
     sptr[2] = rest_cdr;
     stack_push(&ctx->K, PROGN_REST);
-    ctx->curr_exp = rest_car;
-    ctx->curr_env = env;
   }
 }
 
@@ -3166,13 +3152,13 @@ static void cont_if(eval_context_t *ctx) {
 
   lbm_value arg = ctx->r;
 
-  lbm_value *sptr = pop_stack_ptr(ctx, 3);
+  lbm_value *sptr = pop_stack_ptr(ctx, 2);
 
-  ctx->curr_env = sptr[2];
+  ctx->curr_env = sptr[1];
   if (lbm_is_symbol_nil(arg)) {
-    ctx->curr_exp = sptr[0]; // else branch
+    ctx->curr_exp = get_cadr(sptr[0]); // else branch
   } else {
-    ctx->curr_exp = sptr[1]; // then branch
+    ctx->curr_exp = get_car(sptr[0]); // then branch
   }
 }
 
