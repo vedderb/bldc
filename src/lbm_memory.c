@@ -1,5 +1,6 @@
 /*
-    Copyright 2020, 2021, 2022, 2023 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2020 - 2024 Joel Svensson  svenssonjoel@yahoo.se
+                     2024 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -47,6 +48,7 @@ static lbm_uint memory_num_free = 0;
 static volatile lbm_uint memory_reserve_level = 0;
 static mutex_t lbm_mem_mutex;
 static bool    lbm_mem_mutex_initialized;
+static unsigned int alloc_offset = 0;
 
 int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
                     lbm_uint *bits, lbm_uint bits_size) {
@@ -55,6 +57,9 @@ int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
     mutex_init(&lbm_mem_mutex);
     lbm_mem_mutex_initialized = true;
   }
+
+  alloc_offset = 0;
+
   mutex_lock(&lbm_mem_mutex);
   int res = 0;
   if (data == NULL || bits == NULL) return 0;
@@ -250,7 +255,6 @@ lbm_uint lbm_memory_longest_free(void) {
   return max_length;
 }
 
-
 static lbm_uint *lbm_memory_allocate_internal(lbm_uint num_words) {
 
   if (memory == NULL || bitmap == NULL) {
@@ -263,17 +267,16 @@ static lbm_uint *lbm_memory_allocate_internal(lbm_uint num_words) {
   lbm_uint end_ix = 0;
   lbm_uint free_length = 0;
   unsigned int state = INIT;
+  unsigned int loop_max = (bitmap_size << BITMAP_SIZE_SHIFT);
 
-  for (unsigned int i = 0; i < (bitmap_size << BITMAP_SIZE_SHIFT); i ++) {
-    if (state == ALLOC_DONE) break;
-
-    switch(status(i)) {
+  for (unsigned int i = 0; i < loop_max; i ++) {
+    switch(status(alloc_offset)) {
     case FREE_OR_USED:
       switch (state) {
       case INIT:
-        start_ix = i;
+        start_ix = alloc_offset;
         if (num_words == 1) {
-          end_ix = i;
+          end_ix = alloc_offset;
           state = ALLOC_DONE;
         } else {
           state = FREE_LENGTH_CHECK;
@@ -283,7 +286,7 @@ static lbm_uint *lbm_memory_allocate_internal(lbm_uint num_words) {
       case FREE_LENGTH_CHECK:
         free_length ++;
         if (free_length == num_words) {
-          end_ix = i;
+          end_ix = alloc_offset;
           state = ALLOC_DONE;
         } else {
           state = FREE_LENGTH_CHECK;
@@ -305,6 +308,15 @@ static lbm_uint *lbm_memory_allocate_internal(lbm_uint num_words) {
     default: // error case
       mutex_unlock(&lbm_mem_mutex);
       return NULL;
+    }
+
+    if (state == ALLOC_DONE) break;
+
+    alloc_offset++;
+    if (alloc_offset == loop_max ) {
+      free_length = 0;
+      alloc_offset = 0;
+      state = INIT;
     }
   }
 
@@ -337,6 +349,7 @@ int lbm_memory_free(lbm_uint *ptr) {
   if (lbm_memory_ptr_inside(ptr)) {
     mutex_lock(&lbm_mem_mutex);
     lbm_uint ix = address_to_bitmap_ix(ptr);
+    alloc_offset = ix;
 
     switch(status(ix)) {
     case START:
@@ -433,6 +446,7 @@ int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
       break;
     }
   }
+  alloc_offset = ix+i;
 
   lbm_uint count = 0;
   if (!done) {
