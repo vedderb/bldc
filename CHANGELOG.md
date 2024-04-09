@@ -36,6 +36,7 @@
 	* Added foc-play-tone and foc-play-stop.
 	* Added foc-play-samples.
 	* Added can-msg-age.
+	* Massive performance boost for string functions and 64-bit operations due to much faster memory allocation.
 * Hall sensors improvements:
 	* Smooth transition to sensorless.
 	* Bug fix in interpolation.
