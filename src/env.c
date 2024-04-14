@@ -37,6 +37,7 @@ lbm_value *lbm_get_global_env(void) {
   return env_global;
 }
 
+// Copy the list structure of an environment.
 lbm_value lbm_env_copy_spine(lbm_value env) {
 
   lbm_value r = ENC_SYM_MERROR;

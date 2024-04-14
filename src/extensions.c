@@ -72,7 +72,7 @@ extension_fptr lbm_get_extension(lbm_uint sym) {
 }
 
 bool lbm_clr_extension(lbm_uint sym_id) {
-  lbm_uint ext_id = sym_id - EXTENSION_SYMBOLS_START;
+  lbm_uint ext_id = SYMBOL_IX(sym_id);
   if (ext_id >= ext_max) {
     return false;
   }
@@ -100,9 +100,9 @@ bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   if (lbm_get_symbol_by_name(sym_str, &symbol)) {
     if (lbm_is_extension(lbm_enc_sym(symbol))) {
       // update the extension entry.
-      if (str_eq(extension_table[symbol - EXTENSION_SYMBOLS_START].name, sym_str)) {
+      if (str_eq(extension_table[SYMBOL_IX(symbol)].name, sym_str)) {
         // Do not replace name ptr.
-        extension_table[symbol - EXTENSION_SYMBOLS_START].fptr = ext;
+        extension_table[SYMBOL_IX(symbol)].fptr = ext;
         return true;
       }
     }

@@ -5057,7 +5057,7 @@ The `setcar` is a destructive update of the car field of a cons-cell.
 
 
 ```clj
-(define apa '(42 . 2))
+(define apa '(1 . 2))
 (setcar apa 42)
 apa
 
@@ -5119,7 +5119,7 @@ The `setcdr` is a destructive update of the cdr field of a cons-cell.
 
 
 ```clj
-(define apa '(1 . 42))
+(define apa '(1 . 2))
 (setcdr apa 42)
 apa
 
@@ -5590,7 +5590,7 @@ The `setassoc` function destructively updates a key-value mapping in an alist. T
 
 
 ```clj
-(define apa (list '(1 . horse) '(2 . llama) '(3 . shark)))
+(define apa (list '(1 . horse) '(2 . donkey) '(3 . shark)))
 (setassoc apa 2 'llama)
 
 ```
@@ -6092,7 +6092,7 @@ To clear a byte array the function bufclear can be used `(bufclear arr optByte o
 <td>
 
 ```clj
-(define data [255 170 170 170 170 170 1 1])
+(define data [255 255 255 255 255 255 255 255])
 ```
 
 
@@ -6100,7 +6100,7 @@ To clear a byte array the function bufclear can be used `(bufclear arr optByte o
 <td>
 
 ```clj
-[255 170 170 170 170 170 1 1]
+[255 255 255 255 255 255 255 255]
 ```
 
 

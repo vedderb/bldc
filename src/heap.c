@@ -513,31 +513,19 @@ lbm_uint lbm_heap_num_free(void) {
 }
 
 lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr) {
-
   lbm_value res;
-
   // it is a ptr replace freelist with cdr of freelist;
   res = lbm_heap_state.freelist;
-
   if (lbm_type_of(res) == LBM_TYPE_CONS) {
     lbm_uint heap_ix = lbm_dec_ptr(res);
-    //lbm_cons_t *rc = lbm_ref_cell(res);
     lbm_heap_state.freelist = lbm_heap_state.heap[heap_ix].cdr;
-
     lbm_heap_state.num_alloc++;
-
     lbm_heap_state.heap[heap_ix].car = car;
     lbm_heap_state.heap[heap_ix].cdr = cdr;
     res = lbm_set_ptr_type(res, ptr_type);
     return res;
   }
-  else if ((lbm_type_of(res) == LBM_TYPE_SYMBOL) &&
-           (lbm_dec_sym(res) == SYM_NIL)) {
-    // all is as it should be (but no free cells)
-    return ENC_SYM_MERROR;
-  }
-  // Unreachable, unless something very wrong
-  return ENC_SYM_FATAL_ERROR;
+  return ENC_SYM_MERROR;
 }
 
 lbm_value lbm_heap_allocate_list(lbm_uint n) {
