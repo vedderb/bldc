@@ -54,7 +54,6 @@ volatile uint16_t ADC_Value[HW_ADC_CHANNELS + HW_ADC_CHANNELS_EXTRA];
 volatile float ADC_curr_norm_value[6];
 volatile float ADC_curr_raw[6];
 
-
 typedef struct {
 	mc_configuration m_conf;
 	mc_fault_code m_fault_now;
@@ -122,6 +121,7 @@ static volatile int m_sample_int;
 static volatile bool m_sample_raw;
 static volatile debug_sampling_mode m_sample_mode;
 static volatile debug_sampling_mode m_sample_mode_last;
+static volatile int m_sample_offset_last;
 static volatile int m_sample_now;
 static volatile int m_sample_trigger;
 static volatile float m_last_adc_duration_sample;
@@ -143,6 +143,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 static void run_timer_tasks(volatile motor_if_state_t *motor);
 static void update_stats(volatile motor_if_state_t *motor);
 static volatile motor_if_state_t *motor_now(void);
+static void send_sample_block(int ind, int offset);
 
 // Function pointers
 static void(*pwn_done_func)(void) = 0;
@@ -184,6 +185,7 @@ void mc_interface_init(void) {
 	m_sample_trigger = 0;
 	m_sample_mode = DEBUG_SAMPLING_OFF;
 	m_sample_mode_last = DEBUG_SAMPLING_OFF;
+	m_sample_offset_last = 0;
 	m_sample_is_second_motor = false;
 
 	mc_interface_stat_reset();
@@ -1486,12 +1488,16 @@ float mc_interface_get_last_sample_adc_isr_duration(void) {
 void mc_interface_sample_print_data(debug_sampling_mode mode, uint16_t len, uint8_t decimation, bool raw, 
 		void(*reply_func)(unsigned char *data, unsigned int len)) {
 
+	send_func_sample = reply_func;
+
 	if (len > ADC_SAMPLE_MAX_LEN) {
 		len = ADC_SAMPLE_MAX_LEN;
 	}
 
 	if (mode == DEBUG_SAMPLING_SEND_LAST_SAMPLES) {
 		chEvtSignal(sample_send_tp, (eventmask_t) 1);
+	} else if (mode == DEBUG_SAMPLING_SEND_SINGLE_SAMPLE) {
+		send_sample_block(len, m_sample_offset_last);
 	} else {
 		m_sample_trigger = -1;
 		m_sample_now = 0;
@@ -1499,7 +1505,6 @@ void mc_interface_sample_print_data(debug_sampling_mode mode, uint16_t len, uint
 		m_sample_int = decimation;
 		m_sample_mode = mode;
 		m_sample_raw = raw;
-		send_func_sample = reply_func;
 #ifdef HW_HAS_DUAL_MOTORS
 		m_sample_is_second_motor = motor_now() == &m_motor_2;
 #endif
@@ -2807,7 +2812,7 @@ static THD_FUNCTION(stat_thread, arg) {
 }
 
 static void send_sample_block(int ind, int offset) {
-	uint8_t buffer[48];
+	uint8_t buffer[50];
 	int32_t index = 0;
 	int ind_samp = ind + offset;
 
@@ -2820,6 +2825,8 @@ static void send_sample_block(int ind, int offset) {
 	}
 
 	buffer[index++] = COMM_SAMPLE_PRINT;
+
+	buffer_append_int16(buffer, ind, &index);
 
 	if (m_sample_raw) {
 		buffer_append_float32_auto(buffer, (float)m_curr0_samples[ind_samp], &index);
@@ -2878,6 +2885,8 @@ static THD_FUNCTION(sample_send_thread, arg) {
 		default:
 			break;
 		}
+
+		m_sample_offset_last = offset;
 
 		for (int i = 0;i < len;i++) {
 			send_sample_block(i, offset);
