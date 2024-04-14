@@ -22,7 +22,7 @@ expected_fails=("test_lisp_code_cps -h 1024 test_take_iota_0.lisp"
                 "test_lisp_code_cps -i -s -h 1024 test_take_iota_0.lisp"
                 "test_lisp_code_cps -i -h 512 test_take_iota_0.lisp"
                 "test_lisp_code_cps -i -s -h 512 test_take_iota_0.lisp"
-               )
+              )
 
 
 success_count=0
