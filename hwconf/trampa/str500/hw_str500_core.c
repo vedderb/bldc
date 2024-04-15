@@ -291,7 +291,7 @@ static THD_FUNCTION(mux_thread, arg) {
 
 		ADCMUX_MOS_TEMP2();
 		chThdSleepMicroseconds(T_SAMP_US);
-		ADC_Value[ADC_IND_TEMP_MOS_M2] = ADC_Value[ADC_IND_ADC_MUX];
+		ADC_Value[ADC_IND_TEMP_MOS_2] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ADCMUX_NC();
 		chThdSleepMicroseconds(T_SAMP_US);
