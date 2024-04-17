@@ -52,9 +52,12 @@
 #define REG_ON()				palSetPad(REG_GPIO, REG_PIN)
 #define REG_OFF()				palClearPad(REG_GPIO, REG_PIN)
 
+#define SWHV_GPIO				GPIOC
+#define SWHV_PIN				13
+#define SWHV_ON()				palSetPad(SWHV_GPIO, SWHV_PIN)
+#define SWHV_OFF()				palClearPad(SWHV_GPIO, SWHV_PIN)
+
 // ADC Mux
-#define ADC_SW_EN_PORT			GPIOB
-#define ADC_SW_EN_PIN			0
 #define ADC_SW_1_PORT			GPIOC
 #define ADC_SW_1_PIN			14
 #define ADC_SW_2_PORT			GPIOC
@@ -62,26 +65,24 @@
 #define ADC_SW_3_PORT			GPIOD
 #define ADC_SW_3_PIN			2
 
-#define AD_DIS()				palClearPad(ADC_SW_EN_PORT, ADC_SW_EN_PIN)
 #define AD1_L()					palClearPad(ADC_SW_1_PORT, ADC_SW_1_PIN)
 #define AD1_H()					palSetPad(ADC_SW_1_PORT, ADC_SW_1_PIN)
 #define AD2_L()					palClearPad(ADC_SW_2_PORT, ADC_SW_2_PIN)
 #define AD2_H()					palSetPad(ADC_SW_2_PORT, ADC_SW_2_PIN)
 #define AD3_L()					palClearPad(ADC_SW_3_PORT, ADC_SW_3_PIN)
 #define AD3_H()					palSetPad(ADC_SW_3_PORT, ADC_SW_3_PIN)
-#define AD_EN()					palSetPad(ADC_SW_EN_PORT, ADC_SW_EN_PIN)
 
-#define ADCMUX_MOT_TEMP()		AD_DIS();	AD3_L();	AD2_L();	AD1_L();	AD_EN();
-#define ADCMUX_VIN()			AD_DIS();	AD3_L();	AD2_L();	AD1_H();	AD_EN();
-#define ADCMUX_MOS_TEMP1()		AD_DIS();	AD3_L();	AD2_H();	AD1_L();	AD_EN();
-#define ADCMUX_MOS_TEMP2()		AD_DIS();	AD3_L();	AD2_H();	AD1_H();	AD_EN();
-#define ADCMUX_NC()				AD_DIS();	AD3_H();	AD2_L();	AD1_L();	AD_EN();
-#define ADCMUX_EXT8()			AD_DIS();	AD3_H();	AD2_L();	AD1_H();	AD_EN();
-#define ADCMUX_EXT7()			AD_DIS();	AD3_H();	AD2_H();	AD1_L();	AD_EN();
-#define ADCMUX_MOS_TEMP3()		AD_DIS();	AD3_H();	AD2_H();	AD1_H();	AD_EN();
+#define ADCMUX_MOT_TEMP()		AD3_L();	AD2_L();	AD1_L();
+#define ADCMUX_12V_SENSE_V()	AD3_L();	AD2_L();	AD1_H();
+#define ADCMUX_MOS_TEMP1()		AD3_L();	AD2_H();	AD1_L();
+#define ADCMUX_MOS_TEMP2()		AD3_L();	AD2_H();	AD1_H();
+#define ADCMUX_12V_SENSE_I()	AD3_H();	AD2_L();	AD1_L();
+#define ADCMUX_5V_SENSE_V()		AD3_H();	AD2_L();	AD1_H();
+#define ADCMUX_MOS_TEMP3()		AD3_H();	AD2_H();	AD1_L();
+#define ADCMUX_TEMP_DCDC()		AD3_H();	AD2_H();	AD1_H();
 
-#define AUX_GPIO				GPIOA
-#define AUX_PIN					15
+#define AUX_GPIO				GPIOB
+#define AUX_PIN					7
 #define AUX_ON()				palSetPad(AUX_GPIO, AUX_PIN)
 #define AUX_OFF()				palClearPad(AUX_GPIO, AUX_PIN)
 
@@ -95,12 +96,6 @@
 // Hold shutdown pin early to wake up on short pulses
 #define HW_EARLY_INIT()			palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
 								HW_SHUTDOWN_HOLD_ON();
-
-// Sensor port voltage control
-//#define SENSOR_VOLTAGE_GPIO		GPIOC
-//#define SENSOR_VOLTAGE_PIN		12
-#define SENSOR_PORT_5V()		//palSetPad(SENSOR_VOLTAGE_GPIO, SENSOR_VOLTAGE_PIN)
-#define SENSOR_PORT_3V3()		//palClearPad(SENSOR_VOLTAGE_GPIO, SENSOR_VOLTAGE_PIN)
 
 /*
  * ADC Vector
@@ -118,23 +113,23 @@
 #define ADC_IND_CURR2			1
 #define ADC_IND_CURR3			2
 #define ADC_IND_VIN_SENS		11
-#define ADC_IND_EXT5			11
+#define ADC_IND_EXT5			16
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
 #define ADC_IND_SHUTDOWN		10
 #define ADC_IND_EXT3			8
-#define ADC_IND_EXT6			9
 #define ADC_IND_VREFINT			12
 #define ADC_IND_ADC_MUX			15
-#define ADC_IND_EXT4			16
+#define ADC_IND_EXT4			9
 
 #define ADC_IND_TEMP_MOTOR		18
+#define ADC_IND_12V_SENSE_V		19
 #define ADC_IND_TEMP_MOS		20
-#define ADC_IND_TEMP_MOS_2		21
-#define ADC_IND_NC				22
-#define ADC_IND_EXT8			23
-#define ADC_IND_EXT7			24
-#define ADC_IND_TEMP_MOS_3		25
+#define ADC_IND_TEMP_MOS_2		21 // Caps
+#define ADC_IND_12V_SENSE_I		22
+#define ADC_IND_5V_SENSE_V		23
+#define ADC_IND_TEMP_MOS_3		24
+#define ADC_IND_TEMP_DCDC		25
 
 // ADC macros and settings
 
@@ -168,6 +163,8 @@
 #define NTC_TEMP_MOS1()			(1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 #define NTC_TEMP_MOS2()			(1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_2]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 #define NTC_TEMP_MOS3()			(1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_3]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
+
+#define NTC_TEMP_DCDC()			(1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_DCDC]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)

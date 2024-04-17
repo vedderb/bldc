@@ -56,9 +56,46 @@ static lbm_value ext_reg_en(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_reg_v(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	float adc = (float)ADC_Value[ADC_IND_12V_SENSE_V];
+	// V-div 22k - 2.2k
+	return lbm_enc_float(adc * (V_REG / 4095.0) * ((22.0 + 2.2) / 2.2));
+}
+
+static lbm_value ext_reg_i(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	float adc = (float)ADC_Value[ADC_IND_12V_SENSE_I];
+	// 0.01 ohm and 50x gain
+	return lbm_enc_float((adc * (V_REG / 4095.0) - (V_REG / 2.0)) / (50.0 * 0.01));
+}
+
+static lbm_value ext_reg_t(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(NTC_TEMP_DCDC());
+}
+
+static lbm_value ext_reg5_v(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	float adc = (float)ADC_Value[ADC_IND_5V_SENSE_V];
+	// V-div 10k - 10k
+	return lbm_enc_float(adc * (V_REG / 4095.0) * ((10.0 + 10.0) / 10.0));
+}
+
+static lbm_value ext_sw_hv(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1);
+	lbm_dec_as_i32(args[0]) ? SWHV_ON() : SWHV_OFF();
+	return ENC_SYM_TRUE;
+}
+
 static void load_extensions(void) {
 	lbm_add_extension("hw-reg-adj", ext_reg_adj);
 	lbm_add_extension("hw-reg-en", ext_reg_en);
+	lbm_add_extension("hw-reg-v", ext_reg_v);
+	lbm_add_extension("hw-reg-i", ext_reg_i);
+	lbm_add_extension("hw-reg-t", ext_reg_t);
+	lbm_add_extension("hw-reg5-v", ext_reg5_v);
+	lbm_add_extension("hw-sw-hv", ext_sw_hv);
 }
 
 void hw_init_gpio(void) {
@@ -118,18 +155,13 @@ void hw_init_gpio(void) {
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
 
-	// Sensor port voltage
-//	SENSOR_PORT_3V3();
-//	palSetPadMode(SENSOR_VOLTAGE_GPIO, SENSOR_VOLTAGE_PIN,
-//			PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-
 	// ADC Pins
 	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG);
 
 	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG);
@@ -156,6 +188,11 @@ void hw_init_gpio(void) {
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
 
+	SWHV_OFF();
+	palSetPadMode(SWHV_GPIO, SWHV_PIN,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);
+
 	lispif_add_ext_load_callback(load_extensions);
 }
 
@@ -163,7 +200,7 @@ void hw_setup_adc_channels(void) {
 	// ADC1 regular channels
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_15Cycles);			// 0
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 2, ADC_SampleTime_15Cycles);			// 3
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_5, 3, ADC_SampleTime_15Cycles);			// 6
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_7, 3, ADC_SampleTime_15Cycles);			// 6
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 4, ADC_SampleTime_15Cycles);			// 9
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 5, ADC_SampleTime_15Cycles);	// 12
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_8, 6, ADC_SampleTime_15Cycles);			// 15
@@ -297,9 +334,6 @@ static THD_FUNCTION(mux_thread, arg) {
 
 	chRegSetThreadName("adc_mux");
 
-	palSetPadMode(ADC_SW_EN_PORT, ADC_SW_EN_PIN,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(ADC_SW_1_PORT, ADC_SW_1_PIN ,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
@@ -317,9 +351,9 @@ static THD_FUNCTION(mux_thread, arg) {
 		chThdSleepMicroseconds(T_SAMP_US);
 		ADC_Value[ADC_IND_TEMP_MOTOR] = ADC_Value[ADC_IND_ADC_MUX];
 
-		ADCMUX_VIN();
+		ADCMUX_12V_SENSE_V();
 		chThdSleepMicroseconds(T_SAMP_US);
-		ADC_Value[ADC_IND_VIN_SENS] = ADC_Value[ADC_IND_ADC_MUX];
+		ADC_Value[ADC_IND_12V_SENSE_V] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ADCMUX_MOS_TEMP1();
 		chThdSleepMicroseconds(T_SAMP_US);
@@ -327,23 +361,23 @@ static THD_FUNCTION(mux_thread, arg) {
 
 		ADCMUX_MOS_TEMP2();
 		chThdSleepMicroseconds(T_SAMP_US);
-		ADC_Value[ADC_IND_TEMP_MOS_M2] = ADC_Value[ADC_IND_ADC_MUX];
+		ADC_Value[ADC_IND_TEMP_MOS_2] = ADC_Value[ADC_IND_ADC_MUX];
 
-		ADCMUX_NC();
+		ADCMUX_12V_SENSE_I();
 		chThdSleepMicroseconds(T_SAMP_US);
-		ADC_Value[ADC_IND_NC] = ADC_Value[ADC_IND_ADC_MUX];
+		ADC_Value[ADC_IND_12V_SENSE_I] = ADC_Value[ADC_IND_ADC_MUX];
 
-		ADCMUX_EXT8();
+		ADCMUX_5V_SENSE_V();
 		chThdSleepMicroseconds(T_SAMP_US);
-		ADC_Value[ADC_IND_EXT8] = ADC_Value[ADC_IND_ADC_MUX];
-
-		ADCMUX_EXT7();
-		chThdSleepMicroseconds(T_SAMP_US);
-		ADC_Value[ADC_IND_EXT7] = ADC_Value[ADC_IND_ADC_MUX];
+		ADC_Value[ADC_IND_5V_SENSE_V] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ADCMUX_MOS_TEMP3();
 		chThdSleepMicroseconds(T_SAMP_US);
 		ADC_Value[ADC_IND_TEMP_MOS_3] = ADC_Value[ADC_IND_ADC_MUX];
+
+		ADCMUX_TEMP_DCDC();
+		chThdSleepMicroseconds(T_SAMP_US);
+		ADC_Value[ADC_IND_TEMP_DCDC] = ADC_Value[ADC_IND_ADC_MUX];
 	}
 }
 
