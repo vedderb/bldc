@@ -929,6 +929,9 @@ static lbm_value ext_set_aux(lbm_value *args, lbm_uint argn) {
 	int port = lbm_dec_as_u32(args[0]);
 	bool on = lbm_dec_as_u32(args[1]);
 	if (port == 1) {
+		mc_configuration *mcconf = (mc_configuration*)mc_interface_get_configuration();
+		mcconf->m_out_aux_mode = OUT_AUX_MODE_UNUSED;
+
 		if (on) {
 			AUX_ON();
 		} else {
@@ -944,7 +947,7 @@ static lbm_value ext_set_aux(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_TRUE;
 	}
 
-	return ENC_SYM_EERROR;
+	return ENC_SYM_TERROR;
 }
 
 static lbm_value ext_get_imu_rpy(lbm_value *args, lbm_uint argn) {
