@@ -23,13 +23,19 @@
 #include "stm32f4xx_conf.h"
 #include "utils_math.h"
 #include <math.h>
+#include "terminal.h"
+#include "commands.h"
 #include "mc_interface.h"
 
 // Variables
 static volatile bool i2c_running = false;
 static mutex_t shutdown_mutex;
 static float bt_diff = 0.0;
-static int pressed_time = 0;
+static float bt_lastval = 0.0;
+static float bt_unpressed = 0.0;
+static bool will_poweroff = false;
+static bool force_poweroff = false;
+static unsigned int bt_hold_counter = 0;
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -38,10 +44,16 @@ static const I2CConfig i2cfg = {
 		STD_DUTY_CYCLE
 };
 
+#define EXT_BUZZER_ON()   palSetPad(HW_ICU_GPIO, HW_ICU_PIN)
+#define EXT_BUZZER_OFF()  palClearPad(HW_ICU_GPIO, HW_ICU_PIN)
+
+// Private functions
+static void terminal_button_test(int argc, const char **argv);
 
 void hw_init_gpio(void) {
 
 	chMtxObjectInit(&shutdown_mutex);
+	
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -55,6 +67,12 @@ void hw_init_gpio(void) {
 	palSetPadMode(LED_RED_GPIO, LED_RED_PIN,
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
+
+	// On-board Buzzer (using servo pin!)
+	palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);
+	EXT_BUZZER_OFF();
 
 	// GPIOA Configuration: Channel 1 to 3 as alternate function push-pull
 	palSetPadMode(GPIOA, 8, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
@@ -109,7 +127,14 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
+
+	terminal_register_command_callback(
+			"test_button",
+			"Try sampling the shutdown button",
+			0,
+			terminal_button_test);
 }
+
 void hw_setup_adc_channels(void) {
 	// ADC1 regular channels
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_15Cycles);
@@ -241,37 +266,121 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
+#define RISING_EDGE_THRESHOLD 0.09
+#define TIME_500MS 50
+#define TIME_3S 300
+#define ERPM_THRESHOLD 100
+
+/**
+ * hw_sample_shutdown_button - return false if shutdown is requested, true otherwise
+ *
+ * Behavior: after determining the unpressed level, look for rising edges or values
+ * that are clearly above the unpressed level (2 x Threshold higher), triggering a counter.
+ *
+ * Once triggered, the counter keeps incrementing as long as the level is 2 x Threshold higher
+ * than the normal/unpressed value, otherwise it gets reset to zero.
+ *
+ * Once the counter reaches the threshold the button is considered pressed, provided that
+ * the erpm is below 100. A very short (20ms) beep will go off.
+ * Shutdown actually happens on the falling edge when the press is over.
+ *
+ * If the motor is spinning faster, then a 3s press is required. Buzzer will beep once the
+ * time has been reached. Again, shutdown happens on the falling edge.
+ *
+ * Normal shutdown time:    0.5s
+ * Emergency shutdown time: 3.0s
+ */
+
 bool hw_sample_shutdown_button(void) {
+    chMtxLock(&shutdown_mutex);
+    float newval = ADC_VOLTS(ADC_IND_SHUTDOWN);
+    chMtxUnlock(&shutdown_mutex);
+    if (bt_lastval == 0) {
+        bt_lastval = newval;
+        return true;
+    }
+    bt_diff = (newval - bt_lastval);
 
-#ifdef ALWAYS_ON
-	return true;
-#endif
+    bool is_steady = fabsf(bt_diff) < 0.02;  // filter out noise above 20mV
+    bool is_rising_edge = (bt_diff > RISING_EDGE_THRESHOLD);
 
-	chMtxLock(&shutdown_mutex);
-	bt_diff = (ADC_VOLTS(ADC_IND_SHUTDOWN));
-	bt_diff = (bt_diff + ADC_VOLTS(ADC_IND_SHUTDOWN))/2;
-	chThdSleep(1);
-	bt_diff = (bt_diff + ADC_VOLTS(ADC_IND_SHUTDOWN))/2;
-	chThdSleep(1);
-	bt_diff = (bt_diff + ADC_VOLTS(ADC_IND_SHUTDOWN))/2;
-	chMtxUnlock(&shutdown_mutex);
+    bt_lastval = newval;
 
-	if(bt_diff > 2.25){
-		pressed_time += 12;
-		return true;
-	}else{
-		if(pressed_time > 1000){
-			pressed_time = 0;
-			return false;
-		}else{
-			pressed_time = 0;
-			return true;
-		}
-		
-	}
+    if (bt_unpressed == 0.0) {
+        // initializing bt_unpressed
+        if (is_steady) {
+            bt_unpressed = newval;
+        }
+        // return true regardless (this happens only after boot)
+        return true;
+    }
 
-	return pressed_time < 1000 ;
+    if (will_poweroff) {
+        if (!force_poweroff && (fabsf(mc_interface_get_rpm()) > ERPM_THRESHOLD)) {
+            will_poweroff = false;
+            bt_hold_counter = 0;
+            EXT_BUZZER_OFF();
+            return true;
+        }
+
+        // Now we look for a falling edge to shut down
+        if ((bt_diff < -RISING_EDGE_THRESHOLD) || (newval < bt_unpressed + RISING_EDGE_THRESHOLD / 2)) {
+            bt_hold_counter++;
+            EXT_BUZZER_OFF();
+            return false;
+        }
+        return true;
+    }
+
+    if (bt_hold_counter == 0) {
+        if (is_rising_edge) {
+            // trigger by edge and by level!
+            bt_hold_counter = 1;
+        }
+        else {
+            if (is_steady && (newval < bt_unpressed + RISING_EDGE_THRESHOLD / 2)) {
+                // pickup drifts due to temperature
+                bt_unpressed = bt_unpressed * 0.9 + newval * 0.1;
+            }
+        }
+    }
+    else {
+        // we've had a rising edge and are now checking for a steady hold
+        if (newval > bt_unpressed + RISING_EDGE_THRESHOLD * 1.5) {
+            bt_hold_counter++;
+
+            if (bt_hold_counter > TIME_500MS) {
+                if (fabsf(mc_interface_get_rpm()) < ERPM_THRESHOLD) {
+                    // after 150ms, power-down is triggered by the falling edge (releasing the button)
+                    will_poweroff = true;
+                    bt_hold_counter = 0;
+
+                    // super short beep to let the user know they can let go of the button now
+                    EXT_BUZZER_ON();
+                    chThdSleepMilliseconds(20);
+                    EXT_BUZZER_OFF();
+                }
+                else {
+                    if (bt_hold_counter  > TIME_3S) {
+                        // Emergency Power-Down - beep to let the user know it's ready
+                        EXT_BUZZER_ON();
+                        will_poweroff = true;
+                        force_poweroff = true;
+                        bt_hold_counter = 0;
+                        return true;
+                    }
+                }
+            }
+        }
+        else {
+            // press is too short, abort
+            bt_hold_counter = 0;
+            EXT_BUZZER_OFF();
+        }
+    }
+    return true;
 }
+
 
 float hw_Thor_get_temp(void) {
 	float t1 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
@@ -286,5 +395,13 @@ float hw_Thor_get_temp(void) {
 	return res;
 }
 
+static void terminal_button_test(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
 
-
+	for (int i = 0;i < 40;i++) {
+		commands_printf("BT: %d:%d [%.2fV], %.2fV, %.2fV, OFF=%d", HW_SAMPLE_SHUTDOWN(), bt_hold_counter,
+                        (double)bt_diff, (double)bt_unpressed, (double)bt_lastval, (int)will_poweroff);
+		chThdSleepMilliseconds(100);
+	}
+}
