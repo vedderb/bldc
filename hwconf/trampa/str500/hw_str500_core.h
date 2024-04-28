@@ -308,11 +308,11 @@
 #ifdef HWSTR500
 #define HW_LIM_CURRENT			-500.0, 500.0
 #define HW_LIM_CURRENT_IN		-500.0, 500.0
-#define HW_LIM_CURRENT_ABS		0.0, 1200.0
+#define HW_LIM_CURRENT_ABS		0.0, 720.0
 #else
 #define HW_LIM_CURRENT			-800.0, 800.0
 #define HW_LIM_CURRENT_IN		-800.0, 800.0
-#define HW_LIM_CURRENT_ABS		0.0, 720.0
+#define HW_LIM_CURRENT_ABS		0.0, 1200.0
 #endif
 #define HW_LIM_VIN				11.0, 97.0
 #define HW_LIM_ERPM				-200e3, 200e3
