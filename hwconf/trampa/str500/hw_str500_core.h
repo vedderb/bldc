@@ -22,26 +22,11 @@
 
 #ifdef HWSTR500
   #define HW_NAME					"STR500"
+#elif defined(HWSTR500_01) // 0.1 mOhm shunts
+  #define HW_NAME					"STR500_01"
 #else
   #error "Must define hardware type"
 #endif
-
-/*
- * TODO
- * - Fix shutdown connection to stm
- * - 2x100u tantal on buck converter
- * - Make current sensing on center phase same as the outer two
- * - Move current amp traces away from gate drivers
- *
- * TODO v2
- * - Change shunts
- * - Pull-up on GPIO2
- * - Maybe remove 220R on DCDC CAN
- * - Fix 12V short
- * - DCDC Boost wrong direction
- * - Remove sensor pull-ups from motor controller pcb
- * - Add fuse on sensor voltage output
- */
 
 // HW properties
 #define HW_HAS_3_SHUNTS
@@ -163,7 +148,11 @@
 #define CURRENT_AMP_GAIN		50.0
 #endif
 #ifndef CURRENT_SHUNT_RES
+#ifdef HWSTR500
 #define CURRENT_SHUNT_RES		(0.0002 / 4.0)
+#else
+#define CURRENT_SHUNT_RES		(0.0001 / 4.0)
+#endif
 #endif
 
 // Input voltage
@@ -316,9 +305,15 @@
 #endif
 
 // Setting limits
+#ifdef HWSTR500
 #define HW_LIM_CURRENT			-500.0, 500.0
 #define HW_LIM_CURRENT_IN		-500.0, 500.0
+#define HW_LIM_CURRENT_ABS		0.0, 1200.0
+#else
+#define HW_LIM_CURRENT			-800.0, 800.0
+#define HW_LIM_CURRENT_IN		-800.0, 800.0
 #define HW_LIM_CURRENT_ABS		0.0, 720.0
+#endif
 #define HW_LIM_VIN				11.0, 97.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1

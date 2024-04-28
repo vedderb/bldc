@@ -170,6 +170,7 @@ package_dict["MKSESC_84_200_HP"] = [['mksesc_84_200_hp', default_name],
                     ['mksesc_84_200_hp_no_limits', no_limits_name]]
 package_dict["STR500"] = [['str500', default_name],
                     ['str500_no_limits', no_limits_name]]
+package_dict["STR500_01"] = [['str500_01', default_name]]
 package_dict["RB"] = [['rb', default_name]]
 package_dict["STR365"] = [['str365', default_name],
                     ['str365_no_limits', no_limits_name]]
