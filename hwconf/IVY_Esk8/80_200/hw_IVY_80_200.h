@@ -28,6 +28,7 @@
 #define APPCONF_TIMEOUT_MSEC 500
 #define APPCONF_TIMEOUT_BRAKE_CURRENT 0
 #define APPCONF_PERMANENT_UART_ENABLED false
+#define APPCONF_SHUTDOWN_MODE SHUTDOWN_MODE_ALWAYS_ON
 #define APPCONF_CAN_BAUD_RATE CAN_BAUD_1M
 #define APPCONF_CAN_STATUS_RATE_1 100
 #define APPCONF_CAN_STATUS_RATE_2 5
@@ -168,7 +169,7 @@
 // NTC Termistors
 // #define NTC_RES(adc_val) ((4095.0 * 10000.0) / adc_val - 10000.0)
 #define NTC_RES(adc_val) ((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_TEMP(adc_ind) (1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 100000.0) / 3435.0) + (1.0 / 298.15)) - 273.15)
+#define NTC_TEMP(adc_ind) (1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3435.0) + (1.0 / 298.15)) - 273.15)
 
 #define NTC_RES_MOTOR(adc_val) (10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta) (1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
