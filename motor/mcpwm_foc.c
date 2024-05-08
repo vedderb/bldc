@@ -1390,7 +1390,7 @@ float mcpwm_foc_get_phase_encoder(void) {
 }
 
 float mcpwm_foc_get_phase_hall(void) {
-	float angle = RAD2DEG_f(get_motor_now()->m_ang_hall_rate_limited);
+	float angle = RAD2DEG_f(get_motor_now()->m_ang_hall);
 	utils_norm_angle(&angle);
 	return angle;
 }
