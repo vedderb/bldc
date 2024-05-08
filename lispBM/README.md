@@ -6001,6 +6001,38 @@ Reboot and attempt to load the new firmware from the firmware-buffer using the b
 
 ---
 
+#### fw-data
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(fw-data optOffset optLen)
+```
+
+Get the firmware data partition as an array. The optional argument optOffset can be used to specify an offset in the partition and the optional argument optLen can be used to specity the length. By default the offset is 0 and the length is the entire firmware buffer (around 1.5 MB).
+
+Note that this array is read-only, so do not try to write directly to it! It is however possible to write to it using fw-write if fw-erase has been performed first. After the erase each byte can be written to once, in any order. Note that fw-write skips the first 6 bytes, so 6 has to be added to the offset for writing to the corresponding location in the firmware buffer.
+
+Example:
+```clj
+; An array with the first 10 bytes of the firmware buffer
+(def fwd (fw-data 0 10))
+
+; Erase at least 100 bytes
+(fw-erase 100)
+
+; Write 1 to 10 to the beginning of the firmware buffer. Note
+; that we use offset 6 as the first 6 bytes are ignored.
+(fw-write 6 [1 2 3 4 5 6 7 8 9 10])
+
+; Print the array
+(print fwd)
+```
+
+---
+
 ## Lisp and Qml Upload
 
 Lisp and QML-scripts can be updated locally and on CAN-devices. This requires that the file is pre-processed using VESC Tool with the cli-command --packLisp and --packQml.
