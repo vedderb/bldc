@@ -110,15 +110,6 @@ static inline int lbm_stack_is_empty(lbm_stack_t *s) {
   return 0;
 }
 
-/** Push 2 values to a stack.
- *
- * \param s Stack to push values onto.
- * \param val0 Is pushed first.
- * \param val1 Is pushed last.
- * \return 1 on success and 0 on failure (stack is full).
- */
-int lbm_push_2(lbm_stack_t *s, lbm_uint val0, lbm_uint val1);
-
 /** Pop 2 values from a stack.
  *
  * \param s Stack to pop values from.

@@ -1,9 +1,8 @@
 
-(defun has-alt-txt (x)
+(defun is-read-eval-txt (x)
   (match x
-         ( (alt-txt . _) true)
+         ( (read-eval . _) true)
          (_ false)))
-
 
 (defun pretty (c)
   (pretty-ind 0 c))
@@ -69,11 +68,11 @@
   (match cs
          (nil t)
          ( ((? x) . (? xs))
-           (let ((x-str (if (has-alt-txt x)
-                            (ix x 2)
+           (let ((x-str (if (is-read-eval-txt x)
+                            (ix x 1)
                           (pretty x)))
-                 (x-code (if (has-alt-txt x)
-                             (ix x 1)
+                 (x-code (if (is-read-eval-txt x)
+                             (read (ix x 1))
                            x))
                  (res (eval nil x-code))
                  (rstr (to-str res)))
@@ -102,6 +101,27 @@
     (render-code-res-pairs rend c)
     (rend "</table>\n\n")
     })
+
+(defun intersperse (str strs)
+  (match strs
+         ( ((? s) . nil) s)
+         ( ((? s) . (? ss))
+           (str-merge s str (intersperse str ss)))))
+    
+
+(defun tableize (strs)
+  (str-merge "|" (intersperse "|" strs) "|\n" )
+  )
+
+(defun render-table (rend h d)
+  {
+  (rend "\n")
+  (rend (tableize h))
+  (rend (tableize (map (lambda (x) ":----:") h)))
+  (map (lambda (s) (rend (tableize s))) d)
+  (rend "\n")
+  }
+  )
 
 (defun render-program-res-pairs (rend cs)
   (match cs
@@ -163,7 +183,7 @@
          ( (program (? c)) (render-program-table rend c))
          ( (code (? c)) (render-code-table rend c))
          ( (image (? alt) (? url))
-           (rend (str-merge "![" alt "](" url " \"" alt "\")")))
+           (rend (str-merge "![" alt "](" url " \"" alt "\")\n\n")))
          ( (image-pair (? cap0) (? txt0) (? fig0) (? cap1) (? txt1) (? fig1))
            (rend (str-merge cap0 " | " cap1 "\n"
                             "|:---:|:---:|\n"
@@ -175,6 +195,8 @@
            })
          ( (semantic-step (? c1) (? c2) (? p)
                           ))
+         ( (table (? h) (? d))
+           (render-table rend h d))
          ( _ (render rend ss))
          ))
 
@@ -243,6 +265,9 @@
 
 (defun semantic-step (c1 c2 prop)
   (list 'semantic-step c1 c2 prop))
+
+(defun table (header data)
+  (list 'table header data))
 
 ;; Dot generation
 
@@ -401,98 +426,29 @@
                         "general a bit slower than what one gets in, for example C."
                         ))
             (para (list "The chart below shows the time it takes to perform 10 million"
-                        "additions on the x86 architecture (a i7-6820HQ) in 32Bit mode. The"
-                        "difference in cost is negligible between the types `byte` - `u32` with"
-                        "a huge increase in cost for 64 bit types."
+                        "additions on the x86 architecture (a i7-6820HQ) in 32 and 64 Bit mode."
                         ))
-            (image-pair "All Integer types"
-                        "Performance of 10 million additions at various types on x86 32bit"
-                        "./images/millions.png"
-                        "32Bit or smaller"
-                        "Performance of 10 million additions at various types on x86 32bit"
-                        "./images/millions_zoom.png"
-                        )
-            (para (list "The charts below compare floating point operations to `u32` operations on x86 32Bit."
-                        "There is little difference in cost of `f32` and `u32` operations, but a large increase"
-                        "in cost when going to `f64` (double)."
-                        ))
-            (image-pair "`f32` and `f64` vs `u32`"
-                        "Performance of floating point additions on x86 32bit"
-                        "./images/float_x86_32.png"
-                        "`f32` vs `u32`"
-                        "Performance floating point additions on x86 32bit"
-                        "./images/float_x86_32_zoom.png"
-                        )
+            (image "Perfomance of 10 million additions at various types on X86"
+                   "./images/lbm_arith_pc.png"
+                   )
             (para (list "In 64Bit mode the x86 version of LBM shows negligible differences in"
                         "cost of additions at different types."
                         ))
-            (image-pair "All Integer types"
-                        "Performance of 10 million additions at various types on x86 64bit"
-                        "./images/millions64.png"
-                        "`f32` and `f64` vs `u32`"
-                        "Performance of floating point additions on x86 64bit"
-                        "./images/float_x86_64.png"
-                        )
-            (para (list "On 64Bit x86 the difference in cost is little accross all LBM types."
-                        ))
+            
             (para (list "For addition performance on embedded systems, we use the the EDU VESC"
                         "motorcontroller as the STM32F4 candidate and the VESC EXPRESS for a"
                         "RISCV data point."
                         ))
-            (para (list "On ESP32C3, a 160MHz 32Bit RISCV core, time is measured over 100000"
-                        "additions.  There is a more pronounced gap between 28Bit and smaller"
-                        "types and the 32Bit types here. Likely because of the differences in"
-                        "encoding of 28Bit or less types and 32Bit types."
-                        ))
-            (image-pair "All Integer types"
-                        "Performance of 100000 addtions at various types on ESP32C3 RISCV"
-                        "./images/thousands_riscv.png"
-                        "32Bit or smaller"
-                        "Performance of 100000 addtions at various types on ESP32C3 RISCV"
-                        "./images/thousands_riscv_zoom.png"
-                        )
-            (para (list "On RISCV the difference in cost between `u32` and `f32` operations is small."
-                        "This is a bit surprising as the ESP32C3 does not have a floating point unit. It"
-                        "is possible that the encoding/decoding of numbers is dominating the cost"
-                        "of any numerical opeation."
-                        ))
-            (image-pair "`f32` and `f64` vs `u32`"
-                        "Performance of floating point additions on ESP32C3 RISCV"
-                        "./images/float_riscv.png"
-                        "`f32` vs `u32`"
-                        "Performance floating point additions on ESP32C3 RISCV"
-                        "./images/float_riscv_zoom.png"
-                        )
-            (para (list "On the STM32F4 at 168MHz (an EDU VESC) The results are similar to"
-                        "ESP32 but slower.  The slower performance on the VESC compared to the"
-                        "VESC_Express ESP32 may be caused by the VESC firmware running"
-                        "motorcontrol interrups at a high frequency."
-                        ))
-            (image-pair "All Integer types"
-                        "Performance of 100000 addtions at various types on STM32F4"
-                        "./images/thousands_arm.png"
-                        "32Bit or smaller"
-                        "Performance of 100000 additions at various types on STM32F4"
-                        "./images/thousands_arm_zoom.png"
-                        )
-            (para (list "The cost of `f32` operations compared to `u32` on the STM32F4 shows"
-                        "little differences.  As expected there is a jump up in cost when going to 64Bit."
-                        ))
-            (image-pair "`f32` and `f64` vs `u32`"
-                        "Performance of floating point additions on STM32F4"
-                        "./images/float_stm.png"
-                        "`f32` vs `u32`"
-                        "Performance floating point additions on STM32F4"
-                        "./images/float_stm_zoom.png"
-                        )
+            (image "Performance of 100000 additions at various types on ESP32C3 and STM32F4"
+                   "./images/lbm_arith_embedded.png"
+                   )
             (para (list "In general, on 32Bit platforms, the cost of operations on numerical"
-                        "types that are 32Bit or less are about equal in cost. The costs"
+                        "types that are 32Bit or less are about equal in cost."
+                        "The costs"
                         "presented here was created by timing a large number of 2 argument"
                         "additions. Do not see these measurements as the \"truth carved in stone\","
                         "LBM performance keeps changing over time as we make improvements, but"
-                        "use them as a rough guiding principle.  If anything can be taken away"
-                        "from this it is to stay away from 64Bit value operations in your"
-                        "tightest and most time critical loops."
+                        "use them as a rough guiding principle."
                         ))
             end))
   )
@@ -585,6 +541,8 @@
                         "as lisp programs. This section is about those trees that do make sense and"
                         "what they mean to the Lisp evaluator."
                         ))
+            (para (list "TODO: Finish section."
+                        ))
             ))
   )
 
@@ -592,6 +550,8 @@
 (defun concurrency-and-semantics ()
   (section 3 "Concurrency and Semantics"
            (list
+            (para (list "TODO: Finish section."
+                        ))
             )
            ))
 
@@ -662,10 +622,48 @@
   )
            
 
-
-
-
-
+(define ch-fun-imp
+  (section 2 "Functional and Imperative programming"
+           (list
+            (para (list "To differentiate from Imperative and Functional, think of imperative programs "
+                        "as sequences of operations that update a state and "
+                        "functional programs as transformations of values through application "
+                        "of compositions of functions."
+                        "Functional programming languages often let functions be values, which means that functions "
+                        "can be stored in lists, returned from other functions and so on"
+                        ))
+            (para (list "LispBM is a multiparadigm programming language."
+                        "Most languages are a mix of functional and imperative and"
+                        "differ in what style it makes most convenient."
+                        "At one end of this spectrum we find C which makes imperative easy and functional hard, "
+                        "and in the other end Haskell with the opposite favouritism."
+                        "In LispBM we try to not unfairly favour any particular style over the other."
+                        ))
+            (para (list "Picking a functional or an imperative style does have consequences though."
+                        "Functional LispBM programs have properties such as persistance of data, that"
+                        "can be broken using the imperative part of the language."
+                        ))
+            (para (list "With the imperative features of the language it is also in some "
+                        "places possible to peek under the hood of the runtime system."
+                        "you can detect when and how environments are shared or copied for example."
+                        "Please avoid exploiting the power of destructive updates for evil purposes."
+                        ))
+            (para (list "The list below shows imperative operations from the core of LispBM."
+                        "In the extension libraries there are many more of the kind."
+                        ))
+            (bullet '("**set**      - Destructively update a binding. Similar to C's ="
+                      "**setq**     - Destructively update a binding. Similar to C's ="
+                      "**setix**    - Destructive update of element in list."
+                      "**setcar**   - Destructive update of car field in cons cell."
+                      "**sercdr**   - Destructive update of cdr field in cons cell." 
+                      "**setassoc** - Destructive update of field in association list"
+                      "**bufset**   - The bufset family of functions destructively updates ByteArrays."
+                      "**bufclear** - Destructive clear of ByteArray."
+                      "**progn**    - Sequence operations."
+                      "**define**   - In LispBM, variables can be defined more than once. A second define of a variable is a destructive update."
+                      ))
+            )
+           ))
 
 ;; Arithmetic section
 
@@ -678,7 +676,8 @@
             (code '((+ 1 2)
                     (+ 1 2 3 4)
                     (+ 1 1u)
-                    (+ 2i 3.14)))
+                    (read-eval "(+ 2i 3.14)")
+                    ))
             end)))
 
 (define arith-sub
@@ -689,7 +688,8 @@
             (code '((- 5 3)
                     (- 10 5 5)
                     (- 10 2u)
-                    (- 10 3.14)))
+                    (read-eval "(- 10 3.14)")
+                    ))
             end)))
 
 (define arith-mul
@@ -701,7 +701,8 @@
             (code '((* 2 2)
                     (* 2 3 4 5)
                     (* 10 2u)
-                    (* 4 3.14)))
+                    (read-eval "(* 4 3.14)")
+                             ))
             end)))
 
 (define arith-div
@@ -710,7 +711,7 @@
               (para (list "Division. The form of a `/` expression is `(/ expr1 ... exprN)`."
                           ))
               (code '((/ 128 2)
-                      (/ 6.28 2)
+                      (read-eval "(/ 6.28 2)")
                       (/ 256 2 2 2 2 2 2 2)))
               end)))
 
@@ -821,8 +822,8 @@
 
               (code '((< 5 2)
                       (< 5 2)
-                      (< 3.14 1)
-                      (< 1 3.14)
+                      (read-eval "(< 3.14 1)")
+                      (read-eval "(< 1 3.14)")
                       ))
               end)))
 
@@ -835,8 +836,8 @@
               (code '((>= 1 1)
                       (>= 5 2)
                       (>= 2 5)
-                      (>= 3.14 1)
-                      (>= 1 3.14)
+                      (read-eval "(>= 3.14 1)")
+                      (read-eval "(>= 1 3.14)")
                       ))
               end)))
 
@@ -849,8 +850,8 @@
               (code '((<= 1 1)
                       (<= 5 2)
                       (<= 2 5)
-                      (<= 3.14 1)
-                      (<= 1 3.14)
+                      (read-eval "(<= 3.14 1)")
+                      (read-eval "(<= 1 3.14)")
                       ))
               end)))
 
@@ -1037,9 +1038,9 @@
              (list
               (para (list "`false` is an alias for `nil`."
                           ))
-              (code '((alt-txt (cons 1 false) "(cons 1 false)")
-                      (alt-txt (if false 3 100) "(if false 3 100)")
-                      (alt-txt false "false")
+              (code '((read-eval "(cons 1 false)")
+                      (read-eval "(if false 3 100)")
+                      (read-eval "false")
                       ))
               end)))
 
@@ -1048,9 +1049,9 @@
              (list
               (para (list "`true` is an alias for `t`."
                           ))
-              (code '((alt-txt (cons 1 true) "(cons 1 true)")
-                      (alt-txt (if true 3 100) "(if true 3 100)")
-                      (alt-txt true "true")
+              (code '((read-eval "(cons 1 true)")
+                      (read-eval "(if true 3 100)")
+                      (read-eval "true")
                       ))
               end)))
 
@@ -1074,9 +1075,9 @@
                           "symbol quote by the reader.  Evaluating a quoted expression, (quote"
                           "a), results in a unevaluated."
                           ))
-              (code '((alt-txt '(+ 1 2) "'(+ 1 2)")
-                      (alt-txt (eval '(+ 1 2)) "(eval '(+ 1 2))")
-                      (alt-txt 'kurt "'kurt")
+              (code '((read-eval "'(+ 1 2)")
+                      (read-eval "(eval '(+ 1 2))")
+                      (read-eval "'kurt")
                       (quote (+ 1 2))
                       (eval (quote (+ 1 2)))
                       (quote kurt)
@@ -1096,8 +1097,8 @@
                           "the expression `(append (quote (+)) (append (quote (1)) (append (quote"
                           "(2)) (quote nil))))` which evaluates to the list `(+ 1 2)`."
                           ))
-              (code '((alt-txt `(+ 1 2) "`(+ 1 2)")
-                      (alt-txt `(+ 1 ,(+ 1 1)) "`(+ 1 ,(+ 1 1))")
+              (code '((read-eval "`(+ 1 2)")
+                      (read-eval "`(+ 1 ,(+ 1 1))")
                       (append (quote (+ 1)) (list (+ 1 1)))
                       ))
               end)))
@@ -1111,7 +1112,7 @@
                           "`(append (quote (+)) (append (quote (1)) (append (list (+ 1 1)) (quote nil))))`."
                           "Evaluating the expression above results in the list `(+ 1 2)`."
                           ))
-              (code '((alt-txt `(+ 1 ,(+ 1 1)) "`(+ 1 ,(+ 1 1))")
+              (code '((read-eval "`(+ 1 ,(+ 1 1))")
                       ))
               end)))
 
@@ -1121,7 +1122,7 @@
               (para (list "The comma-at operation is used to splice in the result of a computation (that"
                           "returns a list) into a list when quasiquoting."
                           ))
-              (code '((alt-txt `(1 2 3 ,@(range 4 10)) "`(1 2 3 ,@(range 4 10))")
+              (code '((read-eval "`(1 2 3 ,@(range 4 10))")
                       ))
               end)))
 
@@ -1153,7 +1154,7 @@
               (code '((eval (list + 1 2))
                       (eval '(+ 1 2))
                       (eval '( (a . 100) ) '(+ a 1))
-                      (alt-txt (eval `(+ 1 ,@(range 2 5))) "(eval `(+ 1 ,@(range 2 5)))")
+                      (read-eval "(eval `(+ 1 ,@(range 2 5)))")
                       ))
               end)))
 
@@ -1171,7 +1172,7 @@
               (code '((eval-program (list (list + 1 2) (list + 3 4)))
                       (eval-program '( (+ 1 2) (+ 3 4)))
                       (eval-program (list (list define 'a 10) (list + 'a 1)))
-                      (alt-txt (eval-program '( (define a 10) (+ a 1))) "(eval-program '( (define a 10) (+ a 1)))")
+                      (read-eval "(eval-program '( (define a 10) (+ a 1)))")
                       ))
               end)))
 
@@ -1189,7 +1190,7 @@
                       (type-of 1u64)
                       (type-of 3.14)
                       (type-of 3.14f64)
-                      (alt-txt (type-of 'apa) "(type-of 'apa)")
+                      (read-eval "(type-of 'apa)")
                       (type-of (list 1 2 3))
                       ))
               end)))
@@ -1202,7 +1203,7 @@
                           "built in symbols using this function."
                           ))
               (code '((sym2str (quote lambda))
-                      (alt-txt (sym2str 'lambda) "(sym2str 'lambda)")
+                      (read-eval "(sym2str 'lambda)")
                       ))
               end)))
 
@@ -1221,7 +1222,7 @@
               (para (list "The `sym2u` function returns the numerical value used by the runtime system for a symbol."
                           ))
               (code '((sym2u (quote lambda))
-                      (alt-txt (sym2u 'lambda) "(sym2u 'lambda)")
+                      (read-eval "(sym2u 'lambda)")
                       ))
               end)))
 
@@ -1250,9 +1251,71 @@
                       ))
               end)))
 
+(define built-in-rest-args
+  (ref-entry "rest-args"
+             (list
+              (para (list "`rest-args` are related to user defined functions. As such `rest-args` is"
+                          "also given a brief explanation in the section about the  <a href=\"#lambda\">lambda</a>."
+                          ))
+              
+              (para (list "`rest-args` is a mechanism for handling optional arguments in functions."
+                          "Say you want to define a function with 2 arguments and an optional 3rd argument."
+                          "You can do this by creating a 3 argument function and check if argument 3 is valid or not in the body of the function"
+                          ))
+              (code '((defun my-fun (x y opt) (if opt (+ x y opt)
+                                                (+ x y)))
+                      (my-fun 1 2 nil)
+                      (my-fun 1 2 100)
+                      ))
+              (para (list "This approach works well if your function has 1,2 or some other small number"
+                          "of optional arguments. However, functions with many optional arguments will look"
+                          "messy at the application site, `(my-fun 1 2 nil nil nil nil 32 nil kurt-russel)` for examples"
+                          ))
+              (para (list "Functions you create, using lambda or defun, do actually take an arbitrary number of"
+                          "arguments. In other words, it is no error to pass in 5 arguments to a 2 argument defun or lambda function."
+                          "The extra arguments will by default just be ignored."
+                          ))
+              (code '((defun my-fun (x y) (+ x y))
+                      (my-fun 1 2)
+                      (my-fun 1 2 100 200 300 400 500)
+                      ))
+              (para (list "all of those extra arguments, `100 200 300 400 500` passed into my-fun are"
+                          "ignored. But if we want to, we can access these extra arguments through the"
+                          "`rest-args` operation."
+                          ))
+              (code '((defun my-fun (x y) (apply + (cons x (cons y (rest-args)))))
+                      (my-fun 1 2 100)
+                      (my-fun 1 2 100 1000 10000)
+                      ))
+              (para (list "`rest-args` gives a clean looking interface to functions taking arbitrary optional arguments."
+                          "Functions that make use of `rest-args` must, however, be written specifically to do so and"
+                          "are themself responsible for the figuring out the positional semantics of extra arguments."
+                          ))
+              (para (list "One was to explicitly carry the semantics of an optional argument into the function body"
+                          "is to add optional arguments as key-value pairs where the key states the meaning."
+                          "Then `rest-args` becomes essentially an association list that you query using `assoc`."
+                          "For example:"
+                          ))
+              (code '((defun my-fun (x) (assoc (rest-args) x))
+                      (my-fun 'kurt-russel '(apa . 10) '(bepa . 20) '(kurt-russel . is-great))
+                      (my-fun 'apa '(apa . 10) '(bepa . 20) '(kurt-russel . is-great))
+                      (my-fun 'bepa '(apa . 10) '(bepa . 20) '(kurt-russel . is-great))
+                      ))
+              (para (list "The `rest-args` operation also, itself, takes an optional numerical argument that"
+                          "acts as an index into the list of rest arguments."
+                          ))
+              (code '((defun my-fun (i) (rest-args i))
+                      (my-fun 0 1 2 3)
+                      (my-fun 1 1 2 3)
+                      (my-fun 2 1 2 3)
+                      ))
+                          
+              )))
+
 (define built-ins
   (section 2 "Built-in operations"
            (list 'hline
+                 built-in-rest-args
                  built-in-eval
                  built-in-eval-program
                  built-in-type-of
@@ -1546,8 +1609,8 @@
                           "the string can not be parsed into an expression. The form of a read expression is"
                           "`(read string)`."
                           ))
-              (code '((alt-txt (read "1") "(read \"1\")")
-                      (alt-txt (read "(lambda (x) (+ x 1))") "(read \"(lambda (x) (+ x 1))\"")
+              (code '((read-eval "(read \"1\")")
+                      (read-eval "(read \"(lambda (x) (+ x 1))\"")
                       ))
               end)))
 
@@ -1559,7 +1622,7 @@
                           "expressions can be evaluated as a program using <a href=\"#eval-program\">eval-program</a>."
                           "The form of a read-program expression is `(read-program string)`."
                           ))
-              (code '((alt-txt (read-program "(define apa 1) (+ 2 apa)") "(read-program \"(define apa 1) (+ 2 apa)\")")
+              (code '((read-eval "(read-program \"(define apa 1) (+ 2 apa)\")")
                       ))
               end)))
 
@@ -1569,12 +1632,12 @@
               (para (list "Parses and evaluates a program incrementally. `read-eval-program` reads a top-level expression"
                           "then evaluates it before reading the next."
                           ))
-              (code '((alt-txt (read-eval-program "(define a 10) (+ a 10)") "(read-eval-program \"(define a 10) (+ a 10)\")")
+              (code '((read-eval "(read-eval-program \"(define a 10) (+ a 10)\")")
                       ))
               (para (list "`read-eval-program` supports the `@const-start` and `@const-end` annotations which move all"
                           "global definitions created in the program to constant memory (flash)."
                           ))
-              (code '((alt-txt (read-eval-program "@const-start (define a 10) (+ a 10) @const-end") "(read-eval-program \"@const-start (define a 10) (+ a 10) @const-end\")")
+              (code '((read-eval "(read-eval-program \"@const-start (define a 10) (+ a 10) @const-end\")")
                       ))
               end)))
 
@@ -2432,6 +2495,57 @@
                         ))
             (para (list "Not all values can be flattened, custom types for example cannot."
                         ))
+            (para (list "Flat values are designed for recursive encoding and decoding"
+                        "each sub-value contains all information about its size either implicitly"
+                        "or explicitly (as is the case with arrays)."
+                        ))
+            (para (list "multibyte values are stored in network byte order (big endian)."
+                        ))
+            (para (list "**Cons** A cons cell is encoded into a byte 0x1 followed by the encoding of the"
+                        "car and then the cdr field of that cons cell."
+                        ))
+            (table '("cons " "car value" "cdr value")
+                   '(("0x1" "M bytes" "N bytes")))
+            (para (list "**Symbol as value** A symbol value can be flattened. Note that symbol values"
+                        "only make sense locally. A flattened symbol value will only make sense in the same"
+                        "runtime system instance that flattened it."
+                        ))
+            (table '("symbol-value" "value")
+                   '(("0x2" "4 bytes on 32bit, 8 bytes on 64bit")))
+            (para (list "**Symbol as string** A symbol can be flattened as a string and thus make sense across"
+                        "runtime system instances."
+                        ))
+            (table '("symbol-string" "string")
+                   '(("0x3" "zero terminated C style string")))
+            (para (list "**Byte Arrays** Byte arrays can be flattened and the length is stored explicitly."
+                        ))
+            (table '("byte array" "size in bytes" "data")
+                   '(("0xD" "4 bytes" "size bytes")))
+
+            (para (list "The rest of the atomic types are flattened according to the following:"
+                        ))
+            (table '("type" "flat-id" "value")
+                   '(("byte" "0x4" "1 Byte")
+                     ("i28"  "0x5" "4 Bytes")
+                     ("u28"  "0x6" "4 Bytes")
+                     ("i32"  "0x7" "4 Bytes")
+                     ("u32"  "0x8" "4 Bytes")
+                     ("float" "0x9" "4 Bytes")
+                     ("i64"  "0xA"  "8 Bytes")
+                     ("u64"  "0xB"  "8 Bytes")
+                     ("double" "0xC" "8 Bytes")
+                     ("i56"  "0xE" "8 Bytes")
+                     ("u56"  "0xF" " 8 Bytes")))
+            (para (list "Note that some of the types are only present of 32Bit runtime systems and"
+                        "some only on 64 bit."
+                        "i28 is present on 32 bit and i56 on 64 bit. likewise for u28 and u56."
+                        ))
+            (para (list "When LispBM unflattens a i56 or u56 on a 32bit system it creates a i64 or u64"
+                        "in its place."
+                        ))
+            (para (list "Symbols as values, are not possible to transfer between runtime systems in general"
+                        "and is even more pointless between a 32 and 64 bit runtime system."
+                        ))
             fv-flatten
             fv-unflatten
             )
@@ -2444,9 +2558,7 @@
              (list
               (para (list "The form of a `macro` expression is: `(macro args body)`"
                           ))
-              (code '((alt-txt (define defun (macro (name args body)
-                                                    `(define ,name (lambda ,args ,body))))
-                               "(define defun (macro (name args body)\n                    `(define ,name (lambda ,args ,body))))")
+              (code '((read-eval "(define defun (macro (name args body)\n                    `(define ,name (lambda ,args ,body))))")
                       (defun inc (x) (+ x 1))
                       (inc 1)
                       ))
@@ -2711,7 +2823,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-byte 1234)
-                                (to-byte 3.14)
+                                (read-eval "(to-byte 3.14)")
                                 (to-byte 'apa)
                                 ))
                         end))
@@ -2722,7 +2834,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-i 25b)
-                                (to-i 3.14)
+                                (read-eval "(to-i 3.14)")
                                 (to-i 'apa)))
                         end))
             (ref-entry "to-u"
@@ -2732,7 +2844,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-u 25b)
-                                (to-u 3.14)
+                                (read-eval "(to-u 3.14)")
                                 (to-u 'apa)
                                 ))
                         end))
@@ -2742,7 +2854,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-i32 25b)
-                                (to-i32 3.14)
+                                (read-eval "(to-i32 3.14)")
                                 (to-i32 'apa)
                                 ))
                         end))
@@ -2751,7 +2863,7 @@
                         (para (list "Convert any numerical value to a 32bit unsigned int."
                                     ))
                         (code '((to-u32 25b)
-                                (to-u32 3.14)
+                                (read-eval "(to-u32 3.14)")
                                 (to-u32 'apa)
                                 ))
                         end))
@@ -2761,7 +2873,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-float 25b)
-                                (to-float 3.14)
+                                (read-eval "(to-float 3.14)")
                                 (to-float 'apa)
                                 ))
                         end))
@@ -2771,7 +2883,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-i64 25b)
-                                (to-i64 3.14)
+                                (read-eval "(to-i64 3.14)")
                                 (to-i64 'apa)
                                 ))
                         end))
@@ -2781,7 +2893,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-u64 25b)
-                                (to-u64 3.14)
+                                (read-eval "(to-u64 3.14)")
                                 (to-u64 'apa)
                                 ))
                         end))
@@ -2791,7 +2903,7 @@
                                     "If the input is not a number the output of this function will be 0."
                                     ))
                         (code '((to-double 25b)
-                                (to-double 3.14)
+                                (read-eval "(to-double 3.14)")
                                 (to-double 'apa)
                                 ))
                         end))
@@ -2811,6 +2923,7 @@
             (list ch-symbols
                   ch-numbers
                   ch-syntax-semantics
+                  ch-fun-imp
                   (section 1 "Reference"
                            (list arithmetic
                                  comparisons

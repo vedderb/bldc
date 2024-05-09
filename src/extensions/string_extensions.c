@@ -322,7 +322,7 @@ static lbm_value ext_str_replace(lbm_value *args, lbm_uint argn) {
   //    orig points to the remainder of orig after "end of rep"
   while (count--) {
     ins = strstr(orig, rep);
-    len_front = (size_t)ins - (unsigned int)orig;
+    len_front = (size_t)ins - (size_t)orig;
     tmp = strncpy(tmp, orig, len_front) + len_front;
     tmp = strcpy(tmp, with) + len_with;
     orig += len_front + len_rep; // move to next "end of rep"

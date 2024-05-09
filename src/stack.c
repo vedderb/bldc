@@ -84,17 +84,6 @@ int lbm_push(lbm_stack_t *s, lbm_uint val) {
   return res;
 }
 
-int lbm_push_2(lbm_stack_t *s, lbm_uint v1, lbm_uint v2) {
-  if (s->sp + 1 < s->size) {
-    s->data[s->sp++] = v1;
-    s->data[s->sp++] = v2;
-    if (s->sp > s->max_sp) s->max_sp = s->sp;
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
 int lbm_pop(lbm_stack_t *s, lbm_uint *val) {
   s->sp--;
   *val = s->data[s->sp];

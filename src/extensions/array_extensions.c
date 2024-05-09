@@ -98,7 +98,7 @@ lbm_value array_extension_unsafe_free_array(lbm_value *args, lbm_uint argn) {
 
   lbm_value res = ENC_SYM_EERROR;
   if (argn != 1 ||
-      lbm_type_of(args[0]) != LBM_TYPE_ARRAY) {
+      lbm_type_of(args[0]) != LBM_TYPE_BYTEARRAY) {
     return res;
   }
   lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);

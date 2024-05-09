@@ -240,14 +240,14 @@ static bool share_const_array(lbm_value flash_cell, char *data, lbm_uint num_elt
   if (s != LBM_FLASH_WRITE_OK) return false;
   s = write_const_car(flash_cell, flash_array_header_ptr);
   if (s != LBM_FLASH_WRITE_OK) return false;
-  s = write_const_cdr(flash_cell, ENC_SYM_ARRAY_TYPE);
+  s = write_const_cdr(flash_cell, ENC_SYM_BYTEARRAY_TYPE);
   if (s != LBM_FLASH_WRITE_OK) return false;
   return true;
 }
 
 int lbm_share_const_array(lbm_value *res, char *flash_ptr, lbm_uint num_elt) {
   lbm_value arr = 0;
-  arr = LBM_PTR_BIT | LBM_TYPE_ARRAY;
+  arr = LBM_PTR_BIT | LBM_TYPE_BYTEARRAY;
 
   lbm_value flash_arr = 0;
   lbm_flash_status r = request_flash_storage_cell(arr, &flash_arr);

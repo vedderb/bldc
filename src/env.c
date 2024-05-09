@@ -93,8 +93,9 @@ lbm_value lbm_env_lookup(lbm_value sym, lbm_value env) {
   lbm_value curr = env;
 
   while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-    if (lbm_car(lbm_car(curr)) == sym) {
-      return lbm_cdr(lbm_car(curr));
+    lbm_value car_val = lbm_car(curr);
+    if (lbm_car(car_val) == sym) {
+      return lbm_cdr(car_val);
     }
     curr = lbm_cdr(curr);
   }
@@ -111,8 +112,9 @@ lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
   lbm_value keyval;
 
   while(lbm_type_of(curr) == LBM_TYPE_CONS) {
-    if (lbm_car(lbm_car(curr)) == key) {
-      lbm_set_cdr(lbm_car(curr),val);
+    lbm_value car_val = lbm_car(curr);
+    if (lbm_car(car_val) == key) {
+      lbm_set_cdr(car_val,val);
       return env;
     }
     curr = lbm_cdr(curr);
@@ -138,7 +140,7 @@ lbm_value lbm_env_set_functional(lbm_value env, lbm_value key, lbm_value val) {
   lbm_value curr = env;
 
   while(lbm_type_of(curr) == LBM_TYPE_CONS) {
-    if (lbm_car(lbm_car(curr)) == key) {
+    if (lbm_caar(curr) == key) {
       lbm_set_car(curr,keyval);
       return env;
     }
@@ -154,8 +156,9 @@ lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val) {
   lbm_value curr = env;
 
   while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-    if (lbm_car(lbm_car(curr)) == key) {
-      lbm_set_cdr(lbm_car(curr), val);
+    lbm_value car_val = lbm_car(curr);
+    if (lbm_car(car_val) == key) {
+      lbm_set_cdr(car_val, val);
       return env;
     }
     curr = lbm_cdr(curr);
@@ -176,7 +179,7 @@ lbm_value lbm_env_drop_binding(lbm_value env, lbm_value key) {
   curr = lbm_cdr(curr);
 
   while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-    if (lbm_car(lbm_car(curr)) == key) {
+    if (lbm_caar(curr) == key) {
       lbm_set_cdr(prev, lbm_cdr(curr));
       return env;
     }

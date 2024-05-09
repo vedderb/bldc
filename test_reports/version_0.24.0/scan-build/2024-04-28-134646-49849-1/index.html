@@ -1,0 +1,106 @@
+<html>
+<head>
+<title>lispbm - scan-build results</title>
+<link type="text/css" rel="stylesheet" href="scanview.css"/>
+<script src="sorttable.js"></script>
+<script language='javascript' type="text/javascript">
+function SetDisplay(RowClass, DisplayVal)
+{
+  var Rows = document.getElementsByTagName("tr");
+  for ( var i = 0 ; i < Rows.length; ++i ) {
+    if (Rows[i].className == RowClass) {
+      Rows[i].style.display = DisplayVal;
+    }
+  }
+}
+
+function CopyCheckedStateToCheckButtons(SummaryCheckButton) {
+  var Inputs = document.getElementsByTagName("input");
+  for ( var i = 0 ; i < Inputs.length; ++i ) {
+    if (Inputs[i].type == "checkbox") {
+      if(Inputs[i] != SummaryCheckButton) {
+        Inputs[i].checked = SummaryCheckButton.checked;
+        Inputs[i].onclick();
+      }
+    }
+  }
+}
+
+function returnObjById( id ) {
+    if (document.getElementById)
+        var returnVar = document.getElementById(id);
+    else if (document.all)
+        var returnVar = document.all[id];
+    else if (document.layers)
+        var returnVar = document.layers[id];
+    return returnVar;
+}
+
+var NumUnchecked = 0;
+
+function ToggleDisplay(CheckButton, ClassName) {
+  if (CheckButton.checked) {
+    SetDisplay(ClassName, "");
+    if (--NumUnchecked == 0) {
+      returnObjById("AllBugsCheck").checked = true;
+    }
+  }
+  else {
+    SetDisplay(ClassName, "none");
+    NumUnchecked++;
+    returnObjById("AllBugsCheck").checked = false;
+  }
+}
+</script>
+<!-- SUMMARYENDHEAD -->
+</head>
+<body>
+<h1>lispbm - scan-build results</h1>
+
+<table>
+<tr><th>User:</th><td>joels@joels-ThinkPad-P50</td></tr>
+<tr><th>Working Directory:</th><td>/home/joels/Current/lispbm</td></tr>
+<tr><th>Command Line:</th><td>make -j4</td></tr>
+<tr><th>Clang Version:</th><td>Ubuntu clang version 14.0.0-1ubuntu1.1
+</td></tr>
+<tr><th>Date:</th><td>Sun Apr 28 13:46:46 2024</td></tr>
+</table>
+<h2>Bug Summary</h2><table>
+<thead><tr><td>Bug Type</td><td>Quantity</td><td class="sorttable_nosort">Display?</td></tr></thead>
+<tr style="font-weight:bold"><td class="SUMM_DESC">All Bugs</td><td class="Q">5</td><td><center><input type="checkbox" id="AllBugsCheck" onClick="CopyCheckedStateToCheckButtons(this);" checked/></center></td></tr>
+<tr><th>Logic error</th><th colspan=2></th></tr>
+<tr><td class="SUMM_DESC">Dereference of null pointer</td><td class="Q">5</td><td><center><input type="checkbox" onClick="ToggleDisplay(this,'bt_logic_error_dereference_of_null_pointer');" checked/></center></td></tr>
+</table>
+<h2>Reports</h2>
+
+<table class="sortable" style="table-layout:automatic">
+<thead><tr>
+  <td>Bug Group</td>
+  <td class="sorttable_sorted">Bug Type<span id="sorttable_sortfwdind">&nbsp;&#x25BE;</span></td>
+  <td>File</td>
+  <td>Function/Method</td>
+  <td class="Q">Line</td>
+  <td class="Q">Path Length</td>
+  <td class="sorttable_nosort"></td>
+  <!-- REPORTBUGCOL -->
+</tr></thead>
+<tbody>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>eval_cps.c</td><td class="DESC">cont_read_next_token</td><td class="Q">3714</td><td class="Q">29</td><td><a href="report-0b83d0.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-0b83d0.html" -->
+</tr>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>eval_cps.c</td><td class="DESC">cont_read_append_array</td><td class="Q">3955</td><td class="Q">31</td><td><a href="report-1d6a83.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-1d6a83.html" -->
+</tr>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>heap.c</td><td class="DESC">lbm_gc_mark_phase</td><td class="Q">701</td><td class="Q">26</td><td><a href="report-770c84.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-770c84.html" -->
+</tr>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>eval_cps.c</td><td class="DESC">eval_callcc</td><td class="Q">1653</td><td class="Q">16</td><td><a href="report-ce1271.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-ce1271.html" -->
+</tr>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>eval_cps.c</td><td class="DESC">cont_read_append_array</td><td class="Q">3940</td><td class="Q">24</td><td><a href="report-e8416f.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-e8416f.html" -->
+</tr>
+</tbody>
+</table>
+
+</body></html>

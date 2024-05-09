@@ -42,10 +42,14 @@
 #include "clean_cl.h"
 #endif
 
+#ifdef WITH_SDL
+#include "lbm_sdl.h"
+#endif
+
 
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
-#define EXTENSION_STORAGE_SIZE 256
+#define EXTENSION_STORAGE_SIZE 1024
 #define WAIT_TIMEOUT 2500
 #define STR_SIZE 1024
 #define CONSTANT_MEMORY_SIZE 32*1024
@@ -81,12 +85,6 @@ bool const_heap_write(lbm_uint ix, lbm_uint w) {
   } else if (constants_memory[ix] == w) {
     return true;
   }
-
-  char buf[1024];
-  lbm_print_value(buf, 1024, constants_memory[ix]);
-  printf("prev: %x | %s\n", constants_memory[ix], buf);
-  lbm_print_value(buf, 1024, w);
-  printf("curr: %x | %s\n", w, buf);
   return false;
 }
 
@@ -109,6 +107,9 @@ void erase() {
 void *eval_thd_wrapper(void *v) {
   if (!silent_mode) {
     printf("Lisp REPL started! (LBM Version: %u.%u.%u)\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
+#ifdef WITH_SDL
+    printf("With SDL extensions\n");
+#endif 
     printf("Type :quit to exit.\n");
     printf("     :info for statistics.\n");
     printf("     :load [filename] to load lisp source.\n");
@@ -523,6 +524,12 @@ int init_repl() {
   lbm_set_printf_callback(error_print);
 
   init_exts();
+  
+#ifdef WITH_SDL
+  if (!lbm_sdl_init()) {
+    return 0;
+  }
+#endif
 
   /* Load clean_cl library into heap */
 #ifdef CLEAN_UP_CLOSURES
@@ -722,7 +729,7 @@ int store_env(char *filename) {
           fv.buf_pos = 0;
           int r = flatten_value_c(&fv, val_field);
           if (r == FLATTEN_VALUE_OK) {
-            uint32_t name_len = strlen(name);
+            size_t name_len = strlen(name);
             if (name_len > 0) {
               fwrite(&name_len, 1, sizeof(int32_t),fp);
               fwrite(name, 1, strlen(name), fp);
@@ -792,7 +799,7 @@ int main(int argc, char **argv) {
     }
     if (str == NULL) terminate_repl(REPL_EXIT_SUCCESS);
     add_history(str);
-    unsigned int n = strlen(str);
+    size_t n = strlen(str);
 
     if (n >= 5 && strncmp(str, ":info", 5) == 0) {
       printf("--(LISP HEAP)-----------------------------------------------\n");
@@ -840,7 +847,7 @@ int main(int argc, char **argv) {
       for (int i = 0; i < PROF_DATA_NUM; i ++) {
         if (prof_data[i].cid == -1) break;
         tot_gc += prof_data[i].gc_count;
-        printf("%d\t%s\t%u\t%f\t%f\n",
+        printf("%"PRI_VALUE"\t%s\t%"PRI_UINT"\t%f\t%f\n",
                prof_data[i].cid,
                prof_data[i].name,
                prof_data[i].count,
@@ -848,10 +855,10 @@ int main(int argc, char **argv) {
                100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count);
       }
       printf("\n");
-      printf("GC:\t%u\t%f%%\n", tot_gc, 100.0 * ((float)tot_gc / (float)tot_samples));
-      printf("System:\t%u\t%f%%\n", num_system, 100.0 * ((float)num_system / (float)tot_samples));
-      printf("Sleep:\t%u\t%f%%\n", num_sleep, 100.0 * ((float)num_sleep / (float)tot_samples));
-      printf("Total:\t%u samples\n", tot_samples);
+      printf("GC:\t%"PRI_UINT"\t%f%%\n", tot_gc, 100.0 * ((float)tot_gc / (float)tot_samples));
+      printf("System:\t%"PRI_UINT"\t%f%%\n", num_system, 100.0 * ((float)num_system / (float)tot_samples));
+      printf("Sleep:\t%"PRI_UINT"\t%f%%\n", num_sleep, 100.0 * ((float)num_sleep / (float)tot_samples));
+      printf("Total:\t%"PRI_UINT" samples\n", tot_samples);
       free(str);
     } else if (strncmp(str, ":env", 4) == 0) {
       for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {

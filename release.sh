@@ -21,11 +21,15 @@ cd tests
 unit_tests_log_file="unit_tests_log_${release}.txt"
 failing_unit_tests_log_file="failing_unit_tests_log_${release}.txt"
 
+unit_tests_64_log_file="unit_tests_log_64_${release}.txt"
+failing_unit_tests_64_log_file="failing_unit_tests_log_64_${release}.txt"
+
 gc_unit_tests_log_file="gc_unit_tests_log_${release}.txt"
 failing_gc_unit_tests_log_file="failing_gc_unit_tests_log_${release}.txt"
 
 
 ./run_tests.sh ../$reportdir/$failing_unit_tests_log_file >> ../$reportdir/$unit_tests_log_file
+./run_tests.sh ../$reportdir/$failing_unit_tests_64_log_file >> ../$reportdir/$unit_tests_64_log_file
 ./run_tests_gc.sh ../$reportdir/$failing_gc_unit_tests_log_file >> ../$reportdir/$gc_unit_tests_log_file
 
 cd ..

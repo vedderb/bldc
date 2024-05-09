@@ -360,53 +360,17 @@ Operations on fixed bitwidth mumerical types can lead to overflow. The ranges re
 
 All Values in LBM are encoded in one way or another. The encoded value holds additional information about type and garbage collection mark bit.  Operations that operate on an LBM value needs to unpack this encoded format and extract the actual numerical information from the representation. This has a cost and operations on numbers are in general a bit slower than what one gets in, for example C. 
 
-The chart below shows the time it takes to perform 10 million additions on the x86 architecture (a i7-6820HQ) in 32Bit mode. The difference in cost is negligible between the types `byte` - `u32` with a huge increase in cost for 64 bit types. 
+The chart below shows the time it takes to perform 10 million additions on the x86 architecture (a i7-6820HQ) in 32 and 64 Bit mode. 
 
-All Integer types | 32Bit or smaller
-|:---:|:---:|
-![Performance of 10 million additions at various types on x86 32bit](./images/millions.png) | ![Performance of 10 million additions at various types on x86 32bit](./images/millions_zoom.png)
-
-The charts below compare floating point operations to `u32` operations on x86 32Bit. There is little difference in cost of `f32` and `u32` operations, but a large increase in cost when going to `f64` (double). 
-
-`f32` and `f64` vs `u32` | `f32` vs `u32`
-|:---:|:---:|
-![Performance of floating point additions on x86 32bit](./images/float_x86_32.png) | ![Performance floating point additions on x86 32bit](./images/float_x86_32_zoom.png)
+![Perfomance of 10 million additions at various types on X86](./images/lbm_arith_pc.png "Perfomance of 10 million additions at various types on X86")
 
 In 64Bit mode the x86 version of LBM shows negligible differences in cost of additions at different types. 
 
-All Integer types | `f32` and `f64` vs `u32`
-|:---:|:---:|
-![Performance of 10 million additions at various types on x86 64bit](./images/millions64.png) | ![Performance of floating point additions on x86 64bit](./images/float_x86_64.png)
-
-On 64Bit x86 the difference in cost is little accross all LBM types. 
-
 For addition performance on embedded systems, we use the the EDU VESC motorcontroller as the STM32F4 candidate and the VESC EXPRESS for a RISCV data point. 
 
-On ESP32C3, a 160MHz 32Bit RISCV core, time is measured over 100000 additions.  There is a more pronounced gap between 28Bit and smaller types and the 32Bit types here. Likely because of the differences in encoding of 28Bit or less types and 32Bit types. 
+![Performance of 100000 additions at various types on ESP32C3 and STM32F4](./images/lbm_arith_embedded.png "Performance of 100000 additions at various types on ESP32C3 and STM32F4")
 
-All Integer types | 32Bit or smaller
-|:---:|:---:|
-![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv.png) | ![Performance of 100000 addtions at various types on ESP32C3 RISCV](./images/thousands_riscv_zoom.png)
-
-On RISCV the difference in cost between `u32` and `f32` operations is small. This is a bit surprising as the ESP32C3 does not have a floating point unit. It is possible that the encoding/decoding of numbers is dominating the cost of any numerical opeation. 
-
-`f32` and `f64` vs `u32` | `f32` vs `u32`
-|:---:|:---:|
-![Performance of floating point additions on ESP32C3 RISCV](./images/float_riscv.png) | ![Performance floating point additions on ESP32C3 RISCV](./images/float_riscv_zoom.png)
-
-On the STM32F4 at 168MHz (an EDU VESC) The results are similar to ESP32 but slower.  The slower performance on the VESC compared to the VESC_Express ESP32 may be caused by the VESC firmware running motorcontrol interrups at a high frequency. 
-
-All Integer types | 32Bit or smaller
-|:---:|:---:|
-![Performance of 100000 addtions at various types on STM32F4](./images/thousands_arm.png) | ![Performance of 100000 additions at various types on STM32F4](./images/thousands_arm_zoom.png)
-
-The cost of `f32` operations compared to `u32` on the STM32F4 shows little differences.  As expected there is a jump up in cost when going to 64Bit. 
-
-`f32` and `f64` vs `u32` | `f32` vs `u32`
-|:---:|:---:|
-![Performance of floating point additions on STM32F4](./images/float_stm.png) | ![Performance floating point additions on STM32F4](./images/float_stm_zoom.png)
-
-In general, on 32Bit platforms, the cost of operations on numerical types that are 32Bit or less are about equal in cost. The costs presented here was created by timing a large number of 2 argument additions. Do not see these measurements as the "truth carved in stone", LBM performance keeps changing over time as we make improvements, but use them as a rough guiding principle.  If anything can be taken away from this it is to stay away from 64Bit value operations in your tightest and most time critical loops. 
+In general, on 32Bit platforms, the cost of operations on numerical types that are 32Bit or less are about equal in cost. The costs presented here was created by timing a large number of 2 argument additions. Do not see these measurements as the "truth carved in stone", LBM performance keeps changing over time as we make improvements, but use them as a rough guiding principle. 
 
 
 ## Syntax and semantics
@@ -457,7 +421,34 @@ In LispBM a pair of S-expressions is created by an application of `cons` as `(co
 
 The S-expressions from the previous section are just trees. The Lisp evaluator provides a computational interepretation for such trees. Not all trees make sense as lisp programs. This section is about those trees that do make sense and what they mean to the Lisp evaluator. 
 
+TODO: Finish section. 
+
 ### Concurrency and Semantics
+
+TODO: Finish section. 
+
+## Functional and Imperative programming
+
+To differentiate from Imperative and Functional, think of imperative programs  as sequences of operations that update a state and  functional programs as transformations of values through application  of compositions of functions. Functional programming languages often let functions be values, which means that functions  can be stored in lists, returned from other functions and so on 
+
+LispBM is a multiparadigm programming language. Most languages are a mix of functional and imperative and differ in what style it makes most convenient. At one end of this spectrum we find C which makes imperative easy and functional hard,  and in the other end Haskell with the opposite favouritism. In LispBM we try to not unfairly favour any particular style over the other. 
+
+Picking a functional or an imperative style does have consequences though. Functional LispBM programs have properties such as persistance of data, that can be broken using the imperative part of the language. 
+
+With the imperative features of the language it is also in some  places possible to peek under the hood of the runtime system. you can detect when and how environments are shared or copied for example. Please avoid exploiting the power of destructive updates for evil purposes. 
+
+The list below shows imperative operations from the core of LispBM. In the extension libraries there are many more of the kind. 
+
+   - **set**      - Destructively update a binding. Similar to C's =
+   - **setq**     - Destructively update a binding. Similar to C's =
+   - **setix**    - Destructive update of element in list.
+   - **setcar**   - Destructive update of car field in cons cell.
+   - **sercdr**   - Destructive update of cdr field in cons cell.
+   - **setassoc** - Destructive update of field in association list
+   - **bufset**   - The bufset family of functions destructively updates ByteArrays.
+   - **bufclear** - Destructive clear of ByteArray.
+   - **progn**    - Sequence operations.
+   - **define**   - In LispBM, variables can be defined more than once. A second define of a variable is a destructive update.
 
 # Reference
 
@@ -533,7 +524,7 @@ Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1
 <td>
 
 ```clj
-(+ 2 3.140000f32)
+(+ 2i 3.14)
 ```
 
 
@@ -621,7 +612,7 @@ Subtract an arbitrary number of values from a value. The form of a `-` expressio
 <td>
 
 ```clj
-(- 10 3.140000f32)
+(- 10 3.14)
 ```
 
 
@@ -709,7 +700,7 @@ Multiplying an arbitrary number of values. The form of a `*` expression is `(* e
 <td>
 
 ```clj
-(* 4 3.140000f32)
+(* 4 3.14)
 ```
 
 
@@ -761,7 +752,7 @@ Division. The form of a `/` expression is `(/ expr1 ... exprN)`.
 <td>
 
 ```clj
-(/ 6.280000f32 2)
+(/ 6.28 2)
 ```
 
 
@@ -1350,7 +1341,7 @@ nil
 <td>
 
 ```clj
-(< 3.140000f32 1)
+(< 3.14 1)
 ```
 
 
@@ -1368,7 +1359,7 @@ nil
 <td>
 
 ```clj
-(< 1 3.140000f32)
+(< 1 3.14)
 ```
 
 
@@ -1456,7 +1447,7 @@ nil
 <td>
 
 ```clj
-(>= 3.140000f32 1)
+(>= 3.14 1)
 ```
 
 
@@ -1474,7 +1465,7 @@ t
 <td>
 
 ```clj
-(>= 1 3.140000f32)
+(>= 1 3.14)
 ```
 
 
@@ -1562,7 +1553,7 @@ t
 <td>
 
 ```clj
-(<= 3.140000f32 1)
+(<= 3.14 1)
 ```
 
 
@@ -1580,7 +1571,7 @@ nil
 <td>
 
 ```clj
-(<= 1 3.140000f32)
+(<= 1 3.14)
 ```
 
 
@@ -2692,6 +2683,365 @@ The comma-at operation is used to splice in the result of a computation (that re
 ---
 
 ## Built-in operations
+
+
+---
+
+
+### rest-args
+
+`rest-args` are related to user defined functions. As such `rest-args` is also given a brief explanation in the section about the  <a href="#lambda">lambda</a>. 
+
+`rest-args` is a mechanism for handling optional arguments in functions. Say you want to define a function with 2 arguments and an optional 3rd argument. You can do this by creating a 3 argument function and check if argument 3 is valid or not in the body of the function 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(defun my-fun (x y opt) (if opt (+ x y opt) (+ x y)))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (x y opt) (if opt (+ x y opt) (+ x y)) nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 1 2 nil)
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 1 2 100)
+```
+
+
+</td>
+<td>
+
+```clj
+103
+```
+
+
+</td>
+</tr>
+</table>
+
+This approach works well if your function has 1,2 or some other small number of optional arguments. However, functions with many optional arguments will look messy at the application site, `(my-fun 1 2 nil nil nil nil 32 nil kurt-russel)` for examples 
+
+Functions you create, using lambda or defun, do actually take an arbitrary number of arguments. In other words, it is no error to pass in 5 arguments to a 2 argument defun or lambda function. The extra arguments will by default just be ignored. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(defun my-fun (x y) (+ x y))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (x y) (+ x y) nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 1 2)
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 1 2 100 200 300 400 500)
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+</table>
+
+all of those extra arguments, `100 200 300 400 500` passed into my-fun are ignored. But if we want to, we can access these extra arguments through the `rest-args` operation. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(defun my-fun (x y) (apply + (cons x (cons y (rest-args)))))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (x y) (apply + (cons x (cons y (rest-args)))) nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 1 2 100)
+```
+
+
+</td>
+<td>
+
+```clj
+103
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 1 2 100 1000 10000)
+```
+
+
+</td>
+<td>
+
+```clj
+11103
+```
+
+
+</td>
+</tr>
+</table>
+
+`rest-args` gives a clean looking interface to functions taking arbitrary optional arguments. Functions that make use of `rest-args` must, however, be written specifically to do so and are themself responsible for the figuring out the positional semantics of extra arguments. 
+
+One was to explicitly carry the semantics of an optional argument into the function body is to add optional arguments as key-value pairs where the key states the meaning. Then `rest-args` becomes essentially an association list that you query using `assoc`. For example: 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(defun my-fun (x) (assoc (rest-args) x))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (x) (assoc (rest-args) x) nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 'kurt-russel '(apa . 10) '(bepa . 20) '(kurt-russel . is-great))
+```
+
+
+</td>
+<td>
+
+```clj
+is-great
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 'apa '(apa . 10) '(bepa . 20) '(kurt-russel . is-great))
+```
+
+
+</td>
+<td>
+
+```clj
+10
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 'bepa '(apa . 10) '(bepa . 20) '(kurt-russel . is-great))
+```
+
+
+</td>
+<td>
+
+```clj
+20
+```
+
+
+</td>
+</tr>
+</table>
+
+The `rest-args` operation also, itself, takes an optional numerical argument that acts as an index into the list of rest arguments. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(defun my-fun (i) (rest-args i))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (i) (rest-args i) nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 0 1 2 3)
+```
+
+
+</td>
+<td>
+
+```clj
+1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 1 1 2 3)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(my-fun 2 1 2 3)
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+</table>
+
 
 
 ---
@@ -4413,11 +4763,17 @@ Parses and evaluates a program incrementally. `read-eval-program` reads a top-le
 
 Lists are built using cons cells. A cons cell is represented by the lbm_cons_t struct in the implementation and consists of two fields named the `car` and the `cdr`. There is no special meaning associated with the `car` and the `cdr` each can hold a lbm_value. See <a href="#cons">cons</a> and <a href="#list">list</a> for two ways to create structures of cons cells on the heap. 
 
-![cons cell](images/cons_cell.png "cons cell")A cons cell can be used to store a pair of values. You create a pair by sticking a value in both the car and cdr field of a cons cell using either `'(1 . 2)` or `(cons 1 2)`. 
+![cons cell](images/cons_cell.png "cons cell")
 
-![pair](images/pair.png "pair")A list is a number of cons cells linked together where the car fields hold values and the cdr fields hold pointers (the last cdr field is nil). The list below can be created either as `'(1 2 3)` or as `(list 1 2 3)`. 
+A cons cell can be used to store a pair of values. You create a pair by sticking a value in both the car and cdr field of a cons cell using either `'(1 . 2)` or `(cons 1 2)`. 
+
+![pair](images/pair.png "pair")
+
+A list is a number of cons cells linked together where the car fields hold values and the cdr fields hold pointers (the last cdr field is nil). The list below can be created either as `'(1 2 3)` or as `(list 1 2 3)`. 
 
 ![list](images/list.png "list")
+
+
 ### car
 
 Use `car` to access the `car` field of a cons cell. A `car` expression has the form `(car expr)`. 
@@ -5385,6 +5741,8 @@ apa
 Rotating a list in the negative direction is slightly faster than rotating in the positive direction. The chart below shows the time 1 Million 3 step rotations take in each direction at varying list lengths. The data is collected on x86. 
 
 ![Performance of list rotate](images/rotate_pos_neg.png "Performance of list rotate")
+
+
 
 
 ---
@@ -6889,6 +7247,61 @@ Lisp values can be "flattened" into an array representation. The flat representa
 
 Not all values can be flattened, custom types for example cannot. 
 
+Flat values are designed for recursive encoding and decoding each sub-value contains all information about its size either implicitly or explicitly (as is the case with arrays). 
+
+multibyte values are stored in network byte order (big endian). 
+
+**Cons** A cons cell is encoded into a byte 0x1 followed by the encoding of the car and then the cdr field of that cons cell. 
+
+
+|cons |car value|cdr value|
+|:----:|:----:|:----:|
+|0x1|M bytes|N bytes|
+
+**Symbol as value** A symbol value can be flattened. Note that symbol values only make sense locally. A flattened symbol value will only make sense in the same runtime system instance that flattened it. 
+
+
+|symbol-value|value|
+|:----:|:----:|
+|0x2|4 bytes on 32bit, 8 bytes on 64bit|
+
+**Symbol as string** A symbol can be flattened as a string and thus make sense across runtime system instances. 
+
+
+|symbol-string|string|
+|:----:|:----:|
+|0x3|zero terminated C style string|
+
+**Byte Arrays** Byte arrays can be flattened and the length is stored explicitly. 
+
+
+|byte array|size in bytes|data|
+|:----:|:----:|:----:|
+|0xD|4 bytes|size bytes|
+
+The rest of the atomic types are flattened according to the following: 
+
+
+|type|flat-id|value|
+|:----:|:----:|:----:|
+|byte|0x4|1 Byte|
+|i28|0x5|4 Bytes|
+|u28|0x6|4 Bytes|
+|i32|0x7|4 Bytes|
+|u32|0x8|4 Bytes|
+|float|0x9|4 Bytes|
+|i64|0xA|8 Bytes|
+|u64|0xB|8 Bytes|
+|double|0xC|8 Bytes|
+|i56|0xE|8 Bytes|
+|u56|0xF| 8 Bytes|
+
+Note that some of the types are only present of 32Bit runtime systems and some only on 64 bit. i28 is present on 32 bit and i56 on 64 bit. likewise for u28 and u56. 
+
+When LispBM unflattens a i56 or u56 on a 32bit system it creates a i64 or u64 in its place. 
+
+Symbols as values, are not possible to transfer between runtime systems in general and is even more pointless between a 32 and 64 bit runtime system. 
+
 
 ### flatten
 
@@ -7449,7 +7862,7 @@ Convert any numerical value to a byte. If the input is not a number the output o
 <td>
 
 ```clj
-(to-byte 3.140000f32)
+(to-byte 3.14)
 ```
 
 
@@ -7519,7 +7932,7 @@ Convert a value of any numerical type to an integer. The resulting integer is a 
 <td>
 
 ```clj
-(to-i 3.140000f32)
+(to-i 3.14)
 ```
 
 
@@ -7589,7 +8002,7 @@ Convert a value of any numerical type to an unsigned integer. The resulting inte
 <td>
 
 ```clj
-(to-u 3.140000f32)
+(to-u 3.14)
 ```
 
 
@@ -7659,7 +8072,7 @@ Convert any numerical value to a 32bit int. If the input is not a number the out
 <td>
 
 ```clj
-(to-i32 3.140000f32)
+(to-i32 3.14)
 ```
 
 
@@ -7729,7 +8142,7 @@ Convert any numerical value to a 32bit unsigned int.
 <td>
 
 ```clj
-(to-u32 3.140000f32)
+(to-u32 3.14)
 ```
 
 
@@ -7799,7 +8212,7 @@ Convert any numerical value to a single precision floating point value. If the i
 <td>
 
 ```clj
-(to-float 3.140000f32)
+(to-float 3.14)
 ```
 
 
@@ -7869,7 +8282,7 @@ Convert any numerical value to a 64bit int. If the input is not a number the out
 <td>
 
 ```clj
-(to-i64 3.140000f32)
+(to-i64 3.14)
 ```
 
 
@@ -7939,7 +8352,7 @@ Convert any numerical value to a 64bit unsigned int. If the input is not a numbe
 <td>
 
 ```clj
-(to-u64 3.140000f32)
+(to-u64 3.14)
 ```
 
 
@@ -8009,7 +8422,7 @@ Convert any numerical value to a double precision floating point value. If the i
 <td>
 
 ```clj
-(to-double 3.140000f32)
+(to-double 3.14)
 ```
 
 

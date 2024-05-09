@@ -27,14 +27,19 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 23
+#define LBM_MINOR_VERSION 24
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
-#define LBM_VERSION_STRING "0.23.0"
+#define LBM_VERSION_STRING "0.24.0"
 
 
 /*! \page changelog Changelog
+APR 28 2024: Version 0.24.0
+  - Cleaning of lispbm repository. less to maintain.
+  - Lots of improvements to documentation.
+  - lbm_memory optimization. 
+
 MAR 9 2024: Version 0.23.0
   - rest-args functionality added to function application of lambda defined function.
   - Improved x86 REPL.

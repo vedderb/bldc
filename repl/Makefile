@@ -27,10 +27,15 @@ all: CCFLAGS += -m32
 all: repl 
 
 all64: 	CCFLAGS += -DLBM64
-all64: repl 
+all64: repl
 
-clean_cl.h: clean.lisp
-	./repl --store_env="clean_cl.env" --src=clean.lisp --terminate
+sdl: CCFLAGS += -DLBM64 -DWITH_SDL
+sdl: LISPBM_FLAGS += -I/usr/include/SDL2 -lSDL2_image -lSDL2
+sdl: LISPBM_SRC += lbm_sdl.c
+sdl: repl
+
+clean_cl.h: ./scripts/clean.lisp
+	./repl --store_env="clean_cl.env" --src=./scripts/clean.lisp --terminate
 	xxd -i clean_cl.env clean_cl.h
 
 install: all
