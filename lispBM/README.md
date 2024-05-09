@@ -6526,7 +6526,7 @@ Example:
 ```clj
 ; List all files in the archive test.zip on the SD-card
 (def f (f-open "test.zip" "r"))
-(print (zip-ls f)
+(print (zip-ls f))
 (f-close f)
 
 > (("test.txt" 7) ("fw.bin" 291871))
@@ -6535,7 +6535,7 @@ Example:
 ```clj
 ; List all files in the imported archive test.zip
 (import "test.zip" 'test)
-(print (zip-ls test)
+(print (zip-ls test))
 
 > (("test.txt" 7) ("fw.bin" 291871))
 ```
