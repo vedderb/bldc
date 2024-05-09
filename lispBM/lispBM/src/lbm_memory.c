@@ -48,7 +48,7 @@ static lbm_uint memory_num_free = 0;
 static volatile lbm_uint memory_reserve_level = 0;
 static mutex_t lbm_mem_mutex;
 static bool    lbm_mem_mutex_initialized;
-static unsigned int alloc_offset = 0;
+static lbm_uint alloc_offset = 0;
 
 int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
                     lbm_uint *bits, lbm_uint bits_size) {
@@ -267,9 +267,9 @@ static lbm_uint *lbm_memory_allocate_internal(lbm_uint num_words) {
   lbm_uint end_ix = 0;
   lbm_uint free_length = 0;
   unsigned int state = INIT;
-  unsigned int loop_max = (bitmap_size << BITMAP_SIZE_SHIFT);
+  lbm_uint loop_max = (bitmap_size << BITMAP_SIZE_SHIFT);
 
-  for (unsigned int i = 0; i < loop_max; i ++) {
+  for (lbm_uint i = 0; i < loop_max; i ++) {
     switch(status(alloc_offset)) {
     case FREE_OR_USED:
       switch (state) {

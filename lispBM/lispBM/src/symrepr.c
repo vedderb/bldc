@@ -97,7 +97,7 @@ special_sym const special_symbols[] =  {
   {"flash_full"         , SYM_ERROR_FLASH_HEAP_FULL},
 
   // Special symbols with unparsable names
-  {"$array"          , SYM_ARRAY_TYPE},
+  {"$barray"         , SYM_BYTEARRAY_TYPE},
   {"$raw_i"          , SYM_RAW_I_TYPE},
   {"$raw_u"          , SYM_RAW_U_TYPE},
   {"$raw_f"          , SYM_RAW_F_TYPE},
@@ -107,6 +107,7 @@ special_sym const special_symbols[] =  {
   {"$channel"        , SYM_CHANNEL_TYPE},
   {"$recovered"      , SYM_RECOVERED},
   {"$custom"         , SYM_CUSTOM_TYPE},
+  {"$array"          , SYM_ARRAY_TYPE},
   {"$nonsense"       , SYM_NONSENSE},
 
   // tokenizer symbols with unparsable names
@@ -135,11 +136,12 @@ special_sym const special_symbols[] =  {
   {"type-double"      , SYM_TYPE_DOUBLE},
   {"type-i64"         , SYM_TYPE_I64},
   {"type-u64"         , SYM_TYPE_U64},
-  {"type-array"       , SYM_TYPE_ARRAY},
+  {"type-array"       , SYM_TYPE_BYTEARRAY},
   {"type-symbol"      , SYM_TYPE_SYMBOL},
   {"type-char"        , SYM_TYPE_CHAR},
   {"type-byte"        , SYM_TYPE_BYTE},
   {"type-channel"     , SYM_TYPE_CHANNEL},
+  {"type-lisparray"   , SYM_TYPE_ARRAY},
 
   // Fundamental operations
   {"+"                , SYM_ADD},
@@ -173,7 +175,7 @@ special_sym const special_symbols[] =  {
   {"list"             , SYM_LIST},
   {"append"           , SYM_APPEND},
   {"undefine"         , SYM_UNDEFINE},
-  {"bufcreate"        , SYM_ARRAY_CREATE},
+  {"bufcreate"        , SYM_BYTEARRAY_CREATE},
   {"type-of"          , SYM_TYPE_OF},
   {"sym2str"          , SYM_SYMBOL_TO_STRING},
   {"str2sym"          , SYM_STRING_TO_SYMBOL},
@@ -212,6 +214,9 @@ special_sym const special_symbols[] =  {
   {"event-register-handler", SYM_REG_EVENT_HANDLER},
   {"take"           , SYM_TAKE},
   {"drop"           , SYM_DROP},
+  {"mkarray"        , SYM_MKARRAY},
+  {"array-to-list"  , SYM_ARRAY_TO_LIST},
+  {"list-to-array"  , SYM_LIST_TO_ARRAY},
 
   // fast access in list
   {"ix"             , SYM_IX},
@@ -226,7 +231,7 @@ special_sym const special_symbols[] =  {
   {"setvar"         , SYM_SETVAR},
   {"type-f32"       , SYM_TYPE_FLOAT},
   {"type-f64"       , SYM_TYPE_DOUBLE},
-  {"array-create"   , SYM_ARRAY_CREATE},
+  {"array-create"   , SYM_BYTEARRAY_CREATE},
 };
 
 static lbm_uint *symlist = NULL;
@@ -383,7 +388,7 @@ static bool add_symbol_to_symtab(char* name, lbm_uint id) {
 
   lbm_uint *storage = lbm_memory_allocate(alloc_size + 3);
   if (storage == NULL) return false;
-  strncpy(((char*)storage) + 12, name, n);  
+  strncpy(((char*)storage) + (3 * sizeof(lbm_uint)), name, n);
   lbm_uint *m = storage;
 
   if (m == NULL) return false;

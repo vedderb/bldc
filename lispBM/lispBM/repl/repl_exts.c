@@ -645,7 +645,7 @@ static const char* macros[] = {
 };
 
 static bool strmatch(const char *str1, const char *str2) {
-  unsigned int len = strlen(str1);
+  size_t len = strlen(str1);
 
   if (str2[len] != ' ') {
     return false;

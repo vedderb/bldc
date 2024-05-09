@@ -1,5 +1,5 @@
 /*
-    Copyright 2023 Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2023, 2024 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,22 +27,23 @@ typedef struct {
   lbm_uint buf_size;
   lbm_uint buf_pos;
 } lbm_flat_value_t;
-                              // Arity
-#define S_CONS            0x1 // 2      car, cdr
-#define S_SYM_VALUE       0x2 // 1      value
-#define S_SYM_STRING      0x3
-#define S_BYTE_VALUE      0x4
-#define S_I28_VALUE       0x5
-#define S_U28_VALUE       0x6
-#define S_I32_VALUE       0x7
-#define S_U32_VALUE       0x8
-#define S_FLOAT_VALUE     0x9
-#define S_I64_VALUE       0xA
-#define S_U64_VALUE       0xB
-#define S_DOUBLE_VALUE    0xC
-#define S_LBM_ARRAY       0xD
-#define S_I56_VALUE       0xE
-#define S_U56_VALUE       0xF
+                               // Arity
+#define S_CONS            0x01 // 2      car, cdr
+#define S_SYM_VALUE       0x02 // 1      value
+#define S_SYM_STRING      0x03
+#define S_BYTE_VALUE      0x04
+#define S_I28_VALUE       0x05
+#define S_U28_VALUE       0x06
+#define S_I32_VALUE       0x07
+#define S_U32_VALUE       0x08
+#define S_FLOAT_VALUE     0x09
+#define S_I64_VALUE       0x0A
+#define S_U64_VALUE       0x0B
+#define S_DOUBLE_VALUE    0x0C
+#define S_LBM_ARRAY       0x0D
+#define S_I56_VALUE       0x0E
+#define S_U56_VALUE       0x0F
+#define S_LBM_LISP_ARRAY  0x1F
 
 // Maximum number of recursive calls
 #define FLATTEN_VALUE_MAXIMUM_DEPTH 2000
@@ -64,6 +65,7 @@ typedef struct {
 bool lbm_start_flatten(lbm_flat_value_t *v, size_t buffer_size);
 bool lbm_finish_flatten(lbm_flat_value_t *v);
 bool f_cons(lbm_flat_value_t *v);
+bool f_lisp_array(lbm_flat_value_t *v, uint32_t num_elt);
 bool f_sym(lbm_flat_value_t *v, lbm_uint sym_id);
 bool f_sym_string(lbm_flat_value_t *v, char *str);
 bool f_i(lbm_flat_value_t *v, lbm_int i);

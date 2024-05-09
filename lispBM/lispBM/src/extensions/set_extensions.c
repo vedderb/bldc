@@ -76,11 +76,9 @@ static lbm_value set_insert(lbm_value set, lbm_value val) {
   lbm_value v = lbm_cons(val, ENC_SYM_NIL);
   ABORT_ON_MERROR(v);
   if (end == ENC_SYM_NIL) {
-    end = v;
     start = v;
   } else {
     lbm_set_cdr(end, v);
-    end = v;
   }
   return start;
 }
