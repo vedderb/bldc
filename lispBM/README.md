@@ -5934,6 +5934,20 @@ Get the size of a file in bytes. File can be a path (e.g. "test.txt") or a file 
 
 ---
 
+#### f-rename
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-rename oldname newname)
+```
+
+Rename file (same as moving a file). Returns true on success, nil otherwise.
+
+---
+
 #### f-fatinfo
 
 | Platforms | Firmware |
@@ -6425,6 +6439,105 @@ Scale color with factor. The result is truncated between 0 to 255. As with color
 
 (print-color (color-scale '(0x224488 0x111111 0x222222) 0.6))
 > ((20 40 81 0) (10 10 10 0) (20 20 20 0))
+```
+
+---
+
+## File (De-)Compression
+
+---
+
+#### unzip
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(unzip input fileInZip optOutputFile)
+```
+
+Unzip input. Input can be a byte array or a file handle on the SD-card. FileInZip is the file in the zip-archive; if it is a string the filename will be used and if it is an integer its sequence number will be used. The optional argument optOutputFile can be used to specify a file to write the output too.
+
+**Note:**   
+When optOutputFile is used the firmware buffer is used to temporally store the output file in order to make the operation as fast as possible. That means if anything is in the firmware buffer it will be destroyed. It also means that the maximum size of the output file is 1.5 MB.
+
+Examples:
+
+```clj
+; Unzip the first file of the archive test.zip (on the SD-card) to the byte array uz 
+(def f (f-open "test.zip" "r"))
+(def uz (unzip f 0))
+(f-close f)
+```
+
+```clj
+; Unzip the file hello.txt of the archive test.zip (on the SD-card) to the byte array uz 
+(def f (f-open "test.zip" "r"))
+(def uz (unzip f "hello.txt"))
+(f-close f)
+```
+
+```clj
+; Unzip the first file of the imported archive test.zip to the byte array uz 
+(import "test.zip" 'test)
+(def uz (unzip test 0))
+```
+
+```clj
+; Unzip the file hello.txt of the imported archive test.zip to the byte array uz 
+(import "test.zip" 'test)
+(def uz (unzip test "hello.txt"))
+```
+
+```clj
+; Unzip the file hello.txt of the archive test.zip (on the SD-card) to the file hello.txt on the SD-card 
+(def f (f-open "test.zip" "r"))
+(def f-out (f-open "hello.txt" "w"))
+(unzip f "hello.txt" f-out)
+(f-close f)
+(f-close f-out)
+```
+
+```clj
+; Unzip the file hello.txt of the archive imported test.zip to the file hello.txt on the SD-card 
+(import "test.zip" 'test)
+(def f-out (f-open "hello.txt" "w"))
+(unzip test "hello.txt" f-out)
+(f-close f-out)
+```
+
+---
+
+#### zip-ls
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(zip-ls input)
+```
+
+List all files in the archive input. Input can be a byte array or a file handle on the SD-card. Returns a list with the entries; each entry is a list where the first element is the name and the second element is the size when uncompressed.
+
+Example:
+
+```clj
+; List all files in the archive test.zip on the SD-card
+(def f (f-open "test.zip" "r"))
+(print (zip-ls f)
+(f-close f)
+
+> (("test.txt" 7) ("fw.bin" 291871))
+```
+
+```clj
+; List all files in the imported archive test.zip
+(import "test.zip" 'test)
+(print (zip-ls test)
+
+> (("test.txt" 7) ("fw.bin" 291871))
 ```
 
 ---
