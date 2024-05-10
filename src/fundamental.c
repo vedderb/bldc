@@ -315,9 +315,9 @@ bool struct_eq(lbm_value a, lbm_value b) {
       return (lbm_dec_u64(a) == lbm_dec_u64(b));
     case LBM_TYPE_DOUBLE:
       return (lbm_dec_double(a) == lbm_dec_double(b));
-    case LBM_TYPE_BYTEARRAY:
-      return bytearray_equality(a, b);
     case LBM_TYPE_ARRAY:
+      return bytearray_equality(a, b);
+    case LBM_TYPE_LISPARRAY:
       return array_struct_equality(a, b);
     }
   }
@@ -1267,7 +1267,7 @@ static lbm_value fundamental_type_of(lbm_value *args, lbm_uint nargs, eval_conte
   }
   switch(t) {
   case LBM_TYPE_CONS: return ENC_SYM_TYPE_LIST;
-  case LBM_TYPE_BYTEARRAY: return ENC_SYM_TYPE_BYTEARRAY;
+  case LBM_TYPE_ARRAY: return ENC_SYM_TYPE_ARRAY;
   case LBM_TYPE_I32: return ENC_SYM_TYPE_I32;
   case LBM_TYPE_U32: return ENC_SYM_TYPE_U32;
   case LBM_TYPE_FLOAT: return ENC_SYM_TYPE_FLOAT;
@@ -1278,7 +1278,7 @@ static lbm_value fundamental_type_of(lbm_value *args, lbm_uint nargs, eval_conte
   case LBM_TYPE_U: return ENC_SYM_TYPE_U;
   case LBM_TYPE_CHAR: return ENC_SYM_TYPE_CHAR;
   case LBM_TYPE_SYMBOL: return ENC_SYM_TYPE_SYMBOL;
-  case LBM_TYPE_ARRAY: return ENC_SYM_TYPE_ARRAY;
+  case LBM_TYPE_LISPARRAY: return ENC_SYM_TYPE_LISPARRAY;
   }
   return ENC_SYM_TERROR;
 }

@@ -50,12 +50,12 @@
 #define LBM_TYPE_U64                     0x58000000u
 #define LBM_TYPE_FLOAT                   0x68000000u
 #define LBM_TYPE_DOUBLE                  0x78000000u
-#define LBM_TYPE_BYTEARRAY               0x80000000u
-#define LBM_TYPE_BYTEARRAY_CONST         0x84000000u
+#define LBM_TYPE_ARRAY                   0x80000000u // ByteArray
+#define LBM_TYPE_ARRAY_CONST             0x84000000u
 #define LBM_TYPE_CHANNEL                 0x90000000u
 #define LBM_TYPE_CUSTOM                  0xA0000000u
-#define LBM_TYPE_ARRAY                   0xB0000000u // a "real" array
-#define LBM_TYPE_ARRAY_CONST             0xB4000000u
+#define LBM_TYPE_LISPARRAY               0xB0000000u // a "real" array
+#define LBM_TYPE_LISPARRAY_CONST         0xB4000000u
 #define LBM_NON_CONS_POINTER_TYPE_LAST   0xBC000000u
 #define LBM_POINTER_TYPE_LAST            0xBC000000u
 
@@ -103,12 +103,12 @@
 #define LBM_TYPE_I64                     (lbm_uint)0x2800000000000000
 #define LBM_TYPE_U64                     (lbm_uint)0x3800000000000000
 #define LBM_TYPE_DOUBLE                  (lbm_uint)0x4800000000000000
-#define LBM_TYPE_BYTEARRAY               (lbm_uint)0x5000000000000000
-#define LBM_TYPE_BYTEARRAY_CONST         (lbm_uint)0x5400000000000000
+#define LBM_TYPE_ARRAY                   (lbm_uint)0x5000000000000000
+#define LBM_TYPE_ARRAY_CONST             (lbm_uint)0x5400000000000000
 #define LBM_TYPE_CHANNEL                 (lbm_uint)0x7000000000000000
 #define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
-#define LBM_TYPE_ARRAY                   (lbm_uint)0x9000000000000000
-#define LBM_TYPE_ARRAY_CONST             (lbm_uint)0x9400000000000000
+#define LBM_TYPE_LISPARRAY               (lbm_uint)0x9000000000000000
+#define LBM_TYPE_LISPARRAY_CONST         (lbm_uint)0x9400000000000000
 #define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x9000000000000000
 #define LBM_POINTER_TYPE_LAST            (lbm_uint)0x9F00000000000000
 
@@ -162,7 +162,7 @@
 
 
 //#define TYPE_CLASSIFIER_STARTS 0x30
-#define SYM_BYTEARRAY_TYPE     0x30
+#define SYM_ARRAY_TYPE         0x30
 #define SYM_RAW_I_TYPE         0x31
 #define SYM_RAW_U_TYPE         0x32
 #define SYM_RAW_F_TYPE         0x33
@@ -171,7 +171,7 @@
 #define SYM_IND_F_TYPE         0x36
 #define SYM_CHANNEL_TYPE       0x37
 #define SYM_CUSTOM_TYPE        0x38
-#define SYM_ARRAY_TYPE         0x39
+#define SYM_LISPARRAY_TYPE     0x39
 //#define TYPE_CLASSIFIER_ENDS   0x39
 #define SYM_NONSENSE           0x3A
 
@@ -179,21 +179,21 @@
 #define SYM_MATCH_ANY      0x41
 
 // Type identifying symbols
-#define SYM_TYPE_LIST      0x50
-#define SYM_TYPE_I         0x51
-#define SYM_TYPE_U         0x52
-#define SYM_TYPE_FLOAT     0x53
-#define SYM_TYPE_I32       0x54
-#define SYM_TYPE_U32       0x55
-#define SYM_TYPE_DOUBLE    0x56
-#define SYM_TYPE_I64       0x57
-#define SYM_TYPE_U64       0x58
-#define SYM_TYPE_BYTEARRAY 0x59
-#define SYM_TYPE_SYMBOL    0x5A
-#define SYM_TYPE_CHAR      0x5B
-#define SYM_TYPE_BYTE      0x5C
-#define SYM_TYPE_CHANNEL   0x5E
-#define SYM_TYPE_ARRAY     0x5F
+#define SYM_TYPE_LIST       0x50
+#define SYM_TYPE_I          0x51
+#define SYM_TYPE_U          0x52
+#define SYM_TYPE_FLOAT      0x53
+#define SYM_TYPE_I32        0x54
+#define SYM_TYPE_U32        0x55
+#define SYM_TYPE_DOUBLE     0x56
+#define SYM_TYPE_I64        0x57
+#define SYM_TYPE_U64        0x58
+#define SYM_TYPE_ARRAY      0x59
+#define SYM_TYPE_SYMBOL     0x5A
+#define SYM_TYPE_CHAR       0x5B
+#define SYM_TYPE_BYTE       0x5C
+#define SYM_TYPE_CHANNEL    0x5E
+#define SYM_TYPE_LISPARRAY  0x5F
 
 //Relevant for the tokenizer and reader
 #define TOKENIZER_SYMBOLS_START 0x70
@@ -396,7 +396,7 @@
 #define ENC_SYM_RECOVERED             ENC_SYM(SYM_RECOVERED)
 #define ENC_SYM_ERROR_FLASH_HEAP_FULL ENC_SYM(SYM_ERROR_FLASH_HEAP_FULL)
 
-#define ENC_SYM_BYTEARRAY_TYPE     ENC_SYM(SYM_BYTEARRAY_TYPE)
+#define ENC_SYM_ARRAY_TYPE         ENC_SYM(SYM_ARRAY_TYPE)
 #define ENC_SYM_RAW_I_TYPE         ENC_SYM(SYM_RAW_I_TYPE)
 #define ENC_SYM_RAW_U_TYPE         ENC_SYM(SYM_RAW_U_TYPE)
 #define ENC_SYM_RAW_F_TYPE         ENC_SYM(SYM_RAW_F_TYPE)
@@ -405,7 +405,7 @@
 #define ENC_SYM_IND_F_TYPE         ENC_SYM(SYM_IND_F_TYPE)
 #define ENC_SYM_CHANNEL_TYPE       ENC_SYM(SYM_CHANNEL_TYPE)
 #define ENC_SYM_CUSTOM_TYPE        ENC_SYM(SYM_CUSTOM_TYPE)
-#define ENC_SYM_ARRAY_TYPE     ENC_SYM(SYM_ARRAY_TYPE)
+#define ENC_SYM_LISPARRAY_TYPE     ENC_SYM(SYM_LISPARRAY_TYPE)
 #define ENC_SYM_NONSENSE           ENC_SYM(SYM_NONSENSE)
 
 #define ENC_SYM_NO_MATCH       ENC_SYM(SYM_NO_MATCH)
@@ -420,12 +420,12 @@
 #define ENC_SYM_TYPE_DOUBLE     ENC_SYM(SYM_TYPE_DOUBLE)
 #define ENC_SYM_TYPE_I64        ENC_SYM(SYM_TYPE_I64)
 #define ENC_SYM_TYPE_U64        ENC_SYM(SYM_TYPE_U64)
-#define ENC_SYM_TYPE_BYTEARRAY  ENC_SYM(SYM_TYPE_BYTEARRAY)
+#define ENC_SYM_TYPE_ARRAY      ENC_SYM(SYM_TYPE_ARRAY)
 #define ENC_SYM_TYPE_SYMBOL     ENC_SYM(SYM_TYPE_SYMBOL)
 #define ENC_SYM_TYPE_CHAR       ENC_SYM(SYM_TYPE_CHAR)
 #define ENC_SYM_TYPE_BYTE       ENC_SYM(SYM_TYPE_BYTE)
 #define ENC_SYM_TYPE_CHANNEL    ENC_SYM(SYM_TYPE_CHANNEL)
-#define ENC_SYM_TYPE_ARRAY      ENC_SYM(SYM_TYPE_ARRAY)
+#define ENC_SYM_TYPE_LISPARRAY  ENC_SYM(SYM_TYPE_LISPARRAY)
 
 #define ENC_SYM_OPENPAR          ENC_SYM(SYM_OPENPAR)
 #define ENC_SYM_CLOSEPAR         ENC_SYM(SYM_CLOSEPAR)

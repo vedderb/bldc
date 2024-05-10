@@ -97,7 +97,7 @@ special_sym const special_symbols[] =  {
   {"flash_full"         , SYM_ERROR_FLASH_HEAP_FULL},
 
   // Special symbols with unparsable names
-  {"$barray"         , SYM_BYTEARRAY_TYPE},
+  {"$barray"         , SYM_ARRAY_TYPE},
   {"$raw_i"          , SYM_RAW_I_TYPE},
   {"$raw_u"          , SYM_RAW_U_TYPE},
   {"$raw_f"          , SYM_RAW_F_TYPE},
@@ -107,7 +107,7 @@ special_sym const special_symbols[] =  {
   {"$channel"        , SYM_CHANNEL_TYPE},
   {"$recovered"      , SYM_RECOVERED},
   {"$custom"         , SYM_CUSTOM_TYPE},
-  {"$array"          , SYM_ARRAY_TYPE},
+  {"$array"          , SYM_LISPARRAY_TYPE},
   {"$nonsense"       , SYM_NONSENSE},
 
   // tokenizer symbols with unparsable names
@@ -136,12 +136,12 @@ special_sym const special_symbols[] =  {
   {"type-double"      , SYM_TYPE_DOUBLE},
   {"type-i64"         , SYM_TYPE_I64},
   {"type-u64"         , SYM_TYPE_U64},
-  {"type-array"       , SYM_TYPE_BYTEARRAY},
+  {"type-array"       , SYM_TYPE_ARRAY},
   {"type-symbol"      , SYM_TYPE_SYMBOL},
   {"type-char"        , SYM_TYPE_CHAR},
   {"type-byte"        , SYM_TYPE_BYTE},
   {"type-channel"     , SYM_TYPE_CHANNEL},
-  {"type-lisparray"   , SYM_TYPE_ARRAY},
+  {"type-lisparray"   , SYM_TYPE_LISPARRAY},
 
   // Fundamental operations
   {"+"                , SYM_ADD},

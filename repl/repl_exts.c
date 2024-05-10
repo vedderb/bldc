@@ -509,7 +509,7 @@ static lbm_value ext_exec(lbm_value *args, lbm_uint argn) {
 
   lbm_value res = ENC_SYM_TERROR;
   int pid;
-  
+
   if (all_arrays(args, argn) && argn >= 1) {
     char **strs = malloc(argn * sizeof(char*) + 1);
     for (uint32_t i = 0; i < argn; i ++) {
@@ -527,7 +527,7 @@ static lbm_value ext_exec(lbm_value *args, lbm_uint argn) {
       res = ENC_SYM_TRUE;
     }
   }
-  return res; 
+  return res;
 }
 
 static lbm_value ext_unsafe_call_system(lbm_value *args, lbm_uint argn) {
@@ -564,6 +564,13 @@ int init_exts(void) {
   if (!lbm_set_extensions_init()) {
     return 0;
   }
+
+  lbm_add_symbol_const("a01", &sym_res);
+  lbm_add_symbol_const("a02", &sym_loop);
+  lbm_add_symbol_const("break", &sym_break);
+  lbm_add_symbol_const("a03", &sym_brk);
+  lbm_add_symbol_const("a04", &sym_rst);
+  lbm_add_symbol_const("return", &sym_return);
 
   lbm_add_extension("unsafe-call-system", ext_unsafe_call_system);
   lbm_add_extension("exec", ext_exec);
