@@ -6025,9 +6025,9 @@ Reboot and attempt to load the new firmware from the firmware-buffer using the b
 (fw-data optOffset optLen)
 ```
 
-Get the firmware data partition as an array. The optional argument optOffset can be used to specify an offset in the partition and the optional argument optLen can be used to specity the length. By default the offset is 0 and the length is the entire firmware buffer (around 1.5 MB).
+Get the firmware data partition as an array. The optional argument optOffset can be used to specify an offset in the partition and the optional argument optLen can be used to specify the length. By default the offset is 0 and the length is the entire firmware buffer (around 1.5 MB).
 
-Note that this array is read-only, so do not try to write directly to it! It is however possible to write to it using fw-write if fw-erase has been performed first. After the erase each byte can be written to once, in any order. Note that fw-write skips the first 6 bytes, so 6 has to be added to the offset for writing to the corresponding location in the firmware buffer.
+Note that this array is read-only, so do not try to write directly to it! It is however possible to write to it using fw-write-raw if fw-erase has been performed first. After the erase each byte can be written to once, in any order.
 
 Example:
 ```clj
@@ -6037,13 +6037,26 @@ Example:
 ; Erase at least 100 bytes
 (fw-erase 100)
 
-; Write 1 to 10 to the beginning of the firmware buffer. Note
-; that we use offset 6 as the first 6 bytes are ignored.
-(fw-write 6 [1 2 3 4 5 6 7 8 9 10])
+; Write 1 to 10 to the beginning of the firmware buffer.
+(fw-write-raw 0 [1 2 3 4 5 6 7 8 9 10])
 
 ; Print the array
 (print fwd)
 ```
+
+---
+
+#### fw-write-raw
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(fw-write-raw offset data)
+```
+
+Write data to firmware-buffer at offset. Returns true on success or nil on failure. Unlike fw-write, this function writes directly to the firmware buffer without an offset shift and it supports writing more than 500 bytes at a time.
 
 ---
 
