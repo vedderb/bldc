@@ -693,12 +693,12 @@ void lbm_gc_mark_phase(lbm_value root) {
     // An array is marked in O(N) time using an additional 32bit
     // value per array that keeps track of how far into the array GC
     // has progressed.
-    if (t_ptr == LBM_TYPE_ARRAY) {
+    if (t_ptr == LBM_TYPE_LISPARRAY) {
       lbm_push(s, curr); // put array back as bookkeeping.
       lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
       uint32_t index = arr->index;
-      if (lbm_is_ptr(arrdata[index]) &&
+      if (lbm_is_ptr(arrdata[index]) && ((arrdata[index] & LBM_PTR_TO_CONSTANT_BIT) == 0) &&
           !((arrdata[index] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
         lbm_cons_t *elt = &lbm_heap_state.heap[lbm_dec_ptr(arrdata[index])];
         if (!lbm_get_gc_mark(elt->cdr)) {
@@ -791,8 +791,8 @@ int lbm_gc_sweep_phase(void) {
         case ENC_SYM_IND_F_TYPE:
           lbm_memory_free((lbm_uint*)heap[i].car);
           break;
-        case ENC_SYM_ARRAY_TYPE: /* fall through */
-        case ENC_SYM_BYTEARRAY_TYPE:{
+        case ENC_SYM_LISPARRAY_TYPE: /* fall through */
+        case ENC_SYM_ARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
           if (lbm_memory_ptr_inside((lbm_uint*)arr->data)) {
             lbm_memory_free((lbm_uint *)arr->data);
@@ -1104,11 +1104,11 @@ int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size)
 
   lbm_array_header_t *array = NULL;
 
-  if (!byte_array) {
+  if (byte_array) {
+    array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / sizeof(lbm_uint));
+  } else {
     // an extra 32bit quantity for a GC index.
     array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_extended_t) / sizeof(lbm_uint));
-  } else {
-    array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / sizeof(lbm_uint));
   }
 
   if (array == NULL) {
@@ -1116,11 +1116,11 @@ int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size)
     return 0;
   }
 
-  lbm_uint tag = ENC_SYM_BYTEARRAY_TYPE;
-  lbm_uint type = LBM_TYPE_BYTEARRAY;
+  lbm_uint tag = ENC_SYM_ARRAY_TYPE;
+  lbm_uint type = LBM_TYPE_ARRAY;
   if (!byte_array) {
-      tag = ENC_SYM_ARRAY_TYPE;
-      type = LBM_TYPE_ARRAY;
+      tag = ENC_SYM_LISPARRAY_TYPE;
+      type = LBM_TYPE_LISPARRAY;
       size = sizeof(lbm_value) * size;
       lbm_array_header_extended_t *ext_array = (lbm_array_header_extended_t*)array;
       ext_array->index = 0;
@@ -1167,7 +1167,7 @@ int lbm_heap_allocate_lisp_array(lbm_value *res, lbm_uint size) {
 int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   lbm_array_header_t *array = NULL;
-  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_BYTEARRAY_TYPE);
+  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
 
   if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) { // Out of heap memory
     *value = cell;
@@ -1186,7 +1186,7 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   lbm_set_car(cell, (lbm_uint)array);
 
-  cell = lbm_set_ptr_type(cell, LBM_TYPE_BYTEARRAY);
+  cell = lbm_set_ptr_type(cell, LBM_TYPE_ARRAY);
   *value = cell;
   return 1;
 }

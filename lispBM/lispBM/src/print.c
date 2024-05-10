@@ -464,10 +464,10 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
       case LBM_TYPE_CHANNEL:
         r = print_emit_channel(chan, curr);
         break;
-      case LBM_TYPE_BYTEARRAY:
+      case LBM_TYPE_ARRAY:
         r = print_emit_bytearray(chan, curr);
         break;
-      case LBM_TYPE_ARRAY: {
+      case LBM_TYPE_LISPARRAY: {
         lbm_value cont[2] = {curr, START_ARRAY};
         int res = push_n(&print_stack, cont, 2);
         if (!res) {
