@@ -215,6 +215,7 @@ typedef struct {
 	int m_ang_hall_int_prev;
 	bool m_using_hall;
 	float m_ang_hall;
+	float m_ang_hall_rate_limited;
 	float m_hall_dt_diff_last;
 	float m_hall_dt_diff_now;
 	bool m_motor_released;
