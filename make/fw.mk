@@ -3,7 +3,7 @@
 # NOTE: Can be overridden externally.
 #
 
-USE_LISPBM=1
+USE_LISPBM ?= 1
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
