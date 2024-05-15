@@ -331,7 +331,7 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 	return used_data;
 }
 
-static void zero_on_timeout(volatile bms_soc_soh_temp_stat *stat) {
+static void disable_on_timeout(volatile bms_soc_soh_temp_stat *stat) {
 	if (UTILS_AGE_S(stat->rx_time) > MAX_CAN_AGE_SEC) {
 		stat->id = -1;
 	}
@@ -342,17 +342,17 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 	float i_in_min_bms = i_in_min_conf;
 	float i_in_max_bms = i_in_max_conf;
 
-	zero_on_timeout(&m_stat_temp_max);
-	zero_on_timeout(&m_stat_soc_min);
-	zero_on_timeout(&m_stat_soc_max);
-	zero_on_timeout(&m_stat_vcell_min);
-	zero_on_timeout(&m_stat_vcell_max);
+	disable_on_timeout(&m_stat_temp_max);
+	disable_on_timeout(&m_stat_soc_min);
+	disable_on_timeout(&m_stat_soc_max);
+	disable_on_timeout(&m_stat_vcell_min);
+	disable_on_timeout(&m_stat_vcell_max);
 
 	// Temperature
 	float i_in_max_bms_temp = i_in_max_conf;
 	float i_in_min_bms_temp = i_in_min_conf;
 	if ((m_conf.limit_mode >> 0) & 1) {
-		if (m_stat_temp_max.id >= 0 && UTILS_AGE_S(m_stat_temp_max.rx_time) < MAX_CAN_AGE_SEC) {
+		if (m_stat_temp_max.id >= 0) {
 			float temp = m_stat_temp_max.t_cell_max;
 
 			if (temp < (m_conf.t_limit_start + 0.1)) {
@@ -384,7 +384,7 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 	// SOC
 	float i_in_max_bms_soc = i_in_max_conf;
 	if ((m_conf.limit_mode >> 1) & 1) {
-		if (m_stat_soc_min.id >= 0 && UTILS_AGE_S(m_stat_soc_min.rx_time) < MAX_CAN_AGE_SEC) {
+		if (m_stat_soc_min.id >= 0) {
 			float soc = m_stat_soc_min.soc;
 
 			if (soc > (m_conf.soc_limit_start - 0.001)) {
@@ -401,7 +401,7 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 	// VMIN
 	float i_in_max_bms_vmin = i_in_max_conf;
 	if ((m_conf.limit_mode >> 2) & 1) {
-		if (m_stat_vcell_min.id >= 0 && UTILS_AGE_S(m_stat_vcell_min.rx_time) < MAX_CAN_AGE_SEC) {
+		if (m_stat_vcell_min.id >= 0) {
 			float vmin = m_stat_vcell_min.soc;
 
 			if (vmin > (m_conf.vmin_limit_start - 0.1)) {
@@ -418,7 +418,7 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 	// VMAX (regen)
 	float i_in_min_bms_vmax = i_in_min_conf;
 	if ((m_conf.limit_mode >> 3) & 1) {
-		if (m_stat_vcell_max.id >= 0 && UTILS_AGE_S(m_stat_vcell_max.rx_time) < MAX_CAN_AGE_SEC) {
+		if (m_stat_vcell_max.id >= 0) {
 			float vmax = m_stat_vcell_max.soc;
 
 			if (vmax < (m_conf.vmax_limit_start + 0.1)) {
