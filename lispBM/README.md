@@ -3288,12 +3288,25 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-max-duty             ; Maximum duty cycle
 'l-watt-min             ; Minimum power regen in W (a negative value)
 'l-watt-max             ; Maximum power regen in W
-'l-battery-cut-start    ; The voltage where current starts to get reduced
-'l-battery-cut-end      ; The voltage below which current draw is not allowed
+'l-battery-cut-start    ; Voltage where current starts to get reduced
+'l-battery-cut-end      ; Voltage below which current is not allowed
 'l-temp-motor-start     ; Temperature where motor current starts to get reduced
 'l-temp-motor-end       ; Temperature above which motor current is not allowed
 'l-temp-accel-dec       ; Decrease temp limits this much during acceleration
-'bms-limit-mode         ; BMS limit mode bitfield (Added in FW 6.05)
+
+; BMS Settings (Added in FW 6.05)
+'bms-limit-mode         ; BMS limit mode bitfield
+                        ; Bit 0: Enable temperature limit
+                        ; Bit 1: Enable SOC limit
+                        ; Bit 2: Enable VCell min limit
+                        ; Bit 3: Enable VCell max limit
+'bms-t-limit-start      ; Temperature where current starts to get reduced
+'bms-t-limit-end        ; Temperature above which current is not allowed
+'bms-vmin-limit-start   ; VCell where current starts to get reduced
+'bms-vmin-limit-end     ; VCell below which current draw is not allowed
+'bms-vmax-limit-start   ; VCell where regen current starts to get reduced
+'bms-vmax-limit-end     ; VCell above which regen current is not allowed
+
 'motor-type             ; Motor Type
                         ;    0: BLDC (6-step commutation)
                         ;    1: DC (DC motor on phase A and C)

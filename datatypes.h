@@ -275,8 +275,15 @@ typedef struct {
 	float t_limit_end;
 	float soc_limit_start;
 	float soc_limit_end;
+	float vmin_limit_start;
+	float vmin_limit_end;
+	float vmax_limit_start;
+	float vmax_limit_end;
 	BMS_FWD_CAN_MODE fwd_can_mode;
 } bms_config;
+
+#define BMS_MAX_CELLS	50
+#define BMS_MAX_TEMPS	50
 
 typedef struct {
 	float v_tot;
@@ -286,10 +293,10 @@ typedef struct {
 	float ah_cnt;
 	float wh_cnt;
 	int cell_num;
-	float v_cell[32];
-	bool bal_state[32];
+	float v_cell[BMS_MAX_CELLS];
+	bool bal_state[BMS_MAX_CELLS];
 	int temp_adc_num;
-	float temps_adc[50];
+	float temps_adc[BMS_MAX_TEMPS];
 	float temp_ic;
 	float temp_hum;
 	float pressure;

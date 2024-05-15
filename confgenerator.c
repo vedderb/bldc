@@ -33,10 +33,10 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->l_battery_regen_cut_start, 10, &ind);
 	buffer_append_float16(buffer, conf->l_battery_regen_cut_end, 10, &ind);
 	buffer[ind++] = conf->l_slow_abs_current;
-	buffer_append_float16(buffer, conf->l_temp_fet_start, 10, &ind);
-	buffer_append_float16(buffer, conf->l_temp_fet_end, 10, &ind);
-	buffer_append_float16(buffer, conf->l_temp_motor_start, 10, &ind);
-	buffer_append_float16(buffer, conf->l_temp_motor_end, 10, &ind);
+	buffer[ind++] = (uint8_t)conf->l_temp_fet_start;
+	buffer[ind++] = (uint8_t)conf->l_temp_fet_end;
+	buffer[ind++] = (uint8_t)conf->l_temp_motor_start;
+	buffer[ind++] = (uint8_t)conf->l_temp_motor_end;
 	buffer_append_float16(buffer, conf->l_temp_accel_dec, 10000, &ind);
 	buffer_append_float16(buffer, conf->l_min_duty, 10000, &ind);
 	buffer_append_float16(buffer, conf->l_max_duty, 10000, &ind);
@@ -196,10 +196,14 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->si_motor_nl_current, &ind);
 	buffer[ind++] = conf->bms.type;
 	buffer[ind++] = conf->bms.limit_mode;
-	buffer_append_float16(buffer, conf->bms.t_limit_start, 100, &ind);
-	buffer_append_float16(buffer, conf->bms.t_limit_end, 100, &ind);
+	buffer[ind++] = (uint8_t)conf->bms.t_limit_start;
+	buffer[ind++] = (uint8_t)conf->bms.t_limit_end;
 	buffer_append_float16(buffer, conf->bms.soc_limit_start, 1000, &ind);
 	buffer_append_float16(buffer, conf->bms.soc_limit_end, 1000, &ind);
+	buffer_append_float16(buffer, conf->bms.vmin_limit_start, 1000, &ind);
+	buffer_append_float16(buffer, conf->bms.vmin_limit_end, 1000, &ind);
+	buffer_append_float16(buffer, conf->bms.vmax_limit_start, 1000, &ind);
+	buffer_append_float16(buffer, conf->bms.vmax_limit_end, 1000, &ind);
 	buffer[ind++] = conf->bms.fwd_can_mode;
 
 	return ind;
@@ -364,10 +368,10 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->l_battery_regen_cut_start = buffer_get_float16(buffer, 10, &ind);
 	conf->l_battery_regen_cut_end = buffer_get_float16(buffer, 10, &ind);
 	conf->l_slow_abs_current = buffer[ind++];
-	conf->l_temp_fet_start = buffer_get_float16(buffer, 10, &ind);
-	conf->l_temp_fet_end = buffer_get_float16(buffer, 10, &ind);
-	conf->l_temp_motor_start = buffer_get_float16(buffer, 10, &ind);
-	conf->l_temp_motor_end = buffer_get_float16(buffer, 10, &ind);
+	conf->l_temp_fet_start = buffer[ind++];
+	conf->l_temp_fet_end = buffer[ind++];
+	conf->l_temp_motor_start = buffer[ind++];
+	conf->l_temp_motor_end = buffer[ind++];
 	conf->l_temp_accel_dec = buffer_get_float16(buffer, 10000, &ind);
 	conf->l_min_duty = buffer_get_float16(buffer, 10000, &ind);
 	conf->l_max_duty = buffer_get_float16(buffer, 10000, &ind);
@@ -527,10 +531,14 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->si_motor_nl_current = buffer_get_float32_auto(buffer, &ind);
 	conf->bms.type = buffer[ind++];
 	conf->bms.limit_mode = buffer[ind++];
-	conf->bms.t_limit_start = buffer_get_float16(buffer, 100, &ind);
-	conf->bms.t_limit_end = buffer_get_float16(buffer, 100, &ind);
+	conf->bms.t_limit_start = buffer[ind++];
+	conf->bms.t_limit_end = buffer[ind++];
 	conf->bms.soc_limit_start = buffer_get_float16(buffer, 1000, &ind);
 	conf->bms.soc_limit_end = buffer_get_float16(buffer, 1000, &ind);
+	conf->bms.vmin_limit_start = buffer_get_float16(buffer, 1000, &ind);
+	conf->bms.vmin_limit_end = buffer_get_float16(buffer, 1000, &ind);
+	conf->bms.vmax_limit_start = buffer_get_float16(buffer, 1000, &ind);
+	conf->bms.vmax_limit_end = buffer_get_float16(buffer, 1000, &ind);
 	conf->bms.fwd_can_mode = buffer[ind++];
 
 	return true;
@@ -858,6 +866,10 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->bms.t_limit_end = MCCONF_BMS_T_LIMIT_END;
 	conf->bms.soc_limit_start = MCCONF_BMS_SOC_LIMIT_START;
 	conf->bms.soc_limit_end = MCCONF_BMS_SOC_LIMIT_END;
+	conf->bms.vmin_limit_start = MCCONF_BMS_VMIN_LIMIT_START;
+	conf->bms.vmin_limit_end = MCCONF_BMS_VMIN_LIMIT_END;
+	conf->bms.vmax_limit_start = MCCONF_BMS_VMAX_LIMIT_START;
+	conf->bms.vmax_limit_end = MCCONF_BMS_VMAX_LIMIT_END;
 	conf->bms.fwd_can_mode = MCCONF_BMS_FWD_CAN_MODE;
 }
 

@@ -48,6 +48,8 @@ static volatile bms_values m_values;
 static volatile bms_soc_soh_temp_stat m_stat_temp_max;
 static volatile bms_soc_soh_temp_stat m_stat_soc_min;
 static volatile bms_soc_soh_temp_stat m_stat_soc_max;
+static volatile bms_soc_soh_temp_stat m_stat_vcell_min;
+static volatile bms_soc_soh_temp_stat m_stat_vcell_max;
 
 void bms_init(bms_config *conf) {
 	m_conf = *conf;
@@ -55,11 +57,15 @@ void bms_init(bms_config *conf) {
 	memset((void*)&m_stat_temp_max, 0, sizeof(m_stat_temp_max));
 	memset((void*)&m_stat_soc_min, 0, sizeof(m_stat_soc_min));
 	memset((void*)&m_stat_soc_max, 0, sizeof(m_stat_soc_max));
+	memset((void*)&m_stat_vcell_min, 0, sizeof(m_stat_vcell_min));
+	memset((void*)&m_stat_vcell_max, 0, sizeof(m_stat_vcell_max));
 
 	m_values.can_id = -1;
 	m_stat_temp_max.id = -1;
 	m_stat_soc_min.id = -1;
 	m_stat_soc_max.id = -1;
+	m_stat_vcell_min.id = -1;
+	m_stat_vcell_max.id = -1;
 }
 
 bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
@@ -157,6 +163,22 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 					m_stat_soc_max = msg;
 				} else if (m_stat_soc_max.id == msg.id) {
 					m_stat_soc_max = msg;
+				}
+
+				if (m_stat_vcell_min.id < 0 ||
+						UTILS_AGE_S(m_stat_vcell_min.rx_time) > MAX_CAN_AGE_SEC ||
+						m_stat_vcell_min.v_cell_min > msg.v_cell_min) {
+					m_stat_vcell_min = msg;
+				} else if (m_stat_vcell_min.id == msg.id) {
+					m_stat_vcell_min = msg;
+				}
+
+				if (m_stat_vcell_max.id < 0 ||
+						UTILS_AGE_S(m_stat_vcell_max.rx_time) > MAX_CAN_AGE_SEC ||
+						m_stat_vcell_max.v_cell_max < msg.v_cell_max) {
+					m_stat_vcell_max = msg;
+				} else if (m_stat_vcell_max.id == msg.id) {
+					m_stat_vcell_max = msg;
 				}
 			} break;
 
@@ -309,24 +331,26 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 	return used_data;
 }
 
+static void zero_on_timeout(volatile bms_soc_soh_temp_stat *stat) {
+	if (UTILS_AGE_S(stat->rx_time) > MAX_CAN_AGE_SEC) {
+		stat->id = -1;
+	}
+}
+
 void bms_update_limits(float *i_in_min, float *i_in_max,
 		float i_in_min_conf, float i_in_max_conf) {
 	float i_in_min_bms = i_in_min_conf;
 	float i_in_max_bms = i_in_max_conf;
 
-	if (UTILS_AGE_S(m_stat_temp_max.rx_time) > MAX_CAN_AGE_SEC) {
-		m_stat_temp_max.id = -1;
-	}
-
-	if (UTILS_AGE_S(m_stat_soc_min.rx_time) > MAX_CAN_AGE_SEC) {
-		m_stat_soc_min.id = -1;
-	}
-
-	if (UTILS_AGE_S(m_stat_soc_max.rx_time) > MAX_CAN_AGE_SEC) {
-		m_stat_soc_max.id = -1;
-	}
+	zero_on_timeout(&m_stat_temp_max);
+	zero_on_timeout(&m_stat_soc_min);
+	zero_on_timeout(&m_stat_soc_max);
+	zero_on_timeout(&m_stat_vcell_min);
+	zero_on_timeout(&m_stat_vcell_max);
 
 	// Temperature
+	float i_in_max_bms_temp = i_in_max_conf;
+	float i_in_min_bms_temp = i_in_min_conf;
 	if ((m_conf.limit_mode >> 0) & 1) {
 		if (m_stat_temp_max.id >= 0 && UTILS_AGE_S(m_stat_temp_max.rx_time) < MAX_CAN_AGE_SEC) {
 			float temp = m_stat_temp_max.t_cell_max;
@@ -334,8 +358,8 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 			if (temp < (m_conf.t_limit_start + 0.1)) {
 				// OK
 			} else if (temp > (m_conf.t_limit_end - 0.1)) {
-				i_in_min_bms = 0.0;
-				i_in_max_bms = 0.0;
+				i_in_max_bms_temp = 0.0;
+				i_in_min_bms_temp = 0.0;
 				// Maybe add fault code?
 //				mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_FET, false, false);
 			} else {
@@ -346,12 +370,12 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 
 				maxc = utils_map(temp, m_conf.t_limit_start, m_conf.t_limit_end, maxc, 0.0);
 
-				if (fabsf(i_in_min_bms) > maxc) {
-					i_in_min_bms = SIGN(i_in_min_bms) * maxc;
+				if (fabsf(i_in_min_bms_temp) > maxc) {
+					i_in_min_bms_temp = SIGN(i_in_min_bms_temp) * maxc;
 				}
 
-				if (fabsf(i_in_max_bms) > maxc) {
-					i_in_max_bms = SIGN(i_in_max_bms) * maxc;
+				if (fabsf(i_in_max_bms_temp) > maxc) {
+					i_in_max_bms_temp = SIGN(i_in_max_bms_temp) * maxc;
 				}
 			}
 		}
@@ -374,7 +398,46 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 		}
 	}
 
+	// VMIN
+	float i_in_max_bms_vmin = i_in_max_conf;
+	if ((m_conf.limit_mode >> 2) & 1) {
+		if (m_stat_vcell_min.id >= 0 && UTILS_AGE_S(m_stat_vcell_min.rx_time) < MAX_CAN_AGE_SEC) {
+			float vmin = m_stat_vcell_min.soc;
+
+			if (vmin > (m_conf.vmin_limit_start - 0.1)) {
+				// OK
+			} else if (vmin < (m_conf.vmin_limit_end + 0.1)) {
+				i_in_max_bms_vmin = 0.0;
+			} else {
+				i_in_max_bms_vmin = utils_map(vmin, m_conf.vmin_limit_start,
+						m_conf.vmin_limit_end, i_in_max_conf, 0.0);
+			}
+		}
+	}
+
+	// VMAX (regen)
+	float i_in_min_bms_vmax = i_in_min_conf;
+	if ((m_conf.limit_mode >> 3) & 1) {
+		if (m_stat_vcell_max.id >= 0 && UTILS_AGE_S(m_stat_vcell_max.rx_time) < MAX_CAN_AGE_SEC) {
+			float vmax = m_stat_vcell_max.soc;
+
+			if (vmax < (m_conf.vmax_limit_start + 0.1)) {
+				// OK
+			} else if (vmax > (m_conf.vmax_limit_end - 0.1)) {
+				i_in_min_bms_vmax = 0.0;
+			} else {
+				i_in_min_bms_vmax = utils_map(vmax, m_conf.vmax_limit_start,
+						m_conf.vmax_limit_end, i_in_min_conf, 0.0);
+			}
+		}
+	}
+
+	i_in_max_bms = utils_min_abs(i_in_max_bms, i_in_max_bms_temp);
 	i_in_max_bms = utils_min_abs(i_in_max_bms, i_in_max_bms_soc);
+	i_in_max_bms = utils_min_abs(i_in_max_bms, i_in_max_bms_vmin);
+
+	i_in_min_bms = utils_min_abs(i_in_min_bms, i_in_min_bms_temp);
+	i_in_min_bms = utils_min_abs(i_in_min_bms, i_in_min_bms_vmax);
 
 	// TODO: add support for conf->l_temp_accel_dec to still have braking.
 
@@ -500,8 +563,8 @@ void bms_send_status_can(void) {
 
 	int cell_now = 0;
 	int cell_max = m_values.cell_num;
-	if (cell_max > 32) {
-		cell_max = 32;
+	if (cell_max > BMS_MAX_CELLS) {
+		cell_max = BMS_MAX_CELLS;
 	}
 
 	while (cell_now < cell_max) {
@@ -537,11 +600,11 @@ void bms_send_status_can(void) {
 
 	int temp_now = 0;
 	int temp_max = m_values.temp_adc_num;
-	if (temp_max > 50) {
-		temp_max = 50;
+	if (temp_max > BMS_MAX_TEMPS) {
+		temp_max = BMS_MAX_TEMPS;
 	}
 
-	while (temp_now < m_values.temp_adc_num) {
+	while (temp_now < temp_max) {
 		send_index = 0;
 		buffer[send_index++] = temp_now;
 		buffer[send_index++] = temp_max;
