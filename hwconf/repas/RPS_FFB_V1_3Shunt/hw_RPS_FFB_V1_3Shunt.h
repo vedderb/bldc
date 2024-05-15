@@ -17,8 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_RPS_FFB_H_
-#define HW_RPS_FFB_H_
+#ifndef HW_RPS_FFB_V1_3S_H_
+#define HW_RPS_FFB_V1_3S_H_
 
 #define HW_NAME					"RPS_FFB_V1_3S"
 
@@ -253,4 +253,4 @@
 #define HW_LIM_TEMP_FET			-10.0, 90.0
 
 
-#endif /* HW_RPS_FFB_H_ */
+#endif /* HW_RPS_FFB_V1_3S_H_ */
