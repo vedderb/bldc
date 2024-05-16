@@ -238,7 +238,6 @@ bool f_lbm_array(lbm_flat_value_t *v, uint32_t num_bytes, uint8_t *data) {
   return res;
 }
 
-static int flatten_value_result = FLATTEN_VALUE_OK;
 static int flatten_maximum_depth = FLATTEN_VALUE_MAXIMUM_DEPTH;
 
 void lbm_set_max_flatten_depth(int depth) {
@@ -446,37 +445,34 @@ lbm_value handle_flatten_error(int err_val) {
 
 lbm_value flatten_value(lbm_value v) {
 
-  jmp_buf jb;
-
   lbm_value array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
   if (lbm_type_of(array_cell) == LBM_TYPE_SYMBOL) {
-    lbm_set_car_and_cdr(array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
     return ENC_SYM_MERROR;
   }
 
   lbm_flat_value_t fv;
-  if (setjmp(jb) > 0) {
-    lbm_set_car_and_cdr(array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
-    return handle_flatten_error(flatten_value_result);
-  }
 
   lbm_array_header_t *array = NULL;
   int required_mem = flatten_value_size(v, 0);
   if (required_mem > 0) {
     array = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
     if (array == NULL) {
-      flatten_error(jb, FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY);
+      lbm_set_car_and_cdr(array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
+      return ENC_SYM_MERROR;
     }
 
     bool r = lbm_start_flatten(&fv, (lbm_uint)required_mem);
     if (!r) {
       lbm_free(array);
-      flatten_error(jb, FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY);
+      lbm_set_car_and_cdr(array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
+      return ENC_SYM_MERROR;
     }
 
     if (flatten_value_c(&fv, v) == FLATTEN_VALUE_OK) {
       // it would be wasteful to run finish_flatten here.
       r = true;
+    } else {
+      r = false;
     }
 
     if (r)  {
@@ -486,13 +482,9 @@ lbm_value flatten_value(lbm_value v) {
       lbm_set_car(array_cell, (lbm_uint)array);
       array_cell = lbm_set_ptr_type(array_cell, LBM_TYPE_ARRAY);
       return array_cell;
-    } else {
-      flatten_error(jb, FLATTEN_VALUE_ERROR_FATAL);
-    }
+    } 
   }
-
   lbm_set_car_and_cdr(array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
-  lbm_free(array);
   return handle_flatten_error(required_mem);
 }
 

@@ -1,4 +1,4 @@
- /*
+/*
     Copyright 2018, 2020 - 2024 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
@@ -526,22 +526,6 @@ static lbm_value get_cdr(lbm_value a) {
   if (lbm_is_ptr(a)) {
     lbm_cons_t *cell = lbm_ref_cell(a);
     return cell->cdr;
-  } else if (lbm_is_symbol_nil(a)) {
-    return a;
-  }
-  error_ctx(ENC_SYM_TERROR);
-  return(ENC_SYM_TERROR);
-}
-
-static lbm_value get_caar(lbm_value a) {
-  if (lbm_is_ptr(a)) {
-    lbm_cons_t *cell = lbm_ref_cell(a);
-    lbm_value tmp = cell->car;
-    if (lbm_is_ptr(tmp)) {
-      return lbm_ref_cell(tmp)->car;
-    } else if (lbm_is_symbol_nil(tmp)) {
-      return tmp;
-    }
   } else if (lbm_is_symbol_nil(a)) {
     return a;
   }
@@ -1831,22 +1815,27 @@ static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, 
   lbm_value curr = binds;
   while (lbm_is_cons(curr)) {
     lbm_value new_env_tmp = env;
-    lbm_value key = get_caar(curr);
+    lbm_value car_curr, cdr_curr;
+    get_car_and_cdr(curr, &car_curr, &cdr_curr);
+    lbm_value key = get_car(car_curr);
     create_binding_location(key, &new_env_tmp);
     env = new_env_tmp;
-    curr = get_cdr(curr);
+    curr = cdr_curr;
   }
 
-  lbm_value key0 = get_caar(binds);
-  lbm_value val0_exp = get_cadr(get_car(binds));
+  lbm_value car_binds;
+  lbm_value cdr_binds;
+  get_car_and_cdr(binds, &car_binds, &cdr_binds);
+  lbm_value key_val[2];
+  extract_n(car_binds, key_val, 2);
 
   lbm_uint *sptr = stack_reserve(ctx, 5);
   sptr[0] = exp;
-  sptr[1] = get_cdr(binds);
+  sptr[1] = cdr_binds;
   sptr[2] = env;
-  sptr[3] = key0;
+  sptr[3] = key_val[0];
   sptr[4] = BIND_TO_KEY_REST;
-  ctx->curr_exp = val0_exp;
+  ctx->curr_exp = key_val[1];
   ctx->curr_env = env;
 }
 
@@ -3107,13 +3096,14 @@ static void cont_bind_to_key_rest(eval_context_t *ctx) {
   }
 
   if (lbm_is_cons(rest)) {
-    lbm_value keyn = get_caar(rest);
-    lbm_value valn_exp = get_cadr(get_car(rest));
+    lbm_value car_rest = get_car(rest);
+    lbm_value key_val[2];
+    extract_n(car_rest, key_val, 2);
 
     sptr[1] = get_cdr(rest);
-    sptr[3] = keyn;
+    sptr[3] = key_val[0];
     stack_reserve(ctx,1)[0] = BIND_TO_KEY_REST;
-    ctx->curr_exp = valn_exp;
+    ctx->curr_exp = key_val[1];
     ctx->curr_env = env;
   } else {
     // Otherwise evaluate the expression in the populated env
