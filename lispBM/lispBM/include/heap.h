@@ -643,12 +643,12 @@ lbm_uint lbm_flash_memory_usage(void);
  * \return The type information.
  */
 static inline lbm_type lbm_type_of(lbm_value x) {
-  return (x & LBM_PTR_MASK) ? (x & LBM_PTR_TYPE_MASK) : (x & LBM_VAL_TYPE_MASK);
+  return (x & LBM_PTR_BIT) ? (x & LBM_PTR_TYPE_MASK) : (x & LBM_VAL_TYPE_MASK);
 }
 
 // type-of check that is safe in functional code
 static inline lbm_type lbm_type_of_functional(lbm_value x) {
-  return (x & LBM_PTR_MASK) ?
+  return (x & LBM_PTR_BIT) ?
     (x & (LBM_PTR_TO_CONSTANT_MASK & LBM_PTR_TYPE_MASK)) :
      (x & LBM_VAL_TYPE_MASK);
 }
@@ -792,7 +792,7 @@ extern int64_t lbm_dec_i64(lbm_value x);
  * \return true if x is a pointer to a heap cell, false otherwise.
  */
 static inline bool lbm_is_ptr(lbm_value x) {
-  return (x & LBM_PTR_MASK);
+  return (x & LBM_PTR_BIT);
 }
 
 /**
