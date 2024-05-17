@@ -127,7 +127,7 @@ lbm_value lbm_enc_float(float x) {
 lbm_value lbm_enc_i64(int64_t x) {
 #ifndef LBM64
   lbm_value res = ENC_SYM_MERROR;
-  lbm_uint* storage = lbm_memory_allocate(2);
+  lbm_uint* storage = lbm_memory_allocate(2);// why 2 ?
   if (storage) {
     res = lbm_cons((lbm_uint)storage, ENC_SYM_IND_I_TYPE);
     if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
@@ -672,7 +672,7 @@ void lbm_gc_mark_phase(lbm_value root) {
 #else
 extern eval_context_t *ctx_running;
 void lbm_gc_mark_phase(lbm_value root) {
-
+  lbm_value t_ptr;
   lbm_stack_t *s = &lbm_heap_state.gc_stack;
   s->data[s->sp++] = root;
 
@@ -681,15 +681,20 @@ void lbm_gc_mark_phase(lbm_value root) {
     lbm_pop(s, &curr);
 
   mark_shortcut:
-    if (!lbm_is_ptr(curr) || (curr & LBM_PTR_TO_CONSTANT_BIT)) {
+
+    if (!lbm_is_ptr(curr) ||
+        (curr & LBM_PTR_TO_CONSTANT_BIT)) {
       continue;
     }
 
     lbm_cons_t *cell = &lbm_heap_state.heap[lbm_dec_ptr(curr)];
 
-    if (lbm_get_gc_mark(cell->cdr))  continue;
+    if (lbm_get_gc_mark(cell->cdr)) {
+      continue;
+    }
 
-    lbm_value t_ptr = lbm_type_of(curr);
+     t_ptr = lbm_type_of(curr);
+
     // An array is marked in O(N) time using an additional 32bit
     // value per array that keeps track of how far into the array GC
     // has progressed.
@@ -698,6 +703,10 @@ void lbm_gc_mark_phase(lbm_value root) {
       lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
       uint32_t index = arr->index;
+
+      // Potential optimization.
+      // 1. CONS pointers are set to curr and recurse.
+      // 2. Any other ptr is marked immediately and index is increased.
       if (lbm_is_ptr(arrdata[index]) && ((arrdata[index] & LBM_PTR_TO_CONSTANT_BIT) == 0) &&
           !((arrdata[index] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
         lbm_cons_t *elt = &lbm_heap_state.heap[lbm_dec_ptr(arrdata[index])];
@@ -706,31 +715,31 @@ void lbm_gc_mark_phase(lbm_value root) {
           goto mark_shortcut;
         }
       }
-      if (index < ((arr->size/4) - 1)) {
+      if (index < ((arr->size/(sizeof(lbm_value))) - 1)) {
         arr->index++;
         continue;
-      } else {
-        arr->index = 0;
-        cell->cdr = lbm_set_gc_mark(cell->cdr);
-        lbm_heap_state.gc_marked ++;
-        lbm_pop(s, &curr); // Remove array from GC stack as we are done marking it.
-        continue;
       }
+
+      arr->index = 0;
+      cell->cdr = lbm_set_gc_mark(cell->cdr);
+      lbm_heap_state.gc_marked ++;
+      lbm_pop(s, &curr); // Remove array from GC stack as we are done marking it.
+      continue;
     }
 
     cell->cdr = lbm_set_gc_mark(cell->cdr);
     lbm_heap_state.gc_marked ++;
 
-    if (t_ptr >= LBM_NON_CONS_POINTER_TYPE_FIRST) continue;
-
-    if (lbm_is_ptr(cell->cdr)) {
-      if (!lbm_push(s, cell->cdr)) {
-        lbm_critical_error();
-        break;
+    if (t_ptr == LBM_TYPE_CONS) {
+      if (lbm_is_ptr(cell->cdr)) {
+        if (!lbm_push(s, cell->cdr)) {
+          lbm_critical_error();
+          break;
+        }
       }
+      curr = cell->car;
+      goto mark_shortcut; // Skip a push/pop
     }
-    curr = cell->car;
-    goto mark_shortcut; // Skip a push/pop
   }
 }
 #endif
@@ -1105,10 +1114,10 @@ int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size)
   lbm_array_header_t *array = NULL;
 
   if (byte_array) {
-    array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_t) / sizeof(lbm_uint));
+    array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
   } else {
     // an extra 32bit quantity for a GC index.
-    array = (lbm_array_header_t*)lbm_memory_allocate(sizeof(lbm_array_header_extended_t) / sizeof(lbm_uint));
+    array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_extended_t));
   }
 
   if (array == NULL) {
@@ -1177,6 +1186,7 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
   array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
 
   if (array == NULL) {
+    lbm_set_car_and_cdr(cell, ENC_SYM_NIL, ENC_SYM_NIL);
     *value = ENC_SYM_MERROR;
     return 0;
   }

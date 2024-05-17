@@ -548,9 +548,9 @@ float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall
 	mc_configuration *conf_now = motor->m_conf;
 	motor->m_hall_dt_diff_now += dt;
 
-	float rad_per_sec = motor->m_speed_est_fast_corrected;
 	float rpm_abs = fabsf(RADPS2RPM_f(motor->m_pll_speed));
-	float rpm_abs_hall = fabsf(RADPS2RPM_f((M_PI / 3.0) / motor->m_hall_dt_diff_last));
+	float rad_per_sec_hall = (M_PI / 3.0) / motor->m_hall_dt_diff_last;
+	float rpm_abs_hall = fabsf(RADPS2RPM_f(rad_per_sec_hall));
 
 	motor->m_using_hall = rpm_abs < conf_now->foc_sl_erpm;
 	float angle_old = angle;
@@ -574,7 +574,18 @@ float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall
 				diff += 200;
 			}
 
-			motor->m_hall_dt_diff_last = motor->m_hall_dt_diff_now;
+			// This is only valid if the direction did not just change. If it did, we use the
+			// last speed together with the sign right now.
+			if (SIGN(diff) == SIGN(motor->m_hall_dt_diff_last)) {
+				if (diff > 0) {
+					motor->m_hall_dt_diff_last = motor->m_hall_dt_diff_now;
+				} else {
+					motor->m_hall_dt_diff_last = -motor->m_hall_dt_diff_now;
+				}
+			} else {
+				motor->m_hall_dt_diff_last = -motor->m_hall_dt_diff_last;
+			}
+
 			motor->m_hall_dt_diff_now = 0.0;
 
 			// A transition was just made. The angle is in the middle of the new and old angle.
@@ -587,17 +598,17 @@ float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall
 
 		motor->m_ang_hall_int_prev = ang_hall_int;
 
-		if (RADPS2RPM_f((M_PI / 3.0) / fmaxf(motor->m_hall_dt_diff_now, motor->m_hall_dt_diff_last))
-				< conf_now->foc_hall_interp_erpm) {
+		if (RADPS2RPM_f((M_PI / 3.0) / fmaxf(fabsf(motor->m_hall_dt_diff_now),
+				fabsf(motor->m_hall_dt_diff_last))) < conf_now->foc_hall_interp_erpm) {
 			// Don't interpolate on very low speed, just use the closest hall sensor. The reason is that we might
 			// get stuck at 60 degrees off if a direction change happens between two steps.
 			motor->m_ang_hall = ang_hall_now;
 		} else {
 			// Interpolate
 			float diff = utils_angle_difference_rad(motor->m_ang_hall, ang_hall_now);
-			if (fabsf(diff) < ((2.0 * M_PI) / 12.0) || SIGN(diff) != SIGN(rad_per_sec)) {
+			if (fabsf(diff) < ((2.0 * M_PI) / 12.0) || SIGN(diff) != SIGN(rad_per_sec_hall)) {
 				// Do interpolation
-				motor->m_ang_hall += rad_per_sec * dt;
+				motor->m_ang_hall += rad_per_sec_hall * dt;
 			} else {
 				// We are too far away with the interpolation
 				motor->m_ang_hall -= diff * 0.01;

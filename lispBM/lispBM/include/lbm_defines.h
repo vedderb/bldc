@@ -29,7 +29,6 @@
 #define LBM_VAL_SHIFT                   4
 #define LBM_ENC_1                       0x10
 
-#define LBM_PTR_MASK                     0x00000001u
 #define LBM_PTR_BIT                      0x00000001u
 #define LBM_PTR_VAL_MASK                 0x03FFFFFCu
 #define LBM_PTR_TYPE_MASK                0xFC000000u
@@ -56,8 +55,8 @@
 #define LBM_TYPE_CUSTOM                  0xA0000000u
 #define LBM_TYPE_LISPARRAY               0xB0000000u // a "real" array
 #define LBM_TYPE_LISPARRAY_CONST         0xB4000000u
-#define LBM_NON_CONS_POINTER_TYPE_LAST   0xBC000000u
 #define LBM_POINTER_TYPE_LAST            0xBC000000u
+// POINTER_TYPE_LAST is less than the value used for CONTINUATION_INTERNAL
 
 #define LBM_CONS_TYPE_MASK               0xF0000000u
 #define LBM_CONS_CONST_TYPE_MASK         0xFF000000u
@@ -86,7 +85,6 @@
 #define LBM_VAL_SHIFT                    8
 #define LBM_ENC_1                        0x100
 
-#define LBM_PTR_MASK                     (lbm_uint)0x1
 #define LBM_PTR_BIT                      (lbm_uint)0x1
 #define LBM_PTR_VAL_MASK                 (lbm_uint)0x03FFFFFFFFFFFFFC
 #define LBM_PTR_TYPE_MASK                (lbm_uint)0xFC00000000000000
@@ -109,8 +107,8 @@
 #define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
 #define LBM_TYPE_LISPARRAY               (lbm_uint)0x9000000000000000
 #define LBM_TYPE_LISPARRAY_CONST         (lbm_uint)0x9400000000000000
-#define LBM_NON_CONS_POINTER_TYPE_LAST   (lbm_uint)0x9000000000000000
-#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x9F00000000000000
+#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x9C00000000000000
+// POINTER_TYPE_LAST is less than the value used for CONTINUATION_INTERNAL
 
 #define LBM_CONS_TYPE_MASK               (lbm_uint)0xF000000000000000
 #define LBM_CONS_CONST_TYPE_MASK         (lbm_uint)0xFF00000000000000
@@ -124,7 +122,7 @@
 /* 8 - 2 free bits to encode type information into */
 #define LBM_VAL_MASK                    (lbm_uint)0xFFFFFFFFFFFFFF00
 #define LBM_VAL_TYPE_MASK               (lbm_uint)0xFC
-#define LBM_TYPE_MASK                   (lbm_uint)0xF8000000000000FC
+#define LBM_TYPE_MASK                   (lbm_uint)0xFF000000000000FC
 #define LBM_NUMBER_MASK                 (lbm_uint)0x0800000000000000
 //    gc ptr
 #define LBM_TYPE_SYMBOL                 (lbm_uint)0x0  // 00 00 00  0   0
