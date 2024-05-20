@@ -280,7 +280,7 @@
 #define APPCONF_PAS_INVERT_PEDAL_DIRECTION 0
 
 // Sensor Magnets
-#define APPCONF_PAS_MAGNETS 12
+#define APPCONF_PAS_MAGNETS 48
 
 // Use Filter
 #define APPCONF_PAS_USE_FILTER 1
