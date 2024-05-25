@@ -4,32 +4,32 @@
 	This file is part of the VESC firmware.
 
 	The VESC firmware is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    The VESC firmware is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	The VESC firmware is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    */
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	*/
 
 #ifndef CONF_GENERAL_H_
 #define CONF_GENERAL_H_
 
 // Firmware version
-#define FW_VERSION_MAJOR			6
-#define FW_VERSION_MINOR			05
+#define FW_VERSION_MAJOR 6
+#define FW_VERSION_MINOR 05
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		29
+#define FW_TEST_VERSION_NUMBER 29
 
 #include "datatypes.h"
 
 // Disable hardware limits on configuration parameters
-//#define DISABLE_HW_LIMITS
+// #define DISABLE_HW_LIMITS
 
 #if !defined(HW_SOURCE) && !defined(HW_SOURCE_ALT)
 #error "No hardware source file set"
@@ -57,33 +57,33 @@
 // Defining QMLUI_HW_FULLSCREEN and/or QMLUI_APP_FULLSCREEN will disable the other pages in the
 // mobile version of VESC Tool.
 //
-//#define QMLUI_SOURCE_HW		"qmlui/hw/qmlui_example_hw.c"
-//#define QMLUI_HEADER_HW		"qmlui/hw/qmlui_example_hw.h"
-//#define QMLUI_HW_FULLSCREEN
+// #define QMLUI_SOURCE_HW		"qmlui/hw/qmlui_example_hw.c"
+// #define QMLUI_HEADER_HW		"qmlui/hw/qmlui_example_hw.h"
+// #define QMLUI_HW_FULLSCREEN
 //
-//#define QMLUI_SOURCE_APP	"qmlui/app/qmlui_example_app.c"
-//#define QMLUI_HEADER_APP	"qmlui/app/qmlui_example_app.h"
-//#define QMLUI_APP_FULLSCREEN
+// #define QMLUI_SOURCE_APP	"qmlui/app/qmlui_example_app.c"
+// #define QMLUI_HEADER_APP	"qmlui/app/qmlui_example_app.h"
+// #define QMLUI_APP_FULLSCREEN
 
 /*
  * Select default user motor configuration
  */
-//#include			"mcconf_default.h"
-//#include 			"mcconf_china_60kv.h"
+// #include			"mcconf_default.h"
+// #include 			"mcconf_china_60kv.h"
 
 /*
  * Select default user app configuration
  */
-//#include			"appconf_example_ppm.h"
-//#include			"appconf_custom.h"
+// #include			"appconf_example_ppm.h"
+// #include			"appconf_custom.h"
 
 /*
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.
  */
-//#define APP_CUSTOM_TO_USE			"app_custom_template.c"
-//#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
-//#include "er/app_erockit_conf_v2.h"
-//#include "finn/app_finn_az_conf.h"
+// #define APP_CUSTOM_TO_USE			"app_custom_template.c"
+// #define APP_CUSTOM_TO_USE			"app_motor_heater.c"
+// #include "er/app_erockit_conf_v2.h"
+// #include "finn/app_finn_az_conf.h"
 
 #include "hw.h"
 #include "mcconf_default.h"
@@ -93,57 +93,57 @@
  * Enable blackmagic probe output on SWD port
  */
 #ifndef HAS_BLACKMAGIC
-#define HAS_BLACKMAGIC				1
+#define HAS_BLACKMAGIC 1
 #endif
 
 /*
  * Enable CAN-bus
  */
 #ifndef CAN_ENABLE
-#define CAN_ENABLE					1
+#define CAN_ENABLE 1
 #endif
 
 #ifdef HW_HAS_NO_CAN
 #undef CAN_ENABLE
-#define CAN_ENABLE 					0
+#define CAN_ENABLE 0
 #endif
 
 /*
  * Servo output driver
  */
-#define SERVO_OUT_PULSE_MIN_US		1000	// Minimum pulse length in microseconds
-#define SERVO_OUT_PULSE_MAX_US		2000	// Maximum pulse length in microseconds
-#define SERVO_OUT_RATE_HZ			50		// Update rate in Hz
+#define SERVO_OUT_PULSE_MIN_US 1000 // Minimum pulse length in microseconds
+#define SERVO_OUT_PULSE_MAX_US 2000 // Maximum pulse length in microseconds
+#define SERVO_OUT_RATE_HZ 50		// Update rate in Hz
 
 // Correction factor for computations that depend on the old resistor division factor
-#define VDIV_CORR					((VIN_R2 / (VIN_R2 + VIN_R1)) / (2.2 / (2.2 + 33.0)))
+#define VDIV_CORR ((VIN_R2 / (VIN_R2 + VIN_R1)) / (2.2 / (2.2 + 33.0)))
 
 // Current ADC to amperes factor
-#define FAC_CURRENT					((V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN))
-#define FAC_CURRENT1				(FAC_CURRENT * CURRENT_CAL1)
-#define FAC_CURRENT2				(FAC_CURRENT * CURRENT_CAL2)
-#define FAC_CURRENT3				(FAC_CURRENT * CURRENT_CAL3)
-#define FAC_CURRENT1_M2				(FAC_CURRENT * CURRENT_CAL1_M2)
-#define FAC_CURRENT2_M2				(FAC_CURRENT * CURRENT_CAL2_M2)
-#define FAC_CURRENT3_M2				(FAC_CURRENT * CURRENT_CAL3_M2)
+#define FAC_CURRENT ((V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN))
+#define FAC_CURRENT1 (FAC_CURRENT * CURRENT_CAL1)
+#define FAC_CURRENT2 (FAC_CURRENT * CURRENT_CAL2)
+#define FAC_CURRENT3 (FAC_CURRENT * CURRENT_CAL3)
+#define FAC_CURRENT1_M2 (FAC_CURRENT * CURRENT_CAL1_M2)
+#define FAC_CURRENT2_M2 (FAC_CURRENT * CURRENT_CAL2_M2)
+#define FAC_CURRENT3_M2 (FAC_CURRENT * CURRENT_CAL3_M2)
 
-#define VOLTAGE_TO_ADC_FACTOR	( VIN_R2 / (VIN_R2 + VIN_R1) ) * ( 4096.0 / V_REG )
+#define VOLTAGE_TO_ADC_FACTOR (VIN_R2 / (VIN_R2 + VIN_R1)) * (4096.0 / V_REG)
 
 // Actual voltage on 3.3V net based on internal reference
-//#define V_REG						(1.21 / ((float)ADC_Value[ADC_IND_VREFINT] / 4095.0))
-//#define V_REG						3.3
+// #define V_REG						(1.21 / ((float)ADC_Value[ADC_IND_VREFINT] / 4095.0))
+// #define V_REG						3.3
 
 // Use the pins for the hardware SPI port instead of the hall/encoder pins for the AS5047
 #ifndef AS504x_USE_SW_MOSI_PIN
-#define AS504x_USE_SW_MOSI_PIN 		0
+#define AS504x_USE_SW_MOSI_PIN 0
 #endif
 
 /*
  * MCU
  */
-#define SYSTEM_CORE_CLOCK			168000000
-#define STM32_UUID					((uint32_t*)0x1FFF7A10)
-#define STM32_UUID_8				((uint8_t*)0x1FFF7A10)
+#define SYSTEM_CORE_CLOCK 168000000
+#define STM32_UUID ((uint32_t *)0x1FFF7A10)
+#define STM32_UUID_8 ((uint8_t *)0x1FFF7A10)
 
 /*
  *	Run the BLDC speed controller in current mode instead of duty cycle mode. This will
@@ -154,7 +154,7 @@
  *	controller dynamics in between. FOC on the other hand is inherently based on current
  *	control.
  */
-#define BLDC_SPEED_CONTROL_CURRENT	1
+#define BLDC_SPEED_CONTROL_CURRENT 1
 
 /*
  *	Run the FOC loop once every N ADC ISR requests. This way the pwm frequency is
@@ -163,7 +163,7 @@
  *	so it skips 2 ISR calls and execute the control loop in the 3rd call.
  */
 #ifndef FOC_CONTROL_LOOP_FREQ_DIVIDER
-#define FOC_CONTROL_LOOP_FREQ_DIVIDER	1
+#define FOC_CONTROL_LOOP_FREQ_DIVIDER 1
 #endif
 
 // Global configuration variables
@@ -197,7 +197,6 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 										  float min_current_in, float max_current_in,
 										  float openloop_rpm, float sl_erpm,
-										  void(*reply_func)(unsigned char* data, unsigned int len));
-
+										  void (*reply_func)(unsigned char *data, unsigned int len));
 
 #endif /* CONF_GENERAL_H_ */

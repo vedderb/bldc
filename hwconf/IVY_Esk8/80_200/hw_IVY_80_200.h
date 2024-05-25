@@ -23,6 +23,7 @@
 
 #define HW_NAME "IVY_80_200"
 
+// Default setting overrides
 #define APPCONF_APP_TO_USE APP_NONE
 // #define APPCONF_CONTROLLER_ID 2
 #define APPCONF_TIMEOUT_MSEC 500
@@ -55,8 +56,33 @@
 #define MCCONF_P_PID_GAIN_DEC_ANGLE 500.0 // Decrease PID-gains when the error is below this value
 #define MCCONF_P_PID_OFFSET 0.0           // Angle offset
 
+#ifndef MCCONF_L_MIN_VOLTAGE
+#define MCCONF_L_MIN_VOLTAGE 20.0 // Minimum input voltage
+#endif
+#ifndef MCCONF_L_MAX_VOLTAGE
+#define MCCONF_L_MAX_VOLTAGE 75.0 // Maximum input voltage
+#endif
+#endif
+#ifndef MCCONF_DEFAULT_MOTOR_TYPE
+#define MCCONF_DEFAULT_MOTOR_TYPE MOTOR_TYPE_FOC
+#endif
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV 30000.0
+#endif
+#ifndef MCCONF_L_MAX_ABS_CURRENT
+#define MCCONF_L_MAX_ABS_CURRENT 320.0 // The maximum absolute current above which a fault is generated
+#endif
+#ifndef MCCONF_FOC_SAMPLE_V0_V7
+#define MCCONF_FOC_SAMPLE_V0_V7 false // Run control loop in both v0 and v7 (requires phase shunts)
+#endif
+#ifndef MCCONF_L_IN_CURRENT_MAX
+#define MCCONF_L_IN_CURRENT_MAX 200.0 // Input current limit in Amperes (Upper)
+#ifndef MCCONF_L_IN_CURRENT_MIN
+#define MCCONF_L_IN_CURRENT_MIN -200.0 // Input current limit in Amperes (Lower)
+#endif
+
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC 600.0
+#define HW_DEAD_TIME_NSEC 500.0
 
 // HW properties
 #define HW_HAS_3_SHUNTS
@@ -271,36 +297,10 @@
 #define READ_HALL2() palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
 #define READ_HALL3() palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
-// Default setting overrides
-#ifndef MCCONF_L_MIN_VOLTAGE
-#define MCCONF_L_MIN_VOLTAGE 0.0 // Minimum input voltage
-#endif
-#ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE 75.0 // Maximum input voltage
-#endif
-#endif
-#ifndef MCCONF_DEFAULT_MOTOR_TYPE
-#define MCCONF_DEFAULT_MOTOR_TYPE MOTOR_TYPE_FOC
-#endif
-#ifndef MCCONF_FOC_F_ZV
-#define MCCONF_FOC_F_ZV 30000.0
-#endif
-#ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT 350.0 // The maximum absolute current above which a fault is generated
-#endif
-#ifndef MCCONF_FOC_SAMPLE_V0_V7
-#define MCCONF_FOC_SAMPLE_V0_V7 false // Run control loop in both v0 and v7 (requires phase shunts)
-#endif
-#ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX 200.0 // Input current limit in Amperes (Upper)
-#ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN -200.0 // Input current limit in Amperes (Lower)
-#endif
-
 // Setting limits
 #define HW_LIM_CURRENT -300.0, 300.0
 #define HW_LIM_CURRENT_IN -280.0, 280.0
-#define HW_LIM_CURRENT_ABS 0.0, 450
+#define HW_LIM_CURRENT_ABS 0.0, 320
 #define HW_LIM_VIN 12.0, 75.0
 #define HW_LIM_ERPM -200e3, 200e3
 #define HW_LIM_DUTY_MIN 0.0, 0.1
