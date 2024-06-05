@@ -240,7 +240,8 @@
 #define SYM_SETQ                0x113
 #define SYM_MOVE_TO_FLASH       0x114
 #define SYM_LOOP                0x115
-#define SPECIAL_FORMS_END       0x115
+#define SYM_TRAP                0x116
+#define SPECIAL_FORMS_END       0x116
 
 #ifndef LBM64
 #define SPECIAL_FORMS_MASK        0xFFFFFF00
@@ -487,6 +488,7 @@
 #define ENC_SYM_SORT                  ENC_SYM(SYM_SORT)
 #define ENC_SYM_REST_ARGS             ENC_SYM(SYM_REST_ARGS)
 #define ENC_SYM_ROTATE                ENC_SYM(SYM_ROTATE)
+#define ENC_SYM_TRAP                  ENC_SYM(SYM_TRAP)
 
 #define ENC_SYM_ADD           ENC_SYM(SYM_ADD)
 #define ENC_SYM_SUB           ENC_SYM(SYM_SUB)
