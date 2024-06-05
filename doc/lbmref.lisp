@@ -1641,6 +1641,23 @@
                       ))
               end)))
 
+(define special-form-trap
+  (ref-entry "trap"
+             (list
+              (para (list "`trap` lets you catch an error rather than have the evaluation context terminate."
+                          "The form of a trap expression is `(trap expr)`."
+                          "If expr crashes with an error `e` then `(trap expr)` evaluates"
+                          "to `(exit-error e)`. If expr successfully runs and returns `r`,"
+                          "then `(trap expr)` evaluates to (exit-ok r)."
+                          ))
+              (code '((trap (/ 1 0))
+                      (trap (+ 1 2))
+                      ))
+              (para (list "`trap` catches any error except for fatal errors."
+                          "A fatal error will still lead to the context being terminated."
+                          ))
+              end)))
+
 (define special-forms
   (section 2 "Special forms"
            (list
@@ -1668,6 +1685,7 @@
                   special-form-read
                   special-form-read-program
                   special-form-read-eval-program
+                  special-form-trap
                   )
             )))
 
@@ -2655,6 +2673,12 @@
                         "struck an error. See <a href=\"#spawn-trap\">spawn-trap</a>."
                         "The parent process can now choose to restart the process that crashed"
                         "or to take some other action."
+                        ))
+            (para (list "Another way to catch errors is to use `trap` which works similar to `spawn-trap`"
+                        "but it does not spawn a thread."
+                        "`trap` takes one argument which is an expressions. The expression is evaluated and if"
+                        "it fails `(trap expr)` returns an object representing the error."
+                        "For more information on `trap`, see  <a href=\"#trap\">trap</a>."
                         ))
             (ref-entry "read_error"
                        (list

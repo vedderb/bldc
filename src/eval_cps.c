@@ -36,6 +36,7 @@
 #endif
 
 #include <setjmp.h>
+#include <stdarg.h>
 
 static jmp_buf error_jmp_buf;
 static jmp_buf critical_error_jmp_buf;
@@ -94,7 +95,8 @@ static jmp_buf critical_error_jmp_buf;
 #define CLOSURE_ARGS_REST     CONTINUATION(45)
 #define MOVE_ARRAY_ELTS_TO_FLASH CONTINUATION(46)
 #define POP_READER_FLAGS      CONTINUATION(47)
-#define NUM_CONTINUATIONS     48
+#define EXCEPTION_HANDLER     CONTINUATION(48)
+#define NUM_CONTINUATIONS     49
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -992,6 +994,22 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
       }
     }
   }
+  if ((ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN) &&
+      (err_val != ENC_SYM_FATAL_ERROR)) {
+    lbm_uint v;
+    while (ctx_running->K.sp > 0) {
+      lbm_pop(&ctx_running->K, &v);
+      if (v == EXCEPTION_HANDLER) {
+        lbm_value *sptr = get_stack_ptr(ctx_running, 2);
+        lbm_set_car(sptr[0], ENC_SYM_EXIT_ERROR);
+        lbm_push(&ctx_running->K, EXCEPTION_HANDLER); // Put it back!
+        ctx_running->app_cont = true;
+        ctx_running->r = err_val;
+        longjmp(error_jmp_buf, 1);
+      }
+    }
+    err_val = ENC_SYM_FATAL_ERROR;
+  }
   print_error_message(err_val,
                       has_at,
                       at,
@@ -1292,49 +1310,69 @@ bool lbm_unblock_ctx(lbm_cid cid, lbm_flat_value_t *fv) {
   return event_internal(LBM_EVENT_UNBLOCK_CTX, (lbm_uint)cid, (lbm_uint)fv->buf, fv->buf_size);
 }
 
-bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
+bool lbm_unblock_ctx_r(lbm_cid cid) {
   mutex_lock(&blocking_extension_mutex);
   bool r = false;
-  lbm_uint t = lbm_type_of(unboxed);
-  if (t == LBM_TYPE_SYMBOL ||
-      t == LBM_TYPE_I ||
-      t == LBM_TYPE_U ||
-      t == LBM_TYPE_CHAR) {
-
-    eval_context_t *found = NULL;
-    mutex_lock(&qmutex);
-    found = lookup_ctx_nm(&blocked, cid);
-    if (found) {
-      drop_ctx_nm(&blocked,found);
-      found->r = unboxed;
-      if (lbm_is_error(unboxed)) {
-        lbm_value trash;
-        lbm_pop(&found->K, &trash);     // Destructively make sure there is room on stack.
-        lbm_push(&found->K, TERMINATE);
-        found->app_cont = true;
-      }
-      enqueue_ctx_nm(&queue,found);
-      r = true;
-    }
-    mutex_unlock(&qmutex);
+  eval_context_t *found = NULL;
+  mutex_lock(&qmutex);
+  found = lookup_ctx_nm(&blocked, cid);
+  if (found) {
+    drop_ctx_nm(&blocked,found);
+    enqueue_ctx_nm(&queue,found);
+    r = true;
   }
+  mutex_unlock(&qmutex);
   mutex_unlock(&blocking_extension_mutex);
   return r;
 }
 
-void lbm_block_ctx_from_extension_timeout(float s) {
+// unblock unboxed is also safe for rmbr:ed things.
+bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
   mutex_lock(&blocking_extension_mutex);
-  blocking_extension = true;
-  blocking_extension_timeout_us = S_TO_US(s);
-  blocking_extension_timeout = true;
-}
-void lbm_block_ctx_from_extension(void) {
-  mutex_lock(&blocking_extension_mutex);
-  blocking_extension = true;
-  blocking_extension_timeout_us = 0;
-  blocking_extension_timeout = false;
+  bool r = false;
+  eval_context_t *found = NULL;
+  mutex_lock(&qmutex);
+  found = lookup_ctx_nm(&blocked, cid);
+  if (found) {
+    drop_ctx_nm(&blocked,found);
+    found->r = unboxed;
+    if (lbm_is_error(unboxed)) {
+      lbm_value trash;
+      lbm_pop(&found->K, &trash);     // Destructively make sure there is room on stack.
+      lbm_push(&found->K, TERMINATE);
+      found->app_cont = true;
+    }
+    enqueue_ctx_nm(&queue,found);
+    r = true;
+  }
+  mutex_unlock(&qmutex);
+  mutex_unlock(&blocking_extension_mutex);
+  return r;
 }
 
+static bool lbm_block_ctx_base(bool timeout, float t_s) {
+  mutex_lock(&blocking_extension_mutex);
+  blocking_extension = true;
+  if (timeout) {
+    blocking_extension_timeout_us = S_TO_US(t_s);
+    blocking_extension_timeout = true;
+  } else {
+    blocking_extension_timeout = false;
+  }
+  return true;
+}
+
+void lbm_block_ctx_from_extension_timeout(float s) {
+  lbm_block_ctx_base(true, s);
+}
+
+void lbm_block_ctx_from_extension(void) {
+  lbm_block_ctx_base(false, 0);
+}
+
+// todo: May need to pop rmbrs from stack, if present.
+// Suspect that the letting the discard cont run is really not a problem.
+// Either way will be quite confusing what happens to allocated things when undoing block.
 void lbm_undo_block_ctx_from_extension(void) {
   blocking_extension = false;
   blocking_extension_timeout_us = 0;
@@ -1920,7 +1958,28 @@ static void eval_loop(eval_context_t *ctx) {
   let_bind_values_eval(parts[LOOP_BINDS], parts[LOOP_COND], env, ctx);
 }
 
-// (let list-of-bindings
+/* (trap expression)
+ *
+ * suggested use:
+ * (match (trap expression)
+ *   ((exit-error (? err)) (error-handler err))
+ *   ((exit-ok    (? v))   (value-handler v)))
+ */
+static void eval_trap(eval_context_t *ctx) {
+
+  lbm_value expr = get_cadr(ctx->curr_exp);
+  lbm_value retval;
+  WITH_GC(retval, lbm_heap_allocate_list(2));
+  lbm_set_car(retval, ENC_SYM_EXIT_OK); // Assume things will go well.
+  lbm_uint *sptr = stack_reserve(ctx,3);
+  sptr[0] = retval;
+  sptr[1] = ctx->flags;
+  sptr[2] = EXCEPTION_HANDLER;
+  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN;
+  ctx->curr_exp = expr;
+}
+
+// (let list-of-binding s
 //      body-exp)
 static void eval_let(eval_context_t *ctx) {
   lbm_value env      = ctx->curr_env;
@@ -2832,7 +2891,6 @@ static void apply_rotate(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   error_ctx(ENC_SYM_EERROR);
 }
 
-
 /***************************************************/
 /* Application lookup table                        */
 
@@ -2888,6 +2946,9 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
     }
     lbm_stack_drop(&ctx->K, arg_count + 1);
 
+    ctx->app_cont = true;
+    ctx->r = ext_res;
+
     if (blocking_extension) {
       blocking_extension = false;
       if (blocking_extension_timeout) {
@@ -2897,9 +2958,6 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
         block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0,true);
       }
       mutex_unlock(&blocking_extension_mutex);
-    } else {
-      ctx->app_cont = true;
-      ctx->r = ext_res;
     }
   }  break;
   case SYMBOL_KIND_FUNDAMENTAL:
@@ -4748,6 +4806,15 @@ static void cont_pop_reader_flags(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+static void cont_exception_handler(eval_context_t *ctx) {
+  lbm_value *sptr = pop_stack_ptr(ctx, 2);
+  lbm_value retval = sptr[0];
+  lbm_value flags = sptr[1];
+  lbm_set_car(get_cdr(retval), ctx->r);
+  ctx->flags = flags;
+  ctx->r = retval;
+  ctx->app_cont = true;
+}
 
 /*********************************************************/
 /* Continuations table                                   */
@@ -4802,6 +4869,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_closure_args_rest,
     cont_move_array_elts_to_flash,
     cont_pop_reader_flags,
+    cont_exception_handler
   };
 
 /*********************************************************/
@@ -4832,6 +4900,7 @@ static const evaluator_fun evaluators[] =
    eval_setq,
    eval_move_to_flash,
    eval_loop,
+   eval_trap
   };
 
 

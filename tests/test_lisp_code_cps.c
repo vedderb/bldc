@@ -308,6 +308,37 @@ LBM_EXTENSION(ext_unblock, args, argn) {
   return res;
 }
 
+LBM_EXTENSION(ext_block_rmbr, args, argn) {
+  (void) args;
+  (void) argn;
+
+  lbm_value array;
+  if (lbm_heap_allocate_array(&array, 4)) {
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(array);
+
+    uint8_t *data = (uint8_t *)header->data;
+    for (int i = 0; i < 4; i ++) {
+      data[i] = (uint8_t)( 1 + i);
+    }
+
+    lbm_block_ctx_from_extension();
+    return array; // remembered
+  }
+  return ENC_SYM_MERROR;
+}
+
+LBM_EXTENSION(ext_unblock_rmbr, args, argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    lbm_cid c = lbm_dec_as_i32(args[0]);
+    // Glob array will be protected until cid is allowed to run again.
+    // Should keep array safe from GC.
+    lbm_unblock_ctx_r(c);
+    return ENC_SYM_TRUE;
+  }
+  return res;
+}
+
 LBM_EXTENSION(ext_unblock_error, args, argn) {
   lbm_value res = ENC_SYM_EERROR;
   if (argn == 1 && lbm_is_number(args[0])) {
@@ -322,7 +353,6 @@ LBM_EXTENSION(ext_unblock_error, args, argn) {
   }
   return res;
 }
-
 
 int checks = 0;
 LBM_EXTENSION(ext_check, args, argn) {
@@ -636,6 +666,22 @@ int main(int argc, char **argv) {
   }
 
   res = lbm_add_extension("unblock", ext_unblock);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return FAIL;
+  }
+
+  res = lbm_add_extension("block-rmbr", ext_block_rmbr);
+  if (res)
+    printf("Extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return FAIL;
+  }
+
+  res = lbm_add_extension("unblock-rmbr", ext_unblock_rmbr);
   if (res)
     printf("Extension added.\n");
   else {

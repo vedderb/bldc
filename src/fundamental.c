@@ -990,7 +990,7 @@ static lbm_value fundamental_set_assoc(lbm_value *args, lbm_uint nargs, eval_con
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
   if (nargs == 3) {
-    result = lbm_env_set(args[0], args[1], args[2]);
+    result = lbm_env_set_functional(args[0], args[1], args[2]);
   } else if (nargs == 2 && lbm_is_cons(args[1])) {
     lbm_value x = lbm_car(args[1]);
     lbm_value xs = lbm_cdr(args[1]);
