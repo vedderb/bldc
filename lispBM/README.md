@@ -3327,6 +3327,16 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    10: OUT_AUX_MODE_MOSFET_70
                         ;    11: OUT_AUX_MODE_MOTOR_MOSFET_50
                         ;    12: OUT_AUX_MODE_MOTOR_MOSFET_70
+'m-motor-temp-sens-type ; Temperature sensor type (Added in FW 6.05). Options:
+                        ;    0:  TEMP_SENSOR_NTC_10K_25C
+                        ;    1:  TEMP_SENSOR_PTC_1K_100C
+                        ;    2:  TEMP_SENSOR_KTY83_122
+                        ;    3:  TEMP_SENSOR_NTC_100K_25C
+                        ;    4:  TEMP_SENSOR_KTY84_130
+                        ;    5:  TEMP_SENSOR_NTCX
+                        ;    6:  TEMP_SENSOR_PTCX
+                        ;    7:  TEMP_SENSOR_PT1000
+                        ;    8:  TEMP_SENSOR_DISABLED
 'foc-sensor-mode        ; FOC sensor mode
                         ;    0: FOC_SENSOR_MODE_SENSORLESS
                         ;    1: FOC_SENSOR_MODE_ENCODER
@@ -3372,6 +3382,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-sl-openloop-time   ; Stay in openloop for this amount of time
 'foc-temp-comp          ; Use observer temperature compensation
 'foc-temp-comp-base-temp ; Temperature at which parameters were measured
+'foc-offsets-cal-on-boot ; Measure offsets at boot (Added in FW 6.05)
 'foc-fw-current-max     ; Maximum field weakening current (Added in FW 6.05)
 'foc-fw-duty-start      ; Duty where field weakening starts (Added in FW 6.05)
 'min-speed              ; Minimum speed in meters per second (a negative value)

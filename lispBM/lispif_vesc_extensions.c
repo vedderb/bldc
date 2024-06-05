@@ -180,10 +180,12 @@ typedef struct {
 	lbm_uint foc_sl_openloop_time;
 	lbm_uint foc_temp_comp;
 	lbm_uint foc_temp_comp_base_temp;
+	lbm_uint foc_offsets_cal_on_boot;
 	lbm_uint foc_fw_current_max;
 	lbm_uint foc_fw_duty_start;
 	lbm_uint m_invert_direction;
 	lbm_uint m_out_aux_mode;
+	lbm_uint m_motor_temp_sens_type;
 	lbm_uint m_ntc_motor_beta;
 	lbm_uint si_motor_poles;
 	lbm_uint si_gear_ratio;
@@ -479,6 +481,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("foc-temp-comp", comp);
 		} else if (comp == &syms_vesc.foc_temp_comp_base_temp) {
 			get_add_symbol("foc-temp-comp-base-temp", comp);
+		} else if (comp == &syms_vesc.foc_offsets_cal_on_boot) {
+			get_add_symbol("foc-offsets-cal-on-boot", comp);
 		} else if (comp == &syms_vesc.foc_fw_current_max) {
 			get_add_symbol("foc-fw-current-max", comp);
 		} else if (comp == &syms_vesc.foc_fw_duty_start) {
@@ -487,6 +491,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("m-invert-direction", comp);
 		} else if (comp == &syms_vesc.m_out_aux_mode) {
 			get_add_symbol("m-out-aux-mode", comp);
+		} else if (comp == &syms_vesc.m_motor_temp_sens_type) {
+			get_add_symbol("m-motor-temp-sens-type", comp);
 		} else if (comp == &syms_vesc.m_ntc_motor_beta) {
 			get_add_symbol("m-ntc-motor-beta", comp);
 		} else if (comp == &syms_vesc.si_motor_poles) {
@@ -3324,6 +3330,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.m_out_aux_mode)) {
 		mcconf->m_out_aux_mode = lbm_dec_as_i32(args[1]);
 		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.m_motor_temp_sens_type)) {
+		mcconf->m_motor_temp_sens_type = lbm_dec_as_i32(args[1]);
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.m_ntc_motor_beta)) {
 		mcconf->m_ntc_motor_beta = lbm_dec_as_float(args[1]);
 		changed_mc = 1;
@@ -3341,6 +3350,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.si_battery_ah)) {
 		mcconf->si_battery_ah = lbm_dec_as_float(args[1]);
+		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.foc_offsets_cal_on_boot)) {
+		mcconf->foc_offsets_cal_on_boot = lbm_dec_as_i32(args[1]);
 		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.controller_id)) {
 		appconf->controller_id = lbm_dec_as_i32(args[1]);
@@ -3741,6 +3753,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_i(mcconf->foc_temp_comp);
 	} else if (compare_symbol(name, &syms_vesc.foc_temp_comp_base_temp)) {
 		res = lbm_enc_float(mcconf->foc_temp_comp_base_temp);
+	} else if (compare_symbol(name, &syms_vesc.foc_offsets_cal_on_boot)) {
+		res = lbm_enc_i(mcconf->foc_offsets_cal_on_boot);
 	} else if (compare_symbol(name, &syms_vesc.foc_fw_current_max)) {
 		res = lbm_enc_float(mcconf->foc_fw_current_max);
 	} else if (compare_symbol(name, &syms_vesc.foc_fw_duty_start)) {
@@ -3749,6 +3763,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_i(mcconf->m_invert_direction);
 	} else if (compare_symbol(name, &syms_vesc.m_out_aux_mode)) {
 		res = lbm_enc_i(mcconf->m_out_aux_mode);
+	} else if (compare_symbol(name, &syms_vesc.m_motor_temp_sens_type)) {
+		res = lbm_enc_i(mcconf->m_motor_temp_sens_type);
 	} else if (compare_symbol(name, &syms_vesc.m_ntc_motor_beta)) {
 		res = lbm_enc_float(mcconf->m_ntc_motor_beta);
 	} else if (compare_symbol(name, &syms_vesc.si_motor_poles)) {
