@@ -766,7 +766,7 @@ static lbm_value get_set_bms_val(bool set, lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.wh_cnt)) {
 		res = get_or_set_float(set, &val->wh_cnt, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.cell_num)) {
-		if (set && set_arg >= BMS_MAX_CELLS) {
+		if (set && lbm_dec_as_i32(set_arg) >= BMS_MAX_CELLS) {
 			return ENC_SYM_EERROR;
 		}
 
@@ -794,7 +794,7 @@ static lbm_value get_set_bms_val(bool set, lbm_value *args, lbm_uint argn) {
 
 		res = get_or_set_bool(set, &val->bal_state[c], &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.temp_adc_num)) {
-		if (set && set_arg >= BMS_MAX_TEMPS) {
+		if (set && lbm_dec_as_i32(set_arg) >= BMS_MAX_TEMPS) {
 			return ENC_SYM_EERROR;
 		}
 
