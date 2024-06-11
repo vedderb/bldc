@@ -1155,6 +1155,7 @@ int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size)
   if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) { // Out of heap memory
     lbm_memory_free((lbm_uint*)array->data);
     lbm_memory_free((lbm_uint*)array);
+    *res = ENC_SYM_MERROR;
     return 0;
   }
 
@@ -1172,7 +1173,7 @@ int lbm_heap_allocate_lisp_array(lbm_value *res, lbm_uint size) {
 }
 
 // Convert a C array into an lbm_array.
-// if the array is in LBM_MEMORY, the lifetime will be managed by the GC.
+// if the array is in LBM_MEMORY, the lifetime will be managed by the GC after lifting.
 int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   lbm_array_header_t *array = NULL;

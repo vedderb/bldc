@@ -1002,7 +1002,7 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
       if (v == EXCEPTION_HANDLER) {
         lbm_value *sptr = get_stack_ptr(ctx_running, 2);
         lbm_set_car(sptr[0], ENC_SYM_EXIT_ERROR);
-        lbm_push(&ctx_running->K, EXCEPTION_HANDLER); // Put it back!
+        stack_reserve(ctx_running, 1)[0] = EXCEPTION_HANDLER;
         ctx_running->app_cont = true;
         ctx_running->r = err_val;
         longjmp(error_jmp_buf, 1);
@@ -1337,9 +1337,7 @@ bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
     drop_ctx_nm(&blocked,found);
     found->r = unboxed;
     if (lbm_is_error(unboxed)) {
-      lbm_value trash;
-      lbm_pop(&found->K, &trash);     // Destructively make sure there is room on stack.
-      lbm_push(&found->K, TERMINATE);
+      get_stack_ptr(found, 1)[0] = TERMINATE; // replace TOS
       found->app_cont = true;
     }
     enqueue_ctx_nm(&queue,found);
@@ -1652,29 +1650,27 @@ static void eval_atomic(eval_context_t *ctx) {
   eval_progn(ctx);
 }
 
-
+/* (call-cc (lambda (k) .... ))  */
 static void eval_callcc(eval_context_t *ctx) {
   lbm_value cont_array;
   if (!lbm_heap_allocate_lisp_array(&cont_array, ctx->K.sp)) {
     gc();
     if (!lbm_heap_allocate_lisp_array(&cont_array, ctx->K.sp)) {
       error_ctx(ENC_SYM_MERROR);
-      return; // dead return but static analysis doesnt know :)
+      return; // dead return but static analysis doesn't know :)
     }
   }
   lbm_array_header_t *arr = (lbm_array_header_t*)get_car(cont_array);
   memcpy(arr->data, ctx->K.data, ctx->K.sp * sizeof(lbm_uint));
 
   lbm_value acont = cons_with_gc(ENC_SYM_CONT, cont_array, ENC_SYM_NIL);
-
-  /* Create an application */
-  lbm_value fun_arg = get_cadr(ctx->curr_exp);
-  lbm_value app;
-  WITH_GC_RMBR_1(app, lbm_heap_allocate_list_init(2,
-                                                  fun_arg,
-                                                  acont), acont);
-
-  ctx->curr_exp = app;
+  lbm_value arg_list = cons_with_gc(acont, ENC_SYM_NIL, ENC_SYM_NIL);
+  // Go directly into application evaluation without passing go
+  lbm_uint *sptr = stack_reserve(ctx, 3);
+  sptr[0] = ctx->curr_env;
+  sptr[1] = arg_list;
+  sptr[2] = APPLICATION_START;
+  ctx->curr_exp = get_cadr(ctx->curr_exp);
 }
 
 // (define sym exp)
@@ -2415,6 +2411,8 @@ static void apply_wait(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   }
 }
 
+/* (eval expr)
+   (eval env expr) */
 static void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if ( nargs == 1) {
     ctx->curr_exp = args[0];
@@ -4992,9 +4990,7 @@ static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
   if (found) {
     drop_ctx_nm(&blocked,found);
     if (lbm_is_error(v)) {
-      lbm_uint trash;
-      lbm_pop(&found->K, &trash);
-      lbm_push(&found->K, TERMINATE);
+      get_stack_ptr(found, 1)[0] = TERMINATE; // replace TOS
       found->app_cont = true;
     }
     found->r = v;
