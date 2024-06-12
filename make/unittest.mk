@@ -18,7 +18,7 @@ CXXFLAGS += -g -Wall -Wextra -Wno-missing-field-initializers -std=c++11
 LDFLAGS += -lpthread
 
 # Google Test requires visibility of gtest includes
-GTEST_CXXFLAGS := -I$(GTEST_DIR)
+GTEST_CXXFLAGS := -isystem $(GTEST_DIR)
 
 # gcov requires specific link options to enable the coverage hooks
 LDFLAGS += -fprofile-arcs
