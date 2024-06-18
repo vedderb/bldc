@@ -73,15 +73,16 @@ void shutdown_hold(bool hold) {
 }
 
 bool do_shutdown(bool resample) {
-	conf_general_store_backup_data();
 #ifdef USE_LISPBM
 	lispif_process_shutdown();
 #endif
-	chThdSleepMilliseconds(100);
 
 	while (m_shutdown_hold) {
 		chThdSleepMilliseconds(5);
 	}
+
+	conf_general_store_backup_data();
+	chThdSleepMilliseconds(100);
 
 	bool disable_gates = true;
 	if (resample) {
