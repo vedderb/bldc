@@ -454,5 +454,6 @@ static void terminal_cmd_doublepulse(int argc, const char** argv)
 		break;
 	}
 	commands_printf("Done");
+	mempools_free_mcconf(mcconf);
 	return;
 }
