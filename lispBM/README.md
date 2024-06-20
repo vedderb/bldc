@@ -6611,6 +6611,52 @@ Configure pin to wake up the CPU from sleep mode. The available pins are 0 to 5 
 
 ---
 
+## Connection Checks
+
+---
+
+#### connected-wifi
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(connected-wifi)
+```
+
+Check if any client (e.g. VESC Tool) is connected over wifi. Returns true when connected, nil otherwise.
+
+---
+´
+#### connected-ble
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(connected-ble)
+```
+
+Check if any client (e.g. VESC Tool) is connected over ble. Returns true when connected, nil otherwise.
+
+---
+
+#### connected-usb
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(connected-usb)
+```
+
+Check if any client (e.g. VESC Tool) is connected over usb. Returns true when connected, nil otherwise.
+
+---
+
 ## How to update
 
 To update from remote repository:
