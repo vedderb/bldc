@@ -6611,6 +6611,20 @@ Configure pin to wake up the CPU from sleep mode. The available pins are 0 to 5 
 
 ---
 
+#### rtc-data
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(rtc-data)
+```
+
+Returns a 4k byte array from RTC memory that can be used as a general purpose array. What is special about it is that it is retained in deep sleep mode, which is useful for storing state while the CPU is in deep sleep mode.
+
+---
+
 ## Connection Checks
 
 ---
