@@ -1181,6 +1181,141 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 	} break;
 
+	case COMM_CAN_SET_DUTY: {
+        int32_t ind = 0;
+        float duty = (float)buffer_get_int32(data, &ind);
+
+        for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+            can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+            if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+                comm_can_set_duty(msg->id, duty);
+            }
+        }
+		timeout_reset();
+	} break;
+
+	case COMM_CAN_SET_CURRENT: {
+        int32_t ind = 0;
+        float current = (float)buffer_get_int32(data, &ind);
+        for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+            can_status_msg *msg = comm_can_get_status_msg_index(i);
+            if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+                comm_can_set_current(msg->id, current / 1000.0);
+            }
+        }
+		timeout_reset();
+	} break;
+
+	case COMM_TC_SET_CURRENT: {
+        int32_t ind = 0;
+        float current = (float)buffer_get_int32(data, &ind);
+		float current_out = current;
+
+
+		float rpm_local = fabsf(mc_interface_get_rpm());
+		float rpm_lowest = rpm_local;
+
+        for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+            can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+            if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+                float rpm_tmp = fabsf(msg->rpm);
+
+                if (rpm_tmp < rpm_lowest) {
+                    rpm_lowest = rpm_tmp;
+                }
+            }
+        }
+
+		mc_configuration *mcconf = mempools_alloc_mcconf();
+		*mcconf = *mc_interface_get_configuration();
+
+        for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+            can_status_msg *msg = comm_can_get_status_msg_index(i);
+
+            if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+                bool is_braking = (current > 0.0 && msg->duty < 0.0) || (current < 0.0 && msg->duty > 0.0);
+
+                if (!is_braking) {
+                    float rpm_tmp = fabsf(msg->rpm);
+
+                    float diff = rpm_tmp - rpm_lowest;
+                    current_out = utils_map(diff, 0.0, 3000.0, current, 0.0);
+                    if (fabsf(current_out) < mcconf->cc_min_current) {
+                        current_out = 0.0;
+                    }
+                }
+
+                comm_can_set_current(msg->id, current_out / 1000.0);
+            }
+        }
+
+		const float duty_now = mc_interface_get_duty_cycle_now();
+
+        bool is_braking = (current > 0.0 && duty_now < 0.0) || (current < 0.0 && duty_now > 0.0);
+
+        if (!is_braking) {
+            float diff = rpm_local - rpm_lowest;
+            current_out = utils_map(diff, 0.0, 3000.0, current, 0.0);
+            if (fabsf(current_out) < mcconf->cc_min_current) {
+                current_out = 0.0;
+            }
+        }
+
+		mempools_free_mcconf(mcconf);
+		mc_interface_set_current(current_out / 1000.0);
+		timeout_reset();
+	} break;
+
+	case COMM_CAN_SET_CURRENT_BRAKE: {
+        int32_t ind = 0;
+        float current = (float)buffer_get_int32(data, &ind);
+        for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+            can_status_msg *msg = comm_can_get_status_msg_index(i);
+            if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+                comm_can_set_current_brake(msg->id, current / 1000.0);
+            }
+        }
+		timeout_reset();
+	} break;
+
+	case COMM_CAN_SET_RPM: {
+        int32_t ind = 0;
+        float rpm = (float)buffer_get_int32(data, &ind);
+        for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+            can_status_msg *msg = comm_can_get_status_msg_index(i);
+            if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+                comm_can_set_rpm(msg->id, rpm);
+            }
+        }
+		timeout_reset();
+	} break;
+
+	case COMM_CAN_SET_POS: {
+        int32_t ind = 0;
+        float pos = (float)buffer_get_int32(data, &ind);
+        for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+            can_status_msg *msg = comm_can_get_status_msg_index(i);
+            if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+                comm_can_set_pos(msg->id, pos);
+            }
+        }
+		timeout_reset();
+	} break;
+
+	case COMM_CAN_SET_HANDBRAKE: {
+        int32_t ind = 0;
+        float handbrake = buffer_get_float32(data, 1e3, &ind);
+        for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+            can_status_msg *msg = comm_can_get_status_msg_index(i);
+            if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < MAX_CAN_AGE) {
+                comm_can_set_handbrake(msg->id, handbrake);
+            }
+        }
+		timeout_reset();
+	} break;
+
 	case COMM_SET_BATTERY_CUT: {
 		int32_t ind = 0;
 		float start = buffer_get_float32(data, 1e3, &ind);
