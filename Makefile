@@ -158,7 +158,9 @@ fw_$(1)_vescfw:
 		build_args='-DHW_SOURCE=\"$(HW_SRC_FILE)\" -DHW_HEADER=\"$(HW_DIR)/hw_$(1).h\" -DGIT_BRANCH_NAME=\"$(4)\" -DGIT_COMMIT_HASH=\"$(5)\" -DARM_GCC_VERSION=\"$(6)\"' USE_VERBOSE_COMPILE=no
 
 $(1)_flash: fw_$(1)_flash
-fw_$(1)_flash: fw_$(1)_vescfw fw_$(1)_flash_only
+fw_$(1)_flash:
+	$$(MAKE) fw_$(1)_vescfw
+	$$(MAKE) fw_$(1)_flash_only
 
 $(1)_flash_only: fw_$(1)_flash_only
 fw_$(1)_flash_only:
