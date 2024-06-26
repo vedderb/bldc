@@ -446,7 +446,7 @@ static void terminal_cmd_m600_get_torque_sensor_info(int argc, const char **argv
 	(void)argv;
 
 	commands_printf("Torque sensor output: %d", get_torque_sensor_output());
-	commands_printf("Torque sensor output (%): %.2f", (double)luna_canbus_get_PAS_torque());
+	commands_printf("Torque sensor output (%%): %.2f", (double)luna_canbus_get_PAS_torque());
 	commands_printf("Torque sensor lower range: %d", get_torque_sensor_lower_range());
 	commands_printf("Torque sensor upper range: %d", get_torque_sensor_upper_range());
 	commands_printf("Torque sensor deadband: %.2f (assistance starts at %d)",	(double)get_torque_sensor_deadband(),
