@@ -386,7 +386,7 @@
 (define overflow-behaviour
   (section 3 "Overflow behaviour"
            (list
-            (para (list "Operations on fixed bitwidth mumerical types can lead to overflow."
+            (para (list "Operations on fixed bitwidth numerical types can lead to overflow."
                         "The ranges representable in 32bit LBMs integer types are the following:"
                         ))
             (bullet '("`type-char`  : 0 - 255"
@@ -491,8 +491,8 @@
             (para (list "**Note** that it is an absolute requirement to include a decimal when"
                         "writing a floating point literal in LBM."
                         ))
-            (para (list "We are trying to make type conversions feel familar to people who are"
-                        "familiar with the C programming language. On a 32bit platform LBM"
+            (para (list "We are trying to make type conversions feel familiar to people who know a bit of "
+                        "C programming. On a 32bit platform LBM"
                         "numerical types are ordered according to: `byte < i < u < i32 < u32 <"
                         "i64 < u64 < float < double`.  Operations such as `(+ a b)`, figures"
                         "out the largest type according to the ordering above and converts all"
@@ -536,16 +536,120 @@
 (defun semantics ()
   (section 3 "The meaning (semantics) that LispBM imposes on S-Expressions"
            (list
-            (para (list "The S-expressions from the previous section are just trees. The Lisp evaluator"
-                        "provides a computational interepretation for such trees. Not all trees make sense"
-                        "as lisp programs. This section is about those trees that do make sense and"
-                        "what they mean to the Lisp evaluator."
+            (para (list "The S-expressions discussed in the previous section are merely tree structures."
+                        "The Lisp evaluator provides a computational interpretation for these trees."
+                        "However, not all trees are valid Lisp programs."
+                        "This section focuses on those trees that do make sense as Lisp programs and"
+                        "their meaning to the Lisp evaluator."
                         ))
-            (para (list "TODO: Finish section."
+            (para (list "**Values and expressions**"
+                        ))
+            (para (list "The LispBM evaluator transforms expressions"
+                        "into values. For instance, the expression  `(+ 1 2)` is evaluated to the value `3`."
+                        ))
+            (code '((+ 1 2)
+                    ))
+            (para (list "In LispBM the distinction between expressions and values is often blurred."
+                        "For example, it is possible to write a function that returns a result that"
+                        "can itself be interpreted as code"
+                        ))
+            (code '((read-eval "(defun mk-code (x) `(+ ,x 1))")
+                    (mk-code 10)
+                    ))
+            (para (list "The result of evaluating `(mk-code 10)` is the list containing a `+`, `10` and `1`."
+                        "This list is the value that `(mk-code 10)` evaluates to."
+                        "Now, the result of `(mk-code 10)`, since it is valid lisp, can be evaluated."
+                        ))
+            (code '((eval (mk-code 10))
+                    ))
+            (para (list "In most cases this is quite natural and our functions will result in, Strings, lists and numbers"
+                        "that are easily and naturally understood as values."
+                        ))
+            (para (list "Still, it is worthwhile to remember that values can be expressions and expressions can be values."
+                        ))
+            (para (list "**Errors**"
+                        ))
+            (para (list "Some times evaluation is impossible. This could be because the program is malformed, a type mismatch or"
+                        "a division by zero (among many other possibilities)."
+                        "Errors terminate the evaluation of the expression. To recover from an error and handle it"
+                        "the programmer needs to explicitly `trap` the error."
+                        ))
+            (code '((trap (/ 1 0 ))
+                    ))
+            (para (list "**Environments**"
+                        ))
+            (para (list "LispBM expressions are evaluated in relation to a global and a local environment."
+                        "An environment is a key-value store where the key is a lisp symbol and the value"
+                        "is any lisp value." 
+                        ))
+        
+            (para (list "The rest of this section will now explain the meaning of LBM programs by informally"
+                        "showing **expressions**, what **values** they evaluate into and how they change and depend on the environments"
+                        ))
+
+            (para (list "**Atoms**"
+                        ))
+            
+            (para (list "Some atoms, such as Numbers, Strings and byte arrays cannot be further evaluated."
+                        ))
+            (code '((read-eval "10")
+                    (read-eval "\"hello world\"")
+                    (read-eval "[1 2 3 4]")
+                    )
+                  )
+            
+            (para (list "Symbols evaluate by a lookup in the environment."
+                        "First, the local environment is searched for a binding of the symbols."
+                        "If unable to find a binding in the local environment, the global environment is searched."
+                        "If unable to find a binding in the global environment as well, an error `variable_not_bound` is triggered." 
+                        ))
+            (para (list "**Composite forms**"
+                        ))
+            (para (list "A composite form, such as `(e1 ... eN)` is evaluated in different ways depending"
+                        "on what `e1` is."
+                        "There are three major categories that `e1` can fall into. Either `e1` is something that"
+                        "represents a function and `(e1 ... eN)` is a function application."
+                        "Or `e1` is a so-called *special-form* that form the core of the LBM language."
+                        "Or lastly, `e1` is anything else than the above and the composite form is malformed ultimately resulting in an error."
+                        ))
+            (para (list "The composite form `(e1 ... eN)` is evaluated by first checking if `e1` is a special form or not."
+                         "if `e1` is a special form the composite form is passed to a special-form evaluator."
+                         "if `e1` is not a special form,  the composite form is evaluated as a function application."
+                         "These two major branches of composite form evaluation are described below."
+                         ))
+            (para (list "**Special form evaluation**"
+                        ))
+            (para (list "The special-forms in lispBM are:"
+                        ))
+            (bullet (list "quote"
+                          "define"
+                          "progn"
+                          "lambda"
+                          "if"
+                          "let"
+                          "and"
+                          "or"
+                          "match"
+                          "receive"
+                          "callcc"
+                          "atomic"
+                          "macro"
+                          "closure"
+                          "cond"
+                          "setq"
+                          "move-to-flash"
+                          "loop"
+                          "trap"
+                          ))
+            (para (list "**Function application evaluation**"
+                        ))
+            (para (list "The evaluation strategies explained here are applied to composite expressions"
+                        "of the `(e1 ... eN)` form."
+                        ))
+            (para (list "**The quote and the quasiquote**"
                         ))
             ))
   )
-
 
 (defun concurrency-and-semantics ()
   (section 3 "Concurrency and Semantics"
@@ -613,6 +717,8 @@
                           ))
             (para (list "In LispBM a pair of S-expressions is created by an application of `cons` as `(cons a b)`"
                         "which creates the pair `(a . b)`. Convention is that `(e0 e1 ... eN)` = `(e0 . ( e1 . ... ( eN . nil)))`."
+                        ))
+            (para (list "A structure such as `(e0 e1 ... eN)` is called a list."
                         ))
             (semantics)
             (concurrency-and-semantics)
@@ -2335,6 +2441,16 @@
               (code '((yield 10)
                       ))
               end)))
+(define conc-sleep
+  (ref-entry "sleep"
+             (list
+              (para (list "'sleep' puts a thread to sleep and differs from 'yield' only in the argument."
+                          "'sleep' takes a floating point number indicating how long in seconds the thread"
+                          "should sleep at least."
+                          ))
+              (code '((sleep 1.0)
+                      ))
+              end)))
 
 (define conc-atomic
   (ref-entry "atomic"
@@ -2399,6 +2515,7 @@
             conc-self
             conc-wait
             conc-yield
+            conc-sleep
             conc-atomic
             conc-exit-ok
             conc-exit-error

@@ -371,6 +371,11 @@ int lbm_memory_free(lbm_uint *ptr) {
     default:
       break;
     }
+    if (r) {
+      while (alloc_offset > 0 && status(alloc_offset - 1) == FREE_OR_USED) {
+        alloc_offset--;
+      }
+    }
     memory_num_free += count_freed;
     mutex_unlock(&lbm_mem_mutex);
   }
