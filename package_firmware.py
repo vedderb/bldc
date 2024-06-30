@@ -138,6 +138,8 @@ package_dict["75_300_MKIV"] = [['75_300_mkiv', default_name],
 package_dict["60_MK6_HP"] = [['60_mk6_hp', default_name],
                     ['60_mk6_hp_no_limits', no_limits_name]]
 package_dict["KA160"] = [['ka160', default_name]]
+package_dict["EPC9167"] = [['EPC9167', default_name],
+                    ['EPC9167_no_limits', no_limits_name]]
 package_dict["75_100"] = [['75_100', default_name],
                     ['75_100_no_limits', no_limits_name]]
 package_dict["75_100_V2"] = [['75_100_V2', default_name],
