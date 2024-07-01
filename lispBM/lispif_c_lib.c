@@ -451,6 +451,13 @@ static float lib_get_cfg_float(CFG_PARAM p) {
 		case CFG_PARAM_IMU_rot_roll: res = appconf->imu_conf.rot_roll; break;
 		case CFG_PARAM_IMU_rot_pitch: res = appconf->imu_conf.rot_pitch; break;
 		case CFG_PARAM_IMU_rot_yaw: res = appconf->imu_conf.rot_yaw; break;
+		case CFG_PARAM_IMU_accel_offset_x: res = appconf->imu_conf.accel_offsets[0]; break;
+		case CFG_PARAM_IMU_accel_offset_y: res = appconf->imu_conf.accel_offsets[1]; break;
+		case CFG_PARAM_IMU_accel_offset_z: res = appconf->imu_conf.accel_offsets[2]; break;
+		case CFG_PARAM_IMU_gyro_offset_x: res = appconf->imu_conf.gyro_offsets[0]; break;
+		case CFG_PARAM_IMU_gyro_offset_y: res = appconf->imu_conf.gyro_offsets[1]; break;
+		case CFG_PARAM_IMU_gyro_offset_z: res = appconf->imu_conf.gyro_offsets[2]; break;
+
 		default: break;
 	}
 
@@ -465,6 +472,8 @@ static int lib_get_cfg_int(CFG_PARAM p) {
 	switch (p) {
 		case CFG_PARAM_app_can_mode: res = conf->can_mode; break;
 		case CFG_PARAM_app_can_baud_rate: res = conf->can_baud_rate; break;
+		case CFG_PARAM_IMU_ahrs_mode: res = conf->imu_conf.mode; break;
+		case CFG_PARAM_IMU_sample_rate: res = conf->imu_conf.sample_rate_hz; break;
 		default: break;
 	}
 
@@ -514,6 +523,12 @@ static bool lib_set_cfg_float(CFG_PARAM p, float value) {
 		case CFG_PARAM_IMU_rot_roll: appconf->imu_conf.rot_roll = value; changed_app = 1; res = true; break;
 		case CFG_PARAM_IMU_rot_pitch: appconf->imu_conf.rot_pitch = value; changed_app = 1; res = true; break;
 		case CFG_PARAM_IMU_rot_yaw: appconf->imu_conf.rot_yaw = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_accel_offset_x: appconf->imu_conf.accel_offsets[0] = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_accel_offset_y: appconf->imu_conf.accel_offsets[1] = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_accel_offset_z: appconf->imu_conf.accel_offsets[2] = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_gyro_offset_x: appconf->imu_conf.gyro_offsets[0] = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_gyro_offset_y: appconf->imu_conf.gyro_offsets[1] = value; changed_app = 1; res = true; break;
+		case CFG_PARAM_IMU_gyro_offset_z: appconf->imu_conf.gyro_offsets[2] = value; changed_app = 1; res = true; break;
 		default: break;
 	}
 
@@ -539,6 +554,8 @@ static bool lib_set_cfg_int(CFG_PARAM p, int value) {
 	switch (p) {
 	case CFG_PARAM_app_can_mode: appconf->can_mode = value; res = true; break;
 	case CFG_PARAM_app_can_baud_rate: appconf->can_baud_rate = value; res = true; break;
+	case CFG_PARAM_IMU_ahrs_mode: appconf->imu_conf.mode = value; res = true; break;
+	case CFG_PARAM_IMU_sample_rate: appconf->imu_conf.sample_rate_hz = value; res = true; break;
 	default: break;
 	}
 

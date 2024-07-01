@@ -277,6 +277,14 @@ typedef enum {
 	CFG_PARAM_IMU_rot_roll,
 	CFG_PARAM_IMU_rot_pitch,
 	CFG_PARAM_IMU_rot_yaw,
+	CFG_PARAM_IMU_ahrs_mode,
+	CFG_PARAM_IMU_sample_rate,
+	CFG_PARAM_IMU_accel_offset_x,
+	CFG_PARAM_IMU_accel_offset_y,
+	CFG_PARAM_IMU_accel_offset_z,
+	CFG_PARAM_IMU_gyro_offset_x,
+	CFG_PARAM_IMU_gyro_offset_y,
+	CFG_PARAM_IMU_gyro_offset_z,
 } CFG_PARAM;
 
 typedef struct {
