@@ -287,6 +287,15 @@ typedef enum {
 	CFG_PARAM_IMU_gyro_offset_z,
 
 	CFG_PARAM_app_shutdown_mode,
+
+	// Motor Additional Info
+	CFG_PARAM_si_motor_poles,
+	CFG_PARAM_si_gear_ratio,
+	CFG_PARAM_si_wheel_diameter,
+	CFG_PARAM_si_battery_type,
+	CFG_PARAM_si_battery_cells,
+	CFG_PARAM_si_battery_ah,
+	CFG_PARAM_si_motor_nl_current,
 } CFG_PARAM;
 
 typedef struct {
