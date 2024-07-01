@@ -464,6 +464,7 @@ static int lib_get_cfg_int(CFG_PARAM p) {
 
 	switch (p) {
 		case CFG_PARAM_app_can_mode: res = conf->can_mode; break;
+		case CFG_PARAM_app_can_baud_rate: res = conf->can_baud_rate; break;
 		default: break;
 	}
 
