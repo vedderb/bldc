@@ -103,6 +103,8 @@ package_dict["UXV_SR"] = [['uxv_sr', default_name]]
 package_dict["GESC"] = [['gesc', default_name]]
 package_dict["Warrior6"] = [['warrior6', default_name]]
 package_dict["Raiden7"] = [['raiden7', default_name]]
+package_dict["ADV200"] = [['adv200', default_name]]
+package_dict["ADV500"] = [['adv500', default_name]]
 package_dict["100_500"] = [['100_500', default_name],
                     ['100_500_no_limits', no_limits_name]]
 package_dict["75_600"] = [['75_600', default_name],
