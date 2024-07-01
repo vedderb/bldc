@@ -285,6 +285,8 @@ typedef enum {
 	CFG_PARAM_IMU_gyro_offset_x,
 	CFG_PARAM_IMU_gyro_offset_y,
 	CFG_PARAM_IMU_gyro_offset_z,
+
+	CFG_PARAM_app_shutdown_mode,
 } CFG_PARAM;
 
 typedef struct {
