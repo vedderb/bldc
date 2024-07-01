@@ -474,6 +474,7 @@ static int lib_get_cfg_int(CFG_PARAM p) {
 		case CFG_PARAM_app_can_baud_rate: res = conf->can_baud_rate; break;
 		case CFG_PARAM_IMU_ahrs_mode: res = conf->imu_conf.mode; break;
 		case CFG_PARAM_IMU_sample_rate: res = conf->imu_conf.sample_rate_hz; break;
+		case CFG_PARAM_app_shutdown_mode: res = conf->shutdown_mode; break;
 		default: break;
 	}
 
@@ -556,6 +557,7 @@ static bool lib_set_cfg_int(CFG_PARAM p, int value) {
 	case CFG_PARAM_app_can_baud_rate: appconf->can_baud_rate = value; res = true; break;
 	case CFG_PARAM_IMU_ahrs_mode: appconf->imu_conf.mode = value; res = true; break;
 	case CFG_PARAM_IMU_sample_rate: appconf->imu_conf.sample_rate_hz = value; res = true; break;
+	case CFG_PARAM_app_shutdown_mode: appconf->shutdown_mode = value; changed_app = 1; res = true; break;
 	default: break;
 	}
 
