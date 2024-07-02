@@ -98,6 +98,7 @@ package_dict["STORMCORE_100S"] = [['stormcore_100s', default_name],
 package_dict["Little_FOCer"] = [['Little_FOCer', default_name]]
 package_dict["Little_FOCer_V3"] = [['Little_FOCer_V3', default_name]]
 package_dict["Little_FOCer_V3_1"] = [['Little_FOCer_V3_1', default_name]]
+package_dict["Little_FOCer_V4"] = [['Little_FOCer_V4', default_name]]
 package_dict["Thor300"] = [['Thor_300_20s', default_name]]
 package_dict["UXV_SR"] = [['uxv_sr', default_name]]
 package_dict["GESC"] = [['gesc', default_name]]
