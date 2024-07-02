@@ -95,13 +95,6 @@ void hw_init_gpio(void) {
     palSetPadMode(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1, PAL_MODE_INPUT_PULLUP);
     palSetPadMode(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, PAL_MODE_INPUT_PULLUP);
     palSetPadMode(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, PAL_MODE_INPUT_PULLUP);
-	
-		// Current filter
-	palSetPadMode(GPIOD, 2,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
-
-	CURRENT_FILTER_OFF();
 
 #ifdef HW_HAS_PHASE_FILTERS
     // Phase filters

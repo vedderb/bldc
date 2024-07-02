@@ -32,8 +32,6 @@
 
 
 // HW properties
-//#define CURRENT_FILTER_ON()     palSetPad(GPIOD, 2)
-#define CURRENT_FILTER_OFF()    palClearPad(GPIOD, 2)
 
 #define HW_HAS_PHASE_FILTERS
 #define PHASE_FILTER_GPIO       GPIOC
