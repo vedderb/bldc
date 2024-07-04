@@ -586,6 +586,20 @@ static void lib_mutex_unlock(lib_mutex m) {
 	chMtxUnlock((mutex_t*)m);
 }
 
+static lib_semaphore lib_sem_create(void) {
+	semaphore_t *s = lbm_malloc_reserve(sizeof(semaphore_t));
+	chSemObjectInit(s, 0);
+	return (lib_semaphore)s;
+}
+
+static void lib_sem_wait(lib_semaphore s) {
+	chSemWait((semaphore_t*)s);
+}
+
+static void lib_sem_signal(lib_semaphore s) {
+	chSemSignal((semaphore_t*)s);
+}
+
 static remote_state lib_get_remote_state(void) {
 	remote_state res;
 	res.js_x = app_nunchuk_get_decoded_x();
@@ -946,6 +960,11 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.foc_set_audio_sample_table = mcpwm_foc_set_audio_sample_table;
 		cif.cif.foc_get_audio_sample_table = mcpwm_foc_get_audio_sample_table;
 		cif.cif.foc_play_audio_samples = mcpwm_foc_play_audio_samples;
+
+		// Semaphores
+		cif.cif.sem_create = lib_sem_create;
+		cif.cif.sem_wait = lib_sem_wait;
+		cif.cif.sem_signal = lib_sem_signal;
 
 		lib_init_done = true;
 	}
