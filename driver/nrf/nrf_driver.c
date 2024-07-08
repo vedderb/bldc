@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include <string.h>
 #include "nrf_driver.h"
 #include "rf.h"
@@ -525,3 +528,5 @@ bool nrf_driver_ext_nrf_running(void) {
 void nrf_driver_pause(int ms) {
 	driver_paused = ms;
 }
+
+#pragma GCC pop_options
