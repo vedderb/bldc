@@ -3059,13 +3059,17 @@ static lbm_value ext_i2c_start(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static char *i2c_not_started_msg = "I2C not started";
+
 static lbm_value ext_i2c_tx_rx(lbm_value *args, lbm_uint argn) {
 	if (argn != 2 && argn != 3) {
-		return ENC_SYM_EERROR;
+		lbm_set_error_reason((char*)lbm_error_str_num_args);
+		return ENC_SYM_TERROR;
 	}
 
 	if (!i2c_started) {
-		return lbm_enc_i(0);
+		lbm_set_error_reason(i2c_not_started_msg);
+		return ENC_SYM_EERROR;
 	}
 
 	uint16_t addr = 0;
@@ -3073,39 +3077,40 @@ static lbm_value ext_i2c_tx_rx(lbm_value *args, lbm_uint argn) {
 	size_t rxlen = 0;
 	uint8_t *txbuf = 0;
 	uint8_t *rxbuf = 0;
-
-	const unsigned int max_len = 40;
-	uint8_t to_send[max_len];
+	bool is_arr = lbm_is_array_r(args[1]);
 
 	if (!lbm_is_number(args[0])) {
-		return ENC_SYM_EERROR;
+		return ENC_SYM_TERROR;
 	}
 	addr = lbm_dec_as_u32(args[0]);
 
-	if (lbm_is_array_r(args[1])) {
+	if (is_arr) {
 		lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[1]);
 		txbuf = (uint8_t*)array->data;
 		txlen = array->size;
 	} else {
-		lbm_value curr = args[1];
-		while (lbm_is_cons(curr)) {
-			lbm_value  arg = lbm_car(curr);
-
-			if (lbm_is_number(arg)) {
-				to_send[txlen++] = lbm_dec_as_u32(arg);
-			} else {
-				return ENC_SYM_EERROR;
-			}
-
-			if (txlen == max_len) {
-				break;
-			}
-
-			curr = lbm_cdr(curr);
-		}
+		txlen = lbm_list_length(args[1]);
 
 		if (txlen > 0) {
-			txbuf = to_send;
+			txbuf = lbm_malloc(txlen);
+			if (!txbuf) {
+				return ENC_SYM_MERROR;
+			}
+
+			lbm_value curr = args[1];
+			int ind = 0;
+			while (lbm_is_cons(curr)) {
+				lbm_value  arg = lbm_car(curr);
+
+				if (lbm_is_number(arg)) {
+					txbuf[ind++] = lbm_dec_as_u32(arg);
+				} else {
+					lbm_free(txbuf);
+					return ENC_SYM_TERROR;
+				}
+
+				curr = lbm_cdr(curr);
+			}
 		}
 	}
 
@@ -3116,14 +3121,36 @@ static lbm_value ext_i2c_tx_rx(lbm_value *args, lbm_uint argn) {
 	}
 
 	i2c_cfg.has_error = false;
-	return lbm_enc_i(i2c_bb_tx_rx(&i2c_cfg, addr, txbuf, txlen, rxbuf, rxlen) ? 1 : 0);
+	bool res = i2c_bb_tx_rx(&i2c_cfg, addr, txbuf, txlen, rxbuf, rxlen);
+
+	if (!is_arr && txbuf) {
+		lbm_free(txbuf);
+	}
+
+	return lbm_enc_i(res ? 1 : 0);
+}
+
+static lbm_value ext_i2c_detect_addr(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1);
+
+	if (!i2c_started) {
+		lbm_set_error_reason(i2c_not_started_msg);
+		return ENC_SYM_EERROR;
+	}
+
+	uint8_t address = lbm_dec_as_u32(args[0]);
+
+	bool res = i2c_bb_write_byte(&i2c_cfg, true, true, address << 1);
+
+	return res ? ENC_SYM_NIL : ENC_SYM_TRUE;
 }
 
 static lbm_value ext_i2c_restore(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 
 	if (!i2c_started) {
-		return lbm_enc_i(0);
+		lbm_set_error_reason(i2c_not_started_msg);
+		return ENC_SYM_EERROR;
 	}
 
 	i2c_bb_restore_bus(&i2c_cfg);
@@ -5437,6 +5464,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("i2c-start", ext_i2c_start);
 	lbm_add_extension("i2c-tx-rx", ext_i2c_tx_rx);
 	lbm_add_extension("i2c-restore", ext_i2c_restore);
+	lbm_add_extension("i2c-detect-addr", ext_i2c_detect_addr);
 
 	// GPIO
 	lbm_add_extension("gpio-configure", ext_gpio_configure);

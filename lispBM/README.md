@@ -2975,6 +2975,20 @@ Sends a sequence of bits in an attempt to restore the i2c-bus. Can be used if an
 
 ---
 
+#### i2c-detect-addr
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(i2c-detect-addr address)
+```
+
+Test if address is present on the bus by writing to it and checking the nack-bit. Returns true if the address is present, nil otherwise. Can be used to detect if I2C-devices are plugged in and powered correctly.
+
+---
+
 #### imu-start-lsm6
 
 | Platforms | Firmware |

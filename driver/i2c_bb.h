@@ -44,5 +44,7 @@ typedef struct {
 void i2c_bb_init(i2c_bb_state *s);
 void i2c_bb_restore_bus(i2c_bb_state *s);
 bool i2c_bb_tx_rx(i2c_bb_state *s, uint16_t addr, uint8_t *txbuf, size_t txbytes, uint8_t *rxbuf, size_t rxbytes);
+bool i2c_bb_write_byte(i2c_bb_state *s, bool send_start, bool send_stop, unsigned char byte);
+unsigned char i2c_bb_read_byte(i2c_bb_state *s, bool nack, bool send_stop);
 
 #endif /* I2C_BB_H_ */
