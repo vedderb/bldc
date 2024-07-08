@@ -654,6 +654,8 @@ typedef struct {
 	lib_semaphore (*sem_create)(void); // Use VESC_IF->free on the semaphore when done with it
 	void (*sem_wait)(lib_semaphore);
 	void (*sem_signal)(lib_semaphore);
+	bool (*sem_wait_to)(lib_semaphore, systime_t); // Returns false on timeout
+	void (*sem_reset)(lib_semaphore);
 } vesc_c_if;
 
 typedef struct {

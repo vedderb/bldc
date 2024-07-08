@@ -647,6 +647,14 @@ static void lib_sem_signal(lib_semaphore s) {
 	chSemSignal((semaphore_t*)s);
 }
 
+static bool lib_sem_wait_to(lib_semaphore s, systime_t timeout_ticks) {
+	return chSemWaitTimeout((semaphore_t*)s, timeout_ticks) == MSG_OK;
+}
+
+static void lib_sem_reset(lib_semaphore s) {
+	chSemReset((semaphore_t*)s, 0);
+}
+
 static remote_state lib_get_remote_state(void) {
 	remote_state res;
 	res.js_x = app_nunchuk_get_decoded_x();
@@ -1012,6 +1020,8 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.sem_create = lib_sem_create;
 		cif.cif.sem_wait = lib_sem_wait;
 		cif.cif.sem_signal = lib_sem_signal;
+		cif.cif.sem_wait_to = lib_sem_wait_to;
+		cif.cif.sem_reset = lib_sem_reset;
 
 		lib_init_done = true;
 	}
