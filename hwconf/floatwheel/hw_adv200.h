@@ -1,5 +1,5 @@
 /*
-	Copyright 2022 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,13 +17,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_Thor300_AO_H_
-#define HW_Thor300_AO_H_
+#ifndef HW_ADV200_H_
+#define HW_ADV200_H_
 
-#define HW_NAME					"Thor300_AO"
+#define ADV200
+#define HW_NAME "ADV200"
 
-#include "hw_Thor300_core.h"
+#include "hw_adv_core.h"
 
-#define ALWAYS_ON 1
-
-#endif
+#endif /* HW_ADV200_H_ */
