@@ -655,6 +655,33 @@ static void lib_sem_reset(lib_semaphore s) {
 	chSemReset((semaphore_t*)s, 0);
 }
 
+// Guaranteed to block. First drains the semaphore to 0 if its counter is positive and
+// then waits on it with given timeout(special values TIME_IMMEDIATE and TIME_INFINITE are honored).
+// Returns MSG_RESET or MSG_TIMEOUT if that was the result of the wait operations.
+// Otherwise returns a non-negative number of overruns, i.e. the number by which the semaphore
+// had to be decreased before the wait operation.
+//
+// Useful for implementing binary-semaphore like semantics where it's important to ignore
+// semaphore overruns.
+static int32_t lib_sem_drain_and_wait_timeout(lib_semaphore sem, systime_t timeout) {
+	chSysLock();
+	const cnt_t sem_counter =  chSemGetCounterI((semaphore_t*)sem);
+	// setCounter isn't exposed and I don't want to manually manipulate the internal counter
+	for (cnt_t i = 0; i < sem_counter; i++) {
+		chSemFastWaitI((semaphore_t*)sem);
+	}
+	const msg_t wait_result = chSemWaitTimeoutS((semaphore_t*)sem, timeout);
+	chSysUnlock();
+	if (wait_result < 0) { // MSG_RESET and MSG_TIMEOUT are negative
+		return wait_result;
+	}
+	return sem_counter < 0 ? 0 : sem_counter;
+}
+
+static systime_t lib_time_to_ticks(uint32_t seconds, uint32_t millis, uint32_t micros) {
+	return S2ST(seconds) + MS2ST(millis) + US2ST(micros);
+}
+
 static remote_state lib_get_remote_state(void) {
 	remote_state res;
 	res.js_x = app_nunchuk_get_decoded_x();
@@ -1022,6 +1049,10 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.sem_signal = lib_sem_signal;
 		cif.cif.sem_wait_to = lib_sem_wait_to;
 		cif.cif.sem_reset = lib_sem_reset;
+		cif.cif.sem_drain_and_wait_timeout = lib_sem_drain_and_wait_timeout;
+
+		// OS continued
+		cif.cif.time_to_ticks = lib_time_to_ticks;
 
 		lib_init_done = true;
 	}
