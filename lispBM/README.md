@@ -4569,56 +4569,75 @@ Calculate length of string str excluding the null termination. Example:
 | ESC, Express | 6.05+ |
 
 ```clj
-(str-find str substr [occurrence] [start] [direction])
+(str-find str substr [start] [occurrence] [direction])
 ```
 
 Finds the index of the first character of a substring `substr` in the string `str`,
-returning this index, or `-1` if it doesn't exist.
+returning this index, or `-1` if it doesn't exist. `substr` can also be a list
+of strings, in which case a certain positon only needs to be equal to one of
+these substrings to be considered a match. If this list is empty, `-1` is always
+returned, and searching for an empty string returns the starting index.
 
-Optional argument:
-- `occurrence`: When given, this specifies which occurrence (starting at zero)
-  to look for, otherwise the index of the first is returned by default.
-  Essentially, this many matches are skipped before an index is returned.
-- `start`: Overrides which index the search starts at. Defaults to 0 if
-  searching to the right or to the end of the string minus the length of `substr`
-  if searching to the left.
-- `direction`: The direction to perform the search in. One of the symbols `left` or
-  `right`. Defaults to `right`, starting from the first character. Can be passed
+**Optional arguments:**  
+- `start`: Overrides which index the search starts at. May be negative, in which
+  case it specifies which index to start at from the end, with `-1` resulting in
+  starting at the last character of the string (See one of the examples below).
+  Defaults to 0 if searching to the right, otherwise to the end of the string
+  minus the length of `substr` if searching to the left. If it helps, the
+  formula is then `(- (+ (str-len str) 1) (str-len substr))`, if `substr` is a
+  list, the shortest string length is used.
+- `occurrence`: When given, this specifies how many matches to skip before
+  an index is returned, otherwise the index of the first is returned by default.
+- `direction`: The direction to perform the search in. One of the symbols `left`
+  or `right`. Defaults to `right`, starting from the first character. Can be passed
   in an earlier position if `occurrence` and/or `start` are left out.
 
-Searches that start outside valid positions always return `-1`. It is allowed to
-search for an empty string, in which case the starting index is returned.
+It is valid if the resulting start index is outside the range of `str` (i.e.
+being smaller than 0 or larger than the size of `str`), in which case the
+expected behaviour is performed by either immediatly returning no match (`-1`)
+or skipping the index forward to the first potentially valid match (depending on
+the direction).
 
-**Note**  
+**Note about byte arrays**  
 `str` is actually considered to be a byte array, meaning that the final
 terminating null byte is considered when searching. The final byte of `substr`
 is on the other hand removed before it is searched for. If you want to search
 for an abitrary byte sequence you must first increase the size of `substr` by
 one, for instance with `(buf-resize substr 1 'copy)`.
-
-This function replaces `buf-find` which existed in earlier versions of v6.05. It
-is backwards compatible with that version, so you should be able to just
-search and replace `buf-find` with `str-find`.
+Note however that since specifying `start` to be `-1` starts the search at the
+last character (which is the second to last byte in a null-terminated string),
+**it is impossible to specify that the search should start at the last byte**!
+(If you need that functionality, you'll unfortunately need to implement that
+yourself and only specify positive values for `start`.)  
+This function actually replaces `buf-find` which existed in earlier versions of
+v6.05. This version is almost backwards compatible, so you should be able to
+just search and replace `buf-find` with `str-find` for most cases. The only
+change is that the third argument `occurrence` has been moved to the fourth
+position (with `start` taking the third). So you'll need to replace
+`(buf-find buf seq x)` with `(str-find buf seq 0 x)` in this case.
 
 Examples:
 ```clj
-(str-find "-str-str-" "str")
+(str-find "-str-" "str")
 > 1
 
-(str-find "-str-str-" "str" 1)
+(str-find "-str-str-" "str" 0 1)
 > 5
 
-(str-find "-str-str-" "str" 0 2)
+(str-find "-str-str-" "str" 2)
 > 5
 
 (str-find "-str-str-" "str" 'left)
 > 5
 
-(str-find "-str-str-" "str" 1 'left)
-> 1
+(str-find "-ab-ab-" "ab" 5 'left)
+> 4
 
-(str-find "-str-str-" "str" 0 7 'left)
-> 5
+(str-find "-ab-ba-" '("ba" "ab") 0 1)
+> 4
+
+(str-find "a--a" "a" -1 'left)
+> 3
 ```
 
 ---
