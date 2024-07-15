@@ -571,8 +571,8 @@
                         ))
             (para (list "Some times evaluation is impossible. This could be because the program is malformed, a type mismatch or"
                         "a division by zero (among many other possibilities)."
-                        "Errors terminate the evaluation of the expression. To recover from an error and handle it"
-                        "the programmer needs to explicitly `trap` the error."
+                        "Errors terminate the evaluation of the expression. To recover from an error"
+                        "the programmer needs to explicitly `trap` it."
                         ))
             (code '((trap (/ 1 0 ))
                     ))
@@ -599,9 +599,11 @@
                   )
             
             (para (list "Symbols evaluate by a lookup in the environment."
-                        "First, the local environment is searched for a binding of the symbols."
+                        "First, the local environment is searched for a binding of the symbol."
                         "If unable to find a binding in the local environment, the global environment is searched."
-                        "If unable to find a binding in the global environment as well, an error `variable_not_bound` is triggered." 
+                        "If unable to find a binding in the global environment as well, the runtime system attempts to dynamically load"
+                        "a binding using a system provided callback function."
+                        "If all of the above fails to provide a value a `variable_not_bound` error is produced."
                         ))
             (para (list "**Composite forms**"
                         ))
@@ -610,7 +612,7 @@
                         "There are three major categories that `e1` can fall into. Either `e1` is something that"
                         "represents a function and `(e1 ... eN)` is a function application."
                         "Or `e1` is a so-called *special-form* that form the core of the LBM language."
-                        "Or lastly, `e1` is anything else than the above and the composite form is malformed ultimately resulting in an error."
+                        "Or lastly, `e1` is anything else and the composite form is malformed and will ultimately result in an error."
                         ))
             (para (list "The composite form `(e1 ... eN)` is evaluated by first checking if `e1` is a special form or not."
                          "if `e1` is a special form the composite form is passed to a special-form evaluator."
@@ -619,34 +621,46 @@
                          ))
             (para (list "**Special form evaluation**"
                         ))
-            (para (list "The special-forms in lispBM are:"
+            (para (list "Below are a selection of basic special-forms in lispBM together with their evaluation process"
                         ))
-            (bullet (list "quote"
-                          "define"
-                          "progn"
-                          "lambda"
-                          "if"
-                          "let"
-                          "and"
-                          "or"
-                          "match"
-                          "receive"
-                          "callcc"
-                          "atomic"
-                          "macro"
-                          "closure"
-                          "cond"
-                          "setq"
-                          "move-to-flash"
-                          "loop"
-                          "trap"
-                          ))
+            (bullet (list "**quote**: `(quote a)` evaluates to a for any a"
+                          "**define**: `(define s e)`, `e` is evaluated into `v` and the global environment is augmented with the pair `(s . v)`"
+                          "**lambda**: `(lambda params body)` is evaluated into '(closure params body env)`. `env` is the local environment there the lambda expression is evaluated."
+                          "**if**: `(if e1 e2 e3)` is evaluated by evaluating `e1` into `v1` if `v1` is nil, `e3` is evaluated otherwise `e2` is evaluated."
+			  "**progn**: `(progn e1 e2 ... eN)` is evaluated by evaluating `e1` then `e2` and so on until `eN`. The value `v` that `eN` evaluats into is the value `(progn e1 e2 ... eN)` evaluates to."
+			  "**and**: `(and e1 e2 ... eN)` evaluates the `eI` expressions from left to right as long as they result in a non-nil value."
+			  "**or**: `(or e1 e2 ... eN)` evaluates the `eI` expressions from left to right until there is a non-nil result."
+			  ))
+	    (para (list "`and`, `or`, `progn` and `if` evaluates expressions in sequence."
+			"`if` evaluates first the condition expression and then"
+			"either the true or false branch. `progn` evaluates all of the expressions in sequence."
+			"In the case of `and`, `or`, `progn` and `if`, the constituent expressions are all evaluated in the same local environment."
+			"Any extensions to the local environment performed by an expresison in the sequence is only visible within that expression itself."
+			))
+	    (bullet (list "**let**: `(let ((s1 e1) (s2 e2) ... (sN eN) e)` eI are evaluated in order into `vI`. The local environment is extended with `(sI . vI)`. `sI` is visible in `eJ` for `J >= I`. `e` is then evaluated in the extended local environment."
+			  "**setq**: `(setq s e)' is evaluated by first evaluating `e` into `v`. The environments are then scanned for a bining of `s`. local environment is searched first followed by global. If a binding of `s` is found it is modified into `(s . v)`."
+			  ))
+	    (para (list "If no binding of `s` is found when evaluating `(setq s e)` a `variable_not_bound` error is triggered."
+			))
+            ;; (bullet (list "callcc"
+            ;;               "atomic"
+            ;;               "macro"
+            ;;               "closure"
+            ;;               "cond"
+            ;;               "trap"
+            ;;               ))
             (para (list "**Function application evaluation**"
                         ))
             (para (list "The evaluation strategies explained here are applied to composite expressions"
                         "of the `(e1 ... eN)` form."
                         ))
             (para (list "**The quote and the quasiquote**"
+                        ))
+            (para (list "The LBM parser (Reader) expands usages of the character sequences:"
+                        "`'`, `` ` ``, `,` and `,@`."
+                        "The `'` as in `'a` is expanded into `(quote a)` for any a."
+                        "The remaining `` ` ``, `,` and `,@` are expanded into applications of `quote`, `append` and `cons`"
+                        "using the algorithms described by Bawden in [quasiquotation in lisp](https://brics.dk/NS/99/1/BRICS-NS-99-1.pdf#page=6)."
                         ))
             ))
   )

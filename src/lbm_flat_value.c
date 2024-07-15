@@ -744,7 +744,7 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
     lbm_uint sym_id;
     int r = lbm_get_symbol_by_name((char *)(v->buf + v->buf_pos), &sym_id);
     if (!r) {
-      r = lbm_add_symbol((char *)(v->buf + v->buf_pos), &sym_id);
+      r = lbm_add_symbol_base((char *)(v->buf + v->buf_pos), &sym_id,false); //ram
     }
     if (r) {
       lbm_uint num_bytes = strlen((char*)(v->buf + v->buf_pos)) + 1;

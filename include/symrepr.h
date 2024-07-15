@@ -51,6 +51,7 @@ int lbm_symrepr_init(void);
  * \param symrepr_name_iterator_fun function taking a string
  */
 void lbm_symrepr_name_iterator(symrepr_name_iterator_fun f);
+int lbm_add_symbol_base(char *name, lbm_uint *id, bool flash);
 /** Add a symbol to the symbol table. The symbol name string is copied to arrays and symbols memory.
  *
  * \param name String representation of the symbol.
@@ -72,6 +73,7 @@ int lbm_add_symbol_flash(char *name, lbm_uint* id);
     \return 1 for success and 0 for failure.
 */
 int lbm_str_to_symbol(char *name, lbm_uint *sym_id);
+int lbm_add_symbol_const_base(char *name, lbm_uint* id);
 /** Add a symbol to the symbol table. The name is assumed to be a statically allocated string.
  *
  * \param name Statically allocated name string.
