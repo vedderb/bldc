@@ -24,6 +24,8 @@
   #define HW_NAME					"STR500"
 #elif defined(HWSTR500_01) // 0.1 mOhm shunts
   #define HW_NAME					"STR500_01"
+#elif defined(HWSTR500_HP)
+  #define HW_NAME					"STR500_HP"
 #else
   #error "Must define hardware type"
 #endif
@@ -113,24 +115,31 @@
 #define ADC_IND_CURR1			0
 #define ADC_IND_CURR2			1
 #define ADC_IND_CURR3			2
-#define ADC_IND_EXT5			11
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
 #define ADC_IND_SHUTDOWN		10
 #define ADC_IND_EXT3			8
-#define ADC_IND_EXT6			9
 #define ADC_IND_VREFINT			12
 #define ADC_IND_ADC_MUX			15
 #define ADC_IND_EXT4			16
 
 #define ADC_IND_TEMP_MOTOR		18
-#define ADC_IND_VIN_SENS		19
 #define ADC_IND_TEMP_MOS		20
 #define ADC_IND_TEMP_MOS_2		21
 #define ADC_IND_NC				22
 #define ADC_IND_EXT8			23
 #define ADC_IND_EXT7			24
 #define ADC_IND_TEMP_MOS_3		25
+
+#ifdef HWSTR500_HP
+#define ADC_IND_EXT5			9
+#define ADC_IND_EXT6			19
+#define ADC_IND_VIN_SENS		11
+#else
+#define ADC_IND_EXT5			11
+#define ADC_IND_EXT6			9
+#define ADC_IND_VIN_SENS		19
+#endif
 
 // ADC macros and settings
 
