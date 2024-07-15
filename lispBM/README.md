@@ -4271,6 +4271,35 @@ Create a string from the number n. Also takes an optional format argument optFor
 
 ---
 
+#### str-join
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(str-join strings opt-delim)
+```
+
+Joins a list of strings into one, with an optional delimeter string placed
+between each.
+
+Note: Passing in an empty list returns `""`.
+
+Examples:
+```clj
+(str-join '("a" "b" "c"))
+> "abc"
+
+(str-join '("I" "love" "lispbm!") " ")
+> "I love lispbm!"
+
+(str-join '() " ")
+> ""
+```
+
+---
+
 #### str-merge
 
 | Platforms | Firmware |
@@ -4529,6 +4558,86 @@ Calculate length of string str excluding the null termination. Example:
 ```clj
 (str-len "Hello")
 > 5
+```
+
+---
+
+#### str-find
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(str-find str substr [start] [occurrence] [direction])
+```
+
+Finds the index of the first character of a substring `substr` in the string `str`,
+returning this index, or `-1` if it doesn't exist. `substr` can also be a list
+of strings, in which case a certain positon only needs to be equal to one of
+these substrings to be considered a match. If this list is empty, `-1` is always
+returned, and searching for an empty string returns the starting index.
+
+**Optional arguments:**  
+- `start`: Overrides which index the search starts at. May be negative, in which
+  case it specifies which index to start at from the end, with `-1` resulting in
+  starting at the last character of the string (See one of the examples below).
+  Defaults to 0 if searching to the right, otherwise to the end of the string
+  minus the length of `substr` if searching to the left. If it helps, the
+  formula is then `(- (+ (str-len str) 1) (str-len substr))`, if `substr` is a
+  list, the shortest string length is used.
+- `occurrence`: When given, this specifies how many matches to skip before
+  an index is returned, otherwise the index of the first is returned by default.
+- `direction`: The direction to perform the search in. One of the symbols `left`
+  or `right`. Defaults to `right`, starting from the first character. Can be passed
+  in an earlier position if `occurrence` and/or `start` are left out.
+
+It is valid if the resulting start index is outside the range of `str` (i.e.
+being smaller than 0 or larger than the size of `str`), in which case the
+expected behaviour is performed by either immediatly returning no match (`-1`)
+or skipping the index forward to the first potentially valid match (depending on
+the direction).
+
+**Note about byte arrays**  
+`str` is actually considered to be a byte array, meaning that the final
+terminating null byte is considered when searching. The final byte of `substr`
+is on the other hand removed before it is searched for. If you want to search
+for an abitrary byte sequence you must first increase the size of `substr` by
+one, for instance with `(buf-resize substr 1 'copy)`.
+Note however that since specifying `start` to be `-1` starts the search at the
+last character (which is the second to last byte in a null-terminated string),
+**it is impossible to specify that the search should start at the last byte**!
+(If you need that functionality, you'll unfortunately need to implement that
+yourself and only specify positive values for `start`.)  
+This function actually replaces `buf-find` which existed in earlier versions of
+v6.05. This version is almost backwards compatible, so you should be able to
+just search and replace `buf-find` with `str-find` for most cases. The only
+change is that the third argument `occurrence` has been moved to the fourth
+position (with `start` taking the third). So you'll need to replace
+`(buf-find buf seq x)` with `(str-find buf seq 0 x)` in this case.
+
+Examples:
+```clj
+(str-find "-str-" "str")
+> 1
+
+(str-find "-str-str-" "str" 0 1)
+> 5
+
+(str-find "-str-str-" "str" 2)
+> 5
+
+(str-find "-str-str-" "str" 'left)
+> 5
+
+(str-find "-ab-ab-" "ab" 5 'left)
+> 4
+
+(str-find "-ab-ba-" '("ba" "ab") 0 1)
+> 4
+
+(str-find "a--a" "a" -1 'left)
+> 3
 ```
 
 ---
@@ -4816,23 +4925,6 @@ This will clear the allocated memory for `arr`.
 
 **Note**  
 Strings in lispBM are treated the same as byte arrays, so all of the above can be done to the characters in strings too.
-
----
-
-#### buf-find
-
-| Platforms | Firmware |
-|---|---|
-| ESC, Express | 6.05+ |
-
-```clj
-(buf-find arr seq optOccurence)
-```
-
-Find position of `seq` in array `arr`. The optional argument optOccurence specifies which occurrence of `seq` to look for - if it is set to 0 or left out the position of the first occurrence will be returned. If `seq` is not found -1 will be returned.
-
-**NOTE**  
-The last byte in `seq` will be ignored as that is the null-terminator if `seq` is a string (which is the most common use case). If the match should be done on the last byte too `seq` can be padded with a dummy-byte.
 
 ---
 
