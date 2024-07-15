@@ -740,7 +740,7 @@ int main(int argc, char **argv) {
   lbm_pause_eval_with_gc(20);
   int wait_count = 0;
   while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-    if (wait_count >= 10) {
+    if (wait_count >= 100) {
       printf("Could not pause the evaluator\n");
       return FAIL;
     }

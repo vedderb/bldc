@@ -9,7 +9,7 @@
 
 
 
-(defun code (x) (def apa (eval `(read (str-merge "bepa" (str-from-n x))))))
+(defun code (x) (def apa (eval `(read (str-join (list "bepa" (str-from-n x)))))))
 
 ;; 4 + 1 (2 or 3) bytes per string, padded to 8 bytes
 ;; 3 * 4 bytes per symtable entry

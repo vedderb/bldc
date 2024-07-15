@@ -15,14 +15,14 @@ fi
 
 echo "PERFORMING TESTS: " $date
 
-expected_fails=("test_lisp_code_cps -t 25 -h 1024 test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 25 -s -h 1024 test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 25 -h 512 test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 25 -s -h 512 test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 25 -i -h 1024 test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 25 -i -s -h 1024 test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 25 -i -h 512 test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 25 -i -s -h 512 test_take_iota_0.lisp"
+expected_fails=("test_lisp_code_cps -t 25 -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps -t 25 -s -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps -t 25 -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps -t 25 -s -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps -t 25 -i -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps -t 25 -i -s -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps -t 25 -i -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps -t 25 -i -s -h 512 tests/test_take_iota_0.lisp"
                )
 
 
@@ -86,7 +86,7 @@ test_config=("-t 25 -h 32768"
 for prg in "test_lisp_code_cps" ; do
     for arg in "${test_config[@]}"; do
         echo "Configuration: " $arg
-        for lisp in *.lisp; do
+        for lisp in tests/*.lisp; do
             tmp_file=$(mktemp)
             ./$prg $arg $lisp > $tmp_file
             result=$?

@@ -238,11 +238,10 @@ int64_t lbm_dec_i64(lbm_value x) {
 
 char *lbm_dec_str(lbm_value val) {
   char *res = 0;
+  // If val is an array, car of val will be non-null. 
   if (lbm_is_array_r(val)) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(val);
-    if (array) {
-        res = (char *)array->data;
-    }
+    res = (char *)array->data;
   }
   return res;
 }
@@ -380,6 +379,54 @@ uint64_t lbm_dec_as_u64(lbm_value a) {
     return (uint64_t) lbm_dec_u64(a);
   case LBM_TYPE_DOUBLE:
     return (uint64_t) lbm_dec_double(a);
+  }
+  return 0;
+}
+
+lbm_uint lbm_dec_as_uint(lbm_value a) {
+  switch (lbm_type_of_functional(a)) {
+  case LBM_TYPE_CHAR:
+    return (lbm_uint) lbm_dec_char(a);
+  case LBM_TYPE_I:
+    return (lbm_uint) lbm_dec_i(a);
+  case LBM_TYPE_U:
+    return (lbm_uint) lbm_dec_u(a);
+  case LBM_TYPE_I32:
+    return (lbm_uint) lbm_dec_i32(a);
+  case LBM_TYPE_U32:
+    return (lbm_uint) lbm_dec_u32(a);
+  case LBM_TYPE_FLOAT:
+    return (lbm_uint) lbm_dec_float(a);
+  case LBM_TYPE_I64:
+    return (lbm_uint) lbm_dec_i64(a);
+  case LBM_TYPE_U64:
+    return (lbm_uint) lbm_dec_u64(a);
+  case LBM_TYPE_DOUBLE:
+    return (lbm_uint) lbm_dec_double(a);
+  }
+  return 0;
+}
+
+lbm_int lbm_dec_as_int(lbm_value a) {
+  switch (lbm_type_of_functional(a)) {
+  case LBM_TYPE_CHAR:
+    return (lbm_int) lbm_dec_char(a);
+  case LBM_TYPE_I:
+    return (lbm_int) lbm_dec_i(a);
+  case LBM_TYPE_U:
+    return (lbm_int) lbm_dec_u(a);
+  case LBM_TYPE_I32:
+    return (lbm_int) lbm_dec_i32(a);
+  case LBM_TYPE_U32:
+    return (lbm_int) lbm_dec_u32(a);
+  case LBM_TYPE_FLOAT:
+    return (lbm_int)lbm_dec_float(a);
+  case LBM_TYPE_I64:
+    return (lbm_int) lbm_dec_i64(a);
+  case LBM_TYPE_U64:
+    return (lbm_int) lbm_dec_u64(a);
+  case LBM_TYPE_DOUBLE:
+    return (lbm_int) lbm_dec_double(a);
   }
   return 0;
 }

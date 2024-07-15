@@ -1,6 +1,7 @@
 /** \file lbm_types.h */
 /*
     Copyright 2019, 2022 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2024       Rasmus Söderhielm    rasmus.soderhielm@gmail.com
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -49,6 +50,10 @@ typedef int32_t  lbm_int;
 typedef float    lbm_float;
 typedef double   lbm_double;
 
+#define LBM_UINT_MAX UINT32_MAX
+#define LBM_INT_MIN  INT32_MIN
+#define LBM_INT_MAX  INT32_MAX
+
 #define PRI_VALUE PRIu32
 #define PRI_TYPE  PRIu32
 #define PRI_UINT  PRIu32
@@ -71,6 +76,10 @@ typedef int64_t   lbm_int;
 
 typedef float    lbm_float;
 typedef double   lbm_double;
+
+#define LBM_UINT_MAX UINT64_MAX
+#define LBM_INT_MIN  INT64_MIN
+#define LBM_INT_MAX  INT64_MAX
 
 #define PRI_VALUE PRIu64
 #define PRI_TYPE  PRIu64
