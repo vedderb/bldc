@@ -131,6 +131,7 @@ void terminal_process_string(char *str) {
 		if (fault_vec_write == 0) {
 			commands_printf("No faults registered since startup\n");
 		} else {
+			commands_printf("Active fault: %s\n", mc_interface_fault_to_string(mc_interface_get_fault()));
 			commands_printf("The following faults were registered since start:\n");
 			for (int i = 0;i < fault_vec_write;i++) {
 				commands_printf("Fault            : %s", mc_interface_fault_to_string(fault_vec[i].fault));
