@@ -212,6 +212,9 @@ typedef struct {
 	lbm_uint adc_v1_min;
 	lbm_uint adc_v1_max;
 	lbm_uint pas_current_scaling;
+	lbm_uint tc_status;
+	lbm_uint tc_slip_thresold;
+	lbm_uint max_erpm_rate;
 
 	// Sysinfo
 	lbm_uint hw_name;
@@ -545,6 +548,12 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			get_add_symbol("adc-v1-max", comp);
 		} else if (comp == &syms_vesc.pas_current_scaling) {
 			get_add_symbol("pas-current-scaling", comp);
+		} else if (comp == &syms_vesc.tc_status) {
+			get_add_symbol("tc-status", comp);
+		} else if (comp == &syms_vesc.tc_slip_thresold) {
+			get_add_symbol("tc-slip-thresold", comp);
+		} else if (comp == &syms_vesc.max_erpm_rate) {
+			get_add_symbol("max-rpm-rate", comp);
 		}
 
 		else if (comp == &syms_vesc.hw_name) {
@@ -3493,6 +3502,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.foc_fw_duty_start)) {
 			mcconf->foc_fw_duty_start = lbm_dec_as_float(args[1]);
 			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.max_erpm_rate)) {
+			mcconf->max_erpm_rate = lbm_dec_as_float(args[1]);
+			changed_mc = 2;
 		} else if (compare_symbol(name, &syms_vesc.can_baud_rate)) {
 			appconf->can_baud_rate = lbm_dec_as_i32(args[1]);
 			changed_app = 2;
@@ -3543,6 +3555,12 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 			changed_app = 2;
 		} else if (compare_symbol(name, &syms_vesc.pas_current_scaling)) {
 			appconf->app_pas_conf.current_scaling = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.tc_slip_thresold)) {
+			appconf->app_adc_conf.tc_slip_thresold = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.tc_status)) {
+			appconf->app_adc_conf.tc = (lbm_dec_as_char(args[1]) > 0);
 			changed_app = 2;
 		}
 	}
@@ -3808,6 +3826,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->l_min_erpm / speed_fact);
 	} else if (compare_symbol(name, &syms_vesc.max_speed)) {
 		res = lbm_enc_float(mcconf->l_max_erpm / speed_fact);
+	} else if (compare_symbol(name, &syms_vesc.max_erpm_rate)) {
+		res = lbm_enc_float(mcconf->max_erpm_rate);
 	} else if (compare_symbol(name, &syms_vesc.controller_id)) {
 		res = lbm_enc_i(appconf->controller_id);
 	} else if (compare_symbol(name, &syms_vesc.can_baud_rate)) {
@@ -3844,6 +3864,10 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(appconf->app_adc_conf.voltage_max);
 	} else if (compare_symbol(name, &syms_vesc.pas_current_scaling)) {
 		res = lbm_enc_float(appconf->app_pas_conf.current_scaling);
+	} else if (compare_symbol(name, &syms_vesc.tc_status)) {
+		res = lbm_enc_float(appconf->app_adc_conf.tc);
+	} else if (compare_symbol(name, &syms_vesc.tc_slip_thresold)) {
+		res = lbm_enc_float(appconf->app_adc_conf.tc_slip_thresold);
 	}
 
 	if (defaultcfg) {

@@ -718,15 +718,38 @@ void mc_interface_set_current_rel(float val) {
 	}
 
 	volatile mc_configuration *cfg = &motor_now()->m_conf;
+	float current_rel = val;
+
+	//// ERPM rate of change limiter
+	static float rpm_filtered = 0.0;
+	static float last_rpm = 0;
+	static systime_t last_time = 0;
+	UTILS_LP_MOVING_AVG_APPROX(rpm_filtered, mc_interface_get_rpm(), 4);
+
+	if(cfg->max_erpm_rate > 1.0){
+		float drpm = rpm_filtered-last_rpm;
+		float drpm_dt = drpm/((float)chVTTimeElapsedSinceX(last_time)); // d_rpm/d_ticks
+		last_rpm = rpm_filtered;
+		//convert rpm/s to rpm/ticks
+		float rpm_dt_max_diff = cfg->max_erpm_rate/(float)CH_CFG_ST_FREQUENCY;
+		float rpm_dt_thresold_diff = (rpm_dt_max_diff/4);
+		if (drpm_dt < rpm_dt_thresold_diff) drpm_dt = rpm_dt_thresold_diff;
+		if (drpm_dt > rpm_dt_max_diff) drpm_dt = rpm_dt_max_diff;
+		//partially limit the current between current_rel and current_rel/10
+		current_rel = utils_map(drpm_dt, rpm_dt_thresold_diff, rpm_dt_max_diff, val, val/10);
+	}
+	last_time = chVTGetSystemTimeX();
+	//// end of ERPM rate of change limiter
+
 	float duty = mc_interface_get_duty_cycle_now();
 
-	if (fabsf(duty) < 0.02 || SIGN(val) == SIGN(duty)) {
-		mc_interface_set_current(val * cfg->lo_current_max);
+	if (fabsf(duty) < 0.02 || SIGN(current_rel) == SIGN(duty)) {
+		mc_interface_set_current(current_rel * cfg->lo_current_max);
 	} else {
-		mc_interface_set_current(val * fabsf(cfg->lo_current_min));
+		mc_interface_set_current(current_rel * fabsf(cfg->lo_current_min));
 	}
 
-	if (fabsf(val * cfg->l_abs_current_max) > cfg->cc_min_current) {
+	if (fabsf(current_rel * cfg->l_abs_current_max) > cfg->cc_min_current) {
 		mc_interface_set_current_off_delay(0.1);
 	}
 }

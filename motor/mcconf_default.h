@@ -128,6 +128,9 @@
 #ifndef MCCONF_L_DUTY_START
 #define MCCONF_L_DUTY_START				1.0 // Start limiting current at this duty cycle
 #endif
+#ifndef MCCONF_L_MAX_RPM_RATE
+#define MCCONF_L_MAX_RPM_RATE           0.0 // Rate of change in ERPM/s 0=disabled
+#endif
 
 // Common PID-parameters
 #ifndef MCCONF_SP_PID_LOOP_RATE

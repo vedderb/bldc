@@ -608,11 +608,32 @@ static THD_FUNCTION(adc_thread, arg) {
 								if (is_reverse) {
 									rpm_tmp = -rpm_tmp;
 								}
-
-								float diff = rpm_tmp - rpm_lowest;
-                                if (diff < TC_DIFF_MAX_PASS) diff = 0;
-                                if (diff > config.tc_max_diff) diff = config.tc_max_diff;
-								current_out = utils_map(diff, 0.0, config.tc_max_diff, current_rel, 0.0);
+								/// LIMITED SLIP DIFFERENTIAL
+								float current_rel1 = current_rel;
+								float current_rel2 = current_rel;
+								if(config.tc_max_diff > TC_DIFF_MAX_PASS){
+									float tc_min_diff = config.tc_max_diff/30;
+									float diff = rpm_tmp - rpm_lowest;
+									if (diff < tc_min_diff){ 
+										diff = tc_min_diff;
+									} else if (diff > config.tc_max_diff){
+										diff = config.tc_max_diff;					
+									}
+									current_rel1 = utils_map(diff, tc_min_diff, config.tc_max_diff, current_rel, 0.0);
+								}
+								// LIMITED SLIP RATIO
+								if(config.tc_slip_thresold < 90.0){
+									float slip_thresold = config.tc_slip_thresold/100.0;
+									float slip_ratio = (rpm_tmp/rpm_lowest)-1;
+									if(slip_ratio > 1.0){
+										slip_ratio = 1.0;
+									}
+									if(slip_ratio < slip_thresold){
+										slip_ratio = slip_thresold;
+									}
+									current_rel2 = utils_map(slip_ratio, slip_thresold, 1.0, current_rel, 0.0);
+								}
+								current_out = utils_min_abs(current_rel1, current_rel2);
 							}
 
 							if (is_reverse) {
@@ -624,10 +645,32 @@ static THD_FUNCTION(adc_thread, arg) {
 					}
 
 					if (config.tc) {
-						float diff = rpm_local - rpm_lowest;
-                        if (diff < TC_DIFF_MAX_PASS) diff = 0;
-                        if (diff > config.tc_max_diff) diff = config.tc_max_diff;
-						current_out = utils_map(diff, 0.0, config.tc_max_diff, current_rel, 0.0);
+						/// LIMITED SLIP DIFFERENTIAL
+						float current_rel1 = current_rel;
+						float current_rel2 = current_rel;
+						if(config.tc_max_diff > TC_DIFF_MAX_PASS){
+							float tc_min_diff = config.tc_max_diff/30;
+							float diff = rpm_local - rpm_lowest;
+							if (diff < tc_min_diff){ 
+								diff = tc_min_diff;
+							} else if (diff > config.tc_max_diff){
+								diff = config.tc_max_diff;					
+							}
+							current_rel1 = utils_map(diff, tc_min_diff, config.tc_max_diff, current_rel, 0.0);
+						}
+						// LIMITED SLIP RATIO
+						if(config.tc_slip_thresold < 90.0){
+							float slip_thresold = config.tc_slip_thresold/100.0;
+							float slip_ratio = (rpm_local/rpm_lowest)-1;
+							if(slip_ratio > 1.0){
+								slip_ratio = 1.0;
+							}
+							if(slip_ratio < slip_thresold){
+								slip_ratio = slip_thresold;
+							}
+							current_rel2 = utils_map(slip_ratio, slip_thresold, 1.0, current_rel, 0.0);
+						}
+						current_out = utils_min_abs(current_rel1, current_rel2);
 					}
 				}
 
