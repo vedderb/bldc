@@ -29,14 +29,6 @@
 
 #include "lbm_vesc_utils.h"
 
-bool lbm_add_symbol_const_if_new(char *name, lbm_uint *id) {
-	if (!lbm_get_symbol_by_name(name, id) && !lbm_add_symbol_const(name, id)) {
-		return false;
-	}
-
-	return true;
-}
-
 lbm_array_header_t *lbm_dec_array_header(lbm_value value) {
 	if (!lbm_is_array_r(value)) {
 		return NULL;

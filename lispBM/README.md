@@ -3424,6 +3424,16 @@ The following selection of app and motor parameters can be read and set from Lis
                         ; 6: 50K
                         ; 7: 75K
                         ; 8: 100K
+'can-status-rate-1      ; CAN status rate 1 in Hz (Added in FW 6.05)
+'can-status-msgs-r1     ; Bitfield with the status messages (Added in FW 6.05)
+                        ; Bit0: Status 1 (RPM, Current, Duty)
+                        ; Bit1: Status 2 (Ah Used, Ah Charged)
+                        ; Bit2: Status 3 (Wh Used, Wh Charged)
+                        ; Bit3: Status 4 (T FET, T Mot, I In, PID pos)
+                        ; Bit4: Status 5 (V In, Tacho)
+                        ; Bit5: Status 6 (ADC1, ADC2, ADC3, PPM)
+'can-status-rate-2      ; CAN status rate 2 in Hz (Added in FW 6.05)
+'can-status-msgs-r2     ; See can-status-msgs-r1 (Added in FW 6.05)
 'ppm-ctrl-type          ; PPM Control Type
                         ;    0:  PPM_CTRL_TYPE_NONE
                         ;    1:  PPM_CTRL_TYPE_CURRENT
