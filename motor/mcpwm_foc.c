@@ -57,6 +57,7 @@ static void control_current(motor_all_state_t *motor, float dt);
 static void update_valpha_vbeta(motor_all_state_t *motor, float mod_alpha, float mod_beta);
 static void stop_pwm_hw(motor_all_state_t *motor);
 static void start_pwm_hw(motor_all_state_t *motor);
+static void full_brake_hw(motor_all_state_t *motor);
 static void terminal_tmp(int argc, const char **argv);
 static void terminal_plot_hfi(int argc, const char **argv);
 static void timer_update(motor_all_state_t *motor, float dt);
@@ -4693,10 +4694,19 @@ static void control_current(motor_all_state_t *motor, float dt) {
 #endif
 	}
 
-	// do not allow to turn on PWM outputs if virtual motor is used
 	if(virtual_motor_is_connected() == false) {
-		if (!motor->m_output_on) {
-			start_pwm_hw(motor);
+		// If all duty cycles are equal the phases should be shorted. Instead of
+		// modulating the short we keep all low-side FETs on - that will draw less
+		// power and not suffer from dead-time distortion. It also gives more
+		// braking torque at low speed.
+		if (conf_now->foc_short_ls_on_zero_duty && duty1 == duty2 && duty2 == duty3) {
+			if (motor->m_pwm_mode != FOC_PWM_FULL_BRAKE) {
+				full_brake_hw(motor);
+			}
+		} else {
+			if (motor->m_pwm_mode != FOC_PWM_ENABLED) {
+				start_pwm_hw(motor);
+			}
 		}
 	}
 }
@@ -4895,8 +4905,6 @@ static void stop_pwm_hw(motor_all_state_t *motor) {
 #ifdef HW_HAS_DRV8313
 		DISABLE_BR();
 #endif
-
-		motor->m_output_on = false;
 		PHASE_FILTER_OFF();
 	} else {
 		TIM_SelectOCxM(TIM8, TIM_Channel_1, TIM_ForcedAction_InActive);
@@ -4917,9 +4925,10 @@ static void stop_pwm_hw(motor_all_state_t *motor) {
 		DISABLE_BR_2();
 #endif
 
-		motor->m_output_on = false;
 		PHASE_FILTER_OFF_M2();
 	}
+
+	motor->m_pwm_mode = FOC_PWM_DISABLED;
 }
 
 static void start_pwm_hw(motor_all_state_t *motor) {
@@ -4950,6 +4959,10 @@ static void start_pwm_hw(motor_all_state_t *motor) {
 		TIM_CCxNCmd(TIM8, TIM_Channel_3, TIM_CCxN_Enable);
 
 		PHASE_FILTER_ON_M2();
+
+#ifdef HW_HAS_DRV8313_2
+		ENABLE_BR_2();
+#endif
 #endif
 
 		// Generate COM event in ADC interrupt to get better synchronization
@@ -4958,7 +4971,6 @@ static void start_pwm_hw(motor_all_state_t *motor) {
 #ifdef HW_HAS_DRV8313
 		ENABLE_BR();
 #endif
-		motor->m_output_on = true;
 		PHASE_FILTER_ON();
 	} else {
 		TIM_SelectOCxM(TIM8, TIM_Channel_1, TIM_OCMode_PWM1);
@@ -4976,9 +4988,75 @@ static void start_pwm_hw(motor_all_state_t *motor) {
 #ifdef HW_HAS_DRV8313_2
 		ENABLE_BR_2();
 #endif
-		motor->m_output_on = true;
 		PHASE_FILTER_ON_M2();
 	}
+
+	motor->m_pwm_mode = FOC_PWM_ENABLED;
+}
+
+static void full_brake_hw(motor_all_state_t *motor) {
+	if (motor == &m_motor_1) {
+		TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
+		TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
+		TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Enable);
+
+		TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_ForcedAction_InActive);
+		TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
+		TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Enable);
+
+		TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_ForcedAction_InActive);
+		TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
+		TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Enable);
+
+		TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+		PHASE_FILTER_ON();
+
+#ifdef HW_HAS_DRV8313
+		ENABLE_BR();
+#endif
+
+#ifdef HW_HAS_DUAL_PARALLEL
+		TIM_SelectOCxM(TIM8, TIM_Channel_1, TIM_ForcedAction_InActive);
+		TIM_CCxCmd(TIM8, TIM_Channel_1, TIM_CCx_Enable);
+		TIM_CCxNCmd(TIM8, TIM_Channel_1, TIM_CCxN_Enable);
+
+		TIM_SelectOCxM(TIM8, TIM_Channel_2, TIM_ForcedAction_InActive);
+		TIM_CCxCmd(TIM8, TIM_Channel_2, TIM_CCx_Enable);
+		TIM_CCxNCmd(TIM8, TIM_Channel_2, TIM_CCxN_Enable);
+
+		TIM_SelectOCxM(TIM8, TIM_Channel_3, TIM_ForcedAction_InActive);
+		TIM_CCxCmd(TIM8, TIM_Channel_3, TIM_CCx_Enable);
+		TIM_CCxNCmd(TIM8, TIM_Channel_3, TIM_CCxN_Enable);
+
+		TIM_GenerateEvent(TIM8, TIM_EventSource_COM);
+		PHASE_FILTER_ON_M2();
+
+#ifdef HW_HAS_DRV8313_2
+		ENABLE_BR_2();
+#endif
+#endif
+	} else {
+		TIM_SelectOCxM(TIM8, TIM_Channel_1, TIM_ForcedAction_InActive);
+		TIM_CCxCmd(TIM8, TIM_Channel_1, TIM_CCx_Enable);
+		TIM_CCxNCmd(TIM8, TIM_Channel_1, TIM_CCxN_Enable);
+
+		TIM_SelectOCxM(TIM8, TIM_Channel_2, TIM_ForcedAction_InActive);
+		TIM_CCxCmd(TIM8, TIM_Channel_2, TIM_CCx_Enable);
+		TIM_CCxNCmd(TIM8, TIM_Channel_2, TIM_CCxN_Enable);
+
+		TIM_SelectOCxM(TIM8, TIM_Channel_3, TIM_ForcedAction_InActive);
+		TIM_CCxCmd(TIM8, TIM_Channel_3, TIM_CCx_Enable);
+		TIM_CCxNCmd(TIM8, TIM_Channel_3, TIM_CCxN_Enable);
+
+		TIM_GenerateEvent(TIM8, TIM_EventSource_COM);
+		PHASE_FILTER_ON_M2();
+
+#ifdef HW_HAS_DRV8313_2
+		ENABLE_BR_2();
+#endif
+	}
+
+	motor->m_pwm_mode = FOC_PWM_FULL_BRAKE;
 }
 
 static void terminal_plot_hfi(int argc, const char **argv) {

@@ -487,6 +487,7 @@ typedef struct {
 	float foc_fw_ramp_time;
 	float foc_fw_q_current_factor;
 	FOC_SPEED_SRC foc_speed_soure;
+	bool foc_short_ls_on_zero_duty;
 
 	PID_RATE sp_pid_loop_rate;
 

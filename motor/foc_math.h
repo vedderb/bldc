@@ -127,6 +127,12 @@ typedef struct {
 	float sample_voltage;
 } mc_audio_state;
 
+typedef enum {
+	FOC_PWM_DISABLED = 0,
+	FOC_PWM_ENABLED,
+	FOC_PWM_FULL_BRAKE
+} foc_pwm_mode;
+
 typedef struct {
 	mc_configuration *m_conf;
 	mc_state m_state;
@@ -143,7 +149,7 @@ typedef struct {
 	float m_current_off_delay;
 	float m_openloop_speed;
 	float m_openloop_phase;
-	bool m_output_on;
+	foc_pwm_mode m_pwm_mode;
 	float m_pos_pid_set;
 	float m_speed_pid_set_rpm;
 	float m_speed_command_rpm;

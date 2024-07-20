@@ -2176,7 +2176,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 
 			m_vzero_samples[m_sample_now] = zero;
 			m_curr_fir_samples[m_sample_now] = (int16_t)(current * (8.0 / FAC_CURRENT));
-			m_f_sw_samples[m_sample_now] = (int16_t)(0.1 / t_samp);
+			m_f_sw_samples[m_sample_now] = (int16_t)(0.1 / t_samp / m_sample_int);
 			m_status_samples[m_sample_now] = mcpwm_get_comm_step() | (mcpwm_read_hall_phase() << 3);
 
 			m_sample_now++;

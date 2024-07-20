@@ -55,6 +55,7 @@
 * Fixed some braking glitches.
 * Configurable HFI error truncation to reject noise.
 * Removed GPDrive.
+* FOC: Option to short phases on 0 duty.
 
 ### 6.02
 #### 2023-03-12

@@ -493,6 +493,9 @@
 #ifndef MCCONF_FOC_SPEED_SOURCE
 #define MCCONF_FOC_SPEED_SOURCE			FOC_SPEED_SRC_CORRECTED // Position source for speed trackers
 #endif
+#ifndef MCCONF_FOC_SHORT_LS_ON_ZERO_DUTY
+#define MCCONF_FOC_SHORT_LS_ON_ZERO_DUTY false // Short low-side phases on zero duty cycle
+#endif
 
 // GPD
 #ifndef MCCONF_GPD_BUFFER_NOTIFY_LEFT
