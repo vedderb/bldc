@@ -2951,7 +2951,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	float curr1 = 0;
 	float curr2 = 0;
 
-// Get ADC readings 0-4095
+	// Get ADC readings 0-4095
 	if (is_second_motor) {
 		curr0 = GET_CURRENT1_M2();
 		curr1 = GET_CURRENT2_M2();
@@ -2969,17 +2969,17 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	curr2 += GET_CURRENT3_M2();	
 #endif
 
-// Store raw ADC readings
+	// Store raw ADC readings
 	motor_now->m_currents_adc[0] = curr0;
 	motor_now->m_currents_adc[1] = curr1;
 	motor_now->m_currents_adc[2] = curr2;
 
-// Shift to midpoint using offset (should be close to 2048)
+	// Shift to midpoint using offset (should be close to 2048)
 	curr0 -= conf_now->foc_offsets_current[0];
 	curr1 -= conf_now->foc_offsets_current[1];
 	curr2 -= conf_now->foc_offsets_current[2];
-	
-// Store midshifted raw ADC readings for raw sampling mode.
+
+	// Store midshifted raw ADC readings for raw sampling mode.
 	ADC_curr_raw[0 + norm_curr_ofs] = curr0;
 	ADC_curr_raw[1 + norm_curr_ofs] = curr1;
 	ADC_curr_raw[2 + norm_curr_ofs] = curr2;
@@ -2989,7 +2989,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	motor_now->m_curr_unbalance = curr0 + curr1 + curr2;
 #endif	
 
-// Scale to AMPs using calibrated scaling factors	
+	// Scale to AMPs using calibrated scaling factors
 	if (is_second_motor) {
 		curr0 *= FAC_CURRENT1_M2;
 		curr1 *= FAC_CURRENT2_M2;
@@ -4039,9 +4039,6 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 			float mag_bin_1 = NORM2_f(imag_bin1, real_bin1);
 			float angle_bin_1 = -utils_fast_atan2(imag_bin1, real_bin1);
 
-			angle_bin_1 += M_PI / 1.7; // Why 1.7??
-			utils_norm_angle_rad(&angle_bin_1);
-
 			//float mag_bin_2 = NORM2_f(imag_bin2, real_bin2);
 			float angle_bin_2 = -utils_fast_atan2(imag_bin2, real_bin2) / 2.0;
 
@@ -5070,7 +5067,7 @@ static void terminal_plot_hfi(int argc, const char **argv) {
 				get_motor_now()->m_hfi_plot_sample = 0.0;
 				commands_init_plot("Sample", "Value");
 				commands_plot_add_graph("Phase");
-				commands_plot_add_graph("Phase bin2");
+				commands_plot_add_graph("Phase bin1");
 				commands_plot_add_graph("Ld - Lq (uH");
 				commands_plot_add_graph("L Diff Sat (uH)");
 				commands_plot_add_graph("L Avg (uH)");
