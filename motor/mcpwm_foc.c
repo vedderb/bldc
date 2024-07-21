@@ -4670,12 +4670,12 @@ static void control_current(motor_all_state_t *motor, float dt) {
 #endif
 	}
 
-	if(virtual_motor_is_connected() == false) {
+	if (virtual_motor_is_connected() == false) {
 		// If all duty cycles are equal the phases should be shorted. Instead of
 		// modulating the short we keep all low-side FETs on - that will draw less
 		// power and not suffer from dead-time distortion. It also gives more
 		// braking torque at low speed.
-		if (conf_now->foc_short_ls_on_zero_duty && duty1 == duty2 && duty2 == duty3) {
+		if (conf_now->foc_short_ls_on_zero_duty && !do_hfi && duty1 == duty2 && duty2 == duty3) {
 			if (motor->m_pwm_mode != FOC_PWM_FULL_BRAKE) {
 				full_brake_hw(motor);
 			}
