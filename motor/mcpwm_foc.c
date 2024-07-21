@@ -1431,8 +1431,14 @@ float mcpwm_foc_get_est_res(void) {
 // NOTE: Requires the regular HFI sensor mode to run
 float mcpwm_foc_get_est_ind(void) {
 	float real_bin0, imag_bin0;
-	get_motor_now()->m_hfi.fft_bin0_func((float*)get_motor_now()->m_hfi.buffer, &real_bin0, &imag_bin0);
-	return real_bin0;
+	float real_bin2, imag_bin2;
+	get_motor_now()->m_hfi.fft_bin0_func((float*)get_motor_now()->m_hfi.buffer, &real_bin0, &imag_bin0); // real_bin0 contains the average of the inverse of the inductance
+	get_motor_now()->m_hfi.fft_bin0_func((float*)get_motor_now()->m_hfi.buffer, &real_bin2, &imag_bin2); // real_bin2 (cosine) and imag_bin2 (sine) contain the magnitude of the measured 2nd harmonic. Note: dual sided and length normalized FFT, so signal magnitude is twice the bin value.
+	float offset = real_bin0;
+	float amplitude = NORM2_f(real_bin2, imag_bin2) * 2.0;
+	float Ld_est = 1.0 / (offset + amplitude);
+	float Lq_est = 1.0 / (offset - amplitude);
+	return (Ld_est + Lq_est) / 2.0;
 }
 
 /**
@@ -1945,15 +1951,26 @@ int mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld
 		float real_bin2, imag_bin2;
 		float real_bin0_i, imag_bin0_i;
 
-		motor->m_hfi.fft_bin0_func((float*)motor->m_hfi.buffer, &real_bin0, &imag_bin0);
-		motor->m_hfi.fft_bin2_func((float*)motor->m_hfi.buffer, &real_bin2, &imag_bin2);
-		motor->m_hfi.fft_bin0_func((float*)motor->m_hfi.buffer_current, &real_bin0_i, &imag_bin0_i);
+		motor->m_hfi.fft_bin0_func((float*)motor->m_hfi.buffer, &real_bin0, &imag_bin0); // real_bin0 contains the average of the inverse of the inductance
+		motor->m_hfi.fft_bin2_func((float*)motor->m_hfi.buffer, &real_bin2, &imag_bin2); // real_bin2 (cosine) and imag_bin2 (sine) contain the magnitude of the measured 2nd harmonic. Note: dual sided and length normalized FFT, so signal magnitude is twice the bin value.
+		motor->m_hfi.fft_bin0_func((float*)motor->m_hfi.buffer_current, &real_bin0_i, &imag_bin0_i); // real_bin0_i contains the average delta current
 
-		l_sum += real_bin0;
-		i_sum += real_bin0_i;
+		//l_sum += real_bin0;
+		//i_sum += real_bin0_i;
 
 		// See https://vesc-project.com/comment/8338#comment-8338
-		ld_lq_diff_sum += 4.0 * NORM2_f(real_bin2, imag_bin2);
+		//ld_lq_diff_sum += 4.0 * NORM2_f(real_bin2, imag_bin2);
+
+		// Above was an approximation that is only valid for motors with not too much LdLq difference. Below is correct (assuming Ld < Lq).
+		float offset = real_bin0;
+		float amplitude = NORM2_f(real_bin2, imag_bin2) * 2.0;
+		float Ld_est = 1.0 / (offset + amplitude);
+		float Lq_est = 1.0 / (offset - amplitude);
+		
+		l_sum += (Ld_est + Lq_est) / 2.0;
+		ld_lq_diff_sum += (Lq_est - Ld_est);
+		
+		i_sum += real_bin0_i;
 
 		iterations++;
 	}
@@ -4025,7 +4042,7 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 			angle_bin_1 += M_PI / 1.7; // Why 1.7??
 			utils_norm_angle_rad(&angle_bin_1);
 
-			float mag_bin_2 = NORM2_f(imag_bin2, real_bin2);
+			//float mag_bin_2 = NORM2_f(imag_bin2, real_bin2);
 			float angle_bin_2 = -utils_fast_atan2(imag_bin2, real_bin2) / 2.0;
 
 			// Assuming this thread is much faster than it takes to fill the HFI buffer completely,
@@ -4081,7 +4098,14 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 
 					float real_bin0, imag_bin0;
 					motor->m_hfi.fft_bin0_func((float*)motor->m_hfi.buffer, &real_bin0, &imag_bin0);
-
+					float offset = real_bin0;
+					float amplitude = NORM2_f(real_bin2, imag_bin2) * 2.0;
+					float Ld_est = 1.0 / (offset + amplitude);
+					float Lq_est = 1.0 / (offset - amplitude);
+					
+					float L_est = (Ld_est + Lq_est) / 2.0;
+					float ld_lq_diff = (Lq_est - Ld_est);
+					
 					commands_plot_set_graph(0);
 					commands_send_plot_points(motor->m_hfi_plot_sample, motor->m_hfi.angle);
 
@@ -4089,13 +4113,13 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 					commands_send_plot_points(motor->m_hfi_plot_sample, angle_bin_1);
 
 					commands_plot_set_graph(2);
-					commands_send_plot_points(motor->m_hfi_plot_sample, 2.0 * mag_bin_2 * 1e6);
+					commands_send_plot_points(motor->m_hfi_plot_sample, ld_lq_diff * 1e6);
 
 					commands_plot_set_graph(3);
-					commands_send_plot_points(motor->m_hfi_plot_sample, 2.0 * mag_bin_1 * 1e6);
+					commands_send_plot_points(motor->m_hfi_plot_sample, (0.5 / mag_bin_1) * 1e6);
 
 					commands_plot_set_graph(4);
-					commands_send_plot_points(motor->m_hfi_plot_sample, real_bin0 * 1e6);
+					commands_send_plot_points(motor->m_hfi_plot_sample, L_est * 1e6);
 
 //					commands_plot_set_graph(0);
 //					commands_send_plot_points(motor->m_hfi_plot_sample, motor->m_pll_speed);
@@ -4582,14 +4606,14 @@ static void control_current(motor_all_state_t *motor, float dt) {
 			}
 		} else {
 			if (motor->m_hfi.is_samp_n) {
-				float sample_now = (utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_alpha -
-						utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_beta);
+				float sample_now = (utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_alpha +
+						utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_beta);
 				float di = (sample_now - motor->m_hfi.prev_sample);
 
 				motor->m_hfi.buffer_current[motor->m_hfi.ind] = di;
 
 				if (di > 0.01) {
-					motor->m_hfi.buffer[motor->m_hfi.ind] = hfi_voltage / (conf_now->foc_f_zv * di);
+					motor->m_hfi.buffer[motor->m_hfi.ind] = (conf_now->foc_f_zv * di) / hfi_voltage; //Changed to inverse of inductance. This is what is needed for the FFT, not the inductance itself. This is because the measurement has a dc offset, which will leak into other bins when the inverse is takes first.
 				}
 
 				motor->m_hfi.ind++;
@@ -4598,14 +4622,14 @@ static void control_current(motor_all_state_t *motor, float dt) {
 					motor->m_hfi.ready = true;
 				}
 
-				mod_alpha_v7 += hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
-				mod_beta_v7  -= hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
+				mod_alpha_v7 += hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
+				mod_beta_v7  += hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
 			} else {
-				motor->m_hfi.prev_sample = utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_alpha -
-						utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_beta;
+				motor->m_hfi.prev_sample = utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_alpha +
+						utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * state_m->i_beta;
 
-				mod_alpha_v7 -= hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
-				mod_beta_v7  += hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
+				mod_alpha_v7 -= hfi_voltage * utils_tab_cos_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
+				mod_beta_v7  -= hfi_voltage * utils_tab_sin_32_1[motor->m_hfi.ind * motor->m_hfi.table_fact] * voltage_normalize;
 			}
 		}
 
@@ -4631,7 +4655,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 				(uint32_t*)&motor->m_duty1_next,
 				(uint32_t*)&motor->m_duty2_next,
 				(uint32_t*)&motor->m_duty3_next,
-				(uint32_t*)&state_m->svm_sector);
+				(uint32_t*)&state_m->svm_sector); //svm_sector already gettings written here. Seems incorrect since it will only be used in the next update, but svm_sector seems unused so no issue.
 			motor->m_duty_next_set = true;
 		}
 	} else {
