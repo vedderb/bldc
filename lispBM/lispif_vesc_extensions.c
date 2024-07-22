@@ -183,6 +183,7 @@ typedef struct {
 	lbm_uint foc_offsets_cal_on_boot;
 	lbm_uint foc_fw_current_max;
 	lbm_uint foc_fw_duty_start;
+	lbm_uint foc_short_ls_on_zero_duty;
 	lbm_uint m_invert_direction;
 	lbm_uint m_out_aux_mode;
 	lbm_uint m_motor_temp_sens_type;
@@ -481,6 +482,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("foc-fw-current-max", comp);
 		} else if (comp == &syms_vesc.foc_fw_duty_start) {
 			lbm_add_symbol_const("foc-fw-duty-start", comp);
+		} else if (comp == &syms_vesc.foc_short_ls_on_zero_duty) {
+			lbm_add_symbol_const("foc-short-ls-on-zero-duty", comp);
 		} else if (comp == &syms_vesc.m_invert_direction) {
 			lbm_add_symbol_const("m-invert-direction", comp);
 		} else if (comp == &syms_vesc.m_out_aux_mode) {
@@ -3383,6 +3386,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.foc_offsets_cal_on_boot)) {
 		mcconf->foc_offsets_cal_on_boot = lbm_dec_as_i32(args[1]);
 		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.foc_short_ls_on_zero_duty)) {
+		mcconf->foc_short_ls_on_zero_duty = lbm_dec_as_i32(args[1]);
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.controller_id)) {
 		appconf->controller_id = lbm_dec_as_i32(args[1]);
 		changed_app = 1;
@@ -3800,6 +3806,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->foc_fw_current_max);
 	} else if (compare_symbol(name, &syms_vesc.foc_fw_duty_start)) {
 		res = lbm_enc_float(mcconf->foc_fw_duty_start);
+	} else if (compare_symbol(name, &syms_vesc.foc_short_ls_on_zero_duty)) {
+		res = lbm_enc_i(mcconf->foc_short_ls_on_zero_duty);
 	} else if (compare_symbol(name, &syms_vesc.m_invert_direction)) {
 		res = lbm_enc_i(mcconf->m_invert_direction);
 	} else if (compare_symbol(name, &syms_vesc.m_out_aux_mode)) {
