@@ -886,8 +886,18 @@ static lbm_value ext_bms_force_balance(lbm_value *args, lbm_uint argn) {
 	uint8_t data[2];
 	data[0] = COMM_BMS_FORCE_BALANCE;
 	data[1] = force;
-
 	bms_process_cmd(data, 2, 0);
+
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_bms_zero_offset(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	uint8_t data[1];
+	data[0] = COMM_BMS_ZERO_CURRENT_OFFSET;
+
+	bms_process_cmd(data, 1, 0);
 
 	return ENC_SYM_TRUE;
 }
@@ -5271,6 +5281,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("send-bms-can", ext_send_bms_can);
 	lbm_add_extension("set-bms-chg-allowed", ext_set_bms_chg_allowed);
 	lbm_add_extension("bms-force-balance", ext_bms_force_balance);
+	lbm_add_extension("bms-zero-offset", ext_bms_zero_offset);
 	lbm_add_extension("get-adc", ext_get_adc);
 	lbm_add_extension("override-temp-motor", ext_override_temp_motor);
 	lbm_add_extension("get-adc-decoded", ext_get_adc_decoded);

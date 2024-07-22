@@ -313,6 +313,20 @@ Start or stop balancing. 1 means start and 0 means stop.
 
 ---
 
+#### bms-zero-offset
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.05+ |
+
+```clj
+(bms-zero-offset)
+```
+
+Zero current measurement offset on BMS. Has to be done while no current (or charge-current on charge-only BMS) is flowing. Will be sent to every BMS on the CAN-bus.
+
+---
+
 #### get-adc
 
 | Platforms | Firmware |
