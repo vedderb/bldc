@@ -29,6 +29,9 @@
 #ifdef HW_HAS_DRV8305
 #include "drv8305.h"
 #endif
+#ifdef HW_HAS_DRV8316
+#include "drv8316.h"
+#endif
 #ifdef HW_HAS_DRV8320S
 #include "drv8320s.h"
 #endif
