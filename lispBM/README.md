@@ -3117,6 +3117,34 @@ Read state of pin. Returns 1 if the pin is high, 0 otherwise.
 
 ---
 
+#### gpio-hold
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(gpio-hold pin state)
+```
+
+It state is 1, the state of pin will be locked to its state at the moment of the call. If state is 0 the pin will be unlocked. The state persists through reset, but not through deep sleep.
+
+---
+
+#### gpio-hold-deepsleep
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(gpio-hold-deepsleep state)
+```
+
+It state is 1, all digital pads will hold their state during deep sleep. If it is set to 0 they will reset to their initial state when entering deep sleep.
+
+---
+
 ### Pulse-Width Modulation (PWM)
 
 A logic-level PWM-signal can be created on GPIO-pins for controlling various accessories. The Express-platform supports up to 4 PWM-channels on any pins and the ESC-platform supports only one PWM-channel on the servo-pin. The arguments prefixed with express in the following functions are ignored on the ESC-platform.
@@ -5861,6 +5889,34 @@ Set wifi bandwidth in MHz. This function is experimental and should only be used
 
 ---
 
+#### wifi-stop
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(wifi-stop)
+```
+
+Stop wifi-driver. Reduces power consumption.
+
+---
+
+#### wifi-start
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(wifi-start)
+```
+
+Start wifi-driver. Re-connects to networks that were connected before. Can be used to restart wifi after sleep-light.
+
+---
+
 ### Receiving Data
 
 Events can be used to receive ESP-NOW data. This is best described with an example:
@@ -6724,7 +6780,21 @@ Example:
 (sleep-deep time)
 ```
 
-Put the CPU in deep sleep mode for time seconds. If time is negative the CPU will sleep forever, or until a wakeup pin triggers a wakeup.
+Put the CPU in deep sleep mode for time seconds. If time is negative the CPU will sleep forever, or until a wakeup pin triggers a wakeup. Waking up from sleep-deep results in a complete reset.
+
+---
+
+#### sleep-light
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(sleep-light time)
+```
+
+Put the CPU in light sleep mode for time seconds. Waking up will return to the point where sleep-light was called without a complete reset, but the power draw is much higher than for sleep-deep. Note that wifi and bluetooth are disabled when using this function, so they have to be enabled again when waking up.
 
 ---
 
