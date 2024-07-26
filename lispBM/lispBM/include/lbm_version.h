@@ -27,14 +27,21 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 24
+#define LBM_MINOR_VERSION 25
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
-#define LBM_VERSION_STRING "0.24.0"
+#define LBM_VERSION_STRING "0.25.0"
 
 
 /*! \page changelog Changelog
+JUL 23 2024: Version 0.25.0
+  - Multiple bugfixes. 
+  - Trap function on expressions.
+  - Reference manual updates.
+  - New String operations (Thanks Rasmus S)
+  - Order of writes changed when writing to flash.
+
 APR 28 2024: Version 0.24.0
   - Cleaning of lispbm repository. less to maintain.
   - Lots of improvements to documentation.

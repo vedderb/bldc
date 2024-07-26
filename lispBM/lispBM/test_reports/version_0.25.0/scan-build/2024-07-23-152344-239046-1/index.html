@@ -1,0 +1,150 @@
+<html>
+<head>
+<title>lispbm - scan-build results</title>
+<link type="text/css" rel="stylesheet" href="scanview.css"/>
+<script src="sorttable.js"></script>
+<script language='javascript' type="text/javascript">
+function SetDisplay(RowClass, DisplayVal)
+{
+  var Rows = document.getElementsByTagName("tr");
+  for ( var i = 0 ; i < Rows.length; ++i ) {
+    if (Rows[i].className == RowClass) {
+      Rows[i].style.display = DisplayVal;
+    }
+  }
+}
+
+function CopyCheckedStateToCheckButtons(SummaryCheckButton) {
+  var Inputs = document.getElementsByTagName("input");
+  for ( var i = 0 ; i < Inputs.length; ++i ) {
+    if (Inputs[i].type == "checkbox") {
+      if(Inputs[i] != SummaryCheckButton) {
+        Inputs[i].checked = SummaryCheckButton.checked;
+        Inputs[i].onclick();
+      }
+    }
+  }
+}
+
+function returnObjById( id ) {
+    if (document.getElementById)
+        var returnVar = document.getElementById(id);
+    else if (document.all)
+        var returnVar = document.all[id];
+    else if (document.layers)
+        var returnVar = document.layers[id];
+    return returnVar;
+}
+
+var NumUnchecked = 0;
+
+function ToggleDisplay(CheckButton, ClassName) {
+  if (CheckButton.checked) {
+    SetDisplay(ClassName, "");
+    if (--NumUnchecked == 0) {
+      returnObjById("AllBugsCheck").checked = true;
+    }
+  }
+  else {
+    SetDisplay(ClassName, "none");
+    NumUnchecked++;
+    returnObjById("AllBugsCheck").checked = false;
+  }
+}
+</script>
+<!-- SUMMARYENDHEAD -->
+</head>
+<body>
+<h1>lispbm - scan-build results</h1>
+
+<table>
+<tr><th>User:</th><td>joels@joels-ThinkStation-P340</td></tr>
+<tr><th>Working Directory:</th><td>/home/joels/Current/lispbm</td></tr>
+<tr><th>Command Line:</th><td>make -j4</td></tr>
+<tr><th>Clang Version:</th><td>clang version 10.0.0-4ubuntu1 
+</td></tr>
+<tr><th>Date:</th><td>Tue Jul 23 15:23:44 2024</td></tr>
+</table>
+<h2>Bug Summary</h2><table>
+<thead><tr><td>Bug Type</td><td>Quantity</td><td class="sorttable_nosort">Display?</td></tr></thead>
+<tr style="font-weight:bold"><td class="SUMM_DESC">All Bugs</td><td class="Q">19</td><td><center><input type="checkbox" id="AllBugsCheck" onClick="CopyCheckedStateToCheckButtons(this);" checked/></center></td></tr>
+<tr><th>Logic error</th><th colspan=2></th></tr>
+<tr><td class="SUMM_DESC">Assigned value is garbage or undefined</td><td class="Q">6</td><td><center><input type="checkbox" onClick="ToggleDisplay(this,'bt_logic_error_assigned_value_is_garbage_or_undefined');" checked/></center></td></tr>
+<tr><td class="SUMM_DESC">Dereference of null pointer</td><td class="Q">10</td><td><center><input type="checkbox" onClick="ToggleDisplay(this,'bt_logic_error_dereference_of_null_pointer');" checked/></center></td></tr>
+<tr><td class="SUMM_DESC">Uninitialized argument value</td><td class="Q">3</td><td><center><input type="checkbox" onClick="ToggleDisplay(this,'bt_logic_error_uninitialized_argument_value');" checked/></center></td></tr>
+</table>
+<h2>Reports</h2>
+
+<table class="sortable" style="table-layout:automatic">
+<thead><tr>
+  <td>Bug Group</td>
+  <td class="sorttable_sorted">Bug Type<span id="sorttable_sortfwdind">&nbsp;&#x25BE;</span></td>
+  <td>File</td>
+  <td>Function/Method</td>
+  <td class="Q">Line</td>
+  <td class="Q">Path Length</td>
+  <td class="sorttable_nosort"></td>
+  <!-- REPORTBUGCOL -->
+</tr></thead>
+<tbody>
+<tr class="bt_logic_error_assigned_value_is_garbage_or_undefined"><td class="DESC">Logic error</td><td class="DESC">Assigned value is garbage or undefined</td><td>eval_cps.c</td><td class="DESC">cont_application_start</td><td class="Q">4252</td><td class="Q">38</td><td><a href="report-9d5914.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-9d5914.html" -->
+</tr>
+<tr class="bt_logic_error_assigned_value_is_garbage_or_undefined"><td class="DESC">Logic error</td><td class="DESC">Assigned value is garbage or undefined</td><td>eval_cps.c</td><td class="DESC">eval_match</td><td class="Q">2042</td><td class="Q">8</td><td><a href="report-fac31c.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-fac31c.html" -->
+</tr>
+<tr class="bt_logic_error_assigned_value_is_garbage_or_undefined"><td class="DESC">Logic error</td><td class="DESC">Assigned value is garbage or undefined</td><td>eval_cps.c</td><td class="DESC">cont_closure_application_args</td><td class="Q">3000</td><td class="Q">24</td><td><a href="report-6504f5.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-6504f5.html" -->
+</tr>
+<tr class="bt_logic_error_assigned_value_is_garbage_or_undefined"><td class="DESC">Logic error</td><td class="DESC">Assigned value is garbage or undefined</td><td>eval_cps.c</td><td class="DESC">cont_closure_application_args</td><td class="Q">2998</td><td class="Q">24</td><td><a href="report-52eee6.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-52eee6.html" -->
+</tr>
+<tr class="bt_logic_error_assigned_value_is_garbage_or_undefined"><td class="DESC">Logic error</td><td class="DESC">Assigned value is garbage or undefined</td><td>eval_cps.c</td><td class="DESC">cont_application_start</td><td class="Q">4254</td><td class="Q">38</td><td><a href="report-f53f44.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-f53f44.html" -->
+</tr>
+<tr class="bt_logic_error_assigned_value_is_garbage_or_undefined"><td class="DESC">Logic error</td><td class="DESC">Assigned value is garbage or undefined</td><td>eval_cps.c</td><td class="DESC">cont_progn_rest</td><td class="Q">2163</td><td class="Q">8</td><td><a href="report-a60707.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-a60707.html" -->
+</tr>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>eval_cps.c</td><td class="DESC">cont_read_append_array</td><td class="Q">3998</td><td class="Q">32</td><td><a href="report-47103f.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-47103f.html" -->
+</tr>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>eval_cps.c</td><td class="DESC">cont_read_eval_continue</td><td class="Q">4077</td><td class="Q">3</td><td><a href="report-49137f.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-49137f.html" -->
+</tr>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>eval_cps.c</td><td class="DESC">cont_read_append_array</td><td class="Q">3983</td><td class="Q">24</td><td><a href="report-cb7c37.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-cb7c37.html" -->
+</tr>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>eval_cps.c</td><td class="DESC">eval_callcc</td><td class="Q">1664</td><td class="Q">16</td><td><a href="report-79ea5f.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-79ea5f.html" -->
+</tr>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>eval_cps.c</td><td class="DESC">cont_move_array_elts_to_flash</td><td class="Q">4595</td><td class="Q">12</td><td><a href="report-f5608d.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-f5608d.html" -->
+</tr>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>eval_cps.c</td><td class="DESC">cont_move_array_elts_to_flash</td><td class="Q">4599</td><td class="Q">12</td><td><a href="report-f2a4bc.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-f2a4bc.html" -->
+</tr>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>heap.c</td><td class="DESC">lbm_dec_str</td><td class="Q">234</td><td class="Q">14</td><td><a href="report-ce8d59.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-ce8d59.html" -->
+</tr>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>heap.c</td><td class="DESC">lbm_heap_array_get_data_ro</td><td class="Q">1259</td><td class="Q">14</td><td><a href="report-ebe0ba.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-ebe0ba.html" -->
+</tr>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>eval_cps.c</td><td class="DESC">cont_application_start</td><td class="Q">4301</td><td class="Q">37</td><td><a href="report-0007d3.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-0007d3.html" -->
+</tr>
+<tr class="bt_logic_error_dereference_of_null_pointer"><td class="DESC">Logic error</td><td class="DESC">Dereference of null pointer</td><td>eval_cps.c</td><td class="DESC">cont_read_next_token</td><td class="Q">3757</td><td class="Q">31</td><td><a href="report-3e0f11.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-3e0f11.html" -->
+</tr>
+<tr class="bt_logic_error_uninitialized_argument_value"><td class="DESC">Logic error</td><td class="DESC">Uninitialized argument value</td><td>eval_cps.c</td><td class="DESC">cont_move_to_flash</td><td class="Q">4412</td><td class="Q">13</td><td><a href="report-e1a01d.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-e1a01d.html" -->
+</tr>
+<tr class="bt_logic_error_uninitialized_argument_value"><td class="DESC">Logic error</td><td class="DESC">Uninitialized argument value</td><td>eval_cps.c</td><td class="DESC">cont_closure_application_args</td><td class="Q">2989</td><td class="Q">8</td><td><a href="report-4accd4.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-4accd4.html" -->
+</tr>
+<tr class="bt_logic_error_uninitialized_argument_value"><td class="DESC">Logic error</td><td class="DESC">Uninitialized argument value</td><td>eval_cps.c</td><td class="DESC">eval_symbol</td><td class="Q">1598</td><td class="Q">36</td><td><a href="report-4a8c88.html#EndPath">View Report</a></td>
+<!-- REPORTBUG id="report-4a8c88.html" -->
+</tr>
+</tbody>
+</table>
+
+</body></html>

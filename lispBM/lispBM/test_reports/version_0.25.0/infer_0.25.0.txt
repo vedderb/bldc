@@ -1,0 +1,984 @@
+#0
+src/print.c:67: error: Null Dereference
+  pointer `array` last assigned on line 61 could be null and is dereferenced at line 67, column 28.
+  65.     //       Highly unlikely that array is a recognizable NULL though.
+  66.     //       If it is incorrect, it is most likely arbitrary.
+  67.     char *c_data = (char *)array->data;
+                                 ^
+  68.     if (array->size == 1) {
+  69.       *str = c_data;
+
+#1
+include/lbm_custom_type.h:69: error: Null Dereference
+  pointer `m` last assigned on line 68 could be null and is dereferenced at line 69, column 25.
+  67.   if (lbm_type_of(value) == LBM_TYPE_CUSTOM) {
+  68.     lbm_uint *m = (lbm_uint*)lbm_dec_custom(value);
+  69.     return (const char*)m[CUSTOM_TYPE_DESCRIPTOR];
+                              ^
+  70.   }
+  71.   return NULL;
+
+#2
+include/lbm_custom_type.h:76: error: Null Dereference
+  pointer `m` last assigned on line 75 could be null and is dereferenced at line 76, column 10.
+  74. static inline lbm_uint lbm_get_custom_value(lbm_value value) {
+  75.   lbm_uint *m = (lbm_uint*)lbm_dec_custom(value);
+  76.   return m[CUSTOM_TYPE_VALUE];
+               ^
+  77. }
+  78. 
+
+#3
+src/extensions/array_extensions.c:105: error: Null Dereference
+  pointer `array` last assigned on line 104 could be null and is dereferenced at line 105, column 29.
+  103.   }
+  104.   lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+  105.   if (lbm_memory_ptr_inside(array->data)) {
+                                   ^
+  106.     lbm_memory_free((lbm_uint *)array->data);
+  107.     lbm_uint ptr = lbm_dec_ptr(args[0]);
+
+#4
+src/extensions/array_extensions.c:131: error: Null Dereference
+  pointer `array` last assigned on line 127 could be null and is dereferenced at line 131, column 18.
+  129.     lbm_int value = lbm_dec_as_i32(args[2]);
+  130. 
+  131.     if (index >= array->size) {
+                        ^
+  132.       return res;
+  133.     }
+
+#5
+src/heap.c:128: error: Dead Store
+  The value written to `&res` (type `unsigned int`) is never used.
+  126. 
+  127. static lbm_value enc_64_on_32(uint8_t *source, lbm_uint type_qual, lbm_uint type) {
+  128.   lbm_value res = ENC_SYM_MERROR;
+         ^
+  129.   res = lbm_cons(ENC_SYM_NIL,ENC_SYM_NIL);
+  130.   if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
+
+#6
+src/heap.c:197: error: Null Dereference
+  pointer `data` last assigned on line 196 could be null and is dereferenced by call to `memcpy()` at line 197, column 3.
+  195.   double d;
+  196.   uint32_t *data = (uint32_t*)lbm_car(x);
+  197.   memcpy(&d, data, sizeof(double));
+         ^
+  198.   return d;
+  199. #else
+
+#7
+src/heap.c:211: error: Null Dereference
+  pointer `data` last assigned on line 210 could be null and is dereferenced by call to `memcpy()` at line 211, column 3.
+  209.   uint64_t u;
+  210.   uint32_t *data = (uint32_t*)lbm_car(x);
+  211.   memcpy(&u, data, 8);
+         ^
+  212.   return u;
+  213. #else
+
+#8
+src/heap.c:222: error: Null Dereference
+  pointer `data` last assigned on line 221 could be null and is dereferenced by call to `memcpy()` at line 222, column 3.
+  220.   int64_t i;
+  221.   uint32_t *data = (uint32_t*)lbm_car(x);
+  222.   memcpy(&i, data, 8);
+         ^
+  223.   return i;
+  224. #else
+
+#9
+src/heap.c:234: error: Null Dereference
+  pointer `array` last assigned on line 233 could be null and is dereferenced at line 234, column 19.
+  232.   if (lbm_is_array_r(val)) {
+  233.     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(val);
+  234.     res = (char *)array->data;
+                         ^
+  235.   }
+  236.   return res;
+
+#10
+src/lbm_flat_value.c:277: error: Null Dereference
+  pointer `header` last assigned on line 276 could be null and is dereferenced at line 277, column 38.
+  275.     int sum = 4 + 1; // sizeof(uint32_t) + 1;
+  276.     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(v);
+  277.     lbm_value *arrdata = (lbm_value*)header->data;
+                                            ^
+  278.     lbm_uint size = header->size / sizeof(lbm_value);
+  279.     for (lbm_uint i = 0; i < size; i ++ ) {
+
+#11
+src/fundamental.c:263: error: Null Dereference
+  pointer `a_` last assigned on line 255 could be null and is dereferenced at line 263, column 9.
+  261.     // if (a_ == NULL || b_ == NULL) return false; // Not possible to properly report error from here.
+  262. 
+  263.     if (a_->size == b_->size) {
+               ^
+  264.       return (memcmp((char*)a_->data, (char*)b_->data, a_->size) == 0);
+  265.     }
+
+#12
+src/fundamental.c:263: error: Null Dereference
+  pointer `b_` last assigned on line 256 could be null and is dereferenced at line 263, column 21.
+  261.     // if (a_ == NULL || b_ == NULL) return false; // Not possible to properly report error from here.
+  262. 
+  263.     if (a_->size == b_->size) {
+                           ^
+  264.       return (memcmp((char*)a_->data, (char*)b_->data, a_->size) == 0);
+  265.     }
+
+#13
+src/print.c:270: error: Null Dereference
+  pointer `array` last assigned on line 269 could be null and is dereferenced by call to `print_emit_array_data()` at line 270, column 10.
+  268. 
+  269.   lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
+  270.   return print_emit_array_data(chan, array);
+                ^
+  271. }
+  272. 
+
+#14
+src/fundamental.c:274: error: Null Dereference
+  pointer `a_` last assigned on line 272 could be null and is dereferenced at line 274, column 36.
+  272.     lbm_array_header_t *a_ = (lbm_array_header_t*)lbm_car(a);
+  273.     lbm_array_header_t *b_ = (lbm_array_header_t*)lbm_car(b);
+  274.     lbm_value *adata = (lbm_value*)a_->data;
+                                          ^
+  275.     lbm_value *bdata = (lbm_value*)b_->data;
+  276.     if ( a_->size == b_->size) {
+
+#15
+src/fundamental.c:275: error: Null Dereference
+  pointer `b_` last assigned on line 273 could be null and is dereferenced at line 275, column 36.
+  273.     lbm_array_header_t *b_ = (lbm_array_header_t*)lbm_car(b);
+  274.     lbm_value *adata = (lbm_value*)a_->data;
+  275.     lbm_value *bdata = (lbm_value*)b_->data;
+                                          ^
+  276.     if ( a_->size == b_->size) {
+  277.       uint32_t size = a_->size / (sizeof(lbm_value));
+
+#16
+src/extensions/array_extensions.c:300: error: Null Dereference
+  pointer `array` last assigned on line 295 could be null and is dereferenced at line 300, column 18.
+  298.     lbm_uint value = lbm_dec_as_u32(args[2]);
+  299. 
+  300.     if (index >= array->size) {
+                        ^
+  301.       return res;
+  302.     }
+
+#17
+src/lbm_c_interop.c:292: error: Null Dereference
+  pointer `array` last assigned on line 291 could be null and is dereferenced at line 292, column 11.
+  290. 
+  291.   lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(fv);
+  292.   *size = array->size;
+                 ^
+  293.   *data = array->data;
+  294.   return true;
+
+#18
+src/lbm_flat_value.c:350: error: Null Dereference
+  pointer `header` last assigned on line 349 could be null and is dereferenced at line 350, column 38.
+  348.   case LBM_TYPE_LISPARRAY: {
+  349.     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(v);
+  350.     lbm_value *arrdata = (lbm_value*)header->data;
+                                            ^
+  351.     lbm_uint size = header->size / sizeof(lbm_value);
+  352.     if (!f_lisp_array(fv, size)) return FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY;
+
+#19
+src/extensions/string_extensions.c:548: error: Null Dereference
+  pointer `array` last assigned on line 546 could be null and is dereferenced at line 548, column 41.
+  546.   lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+  547. 
+  548.   return lbm_enc_i((int)strlen_max(str, array->size));
+                                               ^
+  549. }
+  550. 
+
+#20
+src/extensions/array_extensions.c:565: error: Null Dereference
+  pointer `array` last assigned on line 560 could be null and is dereferenced at line 565, column 18.
+  563.     lbm_uint value = 0;
+  564. 
+  565.     if (index >= array->size) {
+                        ^
+  566.       return res;
+  567.     }
+
+#21
+src/extensions/array_extensions.c:598: error: Null Dereference
+  pointer `array` last assigned on line 593 could be null and is dereferenced at line 598, column 20.
+  596.     lbm_uint value = 0;
+  597. 
+  598.     if (index+1 >= array->size) {
+                          ^
+  599.       return res;
+  600.     }
+
+#22
+src/extensions/string_extensions.c:630: error: Null Dereference
+  pointer `header` last assigned on line 627 could be null and is dereferenced at line 630, column 30.
+  628.           (lbm_array_header_t *)lbm_car(lbm_car(current));
+  629. 
+  630.       lbm_int len = (lbm_int)header->size - 1;
+                                    ^
+  631.       if (len < 0) {
+  632.         // substr is zero length array
+
+#23
+src/extensions/string_extensions.c:595: error: Null Dereference
+  pointer `str_header` last assigned on line 594 could be null and is dereferenced at line 595, column 37.
+  593. 
+  594.   lbm_array_header_t *str_header = (lbm_array_header_t *)lbm_car(args[0]);
+  595.   const char *str   = (const char *)str_header->data;
+                                           ^
+  596.   lbm_int str_size = (lbm_int)str_header->size;
+  597. 
+
+#24
+src/extensions/array_extensions.c:643: error: Null Dereference
+  pointer `array` last assigned on line 638 could be null and is dereferenced at line 643, column 20.
+  641.     uint32_t value = 0;
+  642. 
+  643.     if (index+3 >= array->size) {
+                          ^
+  644.       return res;
+  645.     }
+
+#25
+src/extensions/array_extensions.c:684: error: Null Dereference
+  pointer `array` last assigned on line 679 could be null and is dereferenced at line 684, column 18.
+  682.     lbm_int value = 0;
+  683. 
+  684.     if (index >= array->size) {
+                        ^
+  685.       return res;
+  686.     }
+
+#26
+src/extensions/array_extensions.c:718: error: Null Dereference
+  pointer `array` last assigned on line 713 could be null and is dereferenced at line 718, column 20.
+  716.     lbm_int value = 0;
+  717. 
+  718.     if (index+1 >= array->size) {
+                          ^
+  719.       return res;
+  720.     }
+
+#27
+src/extensions/array_extensions.c:763: error: Null Dereference
+  pointer `array` last assigned on line 758 could be null and is dereferenced at line 763, column 20.
+  761.     lbm_int value = 0;
+  762. 
+  763.     if (index+2 >= array->size) {
+                          ^
+  764.       return res;
+  765.     }
+
+#28
+src/extensions/array_extensions.c:811: error: Null Dereference
+  pointer `array` last assigned on line 806 could be null and is dereferenced at line 811, column 20.
+  809.     uint32_t value = 0;
+  810. 
+  811.     if (index+3 >= array->size) {
+                          ^
+  812.       return res;
+  813.     }
+
+#29
+src/extensions/array_extensions.c:860: error: Null Dereference
+  pointer `array` last assigned on line 855 could be null and is dereferenced at line 860, column 20.
+  858.     uint32_t value = 0;
+  859. 
+  860.     if (index+3 >= array->size) {
+                          ^
+  861.       return res;
+  862.     }
+
+#30
+src/fundamental.c:854: error: Null Dereference
+  pointer `arr` last assigned on line 849 could be null and is dereferenced at line 854, column 25.
+  852.     // Check that array points into lbm_memory.
+  853.     // Additionally check that it is a zero-terminated string.
+  854.     char *str = (char *)arr->data;
+                               ^
+  855.     lbm_uint sym;
+  856.     if (lbm_get_symbol_by_name(str, &sym)) {
+
+#31
+src/extensions/array_extensions.c:892: error: Null Dereference
+  pointer `array` last assigned on line 891 could be null and is dereferenced at line 892, column 30.
+  890.       lbm_is_array_r(args[0])) {
+  891.     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
+  892.     res = lbm_enc_i((lbm_int)array->size);
+                                    ^
+  893.   }
+  894.   return res;
+
+#32
+src/fundamental.c:940: error: Null Dereference
+  pointer `header` last assigned on line 939 could be null and is dereferenced at line 940, column 40.
+  938.       lbm_value val = args[2];
+  939.       lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(args[0]);
+  940.       lbm_value *arrdata = (lbm_value*)header->data;
+                                              ^
+  941.       lbm_uint size = header->size / sizeof(lbm_value);
+  942.       if (index < size) {
+
+#33
+src/eval_cps.c:1004: error: Null Dereference
+  pointer `sptr` last assigned on line 1003 could be null and is dereferenced at line 1004, column 21.
+  1002.       if (v == EXCEPTION_HANDLER) {
+  1003.         lbm_value *sptr = get_stack_ptr(ctx_running, 2);
+  1004.         lbm_set_car(sptr[0], ENC_SYM_EXIT_ERROR);
+                            ^
+  1005.         stack_reserve(ctx_running, 1)[0] = EXCEPTION_HANDLER;
+  1006.         ctx_running->app_cont = true;
+
+#34
+src/heap.c:1259: error: Null Dereference
+  pointer `header` last assigned on line 1258 could be null and is dereferenced at line 1259, column 19.
+  1257.   if (lbm_is_array_r(arr)) {
+  1258.     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
+  1259.     r = (uint8_t*)header->data;
+                          ^
+  1260.   }
+  1261.   return r;
+
+#35
+src/heap.c:1268: error: Null Dereference
+  pointer `header` last assigned on line 1267 could be null and is dereferenced at line 1268, column 19.
+  1266.   if (lbm_is_array_rw(arr)) {
+  1267.     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
+  1268.     r = (uint8_t*)header->data;
+                          ^
+  1269.   }
+  1270.   return r;
+
+#36
+src/fundamental.c:1380: error: Null Dereference
+  pointer `header` last assigned on line 1379 could be null and is dereferenced at line 1380, column 38.
+  1378.   if (nargs == 1 && lbm_is_lisp_array_r(args[0])) {
+  1379.     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(args[0]);
+  1380.     lbm_value *arrdata = (lbm_value*)header->data;
+                                             ^
+  1381.     lbm_uint size = (header->size / sizeof(lbm_uint));
+  1382.     res = lbm_heap_allocate_list(size);
+
+#37
+src/eval_cps.c:1585: error: Null Dereference
+  pointer `sptr` last assigned on line 1584 could be null and is dereferenced at line 1585, column 5.
+  1583.     }
+  1584.     lbm_value *sptr = stack_reserve(ctx, 3);
+  1585.     sptr[0] = ctx->curr_exp;
+            ^
+  1586.     sptr[1] = ctx->curr_env;
+  1587.     sptr[2] = RESUME;
+
+#38
+src/eval_cps.c:1629: error: Null Dereference
+  pointer `sptr` last assigned on line 1628 could be null and is dereferenced at line 1629, column 5.
+  1627.   if (lbm_is_cons(exps)) {
+  1628.     lbm_uint *sptr = stack_reserve(ctx, 4);
+  1629.     sptr[0] = ctx->curr_env; // env to restore between expressions in progn
+            ^
+  1630.     sptr[1] = lbm_enc_u(0);  // Has env been copied (needed for progn local bindings)
+  1631.     sptr[3] = PROGN_REST;
+
+#39
+src/eval_cps.c:1685: error: Null Dereference
+  pointer `sptr` last assigned on line 1682 could be null and is dereferenced at line 1685, column 5.
+  1683.   if (lbm_is_symbol(parts[KEY]) && lbm_is_symbol_nil(rest)) {
+  1684.     lbm_uint sym_val = lbm_dec_sym(parts[KEY]);
+  1685.     sptr[0] = parts[KEY];
+            ^
+  1686.     if (sym_val >= RUNTIME_SYMBOLS_START) {
+  1687.       sptr[1] = SET_GLOBAL_ENV;
+
+#40
+src/eval_cps.c:1744: error: Null Dereference
+  pointer `sptr` last assigned on line 1743 could be null and is dereferenced at line 1744, column 3.
+  1742.   lbm_value cdr = get_cdr(ctx->curr_exp);
+  1743.   lbm_value *sptr = stack_reserve(ctx, 3);
+  1744.   sptr[0] = get_cdr(cdr);
+          ^
+  1745.   sptr[1] = ctx->curr_env;
+  1746.   sptr[2] = IF;
+
+#41
+src/eval_cps.c:1867: error: Null Dereference
+  pointer `sptr` last assigned on line 1866 could be null and is dereferenced at line 1867, column 3.
+  1865. 
+  1866.   lbm_uint *sptr = stack_reserve(ctx, 5);
+  1867.   sptr[0] = exp;
+          ^
+  1868.   sptr[1] = cdr_binds;
+  1869.   sptr[2] = env;
+
+#42
+src/eval_cps.c:1929: error: Null Dereference
+  pointer `sptr` last assigned on line 1928 could be null and is dereferenced at line 1929, column 3.
+  1927.   extract_n(ctx->curr_exp, parts, 3);
+  1928.   lbm_value *sptr = stack_reserve(ctx, 3);
+  1929.   sptr[0] = ctx->curr_env;
+          ^
+  1930.   sptr[1] = parts[1];
+  1931.   sptr[2] = SETQ;
+
+#43
+src/eval_cps.c:1938: error: Null Dereference
+  pointer `sptr` last assigned on line 1937 could be null and is dereferenced at line 1938, column 3.
+  1936.   lbm_value args = get_cdr(ctx->curr_exp);
+  1937.   lbm_value *sptr = stack_reserve(ctx,2);
+  1938.   sptr[0] = args;
+          ^
+  1939.   sptr[1] = MOVE_TO_FLASH;
+  1940.   ctx->app_cont = true;
+
+#44
+src/eval_cps.c:1951: error: Null Dereference
+  pointer `sptr` last assigned on line 1950 could be null and is dereferenced at line 1951, column 3.
+  1949.   extract_n(get_cdr(ctx->curr_exp), parts, 3);
+  1950.   lbm_value *sptr = stack_reserve(ctx, 3);
+  1951.   sptr[0] = parts[LOOP_BODY];
+          ^
+  1952.   sptr[1] = parts[LOOP_COND];
+  1953.   sptr[2] = LOOP_CONDITION;
+
+#45
+src/eval_cps.c:1995: error: Null Dereference
+  pointer `sptr` last assigned on line 1994 could be null and is dereferenced at line 1995, column 5.
+  1993.   } else {
+  1994.     lbm_value *sptr = stack_reserve(ctx, 3);
+  1995.     sptr[0] = ctx->curr_env;
+            ^
+  1996.     sptr[1] = get_cdr(rest);
+  1997.     sptr[2] = AND;
+
+#46
+src/eval_cps.c:2010: error: Null Dereference
+  pointer `sptr` last assigned on line 2009 could be null and is dereferenced at line 2010, column 5.
+  2008.   } else {
+  2009.     lbm_value *sptr = stack_reserve(ctx, 3);
+  2010.     sptr[0] = ctx->curr_env;
+            ^
+  2011.     sptr[1] = get_cdr(rest);
+  2012.     sptr[2] = OR;
+
+#47
+src/eval_cps.c:2042: error: Null Dereference
+  pointer `sptr` last assigned on line 2041 could be null and is dereferenced at line 2042, column 5.
+  2040.     get_car_and_cdr(rest, &ctx->curr_exp, &cdr_rest);
+  2041.     lbm_value *sptr = stack_reserve(ctx, 3);
+  2042.     sptr[0] = cdr_rest;
+            ^
+  2043.     sptr[1] = ctx->curr_env;
+  2044.     sptr[2] = MATCH;
+
+#48
+src/eval_cps.c:2158: error: Null Dereference
+  pointer `sptr` last assigned on line 2156 could be null and is dereferenced at line 2158, column 20.
+  2156.   lbm_value *sptr = get_stack_ptr(ctx, 3);
+  2157. 
+  2158.   lbm_value rest = sptr[2];
+                           ^
+  2159.   lbm_value env  = sptr[0];
+  2160. 
+
+#49
+src/eval_cps.c:2404: error: Null Dereference
+  pointer `sptr` last assigned on line 2403 could be null and is dereferenced at line 2404, column 5.
+  2402.     lbm_cid cid = (lbm_cid)lbm_dec_i(args[0]);
+  2403.     lbm_value *sptr = get_stack_ptr(ctx, 2);
+  2404.     sptr[0] = lbm_enc_i(cid);
+            ^
+  2405.     sptr[1] = WAIT;
+  2406.     ctx->r = ENC_SYM_TRUE;
+
+#50
+src/eval_cps.c:2592: error: Null Dereference
+  pointer `array` last assigned on line 2589 could be null and is dereferenced at line 2592, column 24.
+  2590. 
+  2591.     lbm_flat_value_t fv;
+  2592.     fv.buf = (uint8_t*)array->data;
+                               ^
+  2593.     fv.buf_size = array->size;
+  2594.     fv.buf_pos = 0;
+
+#51
+src/eval_cps.c:2853: error: Dead Store
+  The value written to `&ls` (type `unsigned int`) is never used.
+  2851.   if (nargs == 2 && lbm_is_list(args[0]) && lbm_is_number(args[1])) {
+  2852.     int len = -1;
+  2853.     lbm_value ls = ENC_SYM_NIL;
+            ^
+  2854.     WITH_GC(ls, lbm_list_copy(&len, args[0]));
+  2855.     int dist = lbm_dec_as_i32(args[1]);
+
+#52
+src/eval_cps.c:2979: error: Null Dereference
+  pointer `sptr` last assigned on line 2977 could be null and is dereferenced at line 2979, column 34.
+  2977.   lbm_uint* sptr = get_stack_ptr(ctx, 5);
+  2978. 
+  2979.   lbm_value arg_env = (lbm_value)sptr[0];
+                                         ^
+  2980.   lbm_value exp     = (lbm_value)sptr[1];
+  2981.   lbm_value clo_env = (lbm_value)sptr[2];
+
+#53
+src/eval_cps.c:3024: error: Null Dereference
+  pointer `sptr` last assigned on line 3023 could be null and is dereferenced at line 3024, column 34.
+  3022. static void cont_closure_args_rest(eval_context_t *ctx) {
+  3023.   lbm_uint* sptr = get_stack_ptr(ctx, 5);
+  3024.   lbm_value arg_env = (lbm_value)sptr[0];
+                                         ^
+  3025.   lbm_value exp     = (lbm_value)sptr[1];
+  3026.   lbm_value clo_env = (lbm_value)sptr[2];
+
+#54
+src/eval_cps.c:3073: error: Null Dereference
+  pointer `rptr` last assigned on line 3072 could be null and is dereferenced at line 3073, column 5.
+  3071.     sptr[2] = cell->cdr;
+  3072.     lbm_value *rptr = stack_reserve(ctx,2);
+  3073.     rptr[0] = count + (1 << LBM_VAL_SHIFT);
+            ^
+  3074.     rptr[1] = APPLICATION_ARGS;
+  3075.     ctx->curr_exp = cell->car;
+
+#55
+src/eval_cps.c:3062: error: Null Dereference
+  pointer `sptr` last assigned on line 3060 could be null and is dereferenced at line 3062, column 19.
+  3060.   lbm_uint *sptr = get_stack_ptr(ctx, 3);
+  3061. 
+  3062.   lbm_value env = sptr[0];
+                          ^
+  3063.   lbm_value rest = sptr[1];
+  3064.   lbm_value count = sptr[2];
+
+#56
+src/eval_cps.c:3097: error: Null Dereference
+  pointer `sptr` last assigned on line 3096 could be null and is dereferenced at line 3097, column 5.
+  3095.   } else {
+  3096.     lbm_value *sptr = stack_reserve(ctx, 3);
+  3097.     sptr[0] = env;
+            ^
+  3098.     sptr[1] = get_cdr(rest);
+  3099.     sptr[2] = AND;
+
+#57
+src/eval_cps.c:3117: error: Null Dereference
+  pointer `sptr` last assigned on line 3116 could be null and is dereferenced at line 3117, column 5.
+  3115.   } else {
+  3116.     lbm_value *sptr = stack_reserve(ctx, 3);
+  3117.     sptr[0] = env;
+            ^
+  3118.     sptr[1] = get_cdr(rest);
+  3119.     sptr[2] = OR;
+
+#58
+src/eval_cps.c:3145: error: Null Dereference
+  pointer `sptr` last assigned on line 3143 could be null and is dereferenced at line 3145, column 20.
+  3143.   lbm_value *sptr = get_stack_ptr(ctx, 4);
+  3144. 
+  3145.   lbm_value rest = sptr[1];
+                           ^
+  3146.   lbm_value env  = sptr[2];
+  3147.   lbm_value key  = sptr[3];
+
+#59
+src/eval_cps.c:3178: error: Null Dereference
+  pointer `sptr` last assigned on line 3176 could be null and is dereferenced at line 3178, column 19.
+  3176.   lbm_value *sptr = pop_stack_ptr(ctx, 2);
+  3177. 
+  3178.   ctx->curr_env = sptr[1];
+                          ^
+  3179.   if (lbm_is_symbol_nil(arg)) {
+  3180.     ctx->curr_exp = get_cadr(sptr[0]); // else branch
+
+#60
+src/eval_cps.c:3191: error: Null Dereference
+  pointer `sptr` last assigned on line 3190 could be null and is dereferenced at line 3191, column 35.
+  3189. 
+  3190.   lbm_uint *sptr = get_stack_ptr(ctx, 2);
+  3191.   lbm_value patterns = (lbm_value)sptr[0];
+                                          ^
+  3192.   lbm_value orig_env = (lbm_value)sptr[1]; // restore enclosing environment.
+  3193.   lbm_value new_env = orig_env;
+
+#61
+src/eval_cps.c:3262: error: Null Dereference
+  pointer `sptr` last assigned on line 3260 could be null and is dereferenced at line 3262, column 19.
+  3260.   lbm_value *sptr = get_stack_ptr(ctx, 6);
+  3261. 
+  3262.   lbm_value ls  = sptr[0];
+                          ^
+  3263.   lbm_value env = sptr[1];
+  3264.   lbm_value t   = sptr[3];
+
+#62
+src/eval_cps.c:3311: error: Null Dereference
+  pointer `sptr` last assigned on line 3309 could be null and is dereferenced at line 3311, column 19.
+  3309.   lbm_value *sptr = get_stack_ptr(ctx, 2);
+  3310.   stack_reserve(ctx,1)[0] = LOOP_CONDITION;
+  3311.   ctx->curr_exp = sptr[1];
+                          ^
+  3312. }
+  3313. 
+
+#63
+src/eval_cps.c:3322: error: Null Dereference
+  pointer `sptr` last assigned on line 3320 could be null and is dereferenced at line 3322, column 19.
+  3320.   lbm_value *sptr = get_stack_ptr(ctx, 2);
+  3321.   stack_reserve(ctx,1)[0] = LOOP;
+  3322.   ctx->curr_exp = sptr[0];
+                          ^
+  3323. }
+  3324. 
+
+#64
+src/eval_cps.c:3340: error: Null Dereference
+  pointer `sptr` last assigned on line 3326 could be null and is dereferenced at line 3340, column 17.
+  3338.   // else
+  3339.   //   Set up for a new comparator evaluation and recurse.
+  3340.   lbm_value a = sptr[2];
+                        ^
+  3341.   lbm_value b = lbm_cdr(a);
+  3342.   lbm_set_cdr(a, ENC_SYM_NIL); // terminate 1 element list
+
+#65
+src/eval_cps.c:3422: error: Null Dereference
+  pointer `sptr` last assigned on line 3421 could be null and is dereferenced at line 3422, column 29.
+  3420. static void cont_merge_layer(eval_context_t *ctx) {
+  3421.   lbm_uint *sptr = get_stack_ptr(ctx, 9);
+  3422.   lbm_int layer = lbm_dec_i(sptr[7]);
+                                    ^
+  3423.   lbm_int len = lbm_dec_i(sptr[8]);
+  3424. 
+
+#66
+src/eval_cps.c:3610: error: Null Dereference
+  pointer `chan` last assigned on line 3605 could be null and is dereferenced by call to `lbm_channel_more()` at line 3610, column 8.
+  3608.   }
+  3609. 
+  3610.   if (!lbm_channel_more(chan) && lbm_channel_is_empty(chan)) {
+               ^
+  3611.     lbm_stack_drop(&ctx->K, 2);
+  3612.     read_finish(chan, ctx);
+
+#67
+src/eval_cps.c:3602: error: Null Dereference
+  pointer `sptr` last assigned on line 3601 could be null and is dereferenced at line 3602, column 22.
+  3600. static void cont_read_next_token(eval_context_t *ctx) {
+  3601.   lbm_value *sptr = get_stack_ptr(ctx, 2);
+  3602.   lbm_value stream = sptr[0];
+                             ^
+  3603.   lbm_value grab_row0 = sptr[1];
+  3604. 
+
+#68
+src/eval_cps.c:3920: error: Null Dereference
+  pointer `sptr` last assigned on line 3919 could be null and is dereferenced at line 3920, column 22.
+  3918. static void cont_read_start_array(eval_context_t *ctx) {
+  3919.   lbm_value *sptr = get_stack_ptr(ctx, 1);
+  3920.   lbm_value stream = sptr[0];
+                             ^
+  3921. 
+  3922.   lbm_char_channel_t *str = lbm_dec_channel(stream);
+
+#69
+src/eval_cps.c:3934: error: Null Dereference
+  pointer `str` last assigned on line 3922 could be null and is dereferenced by call to `lbm_channel_reader_close()` at line 3934, column 7.
+  3932.     initial_size = (lbm_uint)((float)num_free * 0.9);
+  3933.     if (initial_size == 0) {
+  3934.       lbm_channel_reader_close(str);
+              ^
+  3935.       error_ctx(ENC_SYM_MERROR);
+  3936.     }
+
+#70
+src/eval_cps.c:3959: error: Null Dereference
+  pointer `str` last assigned on line 3922 could be null and is dereferenced by call to `lbm_channel_reader_close()` at line 3959, column 5.
+  3957.     ctx->app_cont = true;
+  3958.   } else {
+  3959.     lbm_channel_reader_close(str);
+            ^
+  3960.     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+  3961.   }
+
+#71
+src/eval_cps.c:3967: error: Null Dereference
+  pointer `sptr` last assigned on line 3965 could be null and is dereferenced at line 3967, column 22.
+  3965.   lbm_uint *sptr = get_stack_ptr(ctx, 4);
+  3966. 
+  3967.   lbm_value array  = sptr[0];
+                             ^
+  3968.   lbm_value size   = lbm_dec_as_u32(sptr[1]);
+  3969.   lbm_value ix     = lbm_dec_as_u32(sptr[2]);
+
+#72
+src/eval_cps.c:4036: error: Null Dereference
+  pointer `rptr` last assigned on line 4035 could be null and is dereferenced at line 4036, column 7.
+  4034.     case ENC_SYM_DOT: {
+  4035.       lbm_value *rptr = stack_reserve(ctx, 4);
+  4036.       rptr[0] = READ_DOT_TERMINATE;
+              ^
+  4037.       rptr[1] = stream;
+  4038.       rptr[2] = lbm_enc_u(0);
+
+#73
+src/eval_cps.c:4060: error: Null Dereference
+  pointer `rptr` last assigned on line 4059 could be null and is dereferenced at line 4060, column 3.
+  4058.   sptr[2] = stream;    // unchanged.
+  4059.   lbm_value *rptr = stack_reserve(ctx, 4);
+  4060.   rptr[0] = READ_APPEND_CONTINUE;
+          ^
+  4061.   rptr[1] = stream;
+  4062.   rptr[2] = lbm_enc_u(0);
+
+#74
+src/eval_cps.c:4011: error: Null Dereference
+  pointer `sptr` last assigned on line 4009 could be null and is dereferenced at line 4011, column 26.
+  4009.   lbm_value *sptr = get_stack_ptr(ctx, 3);
+  4010. 
+  4011.   lbm_value first_cell = sptr[0];
+                                 ^
+  4012.   lbm_value last_cell  = sptr[1];
+  4013.   lbm_value stream     = sptr[2];
+
+#75
+src/eval_cps.c:4046: error: Null Dereference
+  pointer `str` last assigned on line 4015 could be null and is dereferenced by call to `lbm_channel_reader_close()` at line 4046, column 5.
+  4044.   lbm_value new_cell = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
+  4045.   if (lbm_is_symbol_merror(new_cell)) {
+  4046.     lbm_channel_reader_close(str);
+            ^
+  4047.     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+  4048.     return;
+
+#76
+src/eval_cps.c:4089: error: Null Dereference
+  pointer `rptr` last assigned on line 4088 could be null and is dereferenced at line 4089, column 7.
+  4087.       // A dot, may in reality be an error in this location.
+  4088.       lbm_value *rptr = stack_reserve(ctx, 4);
+  4089.       rptr[0] = READ_DOT_TERMINATE;
+              ^
+  4090.       rptr[1] = stream;
+  4091.       rptr[2] = lbm_enc_u(0);
+
+#77
+src/eval_cps.c:4099: error: Null Dereference
+  pointer `rptr` last assigned on line 4098 could be null and is dereferenced at line 4099, column 3.
+  4097. 
+  4098.   lbm_value *rptr = stack_reserve(ctx, 6);
+  4099.   rptr[0] = stream;
+          ^
+  4100.   rptr[1] = env;
+  4101.   rptr[2] = READ_EVAL_CONTINUE;
+
+#78
+src/eval_cps.c:4077: error: Null Dereference
+  pointer `str` last assigned on line 4072 could be null and is dereferenced at line 4077, column 24.
+  4075.   }
+  4076. 
+  4077.   ctx->row1 = (lbm_int)str->row(str);
+                               ^
+  4078. 
+  4079.   if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
+
+#79
+src/eval_cps.c:4127: error: Null Dereference
+  pointer `str` last assigned on line 4117 could be null and is dereferenced by call to `lbm_channel_reader_close()` at line 4127, column 5.
+  4125.     ctx->app_cont = true;
+  4126.   } else {
+  4127.     lbm_channel_reader_close(str);
+            ^
+  4128.     lbm_set_error_reason((char*)lbm_error_str_parse_close);
+  4129.     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+
+#80
+src/eval_cps.c:4158: error: Null Dereference
+  pointer `rptr` last assigned on line 4157 could be null and is dereferenced at line 4158, column 7.
+  4156.       ctx->r = first_cell;
+  4157.       lbm_value *rptr = stack_reserve(ctx, 6);
+  4158.       rptr[0] = stream;
+              ^
+  4159.       rptr[1] = ctx->r;
+  4160.       rptr[2] = READ_EXPECT_CLOSEPAR;
+
+#81
+src/eval_cps.c:4136: error: Null Dereference
+  pointer `sptr` last assigned on line 4134 could be null and is dereferenced at line 4136, column 26.
+  4134.   lbm_value *sptr = get_stack_ptr(ctx, 3);
+  4135. 
+  4136.   lbm_value first_cell = sptr[0];
+                                 ^
+  4137.   lbm_value last_cell  = sptr[1];
+  4138.   lbm_value stream = sptr[2];
+
+#82
+src/eval_cps.c:4150: error: Null Dereference
+  pointer `str` last assigned on line 4140 could be null and is dereferenced by call to `lbm_channel_reader_close()` at line 4150, column 5.
+  4148.       (ctx->r == ENC_SYM_CLOSEPAR ||
+  4149.        ctx->r == ENC_SYM_DOT)) {
+  4150.     lbm_channel_reader_close(str);
+            ^
+  4151.     lbm_set_error_reason((char*)lbm_error_str_parse_dot);
+  4152.     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+
+#83
+src/eval_cps.c:4166: error: Null Dereference
+  pointer `str` last assigned on line 4140 could be null and is dereferenced by call to `lbm_channel_reader_close()` at line 4166, column 7.
+  4164.       ctx->app_cont = true;
+  4165.     } else {
+  4166.       lbm_channel_reader_close(str);
+              ^
+  4167.       lbm_set_error_reason((char*)lbm_error_str_parse_dot);
+  4168.       read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+
+#84
+src/eval_cps.c:4187: error: Null Dereference
+  pointer `str` last assigned on line 4182 could be null and is dereferenced by call to `lbm_channel_reader_close()` at line 4187, column 3.
+  4185.   }
+  4186. 
+  4187.   lbm_channel_reader_close(str);
+          ^
+  4188.   if (lbm_is_symbol(ctx->r)) {
+  4189.     lbm_uint sym_val = lbm_dec_sym(ctx->r);
+
+#85
+src/eval_cps.c:4236: error: Null Dereference
+  pointer `sptr` last assigned on line 4235 could be null and is dereferenced at line 4236, column 33.
+  4234.   } else if (lbm_is_cons(ctx->r)) {
+  4235.     lbm_uint *sptr = get_stack_ptr(ctx, 2);
+  4236.     lbm_value args = (lbm_value)sptr[1];
+                                        ^
+  4237.     switch (get_car(ctx->r)) {
+  4238.     case ENC_SYM_CLOSURE: {
+
+#86
+src/eval_cps.c:4420: error: Null Dereference
+  pointer `rptr1` last assigned on line 4419 could be null and is dereferenced at line 4420, column 7.
+  4418.         (!(val & LBM_PTR_TO_CONSTANT_BIT))) {
+  4419.       lbm_value * rptr1 = stack_reserve(ctx, 3);
+  4420.       rptr1[0] = first_arg;
+              ^
+  4421.       rptr1[1] = SET_GLOBAL_ENV;
+  4422.       rptr1[2] = MOVE_VAL_TO_FLASH_DISPATCH;
+
+#87
+src/eval_cps.c:4415: error: Null Dereference
+  pointer `rptr` last assigned on line 4414 could be null and is dereferenced at line 4415, column 5.
+  4413.     // Prepare to copy the rest of the arguments when done with first.
+  4414.     lbm_value *rptr = stack_reserve(ctx, 2);
+  4415.     rptr[0] = rest;
+            ^
+  4416.     rptr[1] = MOVE_TO_FLASH;
+  4417.     if (lbm_is_ptr(val) &&
+
+#88
+src/eval_cps.c:4437: error: Null Dereference
+  pointer `rptr` last assigned on line 4436 could be null and is dereferenced at line 4437, column 5.
+  4435.   if (lbm_is_cons(val)) {
+  4436.     lbm_value *rptr = stack_reserve(ctx, 5);
+  4437.     rptr[0] = ENC_SYM_NIL; // fst cell of list
+            ^
+  4438.     rptr[1] = ENC_SYM_NIL; // last cell of list
+  4439.     rptr[2] = get_cdr(val);
+
+#89
+src/eval_cps.c:4542: error: Null Dereference
+  pointer `sptr` last assigned on line 4540 could be null and is dereferenced at line 4542, column 19.
+  4540.   lbm_value *sptr = get_stack_ptr(ctx, 3);
+  4541. 
+  4542.   lbm_value fst = sptr[0];
+                          ^
+  4543.   lbm_value lst = sptr[1];
+  4544.   lbm_value val = sptr[2];
+
+#90
+src/eval_cps.c:4594: error: Null Dereference
+  pointer `sptr` last assigned on line 4590 could be null and is dereferenced at line 4594, column 62.
+  4592.   // sptr[1] = current index
+  4593.   // sptr[0] = target array in flash
+  4594.   lbm_array_header_t *src_arr = (lbm_array_header_t*)get_car(sptr[2]);
+                                                                     ^
+  4595.   lbm_uint size = src_arr->size / sizeof(lbm_uint);
+  4596.   lbm_value *srcdata = (lbm_value *)src_arr->data;
+
+#91
+src/eval_cps.c:4595: error: Null Dereference
+  pointer `src_arr` last assigned on line 4594 could be null and is dereferenced at line 4595, column 19.
+  4593.   // sptr[0] = target array in flash
+  4594.   lbm_array_header_t *src_arr = (lbm_array_header_t*)get_car(sptr[2]);
+  4595.   lbm_uint size = src_arr->size / sizeof(lbm_uint);
+                          ^
+  4596.   lbm_value *srcdata = (lbm_value *)src_arr->data;
+  4597. 
+
+#92
+src/eval_cps.c:4599: error: Null Dereference
+  pointer `tgt_arr` last assigned on line 4598 could be null and is dereferenced at line 4599, column 36.
+  4597. 
+  4598.   lbm_array_header_t *tgt_arr = (lbm_array_header_t*)get_car(sptr[0]);
+  4599.   lbm_uint *tgtdata = (lbm_value *)tgt_arr->data;
+                                           ^
+  4600.   lbm_uint ix = lbm_dec_as_u32(sptr[1]);
+  4601.   handle_flash_status(lbm_const_write(&tgtdata[ix], ctx->r));
+
+#93
+src/eval_cps.c:4619: error: Null Dereference
+  pointer `rptr` last assigned on line 4618 could be null and is dereferenced at line 4619, column 3.
+  4617. static void cont_qq_expand_start(eval_context_t *ctx) {
+  4618.   lbm_value *rptr = stack_reserve(ctx, 2);
+  4619.   rptr[0] = ctx->r;
+          ^
+  4620.   rptr[1] = QQ_EXPAND;
+  4621.   ctx->r = ENC_SYM_NIL;
+
+#94
+src/eval_cps.c:4707: error: Null Dereference
+  pointer `rptr` last assigned on line 4706 could be null and is dereferenced at line 4707, column 7.
+  4705.     } else {
+  4706.       lbm_value *rptr = stack_reserve(ctx, 6);
+  4707.       rptr[0] = ctx->r;
+              ^
+  4708.       rptr[1] = QQ_APPEND;
+  4709.       rptr[2] = cdr_val;
+
+#95
+src/eval_cps.c:4771: error: Null Dereference
+  pointer `rptr` last assigned on line 4770 could be null and is dereferenced at line 4771, column 7.
+  4769.     } else {
+  4770.       lbm_value *rptr = stack_reserve(ctx, 7);
+  4771.       rptr[0] = QQ_LIST;
+              ^
+  4772.       rptr[1] = ctx->r;
+  4773.       rptr[2] = QQ_APPEND;
+
+#96
+src/eval_cps.c:4815: error: Null Dereference
+  pointer `sptr` last assigned on line 4814 could be null and is dereferenced at line 4815, column 22.
+  4813. static void cont_exception_handler(eval_context_t *ctx) {
+  4814.   lbm_value *sptr = pop_stack_ptr(ctx, 2);
+  4815.   lbm_value retval = sptr[0];
+                             ^
+  4816.   lbm_value flags = sptr[1];
+  4817.   lbm_set_car(get_cdr(retval), ctx->r);
+
+#97
+src/eval_cps.c:4952: error: Null Dereference
+  pointer `reserved` last assigned on line 4951 could be null and is dereferenced at line 4952, column 5.
+  4950.      */
+  4951.     lbm_value *reserved = stack_reserve(ctx, 3);
+  4952.     reserved[0] = ctx->curr_env;
+            ^
+  4953.     reserved[1] = cell->cdr;
+  4954.     reserved[2] = APPLICATION_START;
+
+Found 98 issues
+          Issue Type(ISSUED_TYPE_ID): #
+  Null Dereference(NULL_DEREFERENCE): 96
+              Dead Store(DEAD_STORE): 2

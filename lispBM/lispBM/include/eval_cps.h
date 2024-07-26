@@ -371,7 +371,10 @@ lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg);
  * \return 1 on success
  */
 int lbm_perform_gc(void);
-
+/** Request that the runtime system performs a garbage collection on its earliers convenience.
+ *  Can be called from any thread and does NOT require that the evaluator is paused.
+ */
+void lbm_request_gc(void);
 #ifdef __cplusplus
 }
 #endif
