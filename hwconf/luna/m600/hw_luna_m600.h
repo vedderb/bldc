@@ -21,7 +21,7 @@
 #ifndef HW_LUNA_M600_H_
 #define HW_LUNA_M600_H_
 
-#define FW_NAME					"2024.05.08"
+#define FW_NAME					"2024.06.26"
 
 #ifdef M600_60V_BATTERY
 #include "mcconf_luna_m600_60V.h"

@@ -1336,6 +1336,33 @@ ComboBox {
                                 }
                             }
                             GroupBox {
+                                id: torqueSensorBox
+                                title: qsTr("Torque Sensor")
+                                Layout.fillWidth: true
+                                Layout.columnSpan: 1
+                                RowLayout {
+                                    anchors.fill: parent
+                                    spacing: 0
+
+                                    Button {
+                                        id: torqueSensorOffsetButton
+                                        text: "Offset\ncorrection"
+                                        Layout.preferredHeight: 70
+                                        Layout.preferredWidth: 120
+                                        onClicked: {
+                                            m600torqueSensorCalibrationDialog.open()
+                                        }
+                                    }
+                                    Button {
+                                        id: tsOffsetBox
+                                        text:"Not acquired"
+                                        flat:true
+                                        Layout.preferredHeight: 70
+                                        Layout.preferredWidth: 120
+                                     }
+                                }
+                            }
+                            GroupBox {
                                 Layout.fillWidth: true
                                 Layout.columnSpan: 1
                                 RowLayout {
@@ -1647,6 +1674,7 @@ function readSettings() {
         encoderOffsetBox.suffix ="°"  
         encoderOffsetButton.background.color = Utility.getAppHexColor("lightBackground");
     }
+    mCommands.sendTerminalCmd("torque_sensor")
 }
 
 function writeSettings() {
@@ -1781,7 +1809,7 @@ function writeSettings() {
                     }
                 }
             }
-            timeText.text=Qt.formatTime(new Date(),"hh:mm")
+            //timeText.text=Qt.formatTime(new Date(),"hh:mm")
         }
     }
     Timer {
@@ -1799,7 +1827,6 @@ function writeSettings() {
                     if (tabBar.currentIndex == 0) {
                         interval = 50
                         mCommands.getValuesSetup()
-                        
                     }                    
                 }
             }
@@ -1837,7 +1864,38 @@ function writeSettings() {
             mCommands.measureEncoder(15.0)
         }
     }
-        
+        Dialog {
+        id: m600torqueSensorCalibrationDialog
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape
+        title: "Correct Torque Sensor Offset"
+        x:10
+        y:Math.max((parent.height-height)/2,10)
+        parent: ApplicationWindow.overlay
+        width: parent.width - 20
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 10
+            spacing: 10
+            Text {
+                id: detectTSOffsetLabel
+                color:{color=Utility.getAppHexColor("lightText")}
+                verticalAlignment: Text.AlignVCenter
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text:
+                    "This will measure the torque sensor output at rest to calibrate the zero offset. Make " +
+                    "sure that no pressure is applied to the pedals."
+            }
+        }
+
+        onAccepted: {
+            tsOffsetBox.text = "(Measuring...)"
+            mCommands.sendTerminalCmd("calibrate_torque_sensor")
+        }
+    }
         Connections {
         target: mCommands
 
@@ -1849,6 +1907,18 @@ function writeSettings() {
             encoderOffsetBox.decimals = 1
             encoderOffsetButton.background.color = Utility.getAppHexColor("lightBackground");
             bikeWriteSettingsButton.background.color = "#ff9595";
+        }
+    }
+        Connections {
+        target: mCommands
+
+        function onPrintReceived(str) {
+            if (str.startsWith("Measured offset: ")) {
+                tsOffsetBox.text = str.slice("Measured offset: ".length);
+            }
+            if (str.startsWith("Torque sensor lower range: ")) {
+                tsOffsetBox.text = str.slice("Torque sensor lower range: ".length);
+            }
         }
     }
 }

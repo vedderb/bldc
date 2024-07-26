@@ -36,9 +36,9 @@
 
 #include "mcpwm_foc.h" // for encoder angle error
 
-#define LUNA_TORQUE_SENSOR_DEFAULT_TORQUE	0x02EE
-#define LUNA_TORQUE_SENSOR_MINIMUM_TORQUE	0x044C
-#define LUNA_TORQUE_SENSOR_MAXIMUM_TORQUE	0x0600
+#define LUNA_TORQUE_SENSOR_MINIMUM_RANGE	0x02EE
+#define LUNA_TORQUE_SENSOR_MAXIMUM_RANGE	0x0600
+#define LUNA_TORQUE_SENSOR_DEADBAND			0.03
 
 typedef enum {
 	PAS_LEVEL_0 = 0x00,
@@ -97,6 +97,7 @@ typedef enum {
 	LUNA_ERROR_TORQUE_SENSOR = 0x25,
 	LUNA_ERROR_SPEED_SENSOR = 0x26,
 	LUNA_ERROR_COMMUNICATION = 0x30,
+	LUNA_ERROR_TORQUE_SENSOR_OUT_OF_RANGE = 0x100
 } LUNA_ERROR_CODES;
 
 typedef enum{
@@ -113,7 +114,11 @@ typedef struct{
 	LUNA_PAS_LEVEL pas_level;
 	LUNA_ERROR_CODES error_code;
 	bool torque_sensor_is_active;
-	float pas_torque;
+	int32_t torque_sensor_output;
+	float torque_sensor_output_filtered;
+	int32_t torque_sensor_upper_range;
+	int32_t torque_sensor_lower_range;
+	float torque_sensor_deadband;
 	uint8_t assist_code;
 }luna_settings_t;
 
@@ -121,7 +126,10 @@ static volatile luna_settings_t luna_settings =	{	.light_mode = LUNA_LIGHT_MODE_
 													.pas_level = PAS_LEVEL_0,
 													.error_code = LUNA_ERROR_NONE,
 													.torque_sensor_is_active = false,
-													.pas_torque = 0.0
+													.torque_sensor_upper_range = LUNA_TORQUE_SENSOR_MAXIMUM_RANGE,
+													.torque_sensor_lower_range = LUNA_TORQUE_SENSOR_MINIMUM_RANGE,
+													.torque_sensor_deadband = LUNA_TORQUE_SENSOR_DEADBAND,
+													.torque_sensor_output_filtered = 0.0
 												};
 static volatile bool display_thread_is_running = false;
 static volatile bool display_uart_is_running = false;
@@ -155,11 +163,62 @@ void luna_canbus_start(void) {
  * 0.0 for no torque applied, 1.0 for maximum torque applied
  */
 float luna_canbus_get_PAS_torque(void){
-	return luna_settings.pas_torque / (LUNA_TORQUE_SENSOR_MAXIMUM_TORQUE - LUNA_TORQUE_SENSOR_MINIMUM_TORQUE);
+	return luna_settings.torque_sensor_output_filtered;
 }
 
-uint16_t luna_canbus_get_max_torque_level(void){
-	return (LUNA_TORQUE_SENSOR_MAXIMUM_TORQUE - LUNA_TORQUE_SENSOR_MINIMUM_TORQUE);
+int32_t get_torque_sensor_output(void){
+	return luna_settings.torque_sensor_output;
+}
+
+float get_torque_sensor_deadband(void){
+	return luna_settings.torque_sensor_deadband;
+}
+
+int32_t set_torque_sensor_upper_range(int32_t new_upper_range) {
+	uint32_t ret;
+
+	// Check if the new_upper_range is within the expected range
+	if ( (new_upper_range > LUNA_TORQUE_SENSOR_MAXIMUM_RANGE) || (new_upper_range < LUNA_TORQUE_SENSOR_MINIMUM_RANGE) ) {
+		ret = LUNA_ERROR_TORQUE_SENSOR_OUT_OF_RANGE;
+	} else {
+		luna_settings.torque_sensor_upper_range = new_upper_range;
+		ret = LUNA_ERROR_NONE;
+	}
+	return ret;
+}
+
+int32_t set_torque_sensor_lower_range(int32_t new_lower_range) {
+	uint32_t ret;
+
+	// Check if the new_lower_range is within the expected range
+	if ( (new_lower_range > LUNA_TORQUE_SENSOR_MAXIMUM_RANGE) || (new_lower_range < LUNA_TORQUE_SENSOR_MINIMUM_RANGE) ) {
+		ret = LUNA_ERROR_TORQUE_SENSOR_OUT_OF_RANGE;
+	} else {
+		luna_settings.torque_sensor_lower_range = new_lower_range;
+		ret = LUNA_ERROR_NONE;
+	}
+	return ret;
+}
+
+int32_t get_torque_sensor_lower_range(void) {
+	return luna_settings.torque_sensor_lower_range;
+}
+
+int32_t get_torque_sensor_upper_range(void) {
+	return luna_settings.torque_sensor_upper_range;
+}
+
+// calibration procedure: make sure that the user is not pressing the pedals, then
+// sample the TS for 3 full second and use that as as the new lower range baseline
+int32_t measure_torque_sensor_offset(void) {
+	float average = 0.0;
+
+	for(uint32_t samples = 0; samples < 100 ; samples++) {
+		average += luna_settings.torque_sensor_output;
+		chThdSleep(MS2ST(30));
+	}
+	average /= 100.0;
+	return (int32_t)average;
 }
 
 /**
@@ -572,18 +631,14 @@ static bool can_bus_rx_callback(uint32_t id, uint8_t *data, uint8_t len) {
 			if(data != NULL){
 				used_data = true;
 				luna_settings.torque_sensor_is_active = true;
-				uint16_t torque_raw_level = (((uint16_t)data[1] << 8 ) & 0xff00) | ((uint16_t)data[0]&0x00ff);
+				uint16_t torque_sensor_output = (((uint16_t)data[1] << 8 ) & 0xff00) | ((uint16_t)data[0]&0x00ff);
 
-				if(torque_raw_level > LUNA_TORQUE_SENSOR_MAXIMUM_TORQUE){
-					torque_raw_level = LUNA_TORQUE_SENSOR_MAXIMUM_TORQUE;
-				}
+				luna_settings.torque_sensor_output = torque_sensor_output;
 
-				if(torque_raw_level > LUNA_TORQUE_SENSOR_MINIMUM_TORQUE){
-					torque_raw_level = torque_raw_level - LUNA_TORQUE_SENSOR_MINIMUM_TORQUE;
-				}else{
-					torque_raw_level = 0;
-				}
-				UTILS_LP_FAST(luna_settings.pas_torque, (float)torque_raw_level, 0.1);
+				float normalized_torque_sensor_output = utils_map((float)torque_sensor_output, (float)luna_settings.torque_sensor_lower_range, (float)luna_settings.torque_sensor_upper_range, 0.0, 1.0);
+				utils_truncate_number(&normalized_torque_sensor_output, 0.0, 1.0);
+				utils_deadband(&normalized_torque_sensor_output, luna_settings.torque_sensor_deadband, 1.0);
+				UTILS_LP_FAST(luna_settings.torque_sensor_output_filtered, normalized_torque_sensor_output, 0.1);
 			}
 		}
 		break;

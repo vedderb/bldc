@@ -25,4 +25,11 @@
 void luna_canbus_start(void);
 float luna_canbus_get_PAS_torque(void);
 float get_encoder_error(void);
+float get_torque_sensor_deadband(void);
+int32_t get_torque_sensor_output(void);
+int32_t get_torque_sensor_lower_range(void);
+int32_t get_torque_sensor_upper_range(void);
+int32_t set_torque_sensor_lower_range(int32_t new_lower_range);
+int32_t set_torque_sensor_upper_range(int32_t new_upper_range);
+int32_t measure_torque_sensor_offset(void);
 #endif /* APP_LUNA_DISPLAY_CANBUS_H_ */

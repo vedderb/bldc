@@ -35,6 +35,7 @@
 #include "terminal.h"
 
 #define EEPROM_ADDR_FIXED_THROTTLE_LEVEL	2
+#define EEPROM_ADDR_TORQUE_SENSOR_OFFSET	10
 
 // Variables
 static volatile bool i2c_running = false;
@@ -42,6 +43,9 @@ static volatile bool i2c_running = false;
 // Private functions
 static void terminal_cmd_set_m600_use_fixed_throttle_level(int argc, const char **argv);
 static void terminal_cmd_m600_correct_encoder_offset(int argc, const char **argv);
+static void terminal_cmd_m600_get_torque_sensor_info(int argc, const char **argv);
+static void terminal_cmd_m600_calibrate_torque_sensor(int argc, const char **argv);
+void hw_configure_torque_sensor(void);
 static void hw_override_pairing_done(void);
 
 // I2C configuration
@@ -151,7 +155,20 @@ void hw_init_gpio(void) {
 			0,
 			terminal_cmd_m600_correct_encoder_offset);
 
+	terminal_register_command_callback(
+			"torque_sensor",
+			"Print the current torque sensor output as a % from 0.0 to 1.0",
+			0,
+			terminal_cmd_m600_get_torque_sensor_info);
+
+	terminal_register_command_callback(
+			"calibrate_torque_sensor",
+			"Detect and store torque sensor offset",
+			0,
+			terminal_cmd_m600_calibrate_torque_sensor);
+
 	hw_override_pairing_done();
+	hw_configure_torque_sensor();
 
 	luna_canbus_start();
 }
@@ -392,6 +409,49 @@ bool hw_m600_has_fixed_throttle_level(void) {
 
 float hw_get_PAS_torque(void) {
 	return luna_canbus_get_PAS_torque();
+}
+
+uint32_t hw_calibrate_torque_sensor(void) {
+	eeprom_var sensor_offset;
+
+	sensor_offset.as_i32 = measure_torque_sensor_offset();
+
+	// Store offset in flash
+	conf_general_store_eeprom_var_hw(&sensor_offset, EEPROM_ADDR_TORQUE_SENSOR_OFFSET);
+
+	hw_configure_torque_sensor();
+
+	return sensor_offset.as_i32;
+}
+
+void hw_configure_torque_sensor(void) {
+	eeprom_var sensor_offset;
+	bool var_not_found = !conf_general_read_eeprom_var_hw(&sensor_offset, EEPROM_ADDR_TORQUE_SENSOR_OFFSET);
+
+	if(!var_not_found) {
+		set_torque_sensor_lower_range(sensor_offset.as_i32);
+	}
+}
+
+static void terminal_cmd_m600_calibrate_torque_sensor(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	commands_printf("Measured offset: %d", hw_calibrate_torque_sensor());
+	return;
+}
+
+static void terminal_cmd_m600_get_torque_sensor_info(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	commands_printf("Torque sensor output: %d", get_torque_sensor_output());
+	commands_printf("Torque sensor output (%%): %.2f", (double)luna_canbus_get_PAS_torque());
+	commands_printf("Torque sensor lower range: %d", get_torque_sensor_lower_range());
+	commands_printf("Torque sensor upper range: %d", get_torque_sensor_upper_range());
+	commands_printf("Torque sensor deadband: %.2f (assistance starts at %d)",	(double)get_torque_sensor_deadband(),
+																				(int32_t)((1.0 + get_torque_sensor_deadband()) * (float)get_torque_sensor_lower_range()));
+	return;
 }
 
 float hw_get_encoder_error(void) {
