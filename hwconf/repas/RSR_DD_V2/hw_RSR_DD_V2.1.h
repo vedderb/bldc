@@ -17,12 +17,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_RSR_DD_V2_H_
-#define HW_RSR_DD_V2_H_
+#ifndef HW_RSR_DD_V2_R2_H_
+#define HW_RSR_DD_V2_R2_H_
 
 
-#define HW_RSR_DD_V2_REV_1
+#define HW_RSR_DD_V2_REV_2
 
 #include "hw_RSR_DD_V2_core.h"
 
-#endif /* HW_RSR_DD_V2_H_ */
+#endif /* HW_RSR_DD_V2_R2_H_ */
