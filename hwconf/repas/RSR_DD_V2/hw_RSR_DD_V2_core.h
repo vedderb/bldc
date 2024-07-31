@@ -101,6 +101,7 @@
 #else
 #define CURRENT_SHUNT_RES		0.0009 //v2.1 using hall sensor CC6920BSO
 #endif
+#endif
 
 // Input voltage
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
