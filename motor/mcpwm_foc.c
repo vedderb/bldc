@@ -363,6 +363,8 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	m_motor_1.m_state = MC_STATE_OFF;
 	m_motor_1.m_control_mode = CONTROL_MODE_NONE;
 	m_motor_1.m_hall_dt_diff_last = 1.0;
+	m_motor_1.m_hall_dt_diff_now = 1.0;
+	m_motor_1.m_ang_hall_int_prev = -1;
 	foc_precalc_values((motor_all_state_t*)&m_motor_1);
 	update_hfi_samples(m_motor_1.m_conf->foc_hfi_samples, &m_motor_1);
 	init_audio_state(&m_motor_1.m_audio);
@@ -373,6 +375,8 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	m_motor_2.m_state = MC_STATE_OFF;
 	m_motor_2.m_control_mode = CONTROL_MODE_NONE;
 	m_motor_2.m_hall_dt_diff_last = 1.0;
+	m_motor_2.m_hall_dt_diff_now = 1.0;
+	m_motor_2.m_ang_hall_int_prev = -1;
 	foc_precalc_values((motor_all_state_t*)&m_motor_2);
 	update_hfi_samples(m_motor_2.m_conf->foc_hfi_samples, &m_motor_2);
 	init_audio_state(&m_motor_2.m_audio);
