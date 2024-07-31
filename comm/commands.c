@@ -1992,7 +1992,11 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 			// Lower f_zv means less dead time distortion and higher possible current
 			// when measuring inductance on high-inductance motors.
-			mcconf->foc_f_zv = 10000.0;
+			#ifdef HW_HIGH_F_MEASUREMENTS
+				mcconf->foc_f_zv = 80000.0;
+			#else
+				mcconf->foc_f_zv = 10000.0;
+			#endif			
 
 			mc_interface_set_configuration(mcconf);
 
