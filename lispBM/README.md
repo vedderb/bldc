@@ -5967,6 +5967,20 @@ Connect SD-card on pin-mosi, pin-miso, pin-sck and pin-cs. The optional argument
 
 ---
 
+#### f-connect-nand
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.05+ |
+
+```clj
+(f-connect-nand pin-mosi pin-miso pin-sck pin-cs optSpiSpeed)
+```
+
+Connect NAND-flash memory on pin-mosi, pin-miso, pin-sck and pin-cs. The optional argument optSpiSpeed can be used to specify the SPI speed (default 20000 Hz). Returns true on success, nil otherwise.
+
+---
+
 #### f-disconnect
 
 | Platforms | Firmware |
@@ -5977,7 +5991,7 @@ Connect SD-card on pin-mosi, pin-miso, pin-sck and pin-cs. The optional argument
 (f-disconnect)
 ```
 
-Disconnect SD-card.
+Disconnect SD-card or NAND-Flash.
 
 ---
 
