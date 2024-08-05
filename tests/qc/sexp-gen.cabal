@@ -1,0 +1,69 @@
+cabal-version:      2.4
+name:               sexp-gen
+version:            0.1.0.0
+
+-- A short (one-line) description of the package.
+-- synopsis:
+
+-- A longer description of the package.
+-- description:
+
+-- A URL where users can report bugs.
+-- bug-reports:
+
+-- The license under which the package is released.
+-- license:
+author:             Rewbert
+maintainer:         krookr@chalmers.se
+
+-- A copyright notice.
+-- copyright:
+-- category:
+extra-source-files: CHANGELOG.md
+
+flag quickercheck
+  manual: True
+  default: False
+
+library sexp-gen-lib
+    exposed-modules: SExpGen
+    other-modules: Syntax, Driver, Property, Oracles
+    build-depends: base
+                 , QuickCheck
+                 , containers
+                 , bytestring
+                 , binary
+                 , directory
+                 , process
+                 , random
+                 , temporary
+    hs-source-dirs: src
+    default-language: Haskell2010
+
+executable sexp-gen-exe
+    main-is:          Main.hs
+
+    -- Modules included in this executable, other than Main.
+    other-modules:
+    
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+    build-depends:    base
+                    , sexp-gen-lib
+                    , QuickCheck
+                    , containers
+                    , optparse-applicative
+    hs-source-dirs:   app
+    default-language: Haskell2010
+    if(flag(quickercheck))
+      ghc-options: -threaded -rtsopts -feager-blackholing
+      cpp-options: -DQUICKERCHECK
+
+test-suite regression
+    main-is: Spec.hs
+    build-depends: base, sexp-gen-lib, containers, hspec
+    build-tool-depends: hspec-discover:hspec-discover
+    ghc-options: -Wno-missing-home-modules
+    hs-source-dirs: tests/Regression
+    default-language: Haskell2010
+    type: exitcode-stdio-1.0

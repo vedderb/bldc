@@ -228,7 +228,7 @@ int64_t lbm_dec_i64(lbm_value x) {
 
 char *lbm_dec_str(lbm_value val) {
   char *res = 0;
-  // If val is an array, car of val will be non-null. 
+  // If val is an array, car of val will be non-null.
   if (lbm_is_array_r(val)) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(val);
     res = (char *)array->data;
@@ -894,9 +894,8 @@ lbm_value lbm_car(lbm_value c){
     return cell->car;
   }
 
-  if (lbm_type_of(c) == LBM_TYPE_SYMBOL &&
-      c == ENC_SYM_NIL) {
-    return ENC_SYM_NIL; // if nil, return nil.
+  if (lbm_is_symbol_nil(c)) {
+    return c; // if nil, return nil.
   }
 
   return ENC_SYM_TERROR;
@@ -915,10 +914,10 @@ lbm_value lbm_caar(lbm_value c) {
 
     if (lbm_is_ptr(tmp)) {
       return lbm_ref_cell(tmp)->car;
-    } else if (lbm_is_symbol(tmp) && tmp == ENC_SYM_NIL) {
+    } else if (lbm_is_symbol_nil(tmp)) {
       return tmp;
     }
-  } else if (lbm_is_symbol(c) && c == ENC_SYM_NIL) {
+  } else if (lbm_is_symbol_nil(c)){
     return c;
   }
   return ENC_SYM_TERROR;
@@ -934,38 +933,34 @@ lbm_value lbm_cadr(lbm_value c) {
 
     if (lbm_is_ptr(tmp)) {
       return lbm_ref_cell(tmp)->car;
-    } else if (lbm_is_symbol(tmp) && tmp == ENC_SYM_NIL) {
+    } else if (lbm_is_symbol_nil(tmp)) {
       return tmp;
     }
-  } else if (lbm_is_symbol(c) && c == ENC_SYM_NIL) {
+  } else if (lbm_is_symbol_nil(c)) {
     return c;
   }
   return ENC_SYM_TERROR;
 }
 
 lbm_value lbm_cdr(lbm_value c){
-
-  if (lbm_type_of(c) == LBM_TYPE_SYMBOL &&
-      c == ENC_SYM_NIL) {
-    return ENC_SYM_NIL; // if nil, return nil.
-  }
-
   if (lbm_is_ptr(c)) {
     lbm_cons_t *cell = lbm_ref_cell(c);
     return cell->cdr;
+  }
+  if (lbm_is_symbol_nil(c)) {
+    return ENC_SYM_NIL; // if nil, return nil.
   }
   return ENC_SYM_TERROR;
 }
 
 lbm_value lbm_cddr(lbm_value c) {
-
   if (lbm_is_ptr(c)) {
     lbm_value tmp = lbm_ref_cell(c)->cdr;
     if (lbm_is_ptr(tmp)) {
       return lbm_ref_cell(tmp)->cdr;
     }
   }
-  if (lbm_is_symbol(c) && c == ENC_SYM_NIL) {
+  if (lbm_is_symbol_nil(c)) {
     return ENC_SYM_NIL;
   }
   return ENC_SYM_TERROR;
