@@ -1,4 +1,3 @@
-
 /*
     Copyright 2018, 2024 Joel Svensson        svenssonjoel@yahoo.se
 

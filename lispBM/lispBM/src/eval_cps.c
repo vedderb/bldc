@@ -591,6 +591,9 @@ static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value en
 // Allocate a binding and attach it to a list (if so desired)
 static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cdr) {
   if (lbm_heap_num_free() < 2) {
+    lbm_gc_mark_phase(key);
+    lbm_gc_mark_phase(val);
+    lbm_gc_mark_phase(the_cdr);
     gc();
     if (lbm_heap_num_free() < 2) {
       error_ctx(ENC_SYM_MERROR);
