@@ -188,6 +188,8 @@ package_dict["STR365"] = [['str365', default_name],
 package_dict["SPARKF"] = [['sparkf', default_name]]
 package_dict["VESC_BASIC"] = [['basic', default_name],
                     ['basic_no_limits', no_limits_name]]
+package_dict["VESC_BASIC_035"] = [['basic_035', default_name],
+                    ['basic_035_no_limits', no_limits_name]]
 package_dict["RSR_DD_V1"] = [['RSR_DD_V1', default_name],
                     ['RSR_DD_V1_005', 'RSR_DD_V1_005.bin']]
 package_dict["RSR_DD_V2"] = [['RSR_DD_V2', default_name]]

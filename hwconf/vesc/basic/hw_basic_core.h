@@ -22,6 +22,8 @@
 
 #ifdef HW_BASIC
   #define HW_NAME			"VESC_BASIC"
+#elif defined(HW_BASIC_035) // 0.35 mOhm shunts
+  #define HW_NAME			"VESC_BASIC_035"
 #else
   #error "Must define hardware type"
 #endif
@@ -124,7 +126,11 @@
 #define CURRENT_AMP_GAIN		20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
+#ifdef HW_BASIC_035
+#define CURRENT_SHUNT_RES		0.00035
+#else
 #define CURRENT_SHUNT_RES		0.0005
+#endif
 #endif
 
 // Input voltage
