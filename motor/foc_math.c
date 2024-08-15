@@ -180,6 +180,10 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 	if (phase) {
 		*phase = utils_fast_atan2(state->x2 - L_ib, state->x1 - L_ia);
 	}
+
+	// Can we clamp the flux in dq with q flux = 0 and d flux is lambda
+	// Then the state->x1 and state->x2 (which are the alpha and betan fluxes) are set as lambda*sin and lambda*cos
+	// The d flux each time would have a residual after tranform from ab to dq. This can be used as an input to the flux estimator
 }
 
 void foc_pll_run(float phase, float dt, float *phase_var,
