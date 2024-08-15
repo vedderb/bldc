@@ -157,7 +157,7 @@ void hw_init_gpio(void) {
 	// DAC as voltage reference for shunt amps
 	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
-	DAC->CR |= DAC_CR_EN1;
+	DAC->CR |= DAC_CR_EN1 | DAC_CR_BOFF1;
 	DAC->DHR12R1 = 2047;
 
 	palSetPadMode(OUT_1_GPIO, OUT_1_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
