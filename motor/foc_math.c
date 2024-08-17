@@ -101,9 +101,6 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 
 	case FOC_OBSERVER_MXLEMMING:
 	case FOC_OBSERVER_MXLEMMING_LAMBDA_COMP:
-	case FOC_OBSERVER_MXV:
-	case FOC_OBSERVER_MXV_LAMBDA_COMP:
-	case FOC_OBSERVER_MXV_LAMBDA_COMP_LIN:
 		// LICENCE NOTE:
 		// This function deviates slightly from the BSD 3 clause licence.
 		// The work here is entirely original to the MESC FOC project, and not based
@@ -117,48 +114,16 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 		state->x1 += (v_alpha - R_ia) * dt - L * (i_alpha - state->i_alpha_last);
 		state->x2 += (v_beta - R_ib) * dt - L * (i_beta - state->i_beta_last);
 
-		if (conf_now->foc_observer_type == FOC_OBSERVER_MXLEMMING_LAMBDA_COMP ||
-				conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP ||
-				conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP_LIN) {
+		if (conf_now->foc_observer_type == FOC_OBSERVER_MXLEMMING_LAMBDA_COMP) {
+			float err = SQ(state->lambda_est) - (SQ(state->x1) + SQ(state->x2));
+			state->lambda_est += 0.1 * gamma_half * state->lambda_est * -err * dt;
+			utils_truncate_number(&(state->lambda_est), lambda * 0.3, lambda * 2.5);
 
-			if (conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP_LIN) {
-				float mag = NORM2_f(state->x1, state->x2);
-				UTILS_LP_FAST(state->lambda_est, mag, 0.1 * gamma_half * dt * SQ(state->lambda_est));
-				utils_truncate_number(&(state->lambda_est), lambda * 0.3, lambda * 2.5);
-
-				if (mag > state->lambda_est) {
-					state->x1 = (state->x1 / mag) * state->lambda_est;
-					state->x2 = (state->x2 / mag) * state->lambda_est;
-				}
-			} else if (conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP) {
-				float err = SQ(state->lambda_est) - (SQ(state->x1) + SQ(state->x2));
-				state->lambda_est += 0.1 * gamma_half * state->lambda_est * -err * dt;
-				utils_truncate_number(&(state->lambda_est), lambda * 0.3, lambda * 2.5);
-
-				float mag = NORM2_f(state->x1, state->x2);
-				if (mag > state->lambda_est) {
-					state->x1 = (state->x1 / mag) * state->lambda_est;
-					state->x2 = (state->x2 / mag) * state->lambda_est;
-				}
-			} else {
-				float err = SQ(state->lambda_est) - (SQ(state->x1) + SQ(state->x2));
-				state->lambda_est += 0.1 * gamma_half * state->lambda_est * -err * dt;
-				utils_truncate_number(&(state->lambda_est), lambda * 0.3, lambda * 2.5);
-
-				utils_truncate_number_abs(&(state->x1), state->lambda_est);
-				utils_truncate_number_abs(&(state->x2), state->lambda_est);
-			}
+			utils_truncate_number_abs(&(state->x1), state->lambda_est);
+			utils_truncate_number_abs(&(state->x2), state->lambda_est);
 		} else {
-			if (conf_now->foc_observer_type == FOC_OBSERVER_MXV) {
-				float mag = NORM2_f(state->x1, state->x2);
-				if (mag > lambda) {
-					state->x1 = (state->x1 / mag) * lambda;
-					state->x2 = (state->x2 / mag) * lambda;
-				}
-			} else {
-				utils_truncate_number_abs(&(state->x1), lambda);
-				utils_truncate_number_abs(&(state->x2), lambda);
-			}
+			utils_truncate_number_abs(&(state->x1), lambda);
+			utils_truncate_number_abs(&(state->x2), lambda);
 		}
 
 		// Set these to 0 to allow using the same atan2-code as for Ortega
@@ -186,6 +151,43 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 		state->x1 += x1_dot * dt;
 		state->x2 += x2_dot * dt;
 	} break;
+
+	case FOC_OBSERVER_MXV:
+	case FOC_OBSERVER_MXV_LAMBDA_COMP:
+	case FOC_OBSERVER_MXV_LAMBDA_COMP_LIN:
+		state->x1 += (v_alpha - R_ia) * dt;
+		state->x2 += (v_beta - R_ib) * dt;
+
+		if (conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP ||
+				conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP_LIN) {
+			if (conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP_LIN) {
+				float mag = NORM2_f(state->x1 - L_ia, state->x2 - L_ib);
+				UTILS_LP_FAST(state->lambda_est, mag, 0.1 * gamma_half * dt * SQ(state->lambda_est));
+				utils_truncate_number(&(state->lambda_est), lambda * 0.3, lambda * 2.5);
+
+				if (mag > state->lambda_est) {
+					state->x1 = ((state->x1 - L_ia) / mag) * lambda + L_ia;
+					state->x2 = ((state->x2 - L_ib) / mag) * lambda + L_ib;
+				}
+			} else if (conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP) {
+				float err = SQ(state->lambda_est) - (SQ(state->x1) + SQ(state->x2));
+				state->lambda_est += 0.1 * gamma_half * state->lambda_est * -err * dt;
+				utils_truncate_number(&(state->lambda_est), lambda * 0.3, lambda * 2.5);
+
+				float mag = NORM2_f(state->x1 - L_ia, state->x2 - L_ib);
+				if (mag > state->lambda_est) {
+					state->x1 = ((state->x1 - L_ia) / mag) * lambda + L_ia;
+					state->x2 = ((state->x2 - L_ib) / mag) * lambda + L_ib;
+				}
+			}
+		} else {
+			float mag = NORM2_f(state->x1 - L_ia, state->x2 - L_ib);
+			if (mag > lambda) {
+				state->x1 = ((state->x1 - L_ia) / mag) * lambda + L_ia;
+				state->x2 = ((state->x2 - L_ib) / mag) * lambda + L_ib;
+			}
+		}
+		break;
 
 	default:
 		break;
