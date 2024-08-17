@@ -36,7 +36,10 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 	case SAT_COMP_LAMBDA:
 		// Here we assume that the inductance drops by the same amount as the flux linkage. I have
 		// no idea if this is a valid or even a reasonable assumption.
-		if (conf_now->foc_observer_type >= FOC_OBSERVER_ORTEGA_LAMBDA_COMP) {
+		if (conf_now->foc_observer_type >= FOC_OBSERVER_ORTEGA_LAMBDA_COMP ||
+				conf_now->foc_observer_type >= FOC_OBSERVER_MXLEMMING_LAMBDA_COMP ||
+				conf_now->foc_observer_type >= FOC_OBSERVER_MXV_LAMBDA_COMP ||
+				conf_now->foc_observer_type >= FOC_OBSERVER_MXV_LAMBDA_COMP_LIN) {
 			L = L * (state->lambda_est / lambda);
 		}
 		break;
@@ -48,7 +51,10 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 	} break;
 
 	case SAT_COMP_LAMBDA_AND_FACTOR: {
-		if (conf_now->foc_observer_type >= FOC_OBSERVER_ORTEGA_LAMBDA_COMP) {
+		if (conf_now->foc_observer_type >= FOC_OBSERVER_ORTEGA_LAMBDA_COMP ||
+				conf_now->foc_observer_type >= FOC_OBSERVER_MXLEMMING_LAMBDA_COMP ||
+				conf_now->foc_observer_type >= FOC_OBSERVER_MXV_LAMBDA_COMP ||
+				conf_now->foc_observer_type >= FOC_OBSERVER_MXV_LAMBDA_COMP_LIN) {
 			L = L * (state->lambda_est / lambda);
 		}
 		const float comp_fact = conf_now->foc_sat_comp * (motor->m_motor_state.i_abs_filter / conf_now->l_current_max);
@@ -166,8 +172,8 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 				utils_truncate_number(&(state->lambda_est), lambda * 0.3, lambda * 2.5);
 
 				if (mag > state->lambda_est) {
-					state->x1 = ((state->x1 - L_ia) / mag) * lambda + L_ia;
-					state->x2 = ((state->x2 - L_ib) / mag) * lambda + L_ib;
+					state->x1 = (state->x1 / mag) * state->lambda_est;
+					state->x2 = (state->x2 / mag) * state->lambda_est;
 				}
 			} else if (conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP) {
 				float err = SQ(state->lambda_est) - (SQ(state->x1 - L_ia) + SQ(state->x2 - L_ib));
@@ -176,15 +182,15 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 
 				float mag = NORM2_f(state->x1 - L_ia, state->x2 - L_ib);
 				if (mag > state->lambda_est) {
-					state->x1 = ((state->x1 - L_ia) / mag) * lambda + L_ia;
-					state->x2 = ((state->x2 - L_ib) / mag) * lambda + L_ib;
+					state->x1 = (state->x1 / mag) * state->lambda_est;
+					state->x2 = (state->x2 / mag) * state->lambda_est;
 				}
 			}
 		} else {
 			float mag = NORM2_f(state->x1 - L_ia, state->x2 - L_ib);
 			if (mag > lambda) {
-				state->x1 = ((state->x1 - L_ia) / mag) * lambda + L_ia;
-				state->x2 = ((state->x2 - L_ib) / mag) * lambda + L_ib;
+				state->x1 = (state->x1 / mag) * lambda;
+				state->x2 = (state->x2 / mag) * lambda;
 			}
 		}
 		break;
