@@ -1,5 +1,5 @@
 ### 6.05
-#### TBD
+#### 2024-08-19
 * LispBM:
 	* Support for var in progn.
 	* Support for curly brackets instead of progn.
