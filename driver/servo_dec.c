@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "servo_dec.h"
 #include "stm32f4xx_conf.h"
 #include "ch.h"
@@ -24,9 +27,7 @@
 #include "hw.h"
 #include "utils_math.h"
 
-/*
- * Settings
- */
+// Settings
 #define SERVO_NUM				1
 #define TIMER_FREQ				1000000
 
@@ -43,8 +44,11 @@ static volatile bool is_running = false;
 static void(*done_func)(void) = 0;
 
 static void icuwidthcb(ICUDriver *icup) {
-	last_len_received[0] = ((float)icuGetWidthX(icup) / ((float)TIMER_FREQ / 1000.0));
-	float len = last_len_received[0] - pulse_start;
+	float len_received = ((float)icuGetWidthX(icup) / ((float)TIMER_FREQ / 1000.0));
+#ifndef HW_VALIDATE_SERVO_INPUT
+	last_len_received[0] = len_received;
+#endif
+	float len = len_received - pulse_start;
 	const float len_set = (pulse_end - pulse_start);
 
 	if (len > len_set) {
@@ -78,7 +82,10 @@ static void icuwidthcb(ICUDriver *icup) {
 			servo_pos[0] = (len * 2.0 - len_set) / len_set;
 		}
 
-		last_update_time = chVTGetSystemTime();
+#ifdef HW_VALIDATE_SERVO_INPUT
+		last_len_received[0] = len_received; // Stop noisy lengths from going to vesc tool
+#endif
+		last_update_time = chVTGetSystemTimeX();
 
 		if (done_func) {
 			done_func();
@@ -86,15 +93,11 @@ static void icuwidthcb(ICUDriver *icup) {
 	}
 }
 
-static void icuperiodcb(ICUDriver *icup) {
-	(void)icup;
-}
-
 static ICUConfig icucfg = {
 		ICU_INPUT_ACTIVE_HIGH,
 		TIMER_FREQ,
 		icuwidthcb,
-		icuperiodcb,
+		NULL,
 		NULL,
 		HW_ICU_CHANNEL,
 		0
@@ -129,6 +132,7 @@ void servodec_init(void (*d_func)(void)) {
  */
 void servodec_stop(void) {
 	if (is_running) {
+		icuStopCapture(&HW_ICU_DEV);
 		icuStop(&HW_ICU_DEV);
 		palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT);
 		pulse_start = 1.0;
@@ -199,3 +203,9 @@ float servodec_get_last_pulse_len(int servo_num) {
 		return 0.0;
 	}
 }
+
+bool servodec_is_running(void) {
+	return is_running;
+}
+
+#pragma GCC pop_options

@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "lispif.h"
 #include "lispbm.h"
 
@@ -35,17 +38,7 @@ static const char* functions[] = {
 "(progn (yield 10000) (uart-read-until buffer (- n rd) (+ ofs rd) end))"
 ")))",
 
-"(defun map (f lst)"
-"(if (eq lst nil) nil "
-"(cons (f (car lst)) (map f (cdr lst)))))",
-
-"(defun iota (n)"
-"(let ((iacc (lambda (acc i)"
-"(if (< i 0) acc (iacc (cons i acc) (- i 1))))))"
-"(iacc nil (- n 1))))",
-
-"(defun range (start end)"
-"(map (lambda (x) (+ x start)) (iota (- end start))))",
+"(defun iota (n) (range n))",
 
 "(defun foldl (f init lst)"
 "(if (eq lst nil) init (foldl f (f init (car lst)) (cdr lst))))",
@@ -53,17 +46,7 @@ static const char* functions[] = {
 "(defun foldr (f init lst)"
 "(if (eq lst nil) init (f (car lst) (foldr f init (cdr lst)))))",
 
-"(defun reverse (lst)"
-"(let ((revacc (lambda (acc lst)"
-"(if (eq nil lst) acc (revacc (cons (car lst) acc) (cdr lst))))))"
-"(revacc nil lst)))",
-
-"(defun length (lst)"
-"(let ((len (lambda (l lst)"
-"(if (eq lst nil) l (len (+ l 1) (cdr lst))))))"
-"(len 0 lst)))",
-
-"(defun apply (f lst) (eval `(,f ,@lst)))",
+"(defun apply (f lst) (eval (cons f lst)))",
 
 "(defun zipwith (f x y)"
 "(let ((map-rec (lambda (f res lst ys)"
@@ -71,8 +54,6 @@ static const char* functions[] = {
 "(reverse res)"
 "(map-rec f (cons (f (car lst) (car ys)) res) (cdr lst) (cdr ys))))))"
 "(map-rec f nil x y)))",
-
-"(defun sleep (seconds) (yield (* seconds 1000000.0)))",
 
 "(defun filter (f lst)"
 "(let ((filter-rec (lambda (f lst ys)"
@@ -84,15 +65,6 @@ static const char* functions[] = {
 "(filter-rec f lst nil)"
 "))",
 
-"(defun str-len (str) (- (buflen str) 1))",
-
-"(defun sort (f lst)"
-"(let ((insert (lambda (elt f sorted-lst)"
-"(if (eq sorted-lst nil) (list elt)"
-"(if (f elt (car sorted-lst)) (cons elt sorted-lst)"
-"(cons (car sorted-lst) (insert elt f (cdr sorted-lst))))))))"
-"(if (eq lst nil) nil (insert (car lst) f (sort f (cdr lst))))))",
-
 "(defun str-cmp-asc (a b) (< (str-cmp a b) 0))",
 "(defun str-cmp-dsc (a b) (> (str-cmp a b) 0))",
 
@@ -100,14 +72,18 @@ static const char* functions[] = {
 "(defun third (x) (car (cdr (cdr x))))",
 
 "(defun abs (x) (if (< x 0) (- x) x))",
+
+"(defun str-merge () (str-join (rest-args)))",
 };
 
 static const char* macros[] = {
 "(define defun (macro (name args body) (me-defun name args body)))",
-"(define loopfor (macro (it start cond update body) (me-loopfor it start cond update body)))",
-"(define loopwhile (macro (cond body) (me-loopwhile cond body)))",
+"(define defunret (macro (name args body) (me-defunret name args body)))",
+"(define loopfor (macro (it start cnd update body) (me-loopfor it start cnd update body)))",
+"(define loopwhile (macro (cnd body) (me-loopwhile cnd body)))",
 "(define looprange (macro (it start end body) (me-looprange it start end body)))",
 "(define loopforeach (macro (it lst body) (me-loopforeach it lst body)))",
+"(define loopwhile-thd (macro (stk cnd body) `(spawn ,stk (fn () (loopwhile ,cnd ,body)))))",
 };
 
 static bool strmatch(const char *str1, const char *str2) {
@@ -145,3 +121,5 @@ bool lispif_vesc_dynamic_loader(const char *str, const char **code) {
 
 	return false;
 }
+
+#pragma GCC pop_options

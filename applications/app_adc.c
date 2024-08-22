@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "app.h"
 
 #include "ch.h"
@@ -37,6 +40,14 @@
 #define RPM_FILTER_SAMPLES				8
 #define TC_DIFF_MAX_PASS				60  // TODO: move to app_conf
 
+#define CTRL_USES_BUTTON(ctrl_type)(\
+		ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON || \
+		ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC || \
+		ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER || \
+		ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON || \
+		ctrl_type == ADC_CTRL_TYPE_DUTY_REV_BUTTON || \
+		ctrl_type == ADC_CTRL_TYPE_PID_REV_BUTTON)
+
 // Threads
 static THD_FUNCTION(adc_thread, arg);
 static THD_WORKING_AREA(adc_thread_wa, 512);
@@ -53,12 +64,22 @@ static volatile float adc2_override = 0.0;
 static volatile bool use_rx_tx_as_buttons = false;
 static volatile bool stop_now = true;
 static volatile bool is_running = false;
-static volatile bool adc_detached = false;
+static volatile int adc_detached = 0;
 static volatile bool buttons_detached = false;
 static volatile bool rev_override = false;
 static volatile bool cc_override = false;
+static volatile bool range_ok = true;
 
 void app_adc_configure(adc_config *conf) {
+	if (!buttons_detached && (((conf->buttons >> 0) & 1) || CTRL_USES_BUTTON(conf->ctrl_type))) {
+		if (use_rx_tx_as_buttons) {
+			palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
+			palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
+		} else {
+			palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT_PULLUP);
+		}
+	}
+
 	config = *conf;
 	ms_without_power = 0.0;
 }
@@ -70,11 +91,13 @@ void app_adc_start(bool use_rx_tx) {
 #ifdef HW_ADC_EXT2_GPIO
 	palSetPadMode(HW_ADC_EXT2_GPIO, HW_ADC_EXT2_PIN, PAL_MODE_INPUT_ANALOG);
 #endif
-	if(buttons_detached){
+
+	if (buttons_detached) {
 		use_rx_tx_as_buttons = false;
-	}else{
+	} else {
 		use_rx_tx_as_buttons = use_rx_tx;
 	}
+
 	stop_now = false;
 	chThdCreateStatic(adc_thread_wa, sizeof(adc_thread_wa), NORMALPRIO, adc_thread, NULL);
 }
@@ -102,48 +125,46 @@ float app_adc_get_voltage2(void) {
 	return read_voltage2;
 }
 
-void app_adc_detach_adc(bool detach){
+void app_adc_detach_adc(int detach) {
 	adc_detached = detach;
+	timeout_reset();
 }
 
-void app_adc_adc1_override(float val){
-	val = utils_map(val, 0.0, 1.0, 0.0, 3.3);
+void app_adc_adc1_override(float val) {
 	utils_truncate_number(&val, 0, 3.3);
 	adc1_override = val;
+	timeout_reset();
 }
 
-void app_adc_adc2_override(float val){
-	val = utils_map(val, 0.0, 1.0, 0.0, 3.3);
+void app_adc_adc2_override(float val) {
 	utils_truncate_number(&val, 0, 3.3);
 	adc2_override = val;
+	timeout_reset();
 }
 
-void app_adc_detach_buttons(bool state){
+void app_adc_detach_buttons(bool state) {
 	buttons_detached = state;
+	timeout_reset();
 }
 
-void app_adc_rev_override(bool state){
+void app_adc_rev_override(bool state) {
 	rev_override = state;
+	timeout_reset();
 }
 
-void app_adc_cc_override(bool state){
+void app_adc_cc_override(bool state) {
 	cc_override = state;
+	timeout_reset();
 }
 
+bool app_adc_range_ok(void) {
+	return range_ok;
+}
 
 static THD_FUNCTION(adc_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("APP_ADC");
-
-	// Set servo pin as an input with pullup
-	if (use_rx_tx_as_buttons) {
-		palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
-		palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT_PULLUP);
-	} else {
-		palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT_PULLUP);
-	}
-
 	is_running = true;
 
 	for(;;) {
@@ -170,19 +191,21 @@ static THD_FUNCTION(adc_thread, arg) {
 		float pwr = ADC_VOLTS(ADC_IND_EXT);
 
 		// Override pwr value, when used from LISP
-		if(adc_detached){
+		if (adc_detached == 1 || adc_detached == 2) {
 			pwr = adc1_override;
 		}
 
-		read_voltage = pwr;
-
-		// Optionally apply a filter
-		static float filter_val = 0.0;
-		UTILS_LP_MOVING_AVG_APPROX(filter_val, pwr, FILTER_SAMPLES);
+		// Read voltage and range check
+		static float read_filter = 0.0;
+		UTILS_LP_MOVING_AVG_APPROX(read_filter, pwr, FILTER_SAMPLES);
 
 		if (config.use_filter) {
-			pwr = filter_val;
+			read_voltage = read_filter;
+		} else {
+			read_voltage = pwr;
 		}
+
+		range_ok = read_voltage >= config.voltage_min && read_voltage <= config.voltage_max;
 
 		// Map the read voltage
 		switch (config.ctrl_type) {
@@ -207,6 +230,14 @@ static THD_FUNCTION(adc_thread, arg) {
 			break;
 		}
 
+		// Optionally apply a filter
+		static float pwr_filter = 0.0;
+		UTILS_LP_MOVING_AVG_APPROX(pwr_filter, pwr, FILTER_SAMPLES);
+
+		if (config.use_filter) {
+			pwr = pwr_filter;
+		}
+
 		// Truncate the read voltage
 		utils_truncate_number(&pwr, 0.0, 1.0);
 
@@ -229,7 +260,7 @@ static THD_FUNCTION(adc_thread, arg) {
 #endif
 
 		// Override brake value, when used from LISP
-		if(adc_detached == true){
+		if (adc_detached == 1 || adc_detached == 3) {
 			brake = adc2_override;
 		}
 
@@ -259,11 +290,11 @@ static THD_FUNCTION(adc_thread, arg) {
 		bool rev_button = false;
 		if (use_rx_tx_as_buttons) {
 			cc_button = !palReadPad(HW_UART_TX_PORT, HW_UART_TX_PIN);
-			if (config.cc_button_inverted) {
+			if ((config.buttons >> 1) & 1) {
 				cc_button = !cc_button;
 			}
 			rev_button = !palReadPad(HW_UART_RX_PORT, HW_UART_RX_PIN);
-			if (config.rev_button_inverted) {
+			if ((config.buttons >> 2) & 1) {
 				rev_button = !rev_button;
 			}
 		} else {
@@ -274,32 +305,40 @@ static THD_FUNCTION(adc_thread, arg) {
 					config.ctrl_type == ADC_CTRL_TYPE_DUTY_REV_BUTTON ||
 					config.ctrl_type == ADC_CTRL_TYPE_PID_REV_BUTTON) {
 				rev_button = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
-				if (config.rev_button_inverted) {
+				if ((config.buttons >> 2) & 1) {
 					rev_button = !rev_button;
 				}
 			} else {
 				cc_button = !palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
-				if (config.cc_button_inverted) {
+				if ((config.buttons >> 1) & 1) {
 					cc_button = !cc_button;
 				}
 			}
 		}
 
 		// Override button values, when used from LISP
-		if(buttons_detached){
+		if (buttons_detached) {
 			cc_button = cc_override;
 			rev_button = rev_override;
-			if (config.cc_button_inverted) {
+			if ((config.buttons >> 1) & 1) {
 				cc_button = !cc_button;
 			}
-			if (config.cc_button_inverted) {
-				cc_button = !cc_button;
+			if ((config.buttons >> 2) & 1) {
+				rev_button = !rev_button;
 			}
+		}
+
+		if (!((config.buttons >> 0) & 1)) {
+			cc_button = false;
 		}
 
 		// All pins and buttons are still decoded for debugging, even
 		// when output is disabled.
 		if (app_is_output_disabled()) {
+			continue;
+		}
+
+		if (adc_detached && timeout_has_timeout()) {
 			continue;
 		}
 
@@ -441,8 +480,6 @@ static THD_FUNCTION(adc_thread, arg) {
 			continue;
 		}
 
-		bool range_ok = read_voltage >= config.voltage_min && read_voltage <= config.voltage_max;
-
 		// If safe start is enabled and the output has not been zero for long enough
 		if ((ms_without_power < MIN_MS_WITHOUT_POWER && config.safe_start) || !range_ok) {
 			static int pulses_without_power_before = 0;
@@ -465,8 +502,10 @@ static THD_FUNCTION(adc_thread, arg) {
 			continue;
 		}
 
-		// Reset timeout
-		timeout_reset();
+		// Reset timeout only when the ADC-app is not detached
+		if (!adc_detached) {
+			timeout_reset();
+		}
 
 		// If c is pressed and no throttle is used, maintain the current speed with PID control
 		static bool was_pid = false;
@@ -601,3 +640,5 @@ static THD_FUNCTION(adc_thread, arg) {
 		}
 	}
 }
+
+#pragma GCC pop_options

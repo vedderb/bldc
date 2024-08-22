@@ -18,6 +18,7 @@
     */
 
 #include "mempools.h"
+#include "packet.h"
 
 // Private types
 typedef struct {
@@ -35,6 +36,13 @@ static mcconf_container_t m_mc_confs[MEMPOOLS_MCCONF_NUM] = {{0}};
 static appconf_container_t m_app_confs[MEMPOOLS_APPCONF_NUM] = {{0}};
 static int m_mcconf_highest = 0;
 static int m_appconf_highest = 0;
+
+static uint8_t packet_buffer[PACKET_MAX_PL_LEN];
+static mutex_t packet_buffer_mutex;
+
+void mempools_init(void) {
+	chMtxObjectInit(&packet_buffer_mutex);
+}
 
 mc_configuration *mempools_alloc_mcconf(void) {
 	for (int i = 0;i < MEMPOOLS_MCCONF_NUM;i++) {
@@ -114,3 +122,13 @@ int mempools_appconf_allocated_num(void) {
 	return res;
 }
 
+uint8_t *mempools_get_packet_buffer(void) {
+	chMtxLock(&packet_buffer_mutex);
+	return packet_buffer;
+}
+
+void mempools_free_packet_buffer(uint8_t *buffer) {
+	if (buffer == packet_buffer) {
+		chMtxUnlock(&packet_buffer_mutex);
+	}
+}

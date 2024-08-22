@@ -24,6 +24,9 @@
  * this module to interpret CAN-messages from it properly.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "bms.h"
 #include "buffer.h"
 #include "utils_math.h"
@@ -32,6 +35,7 @@
 #include "comm_can.h"
 #include "commands.h"
 #include "comm_usb.h"
+#include "app.h"
 #include <string.h>
 #include <math.h>
 
@@ -44,6 +48,8 @@ static volatile bms_values m_values;
 static volatile bms_soc_soh_temp_stat m_stat_temp_max;
 static volatile bms_soc_soh_temp_stat m_stat_soc_min;
 static volatile bms_soc_soh_temp_stat m_stat_soc_max;
+static volatile bms_soc_soh_temp_stat m_stat_vcell_min;
+static volatile bms_soc_soh_temp_stat m_stat_vcell_max;
 
 void bms_init(bms_config *conf) {
 	m_conf = *conf;
@@ -51,11 +57,15 @@ void bms_init(bms_config *conf) {
 	memset((void*)&m_stat_temp_max, 0, sizeof(m_stat_temp_max));
 	memset((void*)&m_stat_soc_min, 0, sizeof(m_stat_soc_min));
 	memset((void*)&m_stat_soc_max, 0, sizeof(m_stat_soc_max));
-	memset((void*)&m_values, 0, sizeof(m_values));
+	memset((void*)&m_stat_vcell_min, 0, sizeof(m_stat_vcell_min));
+	memset((void*)&m_stat_vcell_max, 0, sizeof(m_stat_vcell_max));
+
 	m_values.can_id = -1;
 	m_stat_temp_max.id = -1;
 	m_stat_soc_min.id = -1;
 	m_stat_soc_max.id = -1;
+	m_stat_vcell_min.id = -1;
+	m_stat_vcell_max.id = -1;
 }
 
 bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
@@ -109,7 +119,7 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 				int32_t ind = 0;
 				bms_soc_soh_temp_stat msg;
 				msg.id = id;
-				msg.rx_time = chVTGetSystemTime();
+				msg.rx_time = chVTGetSystemTimeX();
 				msg.v_cell_min = buffer_get_float16(data8, 1e3, &ind);
 				msg.v_cell_max = buffer_get_float16(data8, 1e3, &ind);
 				msg.soc = ((float)((uint8_t)data8[ind++])) / 255.0;
@@ -153,6 +163,22 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 					m_stat_soc_max = msg;
 				} else if (m_stat_soc_max.id == msg.id) {
 					m_stat_soc_max = msg;
+				}
+
+				if (m_stat_vcell_min.id < 0 ||
+						UTILS_AGE_S(m_stat_vcell_min.rx_time) > MAX_CAN_AGE_SEC ||
+						m_stat_vcell_min.v_cell_min > msg.v_cell_min) {
+					m_stat_vcell_min = msg;
+				} else if (m_stat_vcell_min.id == msg.id) {
+					m_stat_vcell_min = msg;
+				}
+
+				if (m_stat_vcell_max.id < 0 ||
+						UTILS_AGE_S(m_stat_vcell_max.rx_time) > MAX_CAN_AGE_SEC ||
+						m_stat_vcell_max.v_cell_max < msg.v_cell_max) {
+					m_stat_vcell_max = msg;
+				} else if (m_stat_vcell_max.id == msg.id) {
+					m_stat_vcell_max = msg;
 				}
 			} break;
 
@@ -266,6 +292,9 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 					m_values.temp_hum = buffer_get_float16(data8, 1e2, &ind);
 					m_values.hum = buffer_get_float16(data8, 1e2, &ind);
 					m_values.temp_ic = buffer_get_float16(data8, 1e2, &ind);
+					if (len == 8) {
+						m_values.pressure = buffer_get_float16(data8, 1e-1, &ind);
+					}
 				}
 			} break;
 
@@ -302,55 +331,115 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 	return used_data;
 }
 
+static void disable_on_timeout(volatile bms_soc_soh_temp_stat *stat) {
+	if (UTILS_AGE_S(stat->rx_time) > MAX_CAN_AGE_SEC) {
+		stat->id = -1;
+	}
+}
+
 void bms_update_limits(float *i_in_min, float *i_in_max,
 		float i_in_min_conf, float i_in_max_conf) {
 	float i_in_min_bms = i_in_min_conf;
 	float i_in_max_bms = i_in_max_conf;
 
+	disable_on_timeout(&m_stat_temp_max);
+	disable_on_timeout(&m_stat_soc_min);
+	disable_on_timeout(&m_stat_soc_max);
+	disable_on_timeout(&m_stat_vcell_min);
+	disable_on_timeout(&m_stat_vcell_max);
+
 	// Temperature
-	if (UTILS_AGE_S(m_stat_temp_max.rx_time) < MAX_CAN_AGE_SEC) {
-		float temp = m_stat_temp_max.t_cell_max;
+	float i_in_max_bms_temp = i_in_max_conf;
+	float i_in_min_bms_temp = i_in_min_conf;
+	if ((m_conf.limit_mode >> 0) & 1) {
+		if (m_stat_temp_max.id >= 0) {
+			float temp = m_stat_temp_max.t_cell_max;
 
-		if (temp < (m_conf.t_limit_start + 0.1)) {
-			// OK
-		} else if (temp > (m_conf.t_limit_end - 0.1)) {
-			i_in_min_bms = 0.0;
-			i_in_max_bms = 0.0;
-			// Maybe add fault code?
-//			mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_FET, false, false);
-		} else {
-			float maxc = fabsf(i_in_max_conf);
-			if (fabsf(i_in_min_conf) > maxc) {
-				maxc = fabsf(i_in_min_conf);
-			}
+			if (temp < (m_conf.t_limit_start + 0.1)) {
+				// OK
+			} else if (temp > (m_conf.t_limit_end - 0.1)) {
+				i_in_max_bms_temp = 0.0;
+				i_in_min_bms_temp = 0.0;
+				// Maybe add fault code?
+//				mc_interface_fault_stop(FAULT_CODE_OVER_TEMP_FET, false, false);
+			} else {
+				float maxc = fabsf(i_in_max_conf);
+				if (fabsf(i_in_min_conf) > maxc) {
+					maxc = fabsf(i_in_min_conf);
+				}
 
-			maxc = utils_map(temp, m_conf.t_limit_start, m_conf.t_limit_end, maxc, 0.0);
+				maxc = utils_map(temp, m_conf.t_limit_start, m_conf.t_limit_end, maxc, 0.0);
 
-			if (fabsf(i_in_min_bms) > maxc) {
-				i_in_min_bms = SIGN(i_in_min_bms) * maxc;
-			}
+				if (fabsf(i_in_min_bms_temp) > maxc) {
+					i_in_min_bms_temp = SIGN(i_in_min_bms_temp) * maxc;
+				}
 
-			if (fabsf(i_in_max_bms) > maxc) {
-				i_in_max_bms = SIGN(i_in_max_bms) * maxc;
+				if (fabsf(i_in_max_bms_temp) > maxc) {
+					i_in_max_bms_temp = SIGN(i_in_max_bms_temp) * maxc;
+				}
 			}
 		}
 	}
-
-	// TODO: add support for conf->l_temp_accel_dec to still have braking.
 
 	// SOC
-	if (UTILS_AGE_S(m_stat_soc_min.rx_time) < MAX_CAN_AGE_SEC) {
-		float soc = m_stat_soc_min.soc;
+	float i_in_max_bms_soc = i_in_max_conf;
+	if ((m_conf.limit_mode >> 1) & 1) {
+		if (m_stat_soc_min.id >= 0) {
+			float soc = m_stat_soc_min.soc;
 
-		if (soc > (m_conf.soc_limit_start - 0.001)) {
-			// OK
-		} else if (soc < (m_conf.soc_limit_end + 0.001)) {
-			i_in_max_bms = 0.0;
-		} else {
-			i_in_max_bms = utils_map(soc, m_conf.soc_limit_start,
-					m_conf.soc_limit_end, i_in_max_conf, 0.0);
+			if (soc > (m_conf.soc_limit_start - 0.001)) {
+				// OK
+			} else if (soc < (m_conf.soc_limit_end + 0.001)) {
+				i_in_max_bms_soc = 0.0;
+			} else {
+				i_in_max_bms_soc = utils_map(soc, m_conf.soc_limit_start,
+						m_conf.soc_limit_end, i_in_max_conf, 0.0);
+			}
 		}
 	}
+
+	// VMIN
+	float i_in_max_bms_vmin = i_in_max_conf;
+	if ((m_conf.limit_mode >> 2) & 1) {
+		if (m_stat_vcell_min.id >= 0) {
+			float vmin = m_stat_vcell_min.soc;
+
+			if (vmin > (m_conf.vmin_limit_start - 0.1)) {
+				// OK
+			} else if (vmin < (m_conf.vmin_limit_end + 0.1)) {
+				i_in_max_bms_vmin = 0.0;
+			} else {
+				i_in_max_bms_vmin = utils_map(vmin, m_conf.vmin_limit_start,
+						m_conf.vmin_limit_end, i_in_max_conf, 0.0);
+			}
+		}
+	}
+
+	// VMAX (regen)
+	float i_in_min_bms_vmax = i_in_min_conf;
+	if ((m_conf.limit_mode >> 3) & 1) {
+		if (m_stat_vcell_max.id >= 0) {
+			float vmax = m_stat_vcell_max.soc;
+
+			if (vmax < (m_conf.vmax_limit_start + 0.1)) {
+				// OK
+			} else if (vmax > (m_conf.vmax_limit_end - 0.1)) {
+				i_in_min_bms_vmax = 0.0;
+			} else {
+				i_in_min_bms_vmax = utils_map(vmax, m_conf.vmax_limit_start,
+						m_conf.vmax_limit_end, i_in_min_conf, 0.0);
+			}
+		}
+	}
+
+	i_in_max_bms = utils_min_abs(i_in_max_bms, i_in_max_bms_temp);
+	i_in_max_bms = utils_min_abs(i_in_max_bms, i_in_max_bms_soc);
+	i_in_max_bms = utils_min_abs(i_in_max_bms, i_in_max_bms_vmin);
+
+	i_in_min_bms = utils_min_abs(i_in_min_bms, i_in_min_bms_temp);
+	i_in_min_bms = utils_min_abs(i_in_min_bms, i_in_min_bms_vmax);
+
+	// TODO: add support for conf->l_temp_accel_dec to still have braking.
 
 	if (fabsf(i_in_min_bms) < fabsf(*i_in_min)) {
 		*i_in_min = i_in_min_bms;
@@ -421,6 +510,9 @@ void bms_process_cmd(unsigned char *data, unsigned int len,
 		buffer_append_float32_auto(send_buffer, m_values.ah_cnt_dis_total, &ind);
 		buffer_append_float32_auto(send_buffer, m_values.wh_cnt_dis_total, &ind);
 
+		// Pressure
+		buffer_append_float16(send_buffer, m_values.pressure, 1e-1, &ind);
+
 		reply_func(send_buffer, ind);
 	} break;
 
@@ -445,6 +537,126 @@ void bms_process_cmd(unsigned char *data, unsigned int len,
 
 }
 
-bms_values *bms_get_values(void) {
-	return (bms_values*)&m_values;
+volatile bms_values *bms_get_values(void) {
+	return &m_values;
 }
+
+void bms_send_status_can(void) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+
+	uint8_t id = app_get_configuration()->controller_id;
+
+	buffer_append_float32_auto(buffer, m_values.v_tot, &send_index);
+	buffer_append_float32_auto(buffer, m_values.v_charge, &send_index);
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_V_TOT << 8), buffer, send_index);
+
+	send_index = 0;
+	buffer_append_float32_auto(buffer, m_values.i_in, &send_index);
+	buffer_append_float32_auto(buffer, m_values.i_in_ic, &send_index);
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_I << 8), buffer, send_index);
+
+	send_index = 0;
+	buffer_append_float32_auto(buffer, m_values.ah_cnt, &send_index);
+	buffer_append_float32_auto(buffer, m_values.wh_cnt, &send_index);
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_AH_WH << 8), buffer, send_index);
+
+	int cell_now = 0;
+	int cell_max = m_values.cell_num;
+	if (cell_max > BMS_MAX_CELLS) {
+		cell_max = BMS_MAX_CELLS;
+	}
+
+	while (cell_now < cell_max) {
+		send_index = 0;
+		buffer[send_index++] = cell_now;
+		buffer[send_index++] = m_values.cell_num;
+		if (cell_now < cell_max) {
+			buffer_append_float16(buffer, m_values.v_cell[cell_now++], 1e3, &send_index);
+		}
+		if (cell_now < cell_max) {
+			buffer_append_float16(buffer, m_values.v_cell[cell_now++], 1e3, &send_index);
+		}
+		if (cell_now < cell_max) {
+			buffer_append_float16(buffer, m_values.v_cell[cell_now++], 1e3, &send_index);
+		}
+		comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_V_CELL << 8), buffer, send_index);
+	}
+
+	send_index = 0;
+	buffer[send_index++] = cell_max;
+	uint64_t bal_state = 0;
+	for (int i = 0;i < cell_max;i++) {
+		bal_state |= (uint64_t)m_values.bal_state[i] << i;
+	}
+	buffer[send_index++] = (bal_state >> 48) & 0xFF;
+	buffer[send_index++] = (bal_state >> 40) & 0xFF;
+	buffer[send_index++] = (bal_state >> 32) & 0xFF;
+	buffer[send_index++] = (bal_state >> 24) & 0xFF;
+	buffer[send_index++] = (bal_state >> 16) & 0xFF;
+	buffer[send_index++] = (bal_state >> 8) & 0xFF;
+	buffer[send_index++] = (bal_state >> 0) & 0xFF;
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_BAL << 8), buffer, send_index);
+
+	int temp_now = 0;
+	int temp_max = m_values.temp_adc_num;
+	if (temp_max > BMS_MAX_TEMPS) {
+		temp_max = BMS_MAX_TEMPS;
+	}
+
+	while (temp_now < temp_max) {
+		send_index = 0;
+		buffer[send_index++] = temp_now;
+		buffer[send_index++] = temp_max;
+		if (temp_now < temp_max) {
+			buffer_append_float16(buffer, m_values.temps_adc[temp_now++], 1e2, &send_index);
+		}
+		if (temp_now < temp_max) {
+			buffer_append_float16(buffer, m_values.temps_adc[temp_now++], 1e2, &send_index);
+		}
+		if (temp_now < temp_max) {
+			buffer_append_float16(buffer, m_values.temps_adc[temp_now++], 1e2, &send_index);
+		}
+		comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_TEMPS << 8), buffer, send_index);
+	}
+
+	send_index = 0;
+	buffer_append_float16(buffer, m_values.temp_hum, 1e2, &send_index);
+	buffer_append_float16(buffer, m_values.hum, 1e2, &send_index);
+	buffer_append_float16(buffer, m_values.temp_ic, 1e2, &send_index); // Put IC temp here instead of making mew msg
+	buffer_append_float16(buffer, m_values.pressure, 1e-1, &send_index);
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_HUM << 8), buffer, send_index);
+
+	/*
+	 * CAN_PACKET_BMS_SOC_SOH_TEMP_STAT
+	 *
+	 * b[0] - b[1]: V_CELL_MIN (mV)
+	 * b[2] - b[3]: V_CELL_MAX (mV)
+	 * b[4]: SoC (0 - 255)
+	 * b[5]: SoH (0 - 255)
+	 * b[6]: T_CELL_MAX (-128 to +127 degC)
+	 * b[7]: State bitfield:
+	 * [B7      B6      B5      B4      B3      B2      B1      B0      ]
+	 * [RSV     RSV     RSV     RSV     RSV     CHG_OK  IS_BAL  IS_CHG  ]
+	 */
+	send_index = 0;
+	buffer_append_float16(buffer, -1.0, 1e3, &send_index);
+	buffer_append_float16(buffer, -1.0, 1e3, &send_index);
+	buffer[send_index++] = (uint8_t)(m_values.soc * 255.0);
+	buffer[send_index++] = (uint8_t)(m_values.soh * 255.0);
+	buffer[send_index++] = (int8_t)m_values.temp_max_cell;
+	buffer[send_index++] = 0;
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_SOC_SOH_TEMP_STAT << 8), buffer, send_index);
+
+	send_index = 0;
+	buffer_append_float32_auto(buffer, m_values.ah_cnt_chg_total, &send_index);
+	buffer_append_float32_auto(buffer, m_values.wh_cnt_chg_total, &send_index);
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_AH_WH_CHG_TOTAL << 8), buffer, send_index);
+
+	send_index = 0;
+	buffer_append_float32_auto(buffer, m_values.ah_cnt_dis_total, &send_index);
+	buffer_append_float32_auto(buffer, m_values.wh_cnt_dis_total, &send_index);
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_AH_WH_DIS_TOTAL << 8), buffer, send_index);
+}
+
+#pragma GCC pop_options

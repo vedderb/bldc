@@ -20,6 +20,11 @@
 #include "shutdown.h"
 #include "app.h"
 #include "conf_general.h"
+#include "mc_interface.h"
+
+#ifdef USE_LISPBM
+#include "lispif.h"
+#endif
 
 #ifdef HW_SHUTDOWN_HOLD_ON
 
@@ -30,6 +35,7 @@ static THD_WORKING_AREA(shutdown_thread_wa, 128);
 static mutex_t m_sample_mutex;
 static volatile bool m_init_done = false;
 static volatile bool m_sampling_disabled = false;
+static volatile bool m_shutdown_hold = false;
 
 // Private functions
 static THD_FUNCTION(shutdown_thread, arg);
@@ -62,11 +68,35 @@ void shutdown_set_sampling_disabled(bool disabled) {
 	chMtxUnlock(&m_sample_mutex);
 }
 
-static bool do_shutdown(void) {
+void shutdown_hold(bool hold) {
+	m_shutdown_hold = hold;
+}
+
+bool do_shutdown(bool resample) {
+#ifdef USE_LISPBM
+	lispif_process_shutdown();
+#endif
+
+	while (m_shutdown_hold) {
+		chThdSleepMilliseconds(5);
+	}
+
 	conf_general_store_backup_data();
-	DISABLE_GATE();
-	HW_SHUTDOWN_HOLD_OFF();
-	return true;
+	chThdSleepMilliseconds(100);
+
+	bool disable_gates = true;
+	if (resample) {
+		chMtxLock(&m_sample_mutex);
+		if (!m_sampling_disabled) {
+			disable_gates = HW_SAMPLE_SHUTDOWN();
+		}
+		chMtxUnlock(&m_sample_mutex);
+	}
+	if (disable_gates) {
+		DISABLE_GATE();
+		HW_SHUTDOWN_HOLD_OFF();
+	}
+	return disable_gates;
 }
 
 static THD_FUNCTION(shutdown_thread, arg) {
@@ -77,6 +107,7 @@ static THD_FUNCTION(shutdown_thread, arg) {
 	bool gates_disabled_here = false;
 	float gate_disable_time = 0.0;
 	systime_t last_iteration_time = chVTGetSystemTimeX();
+	uint64_t odometer_old = mc_interface_get_odometer();
 
 	for(;;) {
 		float dt = (float)chVTTimeElapsedSinceX(last_iteration_time) / (float)CH_CFG_ST_FREQUENCY;
@@ -104,17 +135,29 @@ static THD_FUNCTION(shutdown_thread, arg) {
 		switch (conf->shutdown_mode) {
 		case SHUTDOWN_MODE_ALWAYS_OFF:
 			if (m_button_pressed) {
-				gates_disabled_here = do_shutdown();
+				gates_disabled_here = do_shutdown(true);
 			}
 			break;
 
 		case SHUTDOWN_MODE_ALWAYS_ON:
+			m_inactivity_time += dt;
 			HW_SHUTDOWN_HOLD_ON();
+			// Without a shutdown switch use inactivity timer to estimate
+			// when device is stopped. Check also distance between store
+			// to prevent excessive flash write cycles.
+			if (m_inactivity_time >= SHUTDOWN_SAVE_BACKUPDATA_TIMEOUT) {
+				shutdown_reset_timer();
+				// If at least 1km was done then we can store data 
+				if((mc_interface_get_odometer()-odometer_old) >= 1000) {
+					conf_general_store_backup_data();
+					odometer_old = mc_interface_get_odometer();
+				}
+			}
 			break;
 
 		default:
 			if (clicked) {
-				gates_disabled_here = do_shutdown();
+				gates_disabled_here = do_shutdown(false);
 			}
 			break;
 		}
@@ -147,14 +190,77 @@ static THD_FUNCTION(shutdown_thread, arg) {
 			}
 
 			if (m_inactivity_time >= shutdown_timeout && m_button_pressed) {
-				gates_disabled_here = do_shutdown();
+				gates_disabled_here = do_shutdown(false);
 			}
-		} else {
-			m_inactivity_time = 0.0;
 		}
 
 		chThdSleepMilliseconds(10);
 	}
 }
 
+#else // HARDWARE WITHOUT POWER SWITCH 
+// just saving backup data, no actual shutdown
+
+// Private variables
+static volatile float m_inactivity_time = 0.0;
+static THD_WORKING_AREA(shutdown_thread_wa, 128);
+
+// Private functions
+static THD_FUNCTION(shutdown_thread, arg);
+
+void shutdown_init(void) {
+	chThdCreateStatic(shutdown_thread_wa, sizeof(shutdown_thread_wa), LOWPRIO, shutdown_thread, NULL);
+}
+
+void shutdown_reset_timer(void) {
+	m_inactivity_time = 0.0;
+}
+
+float shutdown_get_inactivity_time(void) {
+	return m_inactivity_time;
+}
+
+void shutdown_hold(bool hold) {
+	(void)hold;
+}
+
+bool do_shutdown(bool resample) {
+	(void)resample;
+	return false;
+}
+
+static THD_FUNCTION(shutdown_thread, arg) {
+	(void)arg;
+
+	chRegSetThreadName("Shutdown");
+
+	systime_t last_iteration_time = chVTGetSystemTimeX();
+	uint64_t odometer_old = mc_interface_get_odometer();
+
+	for(;;) {
+		float dt = (float)chVTTimeElapsedSinceX(last_iteration_time) / (float)CH_CFG_ST_FREQUENCY;
+		last_iteration_time = chVTGetSystemTimeX();
+
+		const app_configuration *conf = app_get_configuration();
+
+		//if set to always off don't store backup
+		if(conf->shutdown_mode != SHUTDOWN_MODE_ALWAYS_OFF) {
+			m_inactivity_time += dt;
+			if (m_inactivity_time >= SHUTDOWN_SAVE_BACKUPDATA_TIMEOUT) {
+				shutdown_reset_timer();
+				// Without a shutdown switch use inactivity time to measure
+				// when stopped. If timeout is passed and trip distance is
+				// greater than 1km store it to prevent excessive flash write.
+				// Example, i stop for 4 miutes after 3,4km and the firmware
+				// stores parameters, if i stop for 20s or after 600m no.
+				if((mc_interface_get_odometer()-odometer_old) >= 1000) {
+					conf_general_store_backup_data();
+					odometer_old = mc_interface_get_odometer();
+				}
+			}
+		}
+
+		chThdSleepMilliseconds(1000);
+	}
+}
 #endif

@@ -39,22 +39,19 @@
 #define EVAL_CPS_STACK_SIZE 256
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
-#define HEAP_SIZE 2048
-#define VARIABLE_STORAGE_SIZE 256
+#define HEAP_SIZE 4096
 #define EXTENSION_STORAGE_SIZE 256
 
-uint32_t gc_stack_storage[GC_STACK_SIZE];
+lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
 uint32_t print_stack_storage[PRINT_STACK_SIZE];
-lbm_value variable_storage[VARIABLE_STORAGE_SIZE];
-extension_fptr extension_storage[EXTENSION_STORAGE_SIZE];
 
 static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 
 static uint32_t memory_array[LBM_MEMORY_SIZE_8K];
 static uint32_t bitmap_array[LBM_MEMORY_BITMAP_SIZE_8K];
 
-static lbm_tokenizer_string_state_t string_tok_state;
-static lbm_tokenizer_char_stream_t string_tok;
+static lbm_string_channel_state_t string_tok_state;
+static lbm_char_channel_t string_tok;
 
 BaseSequentialStream *chp = NULL;
 
@@ -137,14 +134,7 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 
     if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
       lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
-      switch (array->elt_type){
-      case LBM_TYPE_CHAR:
-        chprintf(chp,"%s", (char*)array + 8);
-        break;
-      default:
-        return lbm_enc_sym(SYM_NIL);
-        break;
-      }
+      chprintf(chp,"%s", (char*)array + 8);
     } else if (lbm_type_of(t) == LBM_TYPE_CHAR) {
       if (lbm_dec_char(t) =='\n') {
         chprintf(chp, "\r\n");
@@ -161,7 +151,8 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 
 static char str[1024];
 static char outbuf[1024];
-static char file_buffer[2048];
+#define FILE_LEN 8192
+static char file_buffer[FILE_LEN];
 
 void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
   (void)arg2;
@@ -206,11 +197,12 @@ int main(void) {
   chThdSleepMilliseconds(2000);
 
   if (!lbm_init(heap, HEAP_SIZE,
-                gc_stack_storage, GC_STACK_SIZE,
                 memory_array, LBM_MEMORY_SIZE_8K,
                 bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
-                print_stack_storage, PRINT_STACK_SIZE,
-                extension_storage, EXTENSION_STORAGE_SIZE)) {
+                GC_STACK_SIZE,
+                PRINT_STACK_SIZE,
+                extensions,
+                EXTENSION_STORAGE_SIZE)) {
 
     chprintf(chp,"LispBM Init failed.\r\n");
     return 0;
@@ -219,8 +211,6 @@ int main(void) {
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
-
-  lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
 
   res = lbm_add_extension("print", ext_print);
   if (res)
@@ -260,13 +250,16 @@ int main(void) {
       chprintf(chp,"------------------------------------------------------------\r\n");
       memset(outbuf,0, 1024);
     } else if (strncmp(str, ":env", 4) == 0) {
-      lbm_value curr = *lbm_get_env_ptr();
-      chprintf(chp,"Environment:\r\n");
-      while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-        res = lbm_print_value(outbuf,1024, lbm_car(curr));
-        curr = lbm_cdr(curr);
+      lbm_value *glob_env = lbm_get_global_env();
+      for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+        lbm_value curr = glob_env[i];
+        chprintf(chp,"Global Environment [%d]:\r\n", i);
+        while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+          res = lbm_print_value(outbuf,1024, lbm_car(curr));
+          curr = lbm_cdr(curr);
 
-        chprintf(chp,"  %s \r\n", outbuf);
+          chprintf(chp,"  %s \r\n", outbuf);
+        }
       }
     } else if (strncmp(str, ":threads", 8) == 0) {
       thread_t *tp;
@@ -293,30 +286,14 @@ int main(void) {
     } else if (strncmp(str, ":ctxs", 5) == 0) {
       lbm_running_iterator(print_ctx_info, "RUNNABLE", NULL);
       lbm_blocked_iterator(print_ctx_info, "BLOCKED", NULL);
-      lbm_done_iterator   (print_ctx_info, "DONE", NULL);
-    } else if (strncmp(str, ":wait", 5) == 0) {
-      int id = atoi(str + 5);
-      bool exists = false;
-      lbm_done_iterator(ctx_exists, (void*)&id, (void*)&exists);
-      if (exists) {
-        if (!lbm_wait_ctx((lbm_cid)id, WAIT_TIMEOUT)) {
-          printf("Wait timed out\n");
-        }
-      }
-    } else if (strncmp(str, ":pause", 6) == 0) {
+    }  else if (strncmp(str, ":pause", 6) == 0) {
       lbm_pause_eval();
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
         sleep_callback(10);
       }
-      chprintf(chp, "Evaluator paused\r\nEnter command :continue to unpause or :step to perform single stepping\r\n");
+      chprintf(chp, "Evaluator paused\r\nEnter command :continue to unpause\r\n");
     } else if (strncmp(str, ":continue", 9) == 0) {
       lbm_continue_eval();
-    } else if (strncmp(str, ":step", 5) == 0) {
-      lbm_step_eval();
-      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-        chThdSleepMilliseconds(1);
-      }
-      chprintf(chp, "Evaluator paused\r\nEnter command :continue to unpause or :step to perform single stepping\r\n");
     } else if (strncmp(str, ":reset", 6) == 0) {
       lbm_pause_eval();
       while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
@@ -324,13 +301,12 @@ int main(void) {
       }
 
       lbm_init(heap, HEAP_SIZE,
-               gc_stack_storage, GC_STACK_SIZE,
                memory_array, LBM_MEMORY_SIZE_8K,
                bitmap_array, LBM_MEMORY_BITMAP_SIZE_8K,
-               print_stack_storage, PRINT_STACK_SIZE,
-               extension_storage, EXTENSION_STORAGE_SIZE);
-
-      lbm_variables_init(variable_storage, VARIABLE_STORAGE_SIZE);
+               GC_STACK_SIZE,
+               PRINT_STACK_SIZE,
+               extensions,
+               EXTENSION_STORAGE_SIZE);
 
       lbm_add_extension("print", ext_print);
 
@@ -338,11 +314,11 @@ int main(void) {
 
       break;
     } else if (strncmp(str, ":read", 5) == 0) {
-      memset(file_buffer, 0, 2048);
+      memset(file_buffer, 0, FILE_LEN);
       bool done = false;
       int c;
 
-      for (int i = 0; i < 2048; i ++) {
+      for (int i = 0; i < FILE_LEN; i ++) {
         c = streamGet(chp);
 
         if (c == 4 || c == 26 || c == STM_RESET) {
@@ -362,9 +338,9 @@ int main(void) {
         while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
           sleep_callback(10);
         }
-        lbm_create_char_stream_from_string(&string_tok_state,
-                                              &string_tok,
-                                              file_buffer);
+        lbm_create_string_char_channel(&string_tok_state,
+                                       &string_tok,
+                                       file_buffer);
 
         systime_t t_load = chVTGetSystemTimeX();
 
@@ -394,9 +370,9 @@ int main(void) {
         lbm_get_heap_state(&heap_state);
 
         chprintf(chp, "gc invocations: %d\r\n", heap_state.gc_num);
-        chprintf(chp, "gc time avg: %f\r\n", (float)heap_state.gc_time_acc / (float)heap_state.gc_num);
-        chprintf(chp, "gc min time: %u\r\n", heap_state.gc_min_duration);
-        chprintf(chp, "gc max time: %u\r\n", heap_state.gc_max_duration);
+        chprintf(chp, "gc time avg: %f\r\n", 0.0);
+        chprintf(chp, "gc min time: %u\r\n", 0);
+        chprintf(chp, "gc max time: %u\r\n", 0);
         chprintf(chp, "gc least free: %u\r\n", heap_state.gc_least_free);
       }
     } else {
@@ -413,9 +389,9 @@ int main(void) {
         sleep_callback(10);
       }
 
-      lbm_create_char_stream_from_string(&string_tok_state,
-                                            &string_tok,
-                                            str);
+      lbm_create_string_char_channel(&string_tok_state,
+                                     &string_tok,
+                                     str);
 
       lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
 

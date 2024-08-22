@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "lbm_if.h"
 #include "vesc_c_if.h"
 
 HEADER
@@ -70,15 +69,15 @@ static void draw_line(uint8_t *arr, int x0, int y0, int x1, int y1) {
 }
 
 static lbm_value ssd_drawline(lbm_value *args, lbm_uint argn) {
-	lbm_value res = lbm_enc_sym(SYM_EERROR);
+	lbm_value res = VESC_IF->lbm_enc_sym_eerror;
 
-	if (argn != 5 || !VESC_IF->lbm_is_array(args[0]) ||
-			!lbm_is_number(args[1]) || !lbm_is_number(args[2]) ||
-			!lbm_is_number(args[3]) || !lbm_is_number(args[4])) {
+	if (argn != 5 || !VESC_IF->lbm_is_byte_array(args[0]) ||
+			!VESC_IF->lbm_is_number(args[1]) || !VESC_IF->lbm_is_number(args[2]) ||
+			!VESC_IF->lbm_is_number(args[3]) || !VESC_IF->lbm_is_number(args[4])) {
 		return res;
 	}
 	
-	uint8_t *pixbuf = (uint8_t*)(((lbm_array_header_t *)VESC_IF->lbm_car(args[0]))->data);
+	uint8_t *pixbuf = (uint8_t*)VESC_IF->lbm_dec_str(args[0]);
 	int x0 = VESC_IF->lbm_dec_as_i32(args[1]);
 	int y0 = VESC_IF->lbm_dec_as_i32(args[2]);
 	int x1 = VESC_IF->lbm_dec_as_i32(args[3]);
@@ -86,7 +85,7 @@ static lbm_value ssd_drawline(lbm_value *args, lbm_uint argn) {
 	
 	draw_line(pixbuf, x0, y0, x1, y1);
 	
-	return lbm_enc_sym(SYM_TRUE);
+	return VESC_IF->lbm_enc_sym_true;
 }
 
 INIT_FUN(lib_info *info) {

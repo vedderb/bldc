@@ -23,19 +23,13 @@
 #ifndef _FUNDAMENTAL_H_
 #define _FUNDAMENTAL_H_
 
+#include <eval_cps.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/** Executes a fundamental operation on an array of arguments.
- *
- * \param args  Pointer to array of lbm_value.
- * \param nargs Number of arguments in the argument array.
- * \param op An lbm_value (symbol) representing the operation to perform.
- * \return Returns a result value on success and enc_sym(SYM_EERROR) "evaluation error" on failure.
- */
-lbm_value lbm_fundamental(lbm_value* args, lbm_uint nargs, lbm_value op);
-
+  extern const fundamental_fun fundamental_table[];
+  bool struct_eq(lbm_value a, lbm_value b);
 #ifdef __cplusplus
 }
 #endif

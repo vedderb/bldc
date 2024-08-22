@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2022 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2018, 2022, 2024  Joel Svensson        svenssonjoel@yahoo.se
                     2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -28,13 +28,19 @@
 extern "C" {
 #endif
 
+/** Check if an lbm_value (very likely) is a printable string
+ *
+ * \param v Value to check stringyness of.
+ * \return True if the value likely is a string, otherwise false.
+ */
+bool lbm_value_is_printable_string(lbm_value v, char **str);
+
 /** Initialize the print_value subsystem.
  *  print value depends on a stack and that stack is initialized here using a storage array provided by the user.
- * \param print_stack_storage Array to use as storage for stack data.
  * \param print_stack_size The number of uint32_t elements in the array.
  * \return 1 for success and 0 for failure.
  */
-int lbm_print_init(lbm_uint *print_stack_storage, lbm_uint print_stack_size);
+int lbm_print_init(lbm_uint print_stack_size);
 
 /** Print an lbm_value into a buffer provided by the user.
  *  If printing fails, the buffer may contain an error message.

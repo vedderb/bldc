@@ -1,4 +1,4 @@
-/*
+ /*
     Copyright 2018, 2021, 2022 Joel Svensson   svenssonjoel@yahoo.se
                           2022 Benjamin Vedder
 
@@ -51,6 +51,7 @@ int lbm_symrepr_init(void);
  * \param symrepr_name_iterator_fun function taking a string
  */
 void lbm_symrepr_name_iterator(symrepr_name_iterator_fun f);
+int lbm_add_symbol_base(char *name, lbm_uint *id, bool flash);
 /** Add a symbol to the symbol table. The symbol name string is copied to arrays and symbols memory.
  *
  * \param name String representation of the symbol.
@@ -58,6 +59,13 @@ void lbm_symrepr_name_iterator(symrepr_name_iterator_fun f);
  * \return 1 for success and 0 for failure.
  */
 int lbm_add_symbol(char *name, lbm_uint *id);
+/** Add a symbol to the symbol table. The symbol name string is copied to flash.
+ *
+ * \param name String representation of the symbol.
+ * \param id Resulting id is returned through this argument.
+ * \return 1 for success and 0 for failure.
+ */
+int lbm_add_symbol_flash(char *name, lbm_uint* id);
 /** Name of symbol to symbol. If the symbol exists the ID of the symbol is returned.
     If the name does not match any existing symbol, one is created and that ID is returned.
     \param name String name of symbol.
@@ -65,20 +73,7 @@ int lbm_add_symbol(char *name, lbm_uint *id);
     \return 1 for success and 0 for failure.
 */
 int lbm_str_to_symbol(char *name, lbm_uint *sym_id);
-/** Add a variable-symbol to the symbol table. The symbol name string is copied to arrays and symbols memory.
- *
- * \param name String representation of the symbol.
- * \param id Resulting id is returned through this argument.
- * \return 1 for success and 0 for failure.
- */
-int lbm_add_variable_symbol(char *name, lbm_uint* id);
-/** Add a variable-symbol to the symbol table. The symbol name is
- *  considered to be a statically allocated constant.
- * \param name String representation of the symbol.
- * \param id Resulting id is returned through this argument.
- * \return 1 for success and 0 for failure.
- */
-int lbm_add_variable_symbol_const(char *name, lbm_uint* id);
+int lbm_add_symbol_const_base(char *name, lbm_uint* id);
 /** Add a symbol to the symbol table. The name is assumed to be a statically allocated string.
  *
  * \param name Statically allocated name string.
@@ -86,22 +81,12 @@ int lbm_add_variable_symbol_const(char *name, lbm_uint* id);
  * \return 1 for success and 0 for failure.
  */
 int lbm_add_symbol_const(char *name, lbm_uint *id);
-/** Add an extension symbol to the symbol table.
- *  The name is assumed to be a statically allocated constant.
+/** Get a pointer to the list entry holding a symbol name, id mapping.
  *
- * \param name Name of the symbol.
- * \param id Resulting id is returned through this argument.
- * \return 1 for success and 0 for failure.
+ * \param name Name string to look up.
+ * \return Pointer to list entry or NULL.
  */
-int lbm_add_extension_symbol(char *name, lbm_uint* id);
-/** Add an extension symbol to the symbol table.
- *  The name is assumed to be statically allocated.
- *
- * \param name Statically allocated name string.
- * \param id Resulting id is returned through this argument.
- * \return 1 for success and 0 for failure.
- */
-int lbm_add_extension_symbol_const(char *name, lbm_uint* id);
+lbm_uint *lbm_get_symbol_list_entry_by_name(char *name);
 /** Look up an id from the symbol table given a name.
  *
  * \param name Name string to look up.
@@ -116,17 +101,40 @@ int lbm_get_symbol_by_name(char *name, lbm_uint *id);
  */
 const char* lbm_get_name_by_symbol(lbm_uint id);
 
-int lbm_get_num_variables(void);
-
 /**
  *
- * \return The total amount of space occupied by the symbol table in bytes.
+ * \return The total amount of lbm_memory space occupied by the symbol table in bytes.
  */
 lbm_uint lbm_get_symbol_table_size(void);
+/**
+ *
+ * \return The total amount of flash space occupied by the symbol table in bytes.
+ */
+lbm_uint lbm_get_symbol_table_size_flash(void);
 /**
  * \return The size in bytes of all symbol strings stored in the symbol table.
  */
 lbm_uint lbm_get_symbol_table_size_names(void);
+/**
+ * \return The size in bytes of all symbol strings stored in flash from the symbol table.
+ */
+lbm_uint lbm_get_symbol_table_size_names_flash(void);
+
+/** Check if a symbol name is stored in flash.
+ * \param str Symbol name string.
+ * \return True if symbol name is stored in flash, otherwise False.
+ */
+bool lbm_symbol_in_flash(char *str);
+/** Check if a symbol name id mapping list entry is stored in flash.
+ * \param str Symbol name string.
+ * \return True if symbol name/id mapping list entry is stored in flash, otherwise False.
+ */
+bool lbm_symbol_list_entry_in_flash(char *str);
+
+
+extern lbm_value symbol_x;
+extern lbm_value symbol_y;
+extern lbm_value symbol_rest_args;
 
 #ifdef __cplusplus
 }

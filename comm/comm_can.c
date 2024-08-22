@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include <string.h>
 #include <math.h>
 #include "comm_can.h"
@@ -40,12 +43,14 @@
 #include "bms.h"
 #include "encoder_cfg.h"
 #include "servo_dec.h"
+#include "utils.h"
 #ifdef USE_LISPBM
 #include "lispif.h"
 #endif
 
 // Settings
 #define RX_FRAMES_SIZE	50
+#define RX_BUFFER_NUM	3
 #define RX_BUFFER_SIZE	PACKET_MAX_PL_LEN
 
 #if CAN_ENABLE
@@ -73,8 +78,10 @@ static THD_WORKING_AREA(cancom_status_internal_thread_wa, 512);
 
 static mutex_t can_mtx;
 static mutex_t can_rx_mtx;
-uint8_t rx_buffer[RX_BUFFER_SIZE];
-unsigned int rx_buffer_last_id;
+static uint8_t rx_buffer[RX_BUFFER_NUM][RX_BUFFER_SIZE];
+static int rx_buffer_offset[RX_BUFFER_NUM];
+static volatile unsigned int rx_buffer_last_id;
+static volatile unsigned int rx_buffer_response_type = 1;
 static rx_state m_rx_state;
 #ifdef HW_CAN2_DEV
 static rx_state m_rx_state2;
@@ -387,6 +394,7 @@ void comm_can_set_eid_rx_callback(bool (*p_func)(uint32_t id, uint8_t *data, uin
  * 1: Packet goes to commands_send_packet of receiver
  * 2: Packet goes to commands_process and send function is set to null
  *    so that no reply is sent back.
+ * 3: Same as 0, but the reply is processed locally and not sent out on the last interface.
  */
 void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len, uint8_t send) {
 	uint8_t send_buffer[8];
@@ -523,7 +531,7 @@ void comm_can_set_current_rel(uint8_t controller_id, float current_rel) {
  */
 void comm_can_set_current_rel_off_delay(uint8_t controller_id, float current_rel, float off_delay) {
 	int32_t send_index = 0;
-	uint8_t buffer[4];
+	uint8_t buffer[6];
 	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
 	buffer_append_float16(buffer, off_delay, 1e3, &send_index);
 	comm_can_transmit_eid_replace(controller_id |
@@ -983,7 +991,7 @@ can_status_msg_6 *comm_can_get_status_msg_6_id(int id) {
 }
 
 io_board_adc_values *comm_can_get_io_board_adc_1_4_index(int index) {
-	if (index < CAN_STATUS_MSGS_TO_STORE) {
+	if (index < CAN_STATUS_MSGS_TO_STORE && io_board_adc_1_4[index].id >= 0) {
 		return &io_board_adc_1_4[index];
 	} else {
 		return 0;
@@ -1005,7 +1013,7 @@ io_board_adc_values *comm_can_get_io_board_adc_1_4_id(int id) {
 }
 
 io_board_adc_values *comm_can_get_io_board_adc_5_8_index(int index) {
-	if (index < CAN_STATUS_MSGS_TO_STORE) {
+	if (index < CAN_STATUS_MSGS_TO_STORE && io_board_adc_5_8[index].id >= 0) {
 		return &io_board_adc_5_8[index];
 	} else {
 		return 0;
@@ -1282,22 +1290,42 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 		if (app_get_configuration()->can_mode == CAN_MODE_UAVCAN) {
 			continue;
-		} else if (app_get_configuration()->can_mode == CAN_MODE_COMM_BRIDGE) {
+		} else if (app_get_configuration()->can_mode == CAN_MODE_COMM_BRIDGE ||
+				app_get_configuration()->can_mode == CAN_MODE_UNUSED) {
 			CANRxFrame *rxmsg_tmp;
 			while ((rxmsg_tmp = comm_can_get_rx_frame(0)) != 0) {
 				CANRxFrame rxmsg = *rxmsg_tmp;
-				commands_fwd_can_frame(rxmsg.DLC, rxmsg.data8,
-						rxmsg.IDE == CAN_IDE_EXT ? rxmsg.EID : rxmsg.SID,
-						rxmsg.IDE == CAN_IDE_EXT);
+
+				if (app_get_configuration()->can_mode == CAN_MODE_COMM_BRIDGE) {
+					commands_fwd_can_frame(rxmsg.DLC, rxmsg.data8,
+							rxmsg.IDE == CAN_IDE_EXT ? rxmsg.EID : rxmsg.SID,
+									rxmsg.IDE == CAN_IDE_EXT);
+				}
 
 				if (rxmsg.IDE == CAN_IDE_STD) {
+					bool sid_cb_used = false;
 					if (sid_callback) {
-						sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
+						sid_cb_used = sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
 					}
+#ifdef USE_LISPBM
+					if (!sid_cb_used) {
+						lispif_process_can(rxmsg.SID, rxmsg.data8, rxmsg.DLC, false);
+					}
+#else
+					(void)sid_cb_used;
+#endif
 				} else {
+					bool eid_cb_used = false;
 					if (eid_callback) {
-						eid_callback(rxmsg.EID, rxmsg.data8, rxmsg.DLC);
+						eid_cb_used = eid_callback(rxmsg.EID, rxmsg.data8, rxmsg.DLC);
 					}
+#ifdef USE_LISPBM
+					if (!eid_cb_used) {
+						lispif_process_can(rxmsg.EID, rxmsg.data8, rxmsg.DLC, true);
+					}
+#else
+					(void)eid_cb_used;
+#endif
 				}
 			}
 			continue;
@@ -1333,7 +1361,7 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 #ifdef USE_LISPBM
 				if (!sid_cb_used) {
-					lispif_process_can(rxmsg.EID, rxmsg.data8, rxmsg.DLC, false);
+					lispif_process_can(rxmsg.SID, rxmsg.data8, rxmsg.DLC, false);
 				}
 #endif
 			}
@@ -1471,13 +1499,11 @@ static THD_FUNCTION(cancom_status_thread_2, arg) {
 }
 
 static void send_packet_wrapper(unsigned char *data, unsigned int len) {
-	comm_can_send_buffer(rx_buffer_last_id, data, len, 1);
+	comm_can_send_buffer(rx_buffer_last_id, data, len, rx_buffer_response_type);
 }
 
 static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) {
 	int32_t ind = 0;
-	unsigned int rxbuf_len;
-	unsigned int rxbuf_ind;
 	uint8_t crc_low;
 	uint8_t crc_high;
 	uint8_t commands_send;
@@ -1538,66 +1564,147 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			timeout_reset();
 			break;
 
-		case CAN_PACKET_FILL_RX_BUFFER:
-			memcpy(rx_buffer + data8[0], data8 + 1, len - 1);
-			break;
+		case CAN_PACKET_FILL_RX_BUFFER: {
+			int buf_ind = -1;
+			int offset = data8[0];
+			data8++;
+			len--;
 
-		case CAN_PACKET_FILL_RX_BUFFER_LONG:
-			rxbuf_ind = (unsigned int)data8[0] << 8;
-			rxbuf_ind |= data8[1];
-			if (rxbuf_ind < RX_BUFFER_SIZE) {
-				memcpy(rx_buffer + rxbuf_ind, data8 + 2, len - 2);
+			for (int i = 0; i < RX_BUFFER_NUM;i++) {
+				if ((rx_buffer_offset[i]) == offset ) {
+					buf_ind = i;
+					break;
+				}
 			}
-			break;
 
-		case CAN_PACKET_PROCESS_RX_BUFFER:
+			if (buf_ind < 0) {
+				if (offset == 0) {
+					buf_ind = 0;
+				} else {
+					break;
+				}
+			}
+
+			memcpy(rx_buffer[buf_ind] + offset, data8, len);
+			rx_buffer_offset[buf_ind] = offset + len;
+		} break;
+
+		case CAN_PACKET_FILL_RX_BUFFER_LONG: {
+			int buf_ind = -1;
+			int offset = (int)data8[0] << 8;
+			offset |= data8[1];
+			data8 += 2;
+			len -= 2;
+
+			for (int i = 0; i < RX_BUFFER_NUM;i++) {
+				if ((rx_buffer_offset[i]) == offset ) {
+					buf_ind = i;
+					break;
+				}
+			}
+
+			if (buf_ind < 0) {
+				if (offset == 0) {
+					buf_ind = 0;
+				} else {
+					break;
+				}
+			}
+
+			if ((offset + len) <= RX_BUFFER_SIZE) {
+				memcpy(rx_buffer[buf_ind] + offset, data8, len);
+				rx_buffer_offset[buf_ind] = offset + len;
+			}
+		} break;
+
+		case CAN_PACKET_PROCESS_RX_BUFFER: {
 			ind = 0;
-			rx_buffer_last_id = data8[ind++];
+			unsigned int last_id = data8[ind++];
 			commands_send = data8[ind++];
-			rxbuf_len = (unsigned int)data8[ind++] << 8;
-			rxbuf_len |= (unsigned int)data8[ind++];
+
+			if (commands_send == 0 || commands_send == 3) {
+				rx_buffer_last_id = last_id;
+			}
+
+			if (commands_send == 3) {
+				rx_buffer_response_type = 0;
+			} else {
+				rx_buffer_response_type = 1;
+			}
+
+			int rxbuf_len = (int)data8[ind++] << 8;
+			rxbuf_len |= (int)data8[ind++];
 
 			if (rxbuf_len > RX_BUFFER_SIZE) {
 				break;
 			}
 
+			int buf_ind = -1;
+			for (int i = 0; i < RX_BUFFER_NUM;i++) {
+				if ((rx_buffer_offset[i]) == rxbuf_len ) {
+					buf_ind = i;
+					break;
+				}
+			}
+
+			// Something is wrong, reset all buffers
+			if (buf_ind < 0) {
+				for (int i = 0; i < RX_BUFFER_NUM;i++) {
+					rx_buffer_offset[i] = 0;
+				}
+				break;
+			}
+
+			rx_buffer_offset[buf_ind] = 0;
+
 			crc_high = data8[ind++];
 			crc_low = data8[ind++];
 
-			if (crc16(rx_buffer, rxbuf_len)
+			if (crc16(rx_buffer[buf_ind], rxbuf_len)
 					== ((unsigned short) crc_high << 8
 							| (unsigned short) crc_low)) {
 
 				if (is_replaced) {
-					if (rx_buffer[0] == COMM_JUMP_TO_BOOTLOADER ||
-							rx_buffer[0] == COMM_ERASE_NEW_APP ||
-							rx_buffer[0] == COMM_WRITE_NEW_APP_DATA ||
-							rx_buffer[0] == COMM_WRITE_NEW_APP_DATA_LZO ||
-							rx_buffer[0] == COMM_ERASE_BOOTLOADER) {
+					if (rx_buffer[buf_ind][0] == COMM_JUMP_TO_BOOTLOADER ||
+							rx_buffer[buf_ind][0] == COMM_ERASE_NEW_APP ||
+							rx_buffer[buf_ind][0] == COMM_WRITE_NEW_APP_DATA ||
+							rx_buffer[buf_ind][0] == COMM_WRITE_NEW_APP_DATA_LZO ||
+							rx_buffer[buf_ind][0] == COMM_ERASE_BOOTLOADER) {
 						break;
 					}
 				}
 
 				switch (commands_send) {
 				case 0:
-					commands_process_packet(rx_buffer, rxbuf_len, send_packet_wrapper);
+				case 3:
+					commands_process_packet(rx_buffer[buf_ind], rxbuf_len, send_packet_wrapper);
 					break;
 				case 1:
-					commands_send_packet_can_last(rx_buffer, rxbuf_len);
+					commands_send_packet_can_last(rx_buffer[buf_ind], rxbuf_len);
 					break;
 				case 2:
-					commands_process_packet(rx_buffer, rxbuf_len, 0);
+					commands_process_packet(rx_buffer[buf_ind], rxbuf_len, 0);
 					break;
 				default:
 					break;
 				}
 			}
-			break;
+		} break;
 
-		case CAN_PACKET_PROCESS_SHORT_BUFFER:
+		case CAN_PACKET_PROCESS_SHORT_BUFFER: {
 			ind = 0;
-			rx_buffer_last_id = data8[ind++];
+			unsigned int last_id = data8[ind++];
 			commands_send = data8[ind++];
+
+			if (commands_send == 0 || commands_send == 3) {
+				rx_buffer_last_id = last_id;
+			}
+
+			if (commands_send == 3) {
+				rx_buffer_response_type = 0;
+			} else {
+				rx_buffer_response_type = 1;
+			}
 
 			if (is_replaced) {
 				if (data8[ind] == COMM_JUMP_TO_BOOTLOADER ||
@@ -1611,6 +1718,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 
 			switch (commands_send) {
 			case 0:
+			case 3:
 				commands_process_packet(data8 + ind, len - ind, send_packet_wrapper);
 				break;
 			case 1:
@@ -1622,227 +1730,227 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			default:
 				break;
 			}
+		} break;
+
+		case CAN_PACKET_SET_CURRENT_REL:
+			ind = 0;
+			mc_interface_set_current_rel(buffer_get_float32(data8, 1e5, &ind));
+
+			if (len >= 6) {
+				mc_interface_set_current_off_delay(buffer_get_float16(data8, 1e3, &ind));
+			}
+
+			timeout_reset();
 			break;
 
-			case CAN_PACKET_SET_CURRENT_REL:
-				ind = 0;
-				mc_interface_set_current_rel(buffer_get_float32(data8, 1e5, &ind));
+		case CAN_PACKET_SET_CURRENT_BRAKE_REL:
+			ind = 0;
+			mc_interface_set_brake_current_rel(buffer_get_float32(data8, 1e5, &ind));
+			timeout_reset();
+			break;
 
-				if (len >= 6) {
-					mc_interface_set_current_off_delay(buffer_get_float16(data8, 1e3, &ind));
+		case CAN_PACKET_SET_CURRENT_HANDBRAKE:
+			ind = 0;
+			mc_interface_set_handbrake(buffer_get_float32(data8, 1e3, &ind));
+			timeout_reset();
+			break;
+
+		case CAN_PACKET_SET_CURRENT_HANDBRAKE_REL:
+			ind = 0;
+			mc_interface_set_handbrake_rel(buffer_get_float32(data8, 1e5, &ind));
+			timeout_reset();
+			break;
+
+		case CAN_PACKET_PING: {
+			uint8_t buffer[2];
+			buffer[0] = is_replaced ? utils_second_motor_id() : id;
+			buffer[1] = HW_TYPE_VESC;
+			comm_can_transmit_eid_replace(data8[0] |
+					((uint32_t)CAN_PACKET_PONG << 8), buffer, 2, true, 0);
+		} break;
+
+		case CAN_PACKET_PONG:
+			if (ping_tp && ping_hw_last_id == data8[0]) {
+				if (len >= 2) {
+					ping_hw_last = data8[1];
+				} else {
+					ping_hw_last = HW_TYPE_VESC;
 				}
+				chEvtSignal(ping_tp, 1 << 29);
+			}
+			break;
 
-				timeout_reset();
+		case CAN_PACKET_DETECT_APPLY_ALL_FOC: {
+			if (is_replaced) {
 				break;
+			}
 
-			case CAN_PACKET_SET_CURRENT_BRAKE_REL:
-				ind = 0;
-				mc_interface_set_brake_current_rel(buffer_get_float32(data8, 1e5, &ind));
-				timeout_reset();
+			ind = 1;
+			bool activate_status = data8[ind++];
+			float max_power_loss = buffer_get_float32(data8, 1e3, &ind);
+			int res = conf_general_detect_apply_all_foc(max_power_loss, true, false);
+			if (res >= 0 && activate_status) {
+				app_configuration *appconf = mempools_alloc_appconf();
+				*appconf = *app_get_configuration();
+
+				if (appconf->can_status_msgs_r1 != 0b00001111) {
+					appconf->can_status_msgs_r1 = 0b00001111;
+					conf_general_store_app_configuration(appconf);
+					app_set_configuration(appconf);
+				}
+
+				mempools_free_appconf(appconf);
+			}
+
+			int8_t buffer[1];
+			buffer[0] = res;
+			comm_can_transmit_eid_replace(data8[0] |
+					((uint32_t)CAN_PACKET_DETECT_APPLY_ALL_FOC_RES << 8), (uint8_t*)buffer, 1, true, 0);
+		} break;
+
+		case CAN_PACKET_DETECT_APPLY_ALL_FOC_RES: {
+			if (is_replaced) {
 				break;
+			}
 
-			case CAN_PACKET_SET_CURRENT_HANDBRAKE:
-				ind = 0;
-				mc_interface_set_handbrake(buffer_get_float32(data8, 1e3, &ind));
-				timeout_reset();
-				break;
+			detect_all_foc_res[detect_all_foc_res_index++] = (int8_t)data8[0];
+			detect_all_foc_res_index %= sizeof(detect_all_foc_res);
+		} break;
 
-			case CAN_PACKET_SET_CURRENT_HANDBRAKE_REL:
-				ind = 0;
-				mc_interface_set_handbrake_rel(buffer_get_float32(data8, 1e5, &ind));
-				timeout_reset();
-				break;
+		case CAN_PACKET_CONF_CURRENT_LIMITS:
+		case CAN_PACKET_CONF_STORE_CURRENT_LIMITS: {
+			ind = 0;
+			float min = buffer_get_float32(data8, 1e3, &ind);
+			float max = buffer_get_float32(data8, 1e3, &ind);
 
-			case CAN_PACKET_PING: {
-				uint8_t buffer[2];
-				buffer[0] = is_replaced ? utils_second_motor_id() : id;
-				buffer[1] = HW_TYPE_VESC;
-				comm_can_transmit_eid_replace(data8[0] |
-						((uint32_t)CAN_PACKET_PONG << 8), buffer, 2, true, 0);
-			} break;
+			mc_configuration *mcconf = mempools_alloc_mcconf();
+			*mcconf = *mc_interface_get_configuration();
 
-			case CAN_PACKET_PONG:
-				if (ping_tp && ping_hw_last_id == data8[0]) {
-					if (len >= 2) {
-						ping_hw_last = data8[1];
-					} else {
-						ping_hw_last = HW_TYPE_VESC;
-					}
-					chEvtSignal(ping_tp, 1 << 29);
-				}
-				break;
+			if (mcconf->l_current_min != min || mcconf->l_current_max != max) {
+				mcconf->l_current_min = min;
+				mcconf->l_current_max = max;
 
-			case CAN_PACKET_DETECT_APPLY_ALL_FOC: {
-				if (is_replaced) {
-					break;
+				if (cmd == CAN_PACKET_CONF_STORE_CURRENT_LIMITS) {
+					conf_general_store_mc_configuration(mcconf,
+							mc_interface_get_motor_thread() == 2);
 				}
 
-				ind = 1;
-				bool activate_status = data8[ind++];
-				float max_power_loss = buffer_get_float32(data8, 1e3, &ind);
-				int res = conf_general_detect_apply_all_foc(max_power_loss, true, false);
-				if (res >= 0 && activate_status) {
-					app_configuration *appconf = mempools_alloc_appconf();
-					*appconf = *app_get_configuration();
+				mc_interface_set_configuration(mcconf);
+			}
 
-					if (appconf->can_status_msgs_r1 != 0b00001111) {
-						appconf->can_status_msgs_r1 = 0b00001111;
-						conf_general_store_app_configuration(appconf);
-						app_set_configuration(appconf);
-					}
+			mempools_free_mcconf(mcconf);
+		} break;
 
-					mempools_free_appconf(appconf);
+		case CAN_PACKET_CONF_CURRENT_LIMITS_IN:
+		case CAN_PACKET_CONF_STORE_CURRENT_LIMITS_IN: {
+			ind = 0;
+			float min = buffer_get_float32(data8, 1e3, &ind);
+			float max = buffer_get_float32(data8, 1e3, &ind);
+
+			mc_configuration *mcconf = mempools_alloc_mcconf();
+			*mcconf = *mc_interface_get_configuration();
+
+			if (mcconf->l_in_current_min != min || mcconf->l_in_current_max != max) {
+				mcconf->l_in_current_min = min;
+				mcconf->l_in_current_max = max;
+
+				if (cmd == CAN_PACKET_CONF_STORE_CURRENT_LIMITS_IN) {
+					conf_general_store_mc_configuration(mcconf,
+							mc_interface_get_motor_thread() == 2);
 				}
 
-				int8_t buffer[1];
-				buffer[0] = res;
-				comm_can_transmit_eid_replace(data8[0] |
-						((uint32_t)CAN_PACKET_DETECT_APPLY_ALL_FOC_RES << 8), (uint8_t*)buffer, 1, true, 0);
-			} break;
+				mc_interface_set_configuration(mcconf);
+			}
 
-			case CAN_PACKET_DETECT_APPLY_ALL_FOC_RES: {
-				if (is_replaced) {
-					break;
+			mempools_free_mcconf(mcconf);
+		} break;
+
+		case CAN_PACKET_CONF_FOC_ERPMS:
+		case CAN_PACKET_CONF_STORE_FOC_ERPMS: {
+			ind = 0;
+			float foc_openloop_rpm = buffer_get_float32(data8, 1e3, &ind);
+			float foc_sl_erpm = buffer_get_float32(data8, 1e3, &ind);
+
+			mc_configuration *mcconf = mempools_alloc_mcconf();
+			*mcconf = *mc_interface_get_configuration();
+
+			if (mcconf->foc_openloop_rpm != foc_openloop_rpm ||
+					mcconf->foc_sl_erpm != foc_sl_erpm) {
+				mcconf->foc_openloop_rpm = foc_openloop_rpm;
+				mcconf->foc_sl_erpm = foc_sl_erpm;
+
+				if (cmd == CAN_PACKET_CONF_STORE_FOC_ERPMS) {
+					conf_general_store_mc_configuration(mcconf,
+							mc_interface_get_motor_thread() == 2);
 				}
 
-				detect_all_foc_res[detect_all_foc_res_index++] = (int8_t)data8[0];
-				detect_all_foc_res_index %= sizeof(detect_all_foc_res);
-			} break;
+				mc_interface_set_configuration(mcconf);
+			}
 
-			case CAN_PACKET_CONF_CURRENT_LIMITS:
-			case CAN_PACKET_CONF_STORE_CURRENT_LIMITS: {
-				ind = 0;
-				float min = buffer_get_float32(data8, 1e3, &ind);
-				float max = buffer_get_float32(data8, 1e3, &ind);
+			mempools_free_mcconf(mcconf);
+		} break;
 
-				mc_configuration *mcconf = mempools_alloc_mcconf();
-				*mcconf = *mc_interface_get_configuration();
+		case CAN_PACKET_POLL_TS5700N8501_STATUS: {
+			comm_can_transmit_eid_replace(app_get_configuration()->controller_id |
+					((uint32_t)CAN_PACKET_POLL_TS5700N8501_STATUS << 8),
+					enc_ts5700n8501_get_raw_status(&encoder_cfg_TS5700N8501), 8, true, 0);
+		} break;
 
-				if (mcconf->l_current_min != min || mcconf->l_current_max != max) {
-					mcconf->l_current_min = min;
-					mcconf->l_current_max = max;
+		case CAN_PACKET_CONF_BATTERY_CUT:
+		case CAN_PACKET_CONF_STORE_BATTERY_CUT: {
+			ind = 0;
+			float start = buffer_get_float32(data8, 1e3, &ind);
+			float end = buffer_get_float32(data8, 1e3, &ind);
 
-					if (cmd == CAN_PACKET_CONF_STORE_CURRENT_LIMITS) {
-						conf_general_store_mc_configuration(mcconf,
-								mc_interface_get_motor_thread() == 2);
-					}
+			mc_configuration *mcconf = mempools_alloc_mcconf();
+			*mcconf = *mc_interface_get_configuration();
 
-					mc_interface_set_configuration(mcconf);
+			if (mcconf->l_battery_cut_start != start || mcconf->l_battery_cut_end != end) {
+				mcconf->l_battery_cut_start = start;
+				mcconf->l_battery_cut_end = end;
+
+				if (cmd == CAN_PACKET_CONF_STORE_BATTERY_CUT) {
+					conf_general_store_mc_configuration(mcconf,
+							mc_interface_get_motor_thread() == 2);
 				}
 
-				mempools_free_mcconf(mcconf);
-			} break;
+				mc_interface_set_configuration(mcconf);
+			}
 
-			case CAN_PACKET_CONF_CURRENT_LIMITS_IN:
-			case CAN_PACKET_CONF_STORE_CURRENT_LIMITS_IN: {
-				ind = 0;
-				float min = buffer_get_float32(data8, 1e3, &ind);
-				float max = buffer_get_float32(data8, 1e3, &ind);
+			mempools_free_mcconf(mcconf);
+		} break;
 
-				mc_configuration *mcconf = mempools_alloc_mcconf();
-				*mcconf = *mc_interface_get_configuration();
-
-				if (mcconf->l_in_current_min != min || mcconf->l_in_current_max != max) {
-					mcconf->l_in_current_min = min;
-					mcconf->l_in_current_max = max;
-
-					if (cmd == CAN_PACKET_CONF_STORE_CURRENT_LIMITS_IN) {
-						conf_general_store_mc_configuration(mcconf,
-								mc_interface_get_motor_thread() == 2);
-					}
-
-					mc_interface_set_configuration(mcconf);
-				}
-
-				mempools_free_mcconf(mcconf);
-			} break;
-
-			case CAN_PACKET_CONF_FOC_ERPMS:
-			case CAN_PACKET_CONF_STORE_FOC_ERPMS: {
-				ind = 0;
-				float foc_openloop_rpm = buffer_get_float32(data8, 1e3, &ind);
-				float foc_sl_erpm = buffer_get_float32(data8, 1e3, &ind);
-
-				mc_configuration *mcconf = mempools_alloc_mcconf();
-				*mcconf = *mc_interface_get_configuration();
-
-				if (mcconf->foc_openloop_rpm != foc_openloop_rpm ||
-						mcconf->foc_sl_erpm != foc_sl_erpm) {
-					mcconf->foc_openloop_rpm = foc_openloop_rpm;
-					mcconf->foc_sl_erpm = foc_sl_erpm;
-
-					if (cmd == CAN_PACKET_CONF_STORE_FOC_ERPMS) {
-						conf_general_store_mc_configuration(mcconf,
-								mc_interface_get_motor_thread() == 2);
-					}
-
-					mc_interface_set_configuration(mcconf);
-				}
-
-				mempools_free_mcconf(mcconf);
-			} break;
-
-			case CAN_PACKET_POLL_TS5700N8501_STATUS: {
-				comm_can_transmit_eid_replace(app_get_configuration()->controller_id |
-						((uint32_t)CAN_PACKET_POLL_TS5700N8501_STATUS << 8),
-						enc_ts5700n8501_get_raw_status(&encoder_cfg_TS5700N8501), 8, true, 0);
-			} break;
-
-			case CAN_PACKET_CONF_BATTERY_CUT:
-			case CAN_PACKET_CONF_STORE_BATTERY_CUT: {
-				ind = 0;
-				float start = buffer_get_float32(data8, 1e3, &ind);
-				float end = buffer_get_float32(data8, 1e3, &ind);
-
-				mc_configuration *mcconf = mempools_alloc_mcconf();
-				*mcconf = *mc_interface_get_configuration();
-
-				if (mcconf->l_battery_cut_start != start || mcconf->l_battery_cut_end != end) {
-					mcconf->l_battery_cut_start = start;
-					mcconf->l_battery_cut_end = end;
-
-					if (cmd == CAN_PACKET_CONF_STORE_BATTERY_CUT) {
-						conf_general_store_mc_configuration(mcconf,
-								mc_interface_get_motor_thread() == 2);
-					}
-
-					mc_interface_set_configuration(mcconf);
-				}
-
-				mempools_free_mcconf(mcconf);
-			} break;
-
-			case CAN_PACKET_SHUTDOWN: {
+		case CAN_PACKET_SHUTDOWN: {
 #ifdef HW_SHUTDOWN_HOLD_ON
-				SHUTDOWN_SET_SAMPLING_DISABLED(true);
-				mc_interface_lock();
-				DISABLE_GATE();
-				HW_SHUTDOWN_HOLD_OFF();
-				chThdSleepMilliseconds(5000);
-				HW_SHUTDOWN_HOLD_ON();
-				ENABLE_GATE();
-				mc_interface_unlock();
-				SHUTDOWN_SET_SAMPLING_DISABLED(false);
+			SHUTDOWN_SET_SAMPLING_DISABLED(true);
+			mc_interface_lock();
+			DISABLE_GATE();
+			HW_SHUTDOWN_HOLD_OFF();
+			chThdSleepMilliseconds(5000);
+			HW_SHUTDOWN_HOLD_ON();
+			ENABLE_GATE();
+			mc_interface_unlock();
+			SHUTDOWN_SET_SAMPLING_DISABLED(false);
 #endif
-			} break;
+		} break;
 
-			case CAN_PACKET_UPDATE_PID_POS_OFFSET: {
-				ind = 0;
-				float angle_now = buffer_get_float32(data8, 1e4, &ind);
-				bool store = data8[ind++];
-				mc_interface_update_pid_pos_offset(angle_now, store);
-			} break;
+		case CAN_PACKET_UPDATE_PID_POS_OFFSET: {
+			ind = 0;
+			float angle_now = buffer_get_float32(data8, 1e4, &ind);
+			bool store = data8[ind++];
+			mc_interface_update_pid_pos_offset(angle_now, store);
+		} break;
 
-			case CAN_PACKET_POLL_ROTOR_POS: {
-				uint8_t buffer[4];
-				int32_t index = 0;
-				buffer_append_int32(buffer, (int32_t)(encoder_read_deg() * 100000.0), &index);
-				comm_can_transmit_eid_replace(app_get_configuration()->controller_id |
-						((uint32_t)CAN_PACKET_POLL_ROTOR_POS << 8), (uint8_t*)buffer, 4, true, 0);
-			} break;
+		case CAN_PACKET_POLL_ROTOR_POS: {
+			uint8_t buffer[4];
+			int32_t index = 0;
+			buffer_append_int32(buffer, (int32_t)(encoder_read_deg() * 100000.0), &index);
+			comm_can_transmit_eid_replace(app_get_configuration()->controller_id |
+					((uint32_t)CAN_PACKET_POLL_ROTOR_POS << 8), (uint8_t*)buffer, 4, true, 0);
+		} break;
 
-			default:
-				break;
+		default:
+			break;
 		}
 	}
 
@@ -1855,7 +1963,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (stat_tmp->id == id || stat_tmp->id == -1) {
 				ind = 0;
 				stat_tmp->id = id;
-				stat_tmp->rx_time = chVTGetSystemTime();
+				stat_tmp->rx_time = chVTGetSystemTimeX();
 				stat_tmp->rpm = (float)buffer_get_int32(data8, &ind);
 				stat_tmp->current = (float)buffer_get_int16(data8, &ind) / 10.0;
 				stat_tmp->duty = (float)buffer_get_int16(data8, &ind) / 1000.0;
@@ -1870,7 +1978,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (stat_tmp_2->id == id || stat_tmp_2->id == -1) {
 				ind = 0;
 				stat_tmp_2->id = id;
-				stat_tmp_2->rx_time = chVTGetSystemTime();
+				stat_tmp_2->rx_time = chVTGetSystemTimeX();
 				stat_tmp_2->amp_hours = (float)buffer_get_int32(data8, &ind) / 1e4;
 				stat_tmp_2->amp_hours_charged = (float)buffer_get_int32(data8, &ind) / 1e4;
 				break;
@@ -1884,7 +1992,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (stat_tmp_3->id == id || stat_tmp_3->id == -1) {
 				ind = 0;
 				stat_tmp_3->id = id;
-				stat_tmp_3->rx_time = chVTGetSystemTime();
+				stat_tmp_3->rx_time = chVTGetSystemTimeX();
 				stat_tmp_3->watt_hours = (float)buffer_get_int32(data8, &ind) / 1e4;
 				stat_tmp_3->watt_hours_charged = (float)buffer_get_int32(data8, &ind) / 1e4;
 				break;
@@ -1898,7 +2006,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (stat_tmp_4->id == id || stat_tmp_4->id == -1) {
 				ind = 0;
 				stat_tmp_4->id = id;
-				stat_tmp_4->rx_time = chVTGetSystemTime();
+				stat_tmp_4->rx_time = chVTGetSystemTimeX();
 				stat_tmp_4->temp_fet = (float)buffer_get_int16(data8, &ind) / 10.0;
 				stat_tmp_4->temp_motor = (float)buffer_get_int16(data8, &ind) / 10.0;
 				stat_tmp_4->current_in = (float)buffer_get_int16(data8, &ind) / 10.0;
@@ -1914,7 +2022,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (stat_tmp_5->id == id || stat_tmp_5->id == -1) {
 				ind = 0;
 				stat_tmp_5->id = id;
-				stat_tmp_5->rx_time = chVTGetSystemTime();
+				stat_tmp_5->rx_time = chVTGetSystemTimeX();
 				stat_tmp_5->tacho_value = buffer_get_int32(data8, &ind);
 				stat_tmp_5->v_in = (float)buffer_get_int16(data8, &ind) / 1e1;
 				break;
@@ -1928,7 +2036,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (stat_tmp_6->id == id || stat_tmp_6->id == -1) {
 				ind = 0;
 				stat_tmp_6->id = id;
-				stat_tmp_6->rx_time = chVTGetSystemTime();
+				stat_tmp_6->rx_time = chVTGetSystemTimeX();
 				stat_tmp_6->adc_1 = buffer_get_float16(data8, 1e3, &ind);
 				stat_tmp_6->adc_2 = buffer_get_float16(data8, 1e3, &ind);
 				stat_tmp_6->adc_3 = buffer_get_float16(data8, 1e3, &ind);
@@ -1944,7 +2052,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (msg->id == id || msg->id == -1) {
 				ind = 0;
 				msg->id = id;
-				msg->rx_time = chVTGetSystemTime();
+				msg->rx_time = chVTGetSystemTimeX();
 				ind = 0;
 				int j = 0;
 				while (ind < len) {
@@ -1961,7 +2069,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (msg->id == id || msg->id == -1) {
 				ind = 0;
 				msg->id = id;
-				msg->rx_time = chVTGetSystemTime();
+				msg->rx_time = chVTGetSystemTimeX();
 				ind = 0;
 				int j = 0;
 				while (ind < len) {
@@ -1978,7 +2086,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (msg->id == id || msg->id == -1) {
 				ind = 0;
 				msg->id = id;
-				msg->rx_time = chVTGetSystemTime();
+				msg->rx_time = chVTGetSystemTimeX();
 				msg->inputs = 0;
 				ind = 0;
 				while (ind < len) {
@@ -1996,7 +2104,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			if (msg->id == id || msg->id == -1) {
 				ind = 0;
 				msg->id = id;
-				msg->rx_time = chVTGetSystemTime();
+				msg->rx_time = chVTGetSystemTimeX();
 
 				msg->v_in = buffer_get_float16(data8, 10.0, &ind);
 				msg->v_out = buffer_get_float16(data8, 10.0, &ind);
@@ -2008,6 +2116,51 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 				break;
 			}
 		}
+	} break;
+
+	case CAN_PACKET_GNSS_TIME: {
+		volatile gnss_data *d = mc_interface_gnss();
+		ind = 0;
+		d->ms_today = buffer_get_int32(data8, &ind);
+		d->yy = buffer_get_int16(data8, &ind);
+		d->mo = data8[ind++];
+		d->dd = data8[ind++];
+		d->last_update = chVTGetSystemTimeX();
+	} break;
+
+	case CAN_PACKET_GNSS_LAT: {
+		volatile gnss_data *d = mc_interface_gnss();
+		ind = 0;
+		volatile double tmp = buffer_get_double64(data8, D(1e16), &ind);
+
+		// Double writes are not atomic, so lock system
+		utils_sys_lock_cnt();
+		d->lat = tmp;
+		utils_sys_unlock_cnt();
+
+		d->last_update = chVTGetSystemTimeX();
+	} break;
+
+	case CAN_PACKET_GNSS_LON: {
+		volatile gnss_data *d = mc_interface_gnss();
+		ind = 0;
+		volatile double tmp = buffer_get_double64(data8, D(1e16), &ind);
+
+		// Double writes are not atomic, so lock system
+		utils_sys_lock_cnt();
+		d->lon = tmp;
+		utils_sys_unlock_cnt();
+
+		d->last_update = chVTGetSystemTimeX();
+	} break;
+
+	case CAN_PACKET_GNSS_ALT_SPEED_HDOP: {
+		volatile gnss_data *d = mc_interface_gnss();
+		ind = 0;
+		d->height = buffer_get_float32_auto(data8, &ind);
+		d->speed = buffer_get_float16(data8, 1.0e2, &ind);
+		d->hdop = buffer_get_float16(data8, 1.0e2, &ind);
+		d->last_update = chVTGetSystemTimeX();
 	} break;
 
 	default:
@@ -2057,3 +2210,5 @@ static void set_timing(int brp, int ts1, int ts2) {
 	canStart(&HW_CAN_DEV, &cancfg);
 #endif
 }
+
+#pragma GCC pop_options

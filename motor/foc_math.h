@@ -60,7 +60,6 @@ typedef struct {
 	float vq;
 	float vd_int;
 	float vq_int;
-	float speed_rad_s;
 	uint32_t svm_sector;
 	bool is_using_phase_filters;
 } motor_state_t;
@@ -101,6 +100,39 @@ typedef struct {
 	float i_beta_last;
 } observer_state;
 
+#define MC_AUDIO_CHANNELS	4
+
+typedef enum {
+	MC_AUDIO_OFF = 0,
+	MC_AUDIO_TABLE,
+	MC_AUDIO_SAMPLED,
+} mc_audio_mode;
+
+typedef struct {
+	mc_audio_mode mode;
+
+	const float *table[MC_AUDIO_CHANNELS];
+	int table_len[MC_AUDIO_CHANNELS];
+	float table_voltage[MC_AUDIO_CHANNELS];
+	float table_freq[MC_AUDIO_CHANNELS];
+	float table_pos[MC_AUDIO_CHANNELS];
+
+	// Double-buffered sampled audio
+	const int8_t *sample_table[2];
+	int sample_table_len[2];
+	bool sample_table_filled[2];
+	int sample_table_now;
+	float sample_freq;
+	float sample_pos;
+	float sample_voltage;
+} mc_audio_state;
+
+typedef enum {
+	FOC_PWM_DISABLED = 0,
+	FOC_PWM_ENABLED,
+	FOC_PWM_FULL_BRAKE
+} foc_pwm_mode;
+
 typedef struct {
 	mc_configuration *m_conf;
 	mc_state m_state;
@@ -117,7 +149,7 @@ typedef struct {
 	float m_current_off_delay;
 	float m_openloop_speed;
 	float m_openloop_phase;
-	bool m_output_on;
+	foc_pwm_mode m_pwm_mode;
 	float m_pos_pid_set;
 	float m_speed_pid_set_rpm;
 	float m_speed_command_rpm;
@@ -131,14 +163,15 @@ typedef struct {
 	observer_state m_observer_state;
 	float m_pll_phase;
 	float m_pll_speed;
+	float m_speed_est_fast;
+	float m_speed_est_fast_corrected; // Same as m_speed_est_fast, but always based on the corrected position
+	float m_speed_est_faster;
 	mc_sample_t m_samples;
 	int m_tachometer;
 	int m_tachometer_abs;
 	float m_pos_pid_now;
 	float m_gamma_now;
 	bool m_using_encoder;
-	float m_speed_est_fast;
-	float m_speed_est_faster;
 	int m_duty1_next, m_duty2_next, m_duty3_next;
 	bool m_duty_next_set;
 	float m_i_alpha_sample_next;
@@ -150,6 +183,9 @@ typedef struct {
 	int m_hfi_plot_en;
 	float m_hfi_plot_sample;
 
+	// Audio Modulation
+	mc_audio_state m_audio;
+
 	// For braking
 	float m_br_speed_before;
 	float m_br_vq_before;
@@ -159,10 +195,13 @@ typedef struct {
 	float m_duty_filtered;
 	bool m_was_control_duty;
 	float m_duty_i_term;
+	bool duty_was_pi;
+	float duty_pi_duty_last;
 	float m_openloop_angle;
 	float m_x1_prev;
 	float m_x2_prev;
 	float m_phase_before_speed_est;
+	float m_phase_before_speed_est_corrected;
 	int m_tacho_step_last;
 	float m_pid_div_angle_last;
 	float m_pid_div_angle_accumulator;
@@ -188,7 +227,7 @@ typedef struct {
 	bool m_motor_released;
 
 	// Resistance observer
-	float m_r_est;
+	float m_res_est;
 	float m_r_est_state;
 
 	// Temperature-compensated parameters
@@ -210,7 +249,7 @@ void foc_pll_run(float phase, float dt, float *phase_var,
 void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector);
 void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *motor);
-void foc_run_pid_control_speed(float dt, motor_all_state_t *motor);
+void foc_run_pid_control_speed(bool index_found, float dt, motor_all_state_t *motor);
 float foc_correct_encoder(float obs_angle, float enc_angle, float speed, float sl_erpm, motor_all_state_t *motor);
 float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall_val);
 void foc_run_fw(motor_all_state_t *motor, float dt);

@@ -21,6 +21,9 @@
  * the device, providing the XML memory map and Flash memory programming.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "general.h"
 #include "target.h"
 #include "target_internal.h"
@@ -160,6 +163,7 @@ bool nrf51_probe(target *t)
 	case 0x0086: /* nRF51422 (rev 3) QFAC A1 */
 	case 0x0087: /* nRF51822 (rev 3) CFAC A0 */
 	case 0x0088: /* nRF51422 (rev 3) CFAC A0 */
+	case 0x0169: /* nRF51822 (rev 3) Taiyo EYSGJNZWY*/
 		t->driver = "Nordic nRF51";
 		target_add_ram(t, 0x20000000, 0x8000);
 		nrf51_add_flash(t, 0x00000000, 0x40000, NRF51_PAGE_SIZE);
@@ -445,3 +449,5 @@ static bool nrf51_mdm_cmd_erase_mass(target *t)
 	// should we return the prot status here?
 	return true;
 }
+
+#pragma GCC pop_options

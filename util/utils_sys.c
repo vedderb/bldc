@@ -142,3 +142,27 @@ int utils_stack_left_now(void) {
 	struct port_intctx *r13 = (struct port_intctx *)__get_PSP();
 	return ((stkalign_t *)(r13 - 1) - chThdGetSelfX()->p_stklimit) * sizeof(stkalign_t);
 }
+
+/*
+ * Check if function is on a valid address
+ */
+bool utils_is_func_valid(void *addr) {
+	bool res = false;
+
+	// Flash
+	if ((uint32_t)addr >= 0x08000000 && (uint32_t)addr <= (0x08000000 + 1024 * 1024)) {
+		res = true;
+	}
+
+	// Ram
+	if ((uint32_t)addr >= 0x20000000 && (uint32_t)addr <= (0x20000000 + 1024 * 128)) {
+		res = true;
+	}
+
+	// CCM
+	if ((uint32_t)addr >= 0x10000000 && (uint32_t)addr <= (0x10000000 + 1024 * 64)) {
+		res = true;
+	}
+
+	return res;
+}

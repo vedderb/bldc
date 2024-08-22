@@ -34,9 +34,6 @@ void spi_bb_init(spi_bb_state *s) {
 		palSetPad(s->mosi_gpio, s->mosi_pin);
 		palSetPad(s->nss_gpio, s->nss_pin);
 	}
-
-	s->has_started = false;
-	s->has_error = false;
 }
 
 void spi_bb_deinit(spi_bb_state *s) {
@@ -47,9 +44,29 @@ void spi_bb_deinit(spi_bb_state *s) {
 	if (s->mosi_gpio) {
 		palSetPadMode(s->mosi_gpio, s->mosi_pin, PAL_MODE_INPUT_PULLUP);
 	}
+}
 
-	s->has_started = false;
-	s->has_error = false;
+void ssc_bb_init(spi_bb_state *s) {
+	chMtxObjectInit(&s->mutex);
+
+	if (s->mosi_gpio && s->nss_gpio && s->sck_gpio) { // TODO: test
+		palSetPadMode(s->mosi_gpio, s->mosi_pin, PAL_MODE_INPUT_PULLUP);
+		palSetPadMode(s->sck_gpio, s->sck_pin,
+				PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+		palSetPadMode(s->nss_gpio, s->nss_pin,
+				PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	}
+
+	palClearPad(s->sck_gpio, s->sck_pin);
+	palSetPad(s->nss_gpio, s->nss_pin);
+}
+
+void ssc_bb_deinit(spi_bb_state *s) {
+	chMtxObjectInit(&s->mutex);
+
+	palSetPadMode(s->mosi_gpio, s->miso_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(s->sck_gpio, s->sck_pin, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(s->nss_gpio, s->nss_pin, PAL_MODE_INPUT_PULLUP);
 }
 
 uint8_t spi_bb_exchange_8(spi_bb_state *s, uint8_t x) {
@@ -58,7 +75,13 @@ uint8_t spi_bb_exchange_8(spi_bb_state *s, uint8_t x) {
 	return rx;
 }
 
-void spi_bb_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf, int length) {
+
+void spi_bb_transfer_8(
+		spi_bb_state *s, 
+		uint8_t *in_buf, 
+		const uint8_t *out_buf,
+		int length
+		) {
 	for (int i = 0; i < length; i++) {
 		uint8_t send = out_buf ? out_buf[i] : 0xFF;
 		uint8_t receive = 0;
@@ -100,7 +123,12 @@ void spi_bb_transfer_8(spi_bb_state *s, uint8_t *in_buf, const uint8_t *out_buf,
 	}
 }
 
-void spi_bb_transfer_16(spi_bb_state *s, uint16_t *in_buf, const uint16_t *out_buf, int length) {
+void spi_bb_transfer_16(
+		spi_bb_state *s, 
+		uint16_t *in_buf, 
+		const uint16_t *out_buf, 
+		int length
+		) {
 	for (int i = 0; i < length; i++) {
 		uint16_t send = out_buf ? out_buf[i] : 0xFFFF;
 		uint16_t receive = 0;
@@ -140,6 +168,64 @@ void spi_bb_transfer_16(spi_bb_state *s, uint16_t *in_buf, const uint16_t *out_b
 	}
 }
 
+/**
+ * @brief 
+ * Software data transfer using SSC protocol.
+ * (SSC = SPI with mosi/miso combined into 1 bidirectional wire)
+ * 
+ * @param s  		pointer software spi state
+ * @param in_buf 	pointer to empty rx array of uint16_t with same N as length
+ * @param out_buf 	pointer to tx array of uint16_t with same N as length
+ * @param length 	number of 16 bit transfers
+ * @param write 	0 = read, 1 = write
+ */
+void ssc_bb_transfer_16(
+		spi_bb_state *s, 
+		uint16_t *in_buf, 
+		const uint16_t *out_buf, 
+		int length, 
+		bool write
+		) {
+
+	for (int i = 0; i < length; i++) {
+		uint16_t send = out_buf ? out_buf[i] : 0xFFFF;
+		uint16_t receive = 0;
+
+		//ssc uses mosi for all data
+		if(write && s->mosi_gpio){
+			palWritePad(s->mosi_gpio, s->mosi_pin, send >> 15); 
+			palSetPadMode(s->mosi_gpio, s->mosi_pin,
+				PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+		} else {
+			palSetPadMode(s->mosi_gpio, s->mosi_pin, PAL_MODE_INPUT_PULLUP);
+			write = false;
+		}
+
+		for (int bit = 0; bit < 16; bit++) {
+			// Data is put on the data line with the rising edge of SCK 
+			// and read with the falling edge of SCK. (tle5012)
+			palSetPad(s->sck_gpio, s->sck_pin); 
+			
+			if(write){
+				palWritePad(s->mosi_gpio, s->mosi_pin, send >> 15); 
+				send <<= 1;
+			}
+
+			spi_bb_delay_short();
+			palClearPad(s->sck_gpio, s->sck_pin);
+			spi_bb_delay_short();
+
+			// read when clk low
+			receive <<= 1;
+			receive |= palReadPad(s->mosi_gpio, s->mosi_pin);
+		}
+
+		if (in_buf) {
+			in_buf[i] = receive;
+		}
+	}
+}
+
 void spi_bb_begin(spi_bb_state *s) {
 	spi_bb_delay();
 	palClearPad(s->nss_gpio, s->nss_pin);
@@ -153,6 +239,7 @@ void spi_bb_end(spi_bb_state *s) {
 }
 
 void spi_bb_delay(void) {
+	// ~1500 ns long
 	for (volatile int i = 0; i < 6; i++) {
 		__NOP();
 	}

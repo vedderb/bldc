@@ -18,6 +18,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "app.h"
 
 #include "ch.h"
@@ -32,7 +35,8 @@
 
 // Settings
 #define PEDAL_INPUT_TIMEOUT				0.2
-#define MAX_MS_WITHOUT_CADENCE			5000
+#define MAX_MS_WITHOUT_CADENCE_OR_TORQUE	5000
+#define MAX_MS_WITHOUT_CADENCE			1000
 #define MIN_MS_WITHOUT_POWER			500
 #define FILTER_SAMPLES					5
 #define RPM_FILTER_SAMPLES				8
@@ -115,6 +119,10 @@ float app_pas_get_current_target_rel(void) {
 	return output_current_rel;
 }
 
+float app_pas_get_pedal_rpm(void) {
+	return pedal_rpm;
+}
+
 void pas_event_handler(void) {
 #ifdef HW_PAS1_PORT
 	const int8_t QEM[] = {0,-1,1,2,1,0,2,-1,-1,2,0,1,2,1,-1,0}; // Quadrature Encoder Matrix
@@ -157,6 +165,7 @@ void pas_event_handler(void) {
 		pedal_rpm = 60.0 / period_filtered;
 		pedal_rpm *= (direction_conf * (float)direction_qem);
 		inactivity_time = 0.0;
+		correct_direction_counter = 0;
 	}
 	else {
 		inactivity_time += 1.0 / (float)config.update_rate_hz;
@@ -246,9 +255,20 @@ static THD_FUNCTION(pas_thread, arg) {
 					ms_without_cadence_or_torque = 0.0;
 				} else {
 					ms_without_cadence_or_torque += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
-					if(ms_without_cadence_or_torque > MAX_MS_WITHOUT_CADENCE) {
+					if(ms_without_cadence_or_torque > MAX_MS_WITHOUT_CADENCE_OR_TORQUE) {
 						output = 0.0;
 					}
+				}
+				// if cranks are not moving, there should not be any output. This covers the case of a torque sensor
+				// stuck with a non-zero signal.
+				static float ms_without_cadence = 0.0;
+				if(pedal_rpm < 0.01) {
+					ms_without_cadence += (1000.0 * (float)sleep_time) / (float)CH_CFG_ST_FREQUENCY;
+					if(ms_without_cadence > MAX_MS_WITHOUT_CADENCE) {
+						output = 0.0;
+					}
+				} else {
+					ms_without_cadence = 0.0;
 				}
 			}
 #endif
@@ -296,3 +316,5 @@ static THD_FUNCTION(pas_thread, arg) {
 		}
 	}
 }
+
+#pragma GCC pop_options

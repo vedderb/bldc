@@ -20,7 +20,10 @@
 #define LBM_CUSTOM_TYPE_H_
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <lbm_types.h>
+#include <lbm_defines.h>
+#include <heap.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,6 +62,19 @@ bool lbm_custom_type_create(lbm_uint value, custom_type_destructor fptr, const c
  * /return true on success or false otherwise.
  */
 bool lbm_custom_type_destroy(lbm_uint *lbm_mem_ptr);
+
+static inline const char *lbm_get_custom_descriptor(lbm_value value) {
+  if (lbm_type_of(value) == LBM_TYPE_CUSTOM) {
+    lbm_uint *m = (lbm_uint*)lbm_dec_custom(value);
+    return (const char*)m[CUSTOM_TYPE_DESCRIPTOR];
+  }
+  return NULL;
+}
+
+static inline lbm_uint lbm_get_custom_value(lbm_value value) {
+  lbm_uint *m = (lbm_uint*)lbm_dec_custom(value);
+  return m[CUSTOM_TYPE_VALUE];
+}
 
 #ifdef __cplusplus
 }

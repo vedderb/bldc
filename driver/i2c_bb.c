@@ -35,8 +35,6 @@ static void i2c_start_cond(i2c_bb_state *s);
 static void i2c_stop_cond(i2c_bb_state *s);
 static void i2c_write_bit(i2c_bb_state *s, bool bit);
 static bool i2c_read_bit(i2c_bb_state *s);
-static bool i2c_write_byte(i2c_bb_state *s, bool send_start, bool send_stop, unsigned char byte);
-static unsigned char i2c_read_byte(i2c_bb_state *s, bool nack, bool send_stop);
 static bool clock_stretch_timeout(i2c_bb_state *s);
 static void i2c_delay(float seconds);
 
@@ -53,8 +51,8 @@ static inline float rate2secs(i2c_bb_state *s) {
 
 void i2c_bb_init(i2c_bb_state *s) {
 	chMtxObjectInit(&s->mutex);
-	palSetPadMode(s->sda_gpio, s->sda_pin, PAL_MODE_OUTPUT_OPENDRAIN);
-	palSetPadMode(s->scl_gpio, s->scl_pin, PAL_MODE_OUTPUT_OPENDRAIN);
+	palSetPadMode(s->sda_gpio, s->sda_pin, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_PUDR_PULLUP);
+	palSetPadMode(s->scl_gpio, s->scl_pin, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_PUDR_PULLUP);
 	s->has_started = false;
 	s->has_error = false;
 }
@@ -87,17 +85,38 @@ void i2c_bb_restore_bus(i2c_bb_state *s) {
 bool i2c_bb_tx_rx(i2c_bb_state *s, uint16_t addr, uint8_t *txbuf, size_t txbytes, uint8_t *rxbuf, size_t rxbytes) {
 	chMtxLock(&s->mutex);
 
-	i2c_write_byte(s, true, false, addr << 1);
+	if (txbytes > 0 && txbuf) {
+		i2c_bb_write_byte(s, true, false, addr << 1);
 
-	for (unsigned int i = 0;i < txbytes;i++) {
-		i2c_write_byte(s, false, false, txbuf[i]);
+		if (s->has_error) {
+			chMtxUnlock(&s->mutex);
+			return false;
+		}
+
+		for (unsigned int i = 0;i < txbytes;i++) {
+			i2c_bb_write_byte(s, false, false, txbuf[i]);
+
+			if (s->has_error) {
+				chMtxUnlock(&s->mutex);
+				return false;
+			}
+		}
 	}
 
 	if (rxbytes > 0) {
-		i2c_write_byte(s, true, false, addr << 1 | 1);
+		i2c_bb_write_byte(s, true, false, addr << 1 | 1);
+
+		if (s->has_error) {
+			chMtxUnlock(&s->mutex);
+			return false;
+		}
 
 		for (unsigned int i = 0;i < rxbytes;i++) {
-			rxbuf[i] = i2c_read_byte(s, i == (rxbytes - 1), false);
+			rxbuf[i] = i2c_bb_read_byte(s, i == (rxbytes - 1), false);
+			if (s->has_error) {
+				chMtxUnlock(&s->mutex);
+				return false;
+			}
 		}
 	}
 
@@ -106,6 +125,45 @@ bool i2c_bb_tx_rx(i2c_bb_state *s, uint16_t addr, uint8_t *txbuf, size_t txbytes
 	chMtxUnlock(&s->mutex);
 
 	return !s->has_error;
+}
+
+bool i2c_bb_write_byte(i2c_bb_state *s, bool send_start, bool send_stop, unsigned char byte) {
+	unsigned bit;
+	bool nack;
+
+	if (send_start) {
+		i2c_start_cond(s);
+	}
+
+	for (bit = 0;bit < 8;bit++) {
+		i2c_write_bit(s, (byte & 0x80) != 0);
+		byte <<= 1;
+	}
+
+	nack = i2c_read_bit(s);
+
+	if (send_stop) {
+		i2c_stop_cond(s);
+	}
+
+	return nack;
+}
+
+unsigned char i2c_bb_read_byte(i2c_bb_state *s, bool nack, bool send_stop) {
+	unsigned char byte = 0;
+	unsigned char bit;
+
+	for (bit = 0;bit < 8;bit++) {
+		byte = (byte << 1) | i2c_read_bit(s);
+	}
+
+	i2c_write_bit(s, nack);
+
+	if (send_stop) {
+		i2c_stop_cond(s);
+	}
+
+	return byte;
 }
 
 static void i2c_start_cond(i2c_bb_state *s) {
@@ -219,45 +277,6 @@ static bool i2c_read_bit(i2c_bb_state *s) {
 	SCL_LOW();
 
 	return bit;
-}
-
-static bool i2c_write_byte(i2c_bb_state *s, bool send_start, bool send_stop, unsigned char byte) {
-	unsigned bit;
-	bool nack;
-
-	if (send_start) {
-		i2c_start_cond(s);
-	}
-
-	for (bit = 0;bit < 8;bit++) {
-		i2c_write_bit(s, (byte & 0x80) != 0);
-		byte <<= 1;
-	}
-
-	nack = i2c_read_bit(s);
-
-	if (send_stop) {
-		i2c_stop_cond(s);
-	}
-
-	return nack;
-}
-
-static unsigned char i2c_read_byte(i2c_bb_state *s, bool nack, bool send_stop) {
-	unsigned char byte = 0;
-	unsigned char bit;
-
-	for (bit = 0;bit < 8;bit++) {
-		byte = (byte << 1) | i2c_read_bit(s);
-	}
-
-	i2c_write_bit(s, nack);
-
-	if (send_stop) {
-		i2c_stop_cond(s);
-	}
-
-	return byte;
 }
 
 static bool clock_stretch_timeout(i2c_bb_state *s) {

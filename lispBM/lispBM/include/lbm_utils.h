@@ -39,6 +39,17 @@ extern "C" {
 
 #define CMP(a,b) (((a) > (b)) - ((a) < (b)));
 
+static inline bool str_eq(char *str1, char *str2) {
+  if (*str1 != *str2) return false;
+  if (*str1 == 0) return true;
+
+  for (;;) {
+    ++str1; ++str2;
+    if (*str1 != *str2) return false;
+    if (*str1 == 0) return true;
+  }
+}
+
 #ifdef __cplusplus
 }
 #endif

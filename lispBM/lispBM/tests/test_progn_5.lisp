@@ -1,2 +1,0 @@
-
-(eq (progn) nil)

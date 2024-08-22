@@ -23,19 +23,32 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include "lispbm.h"
+#include "hal.h"
+
+typedef void* lib_thread;
 
 // Functions
 void lispif_init(void);
-bool lispif_restart(bool print, bool load_code);
+int lispif_get_restart_cnt(void);
+void lispif_lock_lbm(void);
+void lispif_unlock_lbm(void);
+bool lispif_restart(bool print, bool load_code, bool load_imports);
+void lispif_add_ext_load_callback(void (*p_func)(void));
 void lispif_disable_all_events(void);
+bool lispif_symbol_to_io(lbm_uint sym, stm32_gpio_t **port, uint32_t *pin);
 void lispif_stop_lib(void);
+float lispif_get_ppm(void);
 void lispif_process_cmd(unsigned char *data, unsigned int len,
 		void(*reply_func)(unsigned char *data, unsigned int len));
 void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext);
 void lispif_process_custom_app_data(unsigned char *data, unsigned int len);
-void lispif_set_ext_load_callback(void (*p_func)(void));
+void lispif_process_shutdown(void);
+void lispif_process_rmsg(int slot, unsigned char *data, unsigned int len);
 
 void lispif_load_vesc_extensions(void);
 bool lispif_vesc_dynamic_loader(const char *str, const char **code);
+lib_thread lispif_spawn(void (*func)(void*), size_t stack_size, char *name, void *arg);
 
 #endif /* LISPBM_LISPIF_H_ */

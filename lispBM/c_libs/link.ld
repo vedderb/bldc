@@ -1,6 +1,6 @@
 MEMORY
 {
-    MEM : org = 0, len = 64k
+    MEM : org = 0, len = 96k
 }
 
 SECTIONS

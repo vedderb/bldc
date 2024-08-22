@@ -41,62 +41,73 @@
 
 // Internal RC osc
 #ifdef HW_USE_INTERNAL_RC
-#define STM32_NO_INIT                       FALSE
-#define STM32_HSI_ENABLED                   TRUE
-#define STM32_LSI_ENABLED                   TRUE
-#define STM32_HSE_ENABLED                   FALSE
-#define STM32_LSE_ENABLED                   FALSE
-#define STM32_CLOCK48_REQUIRED              TRUE
-#define STM32_SW                            STM32_SW_PLL
-#define STM32_PLLSRC                        STM32_PLLSRC_HSI
-#define STM32_PLLM_VALUE                    16
-#define STM32_PLLN_VALUE                    336
-#define STM32_PLLP_VALUE                    2
-#define STM32_PLLQ_VALUE                    7
-#define STM32_HPRE                          STM32_HPRE_DIV1
-#define STM32_PPRE1                         STM32_PPRE1_DIV4
-#define STM32_PPRE2                         STM32_PPRE2_DIV2
-#define STM32_RTCSEL                        STM32_RTCSEL_LSI
-#define STM32_RTCPRE_VALUE                  8
-#define STM32_MCO1SEL                       STM32_MCO1SEL_HSI
-#define STM32_MCO1PRE                       STM32_MCO1PRE_DIV1
-#define STM32_MCO2SEL                       STM32_MCO2SEL_SYSCLK
-#define STM32_MCO2PRE                       STM32_MCO2PRE_DIV5
-#define STM32_I2SSRC                        STM32_I2SSRC_CKIN
-#define STM32_PLLI2SN_VALUE                 192
-#define STM32_PLLI2SR_VALUE                 5
-#define STM32_PVD_ENABLE                    TRUE
-#define STM32_PLS                           STM32_PLS_LEV6
-#define STM32_BKPRAM_ENABLE                 FALSE
+	#define STM32_NO_INIT						FALSE
+	#define STM32_HSI_ENABLED					TRUE
+	#define STM32_LSI_ENABLED					TRUE
+	#define STM32_HSE_ENABLED					FALSE
+	#define STM32_LSE_ENABLED					FALSE
+	#define STM32_CLOCK48_REQUIRED				TRUE
+	#define STM32_SW							STM32_SW_PLL
+	#define STM32_PLLSRC						STM32_PLLSRC_HSI
+	#define STM32_PLLM_VALUE					16
+	#define STM32_PLLN_VALUE					336
+	#define STM32_PLLP_VALUE					2
+	#define STM32_PLLQ_VALUE					7
+	#define STM32_HPRE							STM32_HPRE_DIV1
+	#define STM32_PPRE1							STM32_PPRE1_DIV4
+	#define STM32_PPRE2							STM32_PPRE2_DIV2
+	#define STM32_RTCSEL						STM32_RTCSEL_LSI
+	#define STM32_RTCPRE_VALUE					8
+	#define STM32_MCO1SEL						STM32_MCO1SEL_HSI
+	#define STM32_MCO1PRE						STM32_MCO1PRE_DIV1
+	#define STM32_MCO2SEL						STM32_MCO2SEL_SYSCLK
+	#define STM32_MCO2PRE						STM32_MCO2PRE_DIV5
+	#define STM32_I2SSRC						STM32_I2SSRC_CKIN
+	#define STM32_PLLI2SN_VALUE					192
+	#define STM32_PLLI2SR_VALUE					5
+	#define STM32_PVD_ENABLE					TRUE
+	#define STM32_PLS							STM32_PLS_LEV6
+	#define STM32_BKPRAM_ENABLE					FALSE
 #else
-// 8M XTAL
-#define STM32_NO_INIT                       FALSE
-#define STM32_HSI_ENABLED                   TRUE
-#define STM32_LSI_ENABLED                   TRUE
-#define STM32_HSE_ENABLED                   TRUE
-#define STM32_LSE_ENABLED                   FALSE
-#define STM32_CLOCK48_REQUIRED              TRUE
-#define STM32_SW                            STM32_SW_PLL
-#define STM32_PLLSRC                        STM32_PLLSRC_HSE
-#define STM32_PLLM_VALUE                    8
-#define STM32_PLLN_VALUE                    336
-#define STM32_PLLP_VALUE                    2
-#define STM32_PLLQ_VALUE                    7
-#define STM32_HPRE                          STM32_HPRE_DIV1
-#define STM32_PPRE1                         STM32_PPRE1_DIV4
-#define STM32_PPRE2                         STM32_PPRE2_DIV2
-#define STM32_RTCSEL                        STM32_RTCSEL_LSI
-#define STM32_RTCPRE_VALUE                  8
-#define STM32_MCO1SEL                       STM32_MCO1SEL_HSI
-#define STM32_MCO1PRE                       STM32_MCO1PRE_DIV1
-#define STM32_MCO2SEL                       STM32_MCO2SEL_SYSCLK
-#define STM32_MCO2PRE                       STM32_MCO2PRE_DIV5
-#define STM32_I2SSRC                        STM32_I2SSRC_CKIN
-#define STM32_PLLI2SN_VALUE                 192
-#define STM32_PLLI2SR_VALUE                 5
-#define STM32_PVD_ENABLE                    TRUE
-#define STM32_PLS                           STM32_PLS_LEV6
-#define STM32_BKPRAM_ENABLE                 FALSE
+	// 8M  XTAL / 25MHz External
+	#define STM32_NO_INIT						FALSE
+	#define STM32_HSI_ENABLED					TRUE
+	#define STM32_LSI_ENABLED					TRUE
+	#define STM32_HSE_ENABLED					TRUE
+	#define STM32_LSE_ENABLED					FALSE
+	#define STM32_CLOCK48_REQUIRED				TRUE
+	#define STM32_SW							STM32_SW_PLL
+	#define STM32_PLLSRC						STM32_PLLSRC_HSE
+	#ifdef HW_USE_25MHZ_EXT_CLOCK
+		#define STM32_PLLM_VALUE				25
+		#define STM32_HSE_BYPASS				TRUE
+		#if !defined(STM32_HSECLK)
+			#define STM32_HSECLK				25000000U
+		#endif
+	#else
+		#define STM32_PLLM_VALUE				8
+		#if !defined(STM32_HSECLK)
+			#define STM32_HSECLK				8000000U
+		#endif
+	#endif
+	#define STM32_PLLN_VALUE					336
+	#define STM32_PLLP_VALUE					2
+	#define STM32_PLLQ_VALUE					7
+	#define STM32_HPRE							STM32_HPRE_DIV1
+	#define STM32_PPRE1							STM32_PPRE1_DIV4
+	#define STM32_PPRE2							STM32_PPRE2_DIV2
+	#define STM32_RTCSEL						STM32_RTCSEL_LSI
+	#define STM32_RTCPRE_VALUE					8
+	#define STM32_MCO1SEL						STM32_MCO1SEL_HSI
+	#define STM32_MCO1PRE						STM32_MCO1PRE_DIV1
+	#define STM32_MCO2SEL						STM32_MCO2SEL_SYSCLK
+	#define STM32_MCO2PRE						STM32_MCO2PRE_DIV5
+	#define STM32_I2SSRC						STM32_I2SSRC_CKIN
+	#define STM32_PLLI2SN_VALUE					192
+	#define STM32_PLLI2SR_VALUE					5
+	#define STM32_PVD_ENABLE					TRUE
+	#define STM32_PLS							STM32_PLS_LEV6
+	#define STM32_BKPRAM_ENABLE					FALSE
 #endif
 
 /*
@@ -109,13 +120,13 @@
 #define STM32_ADC_ADC1_DMA_STREAM           STM32_DMA_STREAM_ID(2, 4)
 #define STM32_ADC_ADC2_DMA_STREAM           STM32_DMA_STREAM_ID(2, 2)
 #define STM32_ADC_ADC3_DMA_STREAM           STM32_DMA_STREAM_ID(2, 1)
-#define STM32_ADC_ADC1_DMA_PRIORITY         2
-#define STM32_ADC_ADC2_DMA_PRIORITY         2
-#define STM32_ADC_ADC3_DMA_PRIORITY         2
-#define STM32_ADC_IRQ_PRIORITY              6
-#define STM32_ADC_ADC1_DMA_IRQ_PRIORITY     6
-#define STM32_ADC_ADC2_DMA_IRQ_PRIORITY     6
-#define STM32_ADC_ADC3_DMA_IRQ_PRIORITY     6
+#define STM32_ADC_ADC1_DMA_PRIORITY         0
+#define STM32_ADC_ADC2_DMA_PRIORITY         0
+#define STM32_ADC_ADC3_DMA_PRIORITY         0
+#define STM32_ADC_IRQ_PRIORITY              4
+#define STM32_ADC_ADC1_DMA_IRQ_PRIORITY     5
+#define STM32_ADC_ADC2_DMA_IRQ_PRIORITY     5
+#define STM32_ADC_ADC3_DMA_IRQ_PRIORITY     5
 
 /*
  * CAN driver system settings.
@@ -141,18 +152,18 @@
 /*
  * EXT driver system settings.
  */
-#define STM32_EXT_EXTI0_IRQ_PRIORITY        6
-#define STM32_EXT_EXTI1_IRQ_PRIORITY        6
-#define STM32_EXT_EXTI2_IRQ_PRIORITY        6
-#define STM32_EXT_EXTI3_IRQ_PRIORITY        6
-#define STM32_EXT_EXTI4_IRQ_PRIORITY        6
-#define STM32_EXT_EXTI5_9_IRQ_PRIORITY      6
-#define STM32_EXT_EXTI10_15_IRQ_PRIORITY    6
-#define STM32_EXT_EXTI16_IRQ_PRIORITY       6
+#define STM32_EXT_EXTI0_IRQ_PRIORITY        7
+#define STM32_EXT_EXTI1_IRQ_PRIORITY        7
+#define STM32_EXT_EXTI2_IRQ_PRIORITY        7
+#define STM32_EXT_EXTI3_IRQ_PRIORITY        7
+#define STM32_EXT_EXTI4_IRQ_PRIORITY        7
+#define STM32_EXT_EXTI5_9_IRQ_PRIORITY      7
+#define STM32_EXT_EXTI10_15_IRQ_PRIORITY    7
+#define STM32_EXT_EXTI16_IRQ_PRIORITY       7
 #define STM32_EXT_EXTI17_IRQ_PRIORITY       15
-#define STM32_EXT_EXTI18_IRQ_PRIORITY       6
-#define STM32_EXT_EXTI19_IRQ_PRIORITY       6
-#define STM32_EXT_EXTI20_IRQ_PRIORITY       6
+#define STM32_EXT_EXTI18_IRQ_PRIORITY       7
+#define STM32_EXT_EXTI19_IRQ_PRIORITY       7
+#define STM32_EXT_EXTI20_IRQ_PRIORITY       7
 #define STM32_EXT_EXTI21_IRQ_PRIORITY       15
 #define STM32_EXT_EXTI22_IRQ_PRIORITY       15
 
@@ -202,9 +213,9 @@
 #define STM32_I2C_I2C2_TX_DMA_STREAM        STM32_DMA_STREAM_ID(1, 7)
 #define STM32_I2C_I2C3_RX_DMA_STREAM        STM32_DMA_STREAM_ID(1, 2)
 #define STM32_I2C_I2C3_TX_DMA_STREAM        STM32_DMA_STREAM_ID(1, 4)
-#define STM32_I2C_I2C1_IRQ_PRIORITY         5
-#define STM32_I2C_I2C2_IRQ_PRIORITY         5
-#define STM32_I2C_I2C3_IRQ_PRIORITY         5
+#define STM32_I2C_I2C1_IRQ_PRIORITY         8
+#define STM32_I2C_I2C2_IRQ_PRIORITY         8
+#define STM32_I2C_I2C3_IRQ_PRIORITY         8
 #define STM32_I2C_I2C1_DMA_PRIORITY         3
 #define STM32_I2C_I2C2_DMA_PRIORITY         3
 #define STM32_I2C_I2C3_DMA_PRIORITY         3
@@ -225,13 +236,13 @@
 #define STM32_ICU_USE_TIM5                  FALSE
 #define STM32_ICU_USE_TIM8                  FALSE
 #define STM32_ICU_USE_TIM9                  TRUE
-#define STM32_ICU_TIM1_IRQ_PRIORITY         7
-#define STM32_ICU_TIM2_IRQ_PRIORITY         7
-#define STM32_ICU_TIM3_IRQ_PRIORITY         7
-#define STM32_ICU_TIM4_IRQ_PRIORITY         7
-#define STM32_ICU_TIM5_IRQ_PRIORITY         7
-#define STM32_ICU_TIM8_IRQ_PRIORITY         7
-#define STM32_ICU_TIM9_IRQ_PRIORITY         7
+#define STM32_ICU_TIM1_IRQ_PRIORITY         8
+#define STM32_ICU_TIM2_IRQ_PRIORITY         8
+#define STM32_ICU_TIM3_IRQ_PRIORITY         8
+#define STM32_ICU_TIM4_IRQ_PRIORITY         8
+#define STM32_ICU_TIM5_IRQ_PRIORITY         8
+#define STM32_ICU_TIM8_IRQ_PRIORITY         8
+#define STM32_ICU_TIM9_IRQ_PRIORITY         8
 
 /*
  * MAC driver system settings.
@@ -255,13 +266,13 @@
 #define STM32_PWM_USE_TIM5                  FALSE
 #define STM32_PWM_USE_TIM8                  FALSE
 #define STM32_PWM_USE_TIM9                  FALSE
-#define STM32_PWM_TIM1_IRQ_PRIORITY         7
-#define STM32_PWM_TIM2_IRQ_PRIORITY         7
-#define STM32_PWM_TIM3_IRQ_PRIORITY         7
-#define STM32_PWM_TIM4_IRQ_PRIORITY         7
-#define STM32_PWM_TIM5_IRQ_PRIORITY         7
-#define STM32_PWM_TIM8_IRQ_PRIORITY         7
-#define STM32_PWM_TIM9_IRQ_PRIORITY         7
+#define STM32_PWM_TIM1_IRQ_PRIORITY         6
+#define STM32_PWM_TIM2_IRQ_PRIORITY         6
+#define STM32_PWM_TIM3_IRQ_PRIORITY         6
+#define STM32_PWM_TIM4_IRQ_PRIORITY         6
+#define STM32_PWM_TIM5_IRQ_PRIORITY         6
+#define STM32_PWM_TIM8_IRQ_PRIORITY         6
+#define STM32_PWM_TIM9_IRQ_PRIORITY         6
 
 /*
  * SDC driver system settings.
@@ -283,12 +294,14 @@
 #define STM32_SERIAL_USE_UART4              TRUE
 #define STM32_SERIAL_USE_UART5              TRUE
 #define STM32_SERIAL_USE_USART6             TRUE
-#define STM32_SERIAL_USART1_PRIORITY        4
-#define STM32_SERIAL_USART2_PRIORITY        4
-#define STM32_SERIAL_USART3_PRIORITY        4
-#define STM32_SERIAL_UART4_PRIORITY         4
-#define STM32_SERIAL_UART5_PRIORITY         4
-#define STM32_SERIAL_USART6_PRIORITY        4
+// NOTE: These are ignored as there is a hack in the chibios UART driver to increase these
+// based on the baud rate.
+#define STM32_SERIAL_USART1_PRIORITY        7
+#define STM32_SERIAL_USART2_PRIORITY        7
+#define STM32_SERIAL_USART3_PRIORITY        7
+#define STM32_SERIAL_UART4_PRIORITY         7
+#define STM32_SERIAL_UART5_PRIORITY         7
+#define STM32_SERIAL_USART6_PRIORITY        7
 
 /*
  * SPI driver system settings.
@@ -302,9 +315,9 @@
 #define STM32_SPI_SPI2_TX_DMA_STREAM        STM32_DMA_STREAM_ID(1, 4)
 #define STM32_SPI_SPI3_RX_DMA_STREAM        STM32_DMA_STREAM_ID(1, 0)
 #define STM32_SPI_SPI3_TX_DMA_STREAM        STM32_DMA_STREAM_ID(1, 7)
-#define STM32_SPI_SPI1_DMA_PRIORITY         1
-#define STM32_SPI_SPI2_DMA_PRIORITY         1
-#define STM32_SPI_SPI3_DMA_PRIORITY         1
+#define STM32_SPI_SPI1_DMA_PRIORITY         2
+#define STM32_SPI_SPI2_DMA_PRIORITY         2
+#define STM32_SPI_SPI3_DMA_PRIORITY         2
 #define STM32_SPI_SPI1_IRQ_PRIORITY         10
 #define STM32_SPI_SPI2_IRQ_PRIORITY         10
 #define STM32_SPI_SPI3_IRQ_PRIORITY         10
@@ -343,12 +356,12 @@
 #define STM32_UART_UART4_IRQ_PRIORITY       12
 #define STM32_UART_UART5_IRQ_PRIORITY       12
 #define STM32_UART_USART6_IRQ_PRIORITY      12
-#define STM32_UART_USART1_DMA_PRIORITY      0
-#define STM32_UART_USART2_DMA_PRIORITY      0
-#define STM32_UART_USART3_DMA_PRIORITY      0
-#define STM32_UART_UART4_DMA_PRIORITY       0
-#define STM32_UART_UART5_DMA_PRIORITY       0
-#define STM32_UART_USART6_DMA_PRIORITY      0
+#define STM32_UART_USART1_DMA_PRIORITY      1
+#define STM32_UART_USART2_DMA_PRIORITY      1
+#define STM32_UART_USART3_DMA_PRIORITY      1
+#define STM32_UART_UART4_DMA_PRIORITY       1
+#define STM32_UART_UART5_DMA_PRIORITY       1
+#define STM32_UART_USART6_DMA_PRIORITY      1
 #define STM32_UART_DMA_ERROR_HOOK(uartp)    osalSysHalt("DMA failure")
 
 /*

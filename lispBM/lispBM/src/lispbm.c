@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2024 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,14 +18,12 @@
 #include "lispbm.h"
 
 int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
-             lbm_uint *gc_stack_storage, lbm_uint gc_stack_size,
              lbm_uint *memory, lbm_uint memory_size,
              lbm_uint *memory_bitmap, lbm_uint bitmap_size,
-             lbm_uint *print_stack_storage, lbm_uint print_stack_size,
-             extension_fptr *extension_storage, int extension_storage_size ) {
-
-  if (lbm_print_init(print_stack_storage, print_stack_size) == 0)
-    return 0;
+             lbm_uint gc_stack_size,
+             lbm_uint print_stack_size,
+             lbm_extension_t *extension_storage,
+             lbm_uint extension_storage_size) {
 
   if (lbm_memory_init(memory, memory_size,
                       memory_bitmap, bitmap_size) == 0)
@@ -34,16 +32,19 @@ int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
   if (lbm_symrepr_init() == 0)
     return 0;
 
-  if (lbm_heap_init(heap_storage, heap_size, gc_stack_storage, gc_stack_size) == 0)
+  if (lbm_heap_init(heap_storage, heap_size, gc_stack_size) == 0)
+    return 0;
+
+  if (lbm_print_init(print_stack_size) == 0)
+    return 0;
+
+  if (lbm_extensions_init(extension_storage, extension_storage_size) == 0)
     return 0;
 
   if (lbm_init_env() == 0)
     return 0;
 
   if (lbm_eval_init() == 0)
-    return 0;
-
-  if (lbm_extensions_init(extension_storage, extension_storage_size) == 0)
     return 0;
 
   return 1;

@@ -3,9 +3,9 @@ CSRC += \
 	driver/i2c_bb.c \
 	driver/ledpwm.c \
 	driver/servo_dec.c \
-	driver/servo_simple.c \
 	driver/spi_bb.c \
-	driver/timer.c
+	driver/timer.c \
+	driver/pwm_servo.c
 	
 CSRC += \
 	driver/lora/SX1278.c \

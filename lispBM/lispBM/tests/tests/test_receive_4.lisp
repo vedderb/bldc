@@ -1,0 +1,13 @@
+(send (self) 0)
+(send (self) 1)
+(send (self) 2)
+(send (self) 3)
+(send (self) 4)
+(send (self) 5)
+
+(check (and (= (recv ((? x) x)) 0)
+            (= (recv ((? x) x)) 1)
+            (= (recv ((? x) x)) 2)
+            (= (recv ((? x) x)) 3)
+            (= (recv ((? x) x)) 4)
+            (= (recv ((? x) x)) 5)))

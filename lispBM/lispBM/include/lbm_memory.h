@@ -53,29 +53,30 @@
    - Memory space is a multiple of 64Bytes.
    - Memory status bitmap is the same multiple of 4Bytes.
 
-  Number of bits in an offset from the base_address 
+  Number of bits in an offset from the base_address
   MEMORY_SIZE_512  => 9
   MEMORY_SIZE_1K   => 10
-  MEMORY_SIZE_2K   => 11 
+  MEMORY_SIZE_2K   => 11
   MEMORY_SIZE_1M   => 20
   MEMORY_SIZE_16M  => 24
   MEMORY_SIZE_32M  => 25
   MEMORY_SIZE_64M  => 26
   MEMORY_SIZE_128M => 27
   MEMORY_SIZE_256M => 28
-  
+
   However, due to alignment on a address multiple of 4, the 2 least
   significant bits are zeroes. So an offset into memory of size up to
   1GB should be possible to represent within a lispBM VALUE. This that
   using the offset into memory could be used as the identity of a
-  symbol when it comes to replacing the symbol table. 
-   
+  symbol when it comes to replacing the symbol table.
+
 */
 #ifndef _LISPBM_MEMORY_H_
 #define _LISPBM_MEMORY_H_
 
 #include "lbm_types.h"
 #include <stdint.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -111,7 +112,7 @@ extern "C" {
 #define LBM_MEMORY_BITMAP_SIZE_16K LBM_MEMORY_BITMAP_SIZE(256)
 #define LBM_MEMORY_BITMAP_SIZE_32K LBM_MEMORY_BITMAP_SIZE(512)
 #define LBM_MEMORY_BITMAP_SIZE_1M  LBM_MEMORY_BITMAP_SIZE(16384)
-  
+
 /** Initialize the symbols and arrays memory
  *
  * \param data Pointer to an array of uint32_t for data storage.
@@ -122,9 +123,18 @@ extern "C" {
  */
 int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
                            lbm_uint *bitmap, lbm_uint bitmap_size);
+
+/** Set the size of the memory reserve in words.
+ * \param num_words Number of words to treat as reserve.
+ */
+void lbm_memory_set_reserve(lbm_uint num_words);
+  /** Get the number of words of memory that is treated as reserve.
+   *\return Number of words that are reserved
+   */
+lbm_uint lbm_memory_get_reserve(void);
 /** Size of of the symbols and arrays memory in uint32_t chunks.
  *
- * \return Numberof uint32_t words.
+ * \return Number of uint32_t words.
  */
 lbm_uint lbm_memory_num_words(void);
 /**
@@ -148,7 +158,20 @@ lbm_uint *lbm_memory_allocate(lbm_uint num_words);
  * \return 1 on success and 0 on failure.
  */
 int lbm_memory_free(lbm_uint *ptr);
-
+/** Malloc like interface to lbm_memory
+ * \param size Size in bytes of memory to allocate.
+ * \return Pointer to array or NULL.
+ */
+void* lbm_malloc(size_t size);
+/** Allocate memory potentially from the reserved memory.
+ * \param size Size in bytes of memory to allocate.
+ * \return Pointer to array or NULL.
+ */
+void* lbm_malloc_reserve(size_t size);
+/** Free memory allocated with lbm_malloc
+ * \param Pointer to array to free
+ */
+void lbm_free(void *ptr);
 /** Shrink an allocated array.
  * \param ptr Pointer to array to shrink
  * \param n New smaller size of array

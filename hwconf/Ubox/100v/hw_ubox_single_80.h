@@ -21,7 +21,7 @@
 #define HW_UBOX_SINGLE_80_H_
 
 #define HW_UBOX_SINGLE_80
-#define MCCONF_L_MAX_VOLTAGE	72.0
+#define MCCONF_L_MAX_VOLTAGE	78.0
 
 #include "hw_ubox_100_core.h"
 

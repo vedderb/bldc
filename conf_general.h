@@ -22,23 +22,11 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR			6
-#define FW_VERSION_MINOR			00
+#define FW_VERSION_MINOR			06
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		58
+#define FW_TEST_VERSION_NUMBER		0
 
 #include "datatypes.h"
-
-// Settings and parameters to override
-//#define VIN_R1						33000.0
-//#define VIN_R1						39200.0
-//#define VIN_R2						2200.0
-//#define CURRENT_AMP_GAIN			10.0
-//#define CURRENT_SHUNT_RES			0.005
-//#define WS2811_ENABLE				1
-//#define WS2811_TEST					1
-//#define CURR1_DOUBLE_SAMPLE			0
-//#define CURR2_DOUBLE_SAMPLE			0
-//#define AS5047_USE_HW_SPI_PINS		1
 
 // Disable hardware limits on configuration parameters
 //#define DISABLE_HW_LIMITS
@@ -132,6 +120,12 @@
 
 // Current ADC to amperes factor
 #define FAC_CURRENT					((V_REG / 4095.0) / (CURRENT_SHUNT_RES * CURRENT_AMP_GAIN))
+#define FAC_CURRENT1				(FAC_CURRENT * CURRENT_CAL1)
+#define FAC_CURRENT2				(FAC_CURRENT * CURRENT_CAL2)
+#define FAC_CURRENT3				(FAC_CURRENT * CURRENT_CAL3)
+#define FAC_CURRENT1_M2				(FAC_CURRENT * CURRENT_CAL1_M2)
+#define FAC_CURRENT2_M2				(FAC_CURRENT * CURRENT_CAL2_M2)
+#define FAC_CURRENT3_M2				(FAC_CURRENT * CURRENT_CAL3_M2)
 
 #define VOLTAGE_TO_ADC_FACTOR	( VIN_R2 / (VIN_R2 + VIN_R1) ) * ( 4096.0 / V_REG )
 
@@ -188,20 +182,22 @@ bool conf_general_store_app_configuration(app_configuration *conf);
 void conf_general_read_mc_configuration(mc_configuration *conf, bool is_motor_2);
 bool conf_general_store_mc_configuration(mc_configuration *conf, bool is_motor_2);
 bool conf_general_detect_motor_param(float current, float min_rpm, float low_duty,
-		float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res);
+									 float *int_limit, float *bemf_coupling_k, int8_t *hall_table, int *hall_res);
 bool conf_general_measure_flux_linkage(float current, float duty,
-		float min_erpm, float res, float *linkage);
+									   float min_erpm, float res, float *linkage);
 uint8_t conf_general_calculate_deadtime(float deadtime_ns, float core_clock_freq);
-bool conf_general_measure_flux_linkage_openloop(float current, float duty,
-		float erpm_per_sec, float res, float ind, float *linkage,
-		float *linkage_undriven, float *undriven_samples);
+int conf_general_measure_flux_linkage_openloop(float current, float duty,
+											   float erpm_per_sec, float res, float ind, float *linkage,
+											   float *linkage_undriven, float *undriven_samples, bool *result);
 int conf_general_autodetect_apply_sensors_foc(float current,
-		bool store_mcconf_on_success, bool send_mcconf_on_success);
+											  bool store_mcconf_on_success, bool send_mcconf_on_success, int *result);
 void conf_general_calc_apply_foc_cc_kp_ki_gain(mc_configuration *mcconf, float tc);
 int conf_general_detect_apply_all_foc(float max_power_loss,
-		bool store_mcconf_on_success, bool send_mcconf_on_success);
+									  bool store_mcconf_on_success, bool send_mcconf_on_success);
 int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
-		float min_current_in, float max_current_in, float openloop_rpm, float sl_erpm);
+										  float min_current_in, float max_current_in,
+										  float openloop_rpm, float sl_erpm,
+										  void(*reply_func)(unsigned char* data, unsigned int len));
 
 
 #endif /* CONF_GENERAL_H_ */

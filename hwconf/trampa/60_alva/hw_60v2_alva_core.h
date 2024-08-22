@@ -22,11 +22,13 @@
 
 #ifdef HW_60V2_ALVA_IS_MK2
 #define HW_NAME					"60v2_alva_mk2"
+#elif defined(HW_60V2_ALVA_IS_MK1)
+#define HW_NAME					"60v2_alva_mk1"
 #else
 #define HW_NAME					"60v2_alva"
 #endif
 
-#ifndef HW_60V2_ALVA_IS_MK2
+#if !(defined(HW_60V2_ALVA_IS_MK1) || defined(HW_60V2_ALVA_IS_MK2))
 #define ALVA_V0_PPM
 //#define ALVA_V0_ABI_ENC
 #endif
@@ -317,7 +319,7 @@
 #define HW_LIM_CURRENT			-120.0, 120.0
 #define HW_LIM_CURRENT_IN		-120.0, 120.0
 #define HW_LIM_CURRENT_ABS		0.0, 160.0
-#define HW_LIM_VIN				6.0, 57.0
+#define HW_LIM_VIN				6.0, 72.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99

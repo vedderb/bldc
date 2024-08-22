@@ -45,12 +45,39 @@ void buffer_append_uint32(uint8_t* buffer, uint32_t number, int32_t *index) {
 	buffer[(*index)++] = number;
 }
 
+void buffer_append_int64(uint8_t* buffer, int64_t number, int32_t *index) {
+	buffer[(*index)++] = number >> 56;
+	buffer[(*index)++] = number >> 48;
+	buffer[(*index)++] = number >> 40;
+	buffer[(*index)++] = number >> 32;
+	buffer[(*index)++] = number >> 24;
+	buffer[(*index)++] = number >> 16;
+	buffer[(*index)++] = number >> 8;
+	buffer[(*index)++] = number;
+}
+
+void buffer_append_uint64(uint8_t* buffer, uint64_t number, int32_t *index) {
+	buffer[(*index)++] = number >> 56;
+	buffer[(*index)++] = number >> 48;
+	buffer[(*index)++] = number >> 40;
+	buffer[(*index)++] = number >> 32;
+	buffer[(*index)++] = number >> 24;
+	buffer[(*index)++] = number >> 16;
+	buffer[(*index)++] = number >> 8;
+	buffer[(*index)++] = number;
+}
+
+
 void buffer_append_float16(uint8_t* buffer, float number, float scale, int32_t *index) {
     buffer_append_int16(buffer, (int16_t)(number * scale), index);
 }
 
 void buffer_append_float32(uint8_t* buffer, float number, float scale, int32_t *index) {
     buffer_append_int32(buffer, (int32_t)(number * scale), index);
+}
+
+void buffer_append_double64(uint8_t* buffer, double number, double scale, int32_t *index) {
+	buffer_append_int64(buffer, (int64_t)(number * scale), index);
 }
 
 /*
@@ -118,6 +145,13 @@ void buffer_append_float32_auto(uint8_t* buffer, float number, int32_t *index) {
 	buffer_append_uint32(buffer, res, index);
 }
 
+void buffer_append_float64_auto(uint8_t* buffer, double number, int32_t *index) {
+	float n = number;
+	float err = (float)(number - (double)n);
+	buffer_append_float32_auto(buffer, n, index);
+	buffer_append_float32_auto(buffer, err, index);
+}
+
 int16_t buffer_get_int16(const uint8_t *buffer, int32_t *index) {
 	int16_t res =	((uint16_t) buffer[*index]) << 8 |
 					((uint16_t) buffer[*index + 1]);
@@ -150,12 +184,42 @@ uint32_t buffer_get_uint32(const uint8_t *buffer, int32_t *index) {
 	return res;
 }
 
+int64_t buffer_get_int64(const uint8_t *buffer, int32_t *index) {
+	int64_t res =	((uint64_t) buffer[*index]) << 56 |
+					((uint64_t) buffer[*index + 1]) << 48 |
+					((uint64_t) buffer[*index + 2]) << 40 |
+					((uint64_t) buffer[*index + 3]) << 32 |
+					((uint64_t) buffer[*index + 4]) << 24 |
+					((uint64_t) buffer[*index + 5]) << 16 |
+					((uint64_t) buffer[*index + 6]) << 8 |
+					((uint64_t) buffer[*index + 7]);
+	*index += 8;
+	return res;
+}
+
+uint64_t buffer_get_uint64(const uint8_t *buffer, int32_t *index) {
+	uint64_t res =	((uint64_t) buffer[*index]) << 56 |
+					((uint64_t) buffer[*index + 1]) << 48 |
+					((uint64_t) buffer[*index + 2]) << 40 |
+					((uint64_t) buffer[*index + 3]) << 32 |
+					((uint64_t) buffer[*index + 4]) << 24 |
+					((uint64_t) buffer[*index + 5]) << 16 |
+					((uint64_t) buffer[*index + 6]) << 8 |
+					((uint64_t) buffer[*index + 7]);
+	*index += 8;
+	return res;
+}
+
 float buffer_get_float16(const uint8_t *buffer, float scale, int32_t *index) {
     return (float)buffer_get_int16(buffer, index) / scale;
 }
 
 float buffer_get_float32(const uint8_t *buffer, float scale, int32_t *index) {
     return (float)buffer_get_int32(buffer, index) / scale;
+}
+
+double buffer_get_double64(const uint8_t *buffer, double scale, int32_t *index) {
+    return (double)buffer_get_int64(buffer, index) / scale;
 }
 
 float buffer_get_float32_auto(const uint8_t *buffer, int32_t *index) {
@@ -176,4 +240,10 @@ float buffer_get_float32_auto(const uint8_t *buffer, int32_t *index) {
 	}
 
 	return ldexpf(sig, e);
+}
+
+double buffer_get_float64_auto(const uint8_t *buffer, int32_t *index) {
+	double n = buffer_get_float32_auto(buffer, index);
+	double err = buffer_get_float32_auto(buffer, index);
+	return n + err;
 }
