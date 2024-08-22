@@ -1,3 +1,0 @@
-(eq "hello" "hello")
-
-

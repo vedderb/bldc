@@ -21,38 +21,53 @@
 
 #include "lbm_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define GLOBAL_ENV_ROOTS 32
+#define GLOBAL_ENV_MASK  0x1F
+
 //environment interface
 /** Initialize the global environment. This sets the global environment to NIL
  *
  * \return 1
  */
-extern int lbm_init_env(void);
-/**
- * \deprecated There is no value in returning a pointer to the environment. Use lbm_get_env
- * \return A pointer to the global environment variable.
- */
-extern lbm_value *lbm_get_env_ptr(void);
+int lbm_init_env(void);
 /**
  *
  * \return the global environment
  */
-extern lbm_value lbm_get_env(void);
-/** Performs a shallow copy of a proper list. A shallow copy does
- *  not recurse into the elements of the list to copy
- *  those as well. So if the list contains complex elements, the
- *  original list and the copy will share these elements on the heap.
+lbm_value *lbm_get_global_env(void);
+/** Copy the spine of an environment. The list structure is
+ * recreated but the values themselves are not copied but rather
+ * just referenced.
  *
- * \param env List to copy.
- * \return Shallow copy of input list.
+ * \param env Environment to copy.
+ * \return Copy of environment.
  */
-extern lbm_value lbm_env_copy_shallow(lbm_value env);
+lbm_value lbm_env_copy_spine(lbm_value env);
+/** Lookup a value in an environment.
+ * \param res Result stored here
+ * \param sym The key to look for in the environment
+ * \param env The environment to search for the key.
+ * \return True on success or false otherwise.
+ */
+bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env);
+/** Lookup a value in the global environment.
+ * \param res Result stored here
+ * \param sym The key to look for in the environment
+ * \param env The environment to search for the key.
+ * \return True on success or false otherwise.
+ */
+bool lbm_global_env_lookup(lbm_value *res, lbm_value sym);
 /** Lookup a value in from the global environment.
  *
  * \param sym The key to look for in the environment
  * \param env The environment to search for the key.
  * \return The value bound to key or lbm_enc_sym(SYM_NOT_FOUND).
  */
-extern lbm_value lbm_env_lookup(lbm_value sym, lbm_value env);
+lbm_value lbm_env_lookup(lbm_value sym, lbm_value env);
 /** Create a new binding on the environment or replace an old binding.
  *
  * \param env Environment to modify.
@@ -60,7 +75,17 @@ extern lbm_value lbm_env_lookup(lbm_value sym, lbm_value env);
  * \param val The value.
  * \return The modified environment or lbm_enc_sym(SYM_MERROR) if GC needs to be run.
  */
-extern lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val);
+lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val);
+/** Create a new binding on the environment without destroying the old value.
+ *  If the old value is unused (the key-value pair) it will be freed by GC
+ *  at next convenience.
+ *
+ * \param env Environment to modify.
+ * \param key A symbol to associate with a value.
+ * \param val The value.
+ * \return The modified environment or lbm_enc_sym(SYM_MERROR) if GC needs to be run.
+ */
+lbm_value lbm_env_set_functional(lbm_value env, lbm_value key, lbm_value val);
 /** Modifies an existing binding on the environment.
  *
  * \param env The environment to modify.
@@ -68,17 +93,15 @@ extern lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val);
  * \param val The new value to associate with the key.
  * \return The modified environment of Success and lbm_enc_sym(SYM_NOT_FOUND) if the key does not exist.
  */
-extern lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val);
-// Internal use
-/** Extend an environment given a list of keys and a list of values.
- *
- * \param params The list of keys.
- * \param args The list of values.
- * \param env0 An initial environment to extend
- * \return The extended environment on success and lbm_enc_sym(SYM_MERROR) if GC needs to be run.
+lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val);
+/** Removes a binding (destructively) from the input environment.
+ * \param env Environment to modify.
+ * \param key Key to remove from environment.
+ * \return Updated environment or not_found symbol.
  */
-extern lbm_value lbm_env_build_params_args(lbm_value params,
-                                           lbm_value args,
-                                           lbm_value env0);
+lbm_value lbm_env_drop_binding(lbm_value env, lbm_value key);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

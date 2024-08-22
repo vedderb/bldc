@@ -3,6 +3,7 @@
 build
 tools
 downloads
+package/
 
 .dep
 .project
@@ -17,3 +18,5 @@ workspace.code-workspace
 
 # CLion
 .idea/
+.vscode
+

@@ -23,7 +23,7 @@
 #include "hal.h"
 
 // Stack area for the running encoder
-static THD_WORKING_AREA(encoder_thread_wa, 512);
+static THD_WORKING_AREA(encoder_thread_wa, 256);
 
 #define SPI_BaudRatePrescaler_2         ((uint16_t)0x0000) //  42 MHz      21 MHZ
 #define SPI_BaudRatePrescaler_4         ((uint16_t)0x0008) //  21 MHz      10.5 MHz
@@ -33,6 +33,7 @@ static THD_WORKING_AREA(encoder_thread_wa, 512);
 #define SPI_BaudRatePrescaler_64        ((uint16_t)0x0028) //  1.3125 MHz  656.25 KHz
 #define SPI_BaudRatePrescaler_128       ((uint16_t)0x0030) //  656.25 KHz  328.125 KHz
 #define SPI_BaudRatePrescaler_256       ((uint16_t)0x0038) //  328.125 KHz 164.06 KHz
+#define SPI_DATASIZE_8BIT				0
 #define SPI_DATASIZE_16BIT				SPI_CR1_DFF
 
 AS504x_config_t encoder_cfg_as504x = {
@@ -45,8 +46,6 @@ AS504x_config_t encoder_cfg_as504x = {
 				0, 0,
 #endif
 				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,
-				0, // has_started
-				0, // has_error
 				{{NULL, NULL}, NULL, NULL} // Mutex
 		},
 
@@ -55,16 +54,14 @@ AS504x_config_t encoder_cfg_as504x = {
 
 AD2S1205_config_t encoder_cfg_ad2s1205 = {
 		{ // BB_SPI
-				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3,
-				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1,
+				HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
+				HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
 #if defined(HW_SPI_PORT_MOSI) && AS504x_USE_SW_MOSI_PIN
 				HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
 #else
 				0, 0,
 #endif
-				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,
-				0, // has_started
-				0, // has_error
+				HW_SPI_PORT_MISO, HW_SPI_PIN_MISO,
 				{{NULL, NULL}, NULL, NULL} // Mutex
 		},
 		{0},
@@ -78,6 +75,7 @@ MT6816_config_t encoder_cfg_mt6816 = {
 				SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_DATASIZE_16BIT
 		},
 
+		HW_SPI_GPIO_AF,
 		/*NSS*/HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
 		/*SCK*/HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
 		/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
@@ -86,12 +84,24 @@ MT6816_config_t encoder_cfg_mt6816 = {
 #else
 		0,
 		{0},
+		0,
 		0, 0,
 		0, 0,
 		0, 0,
 		0, 0,
 		{0, 0, 0, 0, 0, 0, 0},
 #endif
+};
+
+TLE5012_config_t encoder_cfg_tle5012 = {
+		{
+				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, // nss
+				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1, // sck
+				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, // mosi
+				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, // miso
+				{{NULL, NULL}, NULL, NULL} // Mutex
+		}, //ssc
+		{0, 0, 0, 0, 0, 0, 0, 0} // State
 };
 
 ABI_config_t encoder_cfg_ABI = {
@@ -105,7 +115,7 @@ ABI_config_t encoder_cfg_ABI = {
 		HW_ENC_EXTI_PINSRC,
 		HW_ENC_EXTI_LINE,
 		HW_ENC_EXTI_CH,
-		{0, 0, 0}, // State
+		{0, 0}, // State
 };
 
 ENCSINCOS_config_t encoder_cfg_sincos = {0};
@@ -135,4 +145,63 @@ TS5700N8501_config_t encoder_cfg_TS5700N8501 = {
 		encoder_thread_wa,
 		sizeof(encoder_thread_wa),
 		{0}
+};
+
+void enc_as5x47u_spi_callback(SPIDriver *pspi);
+AS5x47U_config_t encoder_cfg_as5x47u = {
+#ifdef HW_SPI_DEV
+		&HW_SPI_DEV, // spi_dev
+		{//HARDWARE SPI CONFIG
+				enc_as5x47u_spi_callback, HW_SPI_PORT_NSS, HW_SPI_PIN_NSS, SPI_BaudRatePrescaler_8 |
+				SPI_CR1_CPHA | SPI_DATASIZE_8BIT
+		},
+
+		HW_SPI_GPIO_AF,
+		/*NSS*/HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
+		/*SCK*/HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
+		/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
+		/*MISO*/HW_SPI_PORT_MISO, HW_SPI_PIN_MISO,
+#else
+		0,
+		{0},
+		0,
+		0, 0,
+		0, 0,
+		0, 0,
+		0, 0,
+#endif
+		{0}, // State
+};
+
+// Spi Handler for bissC
+void compute_bissc_callback(SPIDriver *pspi);
+BISSC_config_t encoder_cfg_bissc = {
+#ifdef HW_SPI_DEV
+		&HW_SPI_DEV, // spi_dev
+		{//HARDWARE SPI CONFIG
+				//NULL, HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, 
+				&compute_bissc_callback, HW_SPI_PORT_NSS, HW_SPI_PIN_NSS, 
+				SPI_BaudRatePrescaler_32 | SPI_CR1_CPOL | SPI_CR1_CPHA
+		},
+
+		HW_SPI_GPIO_AF,
+		/*NSS*/HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
+		/*SCK*/HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
+		/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
+		/*MISO*/HW_SPI_PORT_MISO, HW_SPI_PIN_MISO,
+		22,   // enc_res
+		{0}, // crc
+		{0.0, 0, 0.0, 0, 0.0, 0, 0, {0}}
+#else
+		0,
+		{0},
+		0,
+		0, 0,
+		0, 0,
+		0, 0,
+		0, 0,
+		22,   // enc_res
+		{0}, // crc
+		{0.0, 0, 0.0, 0, 0.0, 0, 0, {0}}
+#endif
 };

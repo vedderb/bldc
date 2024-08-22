@@ -81,6 +81,9 @@
   ******************************************************************************
   */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_iwdg.h"
 
@@ -246,6 +249,8 @@ FlagStatus IWDG_GetFlagStatus(uint16_t IWDG_FLAG)
   /* Return the flag status */
   return bitstatus;
 }
+
+#pragma GCC pop_options
 
 /**
   * @}

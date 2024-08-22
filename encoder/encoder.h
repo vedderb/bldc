@@ -23,23 +23,35 @@
 
 #include "hal.h"
 #include "encoder_datatype.h"
-#include "enc_ts5700n8501.h"
+
+#include "enc_abi.h"
 #include "enc_ad2s1205.h"
+#include "enc_as5x47u.h"
+#include "enc_as504x.h"
+#include "enc_bissc.h"
 #include "enc_mt6816.h"
 #include "enc_sincos.h"
-#include "enc_as504x.h"
-#include "enc_abi.h"
+#include "enc_tle5012.h"
+#include "enc_ts5700n8501.h"
 
 // Functions
 bool encoder_init(volatile mc_configuration *conf);
+void encoder_update_config(volatile mc_configuration *conf);
 void encoder_deinit(void);
+
+void encoder_set_custom_callbacks (
+		float (*read_deg)(void),
+		bool (*has_fault)(void),
+		char* (*print_info)(void));
 
 float encoder_read_deg(void);
 float encoder_read_deg_multiturn(void);
+void encoder_set_deg(float deg);
 encoder_type_t encoder_is_configured(void);
 bool encoder_index_found(void);
 void encoder_reset_multiturn(void);
 void encoder_reset_errors(void);
+float encoder_get_error_rate(void);
 
 void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_motor);
 

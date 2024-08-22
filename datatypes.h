@@ -60,8 +60,24 @@ typedef enum {
 	FOC_SENSOR_MODE_ENCODER,
 	FOC_SENSOR_MODE_HALL,
 	FOC_SENSOR_MODE_HFI,
-	FOC_SENSOR_MODE_HFI_START
+	FOC_SENSOR_MODE_HFI_START,
+	FOC_SENSOR_MODE_HFI_V2,
+	FOC_SENSOR_MODE_HFI_V3,
+	FOC_SENSOR_MODE_HFI_V4,
+	FOC_SENSOR_MODE_HFI_V5
 } mc_foc_sensor_mode;
+
+typedef enum {
+	FOC_CONTROL_SAMPLE_MODE_V0 = 0,
+	FOC_CONTROL_SAMPLE_MODE_V0_V7,
+	FOC_CONTROL_SAMPLE_MODE_V0_V7_INTERPOL
+} mc_foc_control_sample_mode;
+
+typedef enum {
+	FOC_CURRENT_SAMPLE_MODE_LONGEST_ZERO = 0,
+	FOC_CURRENT_SAMPLE_MODE_ALL_SENSORS,
+	FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT
+} mc_foc_current_sample_mode;
 
 // Auxiliary output mode
 typedef enum {
@@ -88,22 +104,15 @@ typedef enum {
 	TEMP_SENSOR_NTC_100K_25C,
 	TEMP_SENSOR_KTY84_130,
 	TEMP_SENSOR_NTCX,
-	TEMP_SENSOR_PTCX
+	TEMP_SENSOR_PTCX,
+	TEMP_SENSOR_PT1000,
+	TEMP_SENSOR_DISABLED
 } temp_sensor_type;
-
-// General purpose drive output mode
-typedef enum {
-	GPD_OUTPUT_MODE_NONE = 0,
-	GPD_OUTPUT_MODE_MODULATION,
-	GPD_OUTPUT_MODE_VOLTAGE,
-	GPD_OUTPUT_MODE_CURRENT
-} gpd_output_mode;
 
 typedef enum {
 	MOTOR_TYPE_BLDC = 0,
 	MOTOR_TYPE_DC,
-	MOTOR_TYPE_FOC,
-	MOTOR_TYPE_GPD
+	MOTOR_TYPE_FOC
 } mc_motor_type;
 
 // FOC current controller decoupling mode.
@@ -116,6 +125,12 @@ typedef enum {
 
 typedef enum {
 	FOC_OBSERVER_ORTEGA_ORIGINAL = 0,
+	FOC_OBSERVER_MXLEMMING,
+	FOC_OBSERVER_ORTEGA_LAMBDA_COMP,
+	FOC_OBSERVER_MXLEMMING_LAMBDA_COMP,
+	FOC_OBSERVER_MXV,
+	FOC_OBSERVER_MXV_LAMBDA_COMP,
+	FOC_OBSERVER_MXV_LAMBDA_COMP_LIN,
 } mc_foc_observer_type;
 
 typedef enum {
@@ -145,7 +160,10 @@ typedef enum {
 	FAULT_CODE_FLASH_CORRUPTION_APP_CFG,
 	FAULT_CODE_FLASH_CORRUPTION_MC_CFG,
 	FAULT_CODE_ENCODER_NO_MAGNET,
-	FAULT_CODE_ENCODER_MAGNET_TOO_STRONG
+	FAULT_CODE_ENCODER_MAGNET_TOO_STRONG,
+	FAULT_CODE_PHASE_FILTER,
+	FAULT_CODE_ENCODER_FAULT,
+	FAULT_CODE_LV_OUTPUT_FAULT,
 } mc_fault_code;
 
 typedef enum {
@@ -169,7 +187,8 @@ typedef enum {
 	DISP_POS_MODE_ENCODER,
 	DISP_POS_MODE_PID_POS,
 	DISP_POS_MODE_PID_POS_ERROR,
-	DISP_POS_MODE_ENCODER_OBSERVER_ERROR
+	DISP_POS_MODE_ENCODER_OBSERVER_ERROR,
+	DISP_POS_MODE_HALL_OBSERVER_ERROR
 } disp_pos_mode;
 
 typedef enum {
@@ -180,7 +199,12 @@ typedef enum {
 	SENSOR_PORT_MODE_SINCOS,
 	SENSOR_PORT_MODE_TS5700N8501,
 	SENSOR_PORT_MODE_TS5700N8501_MULTITURN,
-	SENSOR_PORT_MODE_MT6816_SPI
+	SENSOR_PORT_MODE_MT6816_SPI_HW,
+	SENSOR_PORT_MODE_AS5x47U_SPI,
+	SENSOR_PORT_MODE_BISSC,
+	SENSOR_PORT_MODE_TLE5012_SSC_SW,
+	SENSOR_PORT_MODE_TLE5012_SSC_HW,
+	SENSOR_PORT_MODE_CUSTOM_ENCODER,
 } sensor_port_mode;
 
 typedef struct {
@@ -208,7 +232,8 @@ typedef enum {
 	DEBUG_SAMPLING_TRIGGER_FAULT,
 	DEBUG_SAMPLING_TRIGGER_START_NOSEND,
 	DEBUG_SAMPLING_TRIGGER_FAULT_NOSEND,
-	DEBUG_SAMPLING_SEND_LAST_SAMPLES
+	DEBUG_SAMPLING_SEND_LAST_SAMPLES,
+	DEBUG_SAMPLING_SEND_SINGLE_SAMPLE
 } debug_sampling_mode;
 
 typedef enum {
@@ -248,12 +273,20 @@ typedef enum {
 
 typedef struct {
 	BMS_TYPE type;
+	uint8_t limit_mode;
 	float t_limit_start;
 	float t_limit_end;
 	float soc_limit_start;
 	float soc_limit_end;
+	float vmin_limit_start;
+	float vmin_limit_end;
+	float vmax_limit_start;
+	float vmax_limit_end;
 	BMS_FWD_CAN_MODE fwd_can_mode;
 } bms_config;
+
+#define BMS_MAX_CELLS	50
+#define BMS_MAX_TEMPS	50
 
 typedef struct {
 	float v_tot;
@@ -263,12 +296,13 @@ typedef struct {
 	float ah_cnt;
 	float wh_cnt;
 	int cell_num;
-	float v_cell[32];
-	bool bal_state[32];
+	float v_cell[BMS_MAX_CELLS];
+	bool bal_state[BMS_MAX_CELLS];
 	int temp_adc_num;
-	float temps_adc[10];
+	float temps_adc[BMS_MAX_TEMPS];
 	float temp_ic;
 	float temp_hum;
+	float pressure;
 	float hum;
 	float temp_max_cell;
 	float soc;
@@ -312,12 +346,32 @@ typedef enum {
 	MTPA_MODE_IQ_MEASURED
 } MTPA_MODE;
 
+typedef enum {
+	FOC_SPEED_SRC_CORRECTED = 0,
+	FOC_SPEED_SRC_OBSERVER,
+} FOC_SPEED_SRC;
+
+typedef enum {
+	S_PID_SPEED_SRC_PLL = 0,
+	S_PID_SPEED_SRC_FAST,
+	S_PID_SPEED_SRC_FASTER,
+} S_PID_SPEED_SRC;
+
+typedef enum {
+	SAT_COMP_DISABLED = 0,
+	SAT_COMP_FACTOR,
+	SAT_COMP_LAMBDA,
+	SAT_COMP_LAMBDA_AND_FACTOR
+} SAT_COMP_MODE;
+
 typedef struct {
 	// Limits
 	float l_current_max;
 	float l_current_min;
 	float l_in_current_max;
 	float l_in_current_min;
+	float l_in_current_map_start;
+	float l_in_current_map_filter;
 	float l_abs_current_max;
 	float l_min_erpm;
 	float l_max_erpm;
@@ -328,6 +382,8 @@ typedef struct {
 	float l_max_vin;
 	float l_battery_cut_start;
 	float l_battery_cut_end;
+	float l_battery_regen_cut_start;
+	float l_battery_regen_cut_end;
 	bool l_slow_abs_current;
 	float l_temp_fet_start;
 	float l_temp_fet_end;
@@ -346,8 +402,6 @@ typedef struct {
 	float lo_current_min;
 	float lo_in_current_max;
 	float lo_in_current_min;
-	float lo_current_motor_max_now;
-	float lo_current_motor_min_now;
 
 	// BLDC switching and drive
 	mc_pwm_mode pwm_mode;
@@ -375,11 +429,6 @@ typedef struct {
 	float foc_encoder_offset;
 	bool foc_encoder_inverted;
 	float foc_encoder_ratio;
-	float foc_encoder_sin_offset;
-	float foc_encoder_sin_gain;
-	float foc_encoder_cos_offset;
-	float foc_encoder_cos_gain;
-	float foc_encoder_sincos_filter_constant;
 	float foc_motor_l;
 	float foc_motor_ld_lq_diff;
 	float foc_motor_r;
@@ -391,6 +440,8 @@ typedef struct {
 	float foc_pll_ki;
 	float foc_duty_dowmramp_kp;
 	float foc_duty_dowmramp_ki;
+	float foc_start_curr_dec;
+	float foc_start_curr_dec_rpm;
 	float foc_openloop_rpm;
 	float foc_openloop_rpm_low;
 	float foc_d_gain_scale_start;
@@ -399,12 +450,16 @@ typedef struct {
 	float foc_sl_openloop_time;
 	float foc_sl_openloop_time_lock;
 	float foc_sl_openloop_time_ramp;
+	float foc_sl_openloop_boost_q;
+	float foc_sl_openloop_max_q;
 	mc_foc_sensor_mode foc_sensor_mode;
 	uint8_t foc_hall_table[8];
 	float foc_hall_interp_erpm;
+	float foc_sl_erpm_start;
 	float foc_sl_erpm;
-	bool foc_sample_v0_v7;
-	bool foc_sample_high_current;
+	mc_foc_control_sample_mode foc_control_sample_mode;
+	mc_foc_current_sample_mode foc_current_sample_mode;
+	SAT_COMP_MODE foc_sat_comp_mode;
 	float foc_sat_comp;
 	bool foc_temp_comp;
 	float foc_temp_comp_base_temp;
@@ -414,6 +469,9 @@ typedef struct {
 	float foc_hfi_voltage_start;
 	float foc_hfi_voltage_run;
 	float foc_hfi_voltage_max;
+	float foc_hfi_gain;
+	float foc_hfi_max_err;
+	float foc_hfi_hyst;
 	float foc_sl_erpm_hfi;
 	uint16_t foc_hfi_start_samples;
 	float foc_hfi_obs_ovr_sec;
@@ -423,6 +481,7 @@ typedef struct {
 	float foc_offsets_voltage[3];
 	float foc_offsets_voltage_undriven[3];
 	bool foc_phase_filter_enable;
+	bool foc_phase_filter_disable_fault;
 	float foc_phase_filter_max_erpm;
 	MTPA_MODE foc_mtpa_mode;
 	// Field Weakening
@@ -430,13 +489,8 @@ typedef struct {
 	float foc_fw_duty_start;
 	float foc_fw_ramp_time;
 	float foc_fw_q_current_factor;
-
-	// GPDrive
-	int gpd_buffer_notify_left;
-	int gpd_buffer_interpol;
-	float gpd_current_filter_const;
-	float gpd_current_kp;
-	float gpd_current_ki;
+	FOC_SPEED_SRC foc_speed_soure;
+	bool foc_short_ls_on_zero_duty;
 
 	PID_RATE sp_pid_loop_rate;
 
@@ -448,6 +502,7 @@ typedef struct {
 	float s_pid_min_erpm;
 	bool s_pid_allow_braking;
 	float s_pid_ramp_erpms_s;
+	S_PID_SPEED_SRC s_pid_speed_source;
 
 	// Pos PID
 	float p_pid_kp;
@@ -470,6 +525,12 @@ typedef struct {
 	float m_duty_ramp_step;
 	float m_current_backoff_gain;
 	uint32_t m_encoder_counts;
+	float m_encoder_sin_offset;
+	float m_encoder_sin_amp;
+	float m_encoder_cos_offset;
+	float m_encoder_cos_amp;
+	float m_encoder_sincos_filter_constant;
+	float m_encoder_sincos_phase_correction;
 	sensor_port_mode m_sensor_port_mode;
 	bool m_invert_direction;
 	drv8301_oc_mode m_drv8301_oc_mode;
@@ -482,6 +543,7 @@ typedef struct {
 	temp_sensor_type m_motor_temp_sens_type;
 	float m_ptc_motor_coeff;
 	int m_hall_extra_samples;
+	int m_batt_filter_const;
 	float m_ntcx_ptcx_temp_base;
 	float m_ntcx_ptcx_res;
 	// Setup info
@@ -511,7 +573,6 @@ typedef enum {
 	APP_NUNCHUK,
 	APP_NRF,
 	APP_CUSTOM,
-	APP_BALANCE,
 	APP_PAS,
 	APP_ADC_PAS
 } app_use;
@@ -540,7 +601,9 @@ typedef enum {
 	PPM_CTRL_TYPE_PID,
 	PPM_CTRL_TYPE_PID_NOREV,
 	PPM_CTRL_TYPE_CURRENT_BRAKE_REV_HYST,
-	PPM_CTRL_TYPE_CURRENT_SMART_REV
+	PPM_CTRL_TYPE_CURRENT_SMART_REV,
+	PPM_CTRL_TYPE_PID_POSITION_180,
+	PPM_CTRL_TYPE_PID_POSITION_360,
 } ppm_control_type;
 
 typedef struct {
@@ -602,13 +665,14 @@ typedef struct {
 	float hyst;
 	float voltage_start;
 	float voltage_end;
+	float voltage_min;
+	float voltage_max;
 	float voltage_center;
 	float voltage2_start;
 	float voltage2_end;
 	bool use_filter;
 	SAFE_START_MODE safe_start;
-	bool cc_button_inverted;
-	bool rev_button_inverted;
+	uint8_t buttons;
 	bool voltage_inverted;
 	bool voltage2_inverted;
 	float throttle_exp;
@@ -718,73 +782,6 @@ typedef struct {
 	bool send_crc_ack;
 } nrf_config;
 
-typedef struct {
-	float kp;
-	float ki;
-	float kd;
-	uint16_t hertz;
-	uint16_t loop_time_filter;
-	float fault_pitch;
-	float fault_roll;
-	float fault_duty;
-	float fault_adc1;
-	float fault_adc2;
-	uint16_t fault_delay_pitch;
-	uint16_t fault_delay_roll;
-	uint16_t fault_delay_duty;
-	uint16_t fault_delay_switch_half;
-	uint16_t fault_delay_switch_full;
-	uint16_t fault_adc_half_erpm;
-	float tiltback_duty_angle;
-	float tiltback_duty_speed;
-	float tiltback_duty;
-	float tiltback_hv_angle;
-	float tiltback_hv_speed;
-	float tiltback_hv;
-	float tiltback_lv_angle;
-	float tiltback_lv_speed;
-	float tiltback_lv;
-	float tiltback_return_speed;
-	float tiltback_constant;
-	uint16_t tiltback_constant_erpm;
-	float tiltback_variable;
-	float tiltback_variable_max;
-	float noseangling_speed;
-	float startup_pitch_tolerance;
-	float startup_roll_tolerance;
-	float startup_speed;
-	float deadzone;
-	bool multi_esc;
-	float yaw_kp;
-	float yaw_ki;
-	float yaw_kd;
-	float roll_steer_kp;
-	float roll_steer_erpm_kp;
-	float brake_current;
-	uint16_t brake_timeout;
-	float yaw_current_clamp;
-	uint16_t kd_pt1_lowpass_frequency;
-	uint16_t kd_pt1_highpass_frequency;
-	float kd_biquad_lowpass;
-	float kd_biquad_highpass;
-	float booster_angle;
-	float booster_ramp;
-	float booster_current;
-	float torquetilt_start_current;
-	float torquetilt_angle_limit;
-	float torquetilt_on_speed;
-	float torquetilt_off_speed;
-	float torquetilt_strength;
-	float torquetilt_filter;
-	float turntilt_strength;
-	float turntilt_angle_limit;
-	float turntilt_start_angle;
-	uint16_t turntilt_start_erpm;
-	float turntilt_speed;
-	uint16_t turntilt_erpm_boost;
-	uint16_t turntilt_erpm_boost_end;
-} balance_config;
-
 typedef enum {
 	SHUTDOWN_MODE_ALWAYS_OFF = 0,
 	SHUTDOWN_MODE_ALWAYS_ON,
@@ -813,10 +810,22 @@ typedef enum {
 	AHRS_MODE_MADGWICK_FUSION
 } AHRS_MODE;
 
+typedef enum {
+	IMU_FILTER_LOW = 0,
+	IMU_FILTER_MEDIUM,
+	IMU_FILTER_HIGH
+} IMU_FILTER;
+
 typedef struct {
 	IMU_TYPE type;
 	AHRS_MODE mode;
+	IMU_FILTER filter;
+	float accel_lowpass_filter_x;
+	float accel_lowpass_filter_y;
+	float accel_lowpass_filter_z;
+	float gyro_lowpass_filter;
 	int sample_rate_hz;
+	bool use_magnetometer;
 	float accel_confidence_decay;
 	float mahony_kp;
 	float mahony_ki;
@@ -831,7 +840,8 @@ typedef struct {
 typedef enum {
 	CAN_MODE_VESC = 0,
 	CAN_MODE_UAVCAN,
-	CAN_MODE_COMM_BRIDGE
+	CAN_MODE_COMM_BRIDGE,
+	CAN_MODE_UNUSED,
 } CAN_MODE;
 
 typedef enum {
@@ -840,6 +850,11 @@ typedef enum {
 	UAVCAN_RAW_MODE_DUTY,
 	UAVCAN_RAW_MODE_RPM
 } UAVCAN_RAW_MODE;
+
+typedef enum {
+	UAVCAN_STATUS_CURRENT_MODE_MOTOR = 0,
+	UAVCAN_STATUS_CURRENT_MODE_INPUT
+} UAVCAN_STATUS_CURRENT_MODE;
 
 typedef enum {
 	KILL_SW_MODE_DISABLED = 0,
@@ -870,6 +885,7 @@ typedef struct {
 	uint8_t uavcan_esc_index;
 	UAVCAN_RAW_MODE uavcan_raw_mode;
 	float uavcan_raw_rpm_max;
+	UAVCAN_STATUS_CURRENT_MODE uavcan_status_current_mode;
 
 	// Application to use
 	app_use app_to_use;
@@ -889,9 +905,6 @@ typedef struct {
 	// NRF application settings
 	nrf_config app_nrf_conf;
 
-	// Balance application settings
-	balance_config app_balance_conf;
-
 	// Pedal Assist application settings
 	pas_config app_pas_conf;
 
@@ -904,227 +917,270 @@ typedef struct {
 
 // Communication commands
 typedef enum {
-	COMM_FW_VERSION = 0,
-	COMM_JUMP_TO_BOOTLOADER,
-	COMM_ERASE_NEW_APP,
-	COMM_WRITE_NEW_APP_DATA,
-	COMM_GET_VALUES,
-	COMM_SET_DUTY,
-	COMM_SET_CURRENT,
-	COMM_SET_CURRENT_BRAKE,
-	COMM_SET_RPM,
-	COMM_SET_POS,
-	COMM_SET_HANDBRAKE,
-	COMM_SET_DETECT,
-	COMM_SET_SERVO_POS,
-	COMM_SET_MCCONF,
-	COMM_GET_MCCONF,
-	COMM_GET_MCCONF_DEFAULT,
-	COMM_SET_APPCONF,
-	COMM_GET_APPCONF,
-	COMM_GET_APPCONF_DEFAULT,
-	COMM_SAMPLE_PRINT,
-	COMM_TERMINAL_CMD,
-	COMM_PRINT,
-	COMM_ROTOR_POSITION,
-	COMM_EXPERIMENT_SAMPLE,
-	COMM_DETECT_MOTOR_PARAM,
-	COMM_DETECT_MOTOR_R_L,
-	COMM_DETECT_MOTOR_FLUX_LINKAGE,
-	COMM_DETECT_ENCODER,
-	COMM_DETECT_HALL_FOC,
-	COMM_REBOOT,
-	COMM_ALIVE,
-	COMM_GET_DECODED_PPM,
-	COMM_GET_DECODED_ADC,
-	COMM_GET_DECODED_CHUK,
-	COMM_FORWARD_CAN,
-	COMM_SET_CHUCK_DATA,
-	COMM_CUSTOM_APP_DATA,
-	COMM_NRF_START_PAIRING,
-	COMM_GPD_SET_FSW,
-	COMM_GPD_BUFFER_NOTIFY,
-	COMM_GPD_BUFFER_SIZE_LEFT,
-	COMM_GPD_FILL_BUFFER,
-	COMM_GPD_OUTPUT_SAMPLE,
-	COMM_GPD_SET_MODE,
-	COMM_GPD_FILL_BUFFER_INT8,
-	COMM_GPD_FILL_BUFFER_INT16,
-	COMM_GPD_SET_BUFFER_INT_SCALE,
-	COMM_GET_VALUES_SETUP,
-	COMM_SET_MCCONF_TEMP,
-	COMM_SET_MCCONF_TEMP_SETUP,
-	COMM_GET_VALUES_SELECTIVE,
-	COMM_GET_VALUES_SETUP_SELECTIVE,
-	COMM_EXT_NRF_PRESENT,
-	COMM_EXT_NRF_ESB_SET_CH_ADDR,
-	COMM_EXT_NRF_ESB_SEND_DATA,
-	COMM_EXT_NRF_ESB_RX_DATA,
-	COMM_EXT_NRF_SET_ENABLED,
-	COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP,
-	COMM_DETECT_APPLY_ALL_FOC,
-	COMM_JUMP_TO_BOOTLOADER_ALL_CAN,
-	COMM_ERASE_NEW_APP_ALL_CAN,
-	COMM_WRITE_NEW_APP_DATA_ALL_CAN,
-	COMM_PING_CAN,
-	COMM_APP_DISABLE_OUTPUT,
-	COMM_TERMINAL_CMD_SYNC,
-	COMM_GET_IMU_DATA,
-	COMM_BM_CONNECT,
-	COMM_BM_ERASE_FLASH_ALL,
-	COMM_BM_WRITE_FLASH,
-	COMM_BM_REBOOT,
-	COMM_BM_DISCONNECT,
-	COMM_BM_MAP_PINS_DEFAULT,
-	COMM_BM_MAP_PINS_NRF5X,
-	COMM_ERASE_BOOTLOADER,
-	COMM_ERASE_BOOTLOADER_ALL_CAN,
-	COMM_PLOT_INIT,
-	COMM_PLOT_DATA,
-	COMM_PLOT_ADD_GRAPH,
-	COMM_PLOT_SET_GRAPH,
-	COMM_GET_DECODED_BALANCE,
-	COMM_BM_MEM_READ,
-	COMM_WRITE_NEW_APP_DATA_LZO,
-	COMM_WRITE_NEW_APP_DATA_ALL_CAN_LZO,
-	COMM_BM_WRITE_FLASH_LZO,
-	COMM_SET_CURRENT_REL,
-	COMM_CAN_FWD_FRAME,
-	COMM_SET_BATTERY_CUT,
-	COMM_SET_BLE_NAME,
-	COMM_SET_BLE_PIN,
-	COMM_SET_CAN_MODE,
-	COMM_GET_IMU_CALIBRATION,
-	COMM_GET_MCCONF_TEMP,
+	COMM_FW_VERSION							= 0,
+	COMM_JUMP_TO_BOOTLOADER					= 1,
+	COMM_ERASE_NEW_APP						= 2,
+	COMM_WRITE_NEW_APP_DATA					= 3,
+	COMM_GET_VALUES							= 4,
+	COMM_SET_DUTY							= 5,
+	COMM_SET_CURRENT						= 6,
+	COMM_SET_CURRENT_BRAKE					= 7,
+	COMM_SET_RPM							= 8,
+	COMM_SET_POS							= 9,
+	COMM_SET_HANDBRAKE						= 10,
+	COMM_SET_DETECT							= 11,
+	COMM_SET_SERVO_POS						= 12,
+	COMM_SET_MCCONF							= 13,
+	COMM_GET_MCCONF							= 14,
+	COMM_GET_MCCONF_DEFAULT					= 15,
+	COMM_SET_APPCONF						= 16,
+	COMM_GET_APPCONF						= 17,
+	COMM_GET_APPCONF_DEFAULT				= 18,
+	COMM_SAMPLE_PRINT						= 19,
+	COMM_TERMINAL_CMD						= 20,
+	COMM_PRINT								= 21,
+	COMM_ROTOR_POSITION						= 22,
+	COMM_EXPERIMENT_SAMPLE					= 23,
+	COMM_DETECT_MOTOR_PARAM					= 24,
+	COMM_DETECT_MOTOR_R_L					= 25,
+	COMM_DETECT_MOTOR_FLUX_LINKAGE			= 26,
+	COMM_DETECT_ENCODER						= 27,
+	COMM_DETECT_HALL_FOC					= 28,
+	COMM_REBOOT								= 29,
+	COMM_ALIVE								= 30,
+	COMM_GET_DECODED_PPM					= 31,
+	COMM_GET_DECODED_ADC					= 32,
+	COMM_GET_DECODED_CHUK					= 33,
+	COMM_FORWARD_CAN						= 34,
+	COMM_SET_CHUCK_DATA						= 35,
+	COMM_CUSTOM_APP_DATA					= 36,
+	COMM_NRF_START_PAIRING					= 37,
+	COMM_GPD_SET_FSW						= 38,
+	COMM_GPD_BUFFER_NOTIFY					= 39,
+	COMM_GPD_BUFFER_SIZE_LEFT				= 40,
+	COMM_GPD_FILL_BUFFER					= 41,
+	COMM_GPD_OUTPUT_SAMPLE					= 42,
+	COMM_GPD_SET_MODE						= 43,
+	COMM_GPD_FILL_BUFFER_INT8				= 44,
+	COMM_GPD_FILL_BUFFER_INT16				= 45,
+	COMM_GPD_SET_BUFFER_INT_SCALE			= 46,
+	COMM_GET_VALUES_SETUP					= 47,
+	COMM_SET_MCCONF_TEMP					= 48,
+	COMM_SET_MCCONF_TEMP_SETUP				= 49,
+	COMM_GET_VALUES_SELECTIVE				= 50,
+	COMM_GET_VALUES_SETUP_SELECTIVE			= 51,
+	COMM_EXT_NRF_PRESENT					= 52,
+	COMM_EXT_NRF_ESB_SET_CH_ADDR			= 53,
+	COMM_EXT_NRF_ESB_SEND_DATA				= 54,
+	COMM_EXT_NRF_ESB_RX_DATA				= 55,
+	COMM_EXT_NRF_SET_ENABLED				= 56,
+	COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP	= 57,
+	COMM_DETECT_APPLY_ALL_FOC				= 58,
+	COMM_JUMP_TO_BOOTLOADER_ALL_CAN			= 59,
+	COMM_ERASE_NEW_APP_ALL_CAN				= 60,
+	COMM_WRITE_NEW_APP_DATA_ALL_CAN			= 61,
+	COMM_PING_CAN							= 62,
+	COMM_APP_DISABLE_OUTPUT					= 63,
+	COMM_TERMINAL_CMD_SYNC					= 64,
+	COMM_GET_IMU_DATA						= 65,
+	COMM_BM_CONNECT							= 66,
+	COMM_BM_ERASE_FLASH_ALL					= 67,
+	COMM_BM_WRITE_FLASH						= 68,
+	COMM_BM_REBOOT							= 69,
+	COMM_BM_DISCONNECT						= 70,
+	COMM_BM_MAP_PINS_DEFAULT				= 71,
+	COMM_BM_MAP_PINS_NRF5X					= 72,
+	COMM_ERASE_BOOTLOADER					= 73,
+	COMM_ERASE_BOOTLOADER_ALL_CAN			= 74,
+	COMM_PLOT_INIT							= 75,
+	COMM_PLOT_DATA							= 76,
+	COMM_PLOT_ADD_GRAPH						= 77,
+	COMM_PLOT_SET_GRAPH						= 78,
+	COMM_GET_DECODED_BALANCE				= 79,
+	COMM_BM_MEM_READ						= 80,
+	COMM_WRITE_NEW_APP_DATA_LZO				= 81,
+	COMM_WRITE_NEW_APP_DATA_ALL_CAN_LZO		= 82,
+	COMM_BM_WRITE_FLASH_LZO					= 83,
+	COMM_SET_CURRENT_REL					= 84,
+	COMM_CAN_FWD_FRAME						= 85,
+	COMM_SET_BATTERY_CUT					= 86,
+	COMM_SET_BLE_NAME						= 87,
+	COMM_SET_BLE_PIN						= 88,
+	COMM_SET_CAN_MODE						= 89,
+	COMM_GET_IMU_CALIBRATION				= 90,
+	COMM_GET_MCCONF_TEMP					= 91,
 
 	// Custom configuration for hardware
-	COMM_GET_CUSTOM_CONFIG_XML,
-	COMM_GET_CUSTOM_CONFIG,
-	COMM_GET_CUSTOM_CONFIG_DEFAULT,
-	COMM_SET_CUSTOM_CONFIG,
+	COMM_GET_CUSTOM_CONFIG_XML				= 92,
+	COMM_GET_CUSTOM_CONFIG					= 93,
+	COMM_GET_CUSTOM_CONFIG_DEFAULT			= 94,
+	COMM_SET_CUSTOM_CONFIG					= 95,
 
 	// BMS commands
-	COMM_BMS_GET_VALUES,
-	COMM_BMS_SET_CHARGE_ALLOWED,
-	COMM_BMS_SET_BALANCE_OVERRIDE,
-	COMM_BMS_RESET_COUNTERS,
-	COMM_BMS_FORCE_BALANCE,
-	COMM_BMS_ZERO_CURRENT_OFFSET,
+	COMM_BMS_GET_VALUES						= 96,
+	COMM_BMS_SET_CHARGE_ALLOWED				= 97,
+	COMM_BMS_SET_BALANCE_OVERRIDE			= 98,
+	COMM_BMS_RESET_COUNTERS					= 99,
+	COMM_BMS_FORCE_BALANCE					= 100,
+	COMM_BMS_ZERO_CURRENT_OFFSET			= 101,
 
 	// FW updates commands for different HW types
-	COMM_JUMP_TO_BOOTLOADER_HW,
-	COMM_ERASE_NEW_APP_HW,
-	COMM_WRITE_NEW_APP_DATA_HW,
-	COMM_ERASE_BOOTLOADER_HW,
-	COMM_JUMP_TO_BOOTLOADER_ALL_CAN_HW,
-	COMM_ERASE_NEW_APP_ALL_CAN_HW,
-	COMM_WRITE_NEW_APP_DATA_ALL_CAN_HW,
-	COMM_ERASE_BOOTLOADER_ALL_CAN_HW,
+	COMM_JUMP_TO_BOOTLOADER_HW				= 102,
+	COMM_ERASE_NEW_APP_HW					= 103,
+	COMM_WRITE_NEW_APP_DATA_HW				= 104,
+	COMM_ERASE_BOOTLOADER_HW				= 105,
+	COMM_JUMP_TO_BOOTLOADER_ALL_CAN_HW		= 106,
+	COMM_ERASE_NEW_APP_ALL_CAN_HW			= 107,
+	COMM_WRITE_NEW_APP_DATA_ALL_CAN_HW		= 108,
+	COMM_ERASE_BOOTLOADER_ALL_CAN_HW		= 109,
 
-	COMM_SET_ODOMETER,
+	COMM_SET_ODOMETER						= 110,
 
 	// Power switch commands
-	COMM_PSW_GET_STATUS,
-	COMM_PSW_SWITCH,
+	COMM_PSW_GET_STATUS						= 111,
+	COMM_PSW_SWITCH							= 112,
 
-	COMM_BMS_FWD_CAN_RX,
-	COMM_BMS_HW_DATA,
-	COMM_GET_BATTERY_CUT,
-	COMM_BM_HALT_REQ,
-	COMM_GET_QML_UI_HW,
-	COMM_GET_QML_UI_APP,
-	COMM_CUSTOM_HW_DATA,
-	COMM_QMLUI_ERASE,
-	COMM_QMLUI_WRITE,
+	COMM_BMS_FWD_CAN_RX						= 113,
+	COMM_BMS_HW_DATA						= 114,
+	COMM_GET_BATTERY_CUT					= 115,
+	COMM_BM_HALT_REQ						= 116,
+	COMM_GET_QML_UI_HW						= 117,
+	COMM_GET_QML_UI_APP						= 118,
+	COMM_CUSTOM_HW_DATA						= 119,
+	COMM_QMLUI_ERASE						= 120,
+	COMM_QMLUI_WRITE						= 121,
 
 	// IO Board
-	COMM_IO_BOARD_GET_ALL,
-	COMM_IO_BOARD_SET_PWM,
-	COMM_IO_BOARD_SET_DIGITAL,
+	COMM_IO_BOARD_GET_ALL					= 122,
+	COMM_IO_BOARD_SET_PWM					= 123,
+	COMM_IO_BOARD_SET_DIGITAL				= 124,
 
-	COMM_BM_MEM_WRITE,
-	COMM_BMS_BLNC_SELFTEST,
-	COMM_GET_EXT_HUM_TMP,
-	COMM_GET_STATS,
-	COMM_RESET_STATS,
+	COMM_BM_MEM_WRITE						= 125,
+	COMM_BMS_BLNC_SELFTEST					= 126,
+	COMM_GET_EXT_HUM_TMP					= 127,
+	COMM_GET_STATS							= 128,
+	COMM_RESET_STATS						= 129,
 
 	// Lisp
-	COMM_LISP_READ_CODE,
-	COMM_LISP_WRITE_CODE,
-	COMM_LISP_ERASE_CODE,
-	COMM_LISP_SET_RUNNING,
-	COMM_LISP_GET_STATS,
-	COMM_LISP_PRINT,
+	COMM_LISP_READ_CODE						= 130,
+	COMM_LISP_WRITE_CODE					= 131,
+	COMM_LISP_ERASE_CODE					= 132,
+	COMM_LISP_SET_RUNNING					= 133,
+	COMM_LISP_GET_STATS						= 134,
+	COMM_LISP_PRINT							= 135,
 
-	COMM_BMS_SET_BATT_TYPE,
-	COMM_BMS_GET_BATT_TYPE,
+	COMM_BMS_SET_BATT_TYPE					= 136,
+	COMM_BMS_GET_BATT_TYPE					= 137,
 
-	COMM_LISP_REPL_CMD,
+	COMM_LISP_REPL_CMD						= 138,
+	COMM_LISP_STREAM_CODE					= 139,
+
+	COMM_FILE_LIST							= 140,
+	COMM_FILE_READ							= 141,
+	COMM_FILE_WRITE							= 142,
+	COMM_FILE_MKDIR							= 143,
+	COMM_FILE_REMOVE						= 144,
+
+	COMM_LOG_START							= 145,
+	COMM_LOG_STOP							= 146,
+	COMM_LOG_CONFIG_FIELD					= 147,
+	COMM_LOG_DATA_F32						= 148,
+
+	COMM_SET_APPCONF_NO_STORE				= 149,
+	COMM_GET_GNSS							= 150,
+
+	COMM_LOG_DATA_F64						= 151,
+
+	COMM_LISP_RMSG							= 152,
+
+	//Placeholders for pinlock commands
+	//COMM_PINLOCK1							= 153,
+	//COMM_PINLOCK2							= 154,
+	//COMM_PINLOCK3							= 155,
+
+	COMM_SHUTDOWN							= 156,
 } COMM_PACKET_ID;
 
 // CAN commands
 typedef enum {
-	CAN_PACKET_SET_DUTY = 0,
-	CAN_PACKET_SET_CURRENT,
-	CAN_PACKET_SET_CURRENT_BRAKE,
-	CAN_PACKET_SET_RPM,
-	CAN_PACKET_SET_POS,
-	CAN_PACKET_FILL_RX_BUFFER,
-	CAN_PACKET_FILL_RX_BUFFER_LONG,
-	CAN_PACKET_PROCESS_RX_BUFFER,
-	CAN_PACKET_PROCESS_SHORT_BUFFER,
-	CAN_PACKET_STATUS,
-	CAN_PACKET_SET_CURRENT_REL,
-	CAN_PACKET_SET_CURRENT_BRAKE_REL,
-	CAN_PACKET_SET_CURRENT_HANDBRAKE,
-	CAN_PACKET_SET_CURRENT_HANDBRAKE_REL,
-	CAN_PACKET_STATUS_2,
-	CAN_PACKET_STATUS_3,
-	CAN_PACKET_STATUS_4,
-	CAN_PACKET_PING,
-	CAN_PACKET_PONG,
-	CAN_PACKET_DETECT_APPLY_ALL_FOC,
-	CAN_PACKET_DETECT_APPLY_ALL_FOC_RES,
-	CAN_PACKET_CONF_CURRENT_LIMITS,
-	CAN_PACKET_CONF_STORE_CURRENT_LIMITS,
-	CAN_PACKET_CONF_CURRENT_LIMITS_IN,
-	CAN_PACKET_CONF_STORE_CURRENT_LIMITS_IN,
-	CAN_PACKET_CONF_FOC_ERPMS,
-	CAN_PACKET_CONF_STORE_FOC_ERPMS,
-	CAN_PACKET_STATUS_5,
-	CAN_PACKET_POLL_TS5700N8501_STATUS,
-	CAN_PACKET_CONF_BATTERY_CUT,
-	CAN_PACKET_CONF_STORE_BATTERY_CUT,
-	CAN_PACKET_SHUTDOWN,
-	CAN_PACKET_IO_BOARD_ADC_1_TO_4,
-	CAN_PACKET_IO_BOARD_ADC_5_TO_8,
-	CAN_PACKET_IO_BOARD_ADC_9_TO_12,
-	CAN_PACKET_IO_BOARD_DIGITAL_IN,
-	CAN_PACKET_IO_BOARD_SET_OUTPUT_DIGITAL,
-	CAN_PACKET_IO_BOARD_SET_OUTPUT_PWM,
-	CAN_PACKET_BMS_V_TOT,
-	CAN_PACKET_BMS_I,
-	CAN_PACKET_BMS_AH_WH,
-	CAN_PACKET_BMS_V_CELL,
-	CAN_PACKET_BMS_BAL,
-	CAN_PACKET_BMS_TEMPS,
-	CAN_PACKET_BMS_HUM,
-	CAN_PACKET_BMS_SOC_SOH_TEMP_STAT,
-	CAN_PACKET_PSW_STAT,
-	CAN_PACKET_PSW_SWITCH,
-	CAN_PACKET_BMS_HW_DATA_1,
-	CAN_PACKET_BMS_HW_DATA_2,
-	CAN_PACKET_BMS_HW_DATA_3,
-	CAN_PACKET_BMS_HW_DATA_4,
-	CAN_PACKET_BMS_HW_DATA_5,
-	CAN_PACKET_BMS_AH_WH_CHG_TOTAL,
-	CAN_PACKET_BMS_AH_WH_DIS_TOTAL,
-	CAN_PACKET_UPDATE_PID_POS_OFFSET,
-	CAN_PACKET_POLL_ROTOR_POS,
-	CAN_PACKET_NOTIFY_BOOT,
-	CAN_PACKET_STATUS_6,
+	CAN_PACKET_SET_DUTY						= 0,
+	CAN_PACKET_SET_CURRENT					= 1,
+	CAN_PACKET_SET_CURRENT_BRAKE			= 2,
+	CAN_PACKET_SET_RPM						= 3,
+	CAN_PACKET_SET_POS						= 4,
+	CAN_PACKET_FILL_RX_BUFFER				= 5,
+	CAN_PACKET_FILL_RX_BUFFER_LONG			= 6,
+	CAN_PACKET_PROCESS_RX_BUFFER			= 7,
+	CAN_PACKET_PROCESS_SHORT_BUFFER			= 8,
+	CAN_PACKET_STATUS						= 9,
+	CAN_PACKET_SET_CURRENT_REL				= 10,
+	CAN_PACKET_SET_CURRENT_BRAKE_REL		= 11,
+	CAN_PACKET_SET_CURRENT_HANDBRAKE		= 12,
+	CAN_PACKET_SET_CURRENT_HANDBRAKE_REL	= 13,
+	CAN_PACKET_STATUS_2						= 14,
+	CAN_PACKET_STATUS_3						= 15,
+	CAN_PACKET_STATUS_4						= 16,
+	CAN_PACKET_PING							= 17,
+	CAN_PACKET_PONG							= 18,
+	CAN_PACKET_DETECT_APPLY_ALL_FOC			= 19,
+	CAN_PACKET_DETECT_APPLY_ALL_FOC_RES		= 20,
+	CAN_PACKET_CONF_CURRENT_LIMITS			= 21,
+	CAN_PACKET_CONF_STORE_CURRENT_LIMITS	= 22,
+	CAN_PACKET_CONF_CURRENT_LIMITS_IN		= 23,
+	CAN_PACKET_CONF_STORE_CURRENT_LIMITS_IN	= 24,
+	CAN_PACKET_CONF_FOC_ERPMS				= 25,
+	CAN_PACKET_CONF_STORE_FOC_ERPMS			= 26,
+	CAN_PACKET_STATUS_5						= 27,
+	CAN_PACKET_POLL_TS5700N8501_STATUS		= 28,
+	CAN_PACKET_CONF_BATTERY_CUT				= 29,
+	CAN_PACKET_CONF_STORE_BATTERY_CUT		= 30,
+	CAN_PACKET_SHUTDOWN						= 31,
+	CAN_PACKET_IO_BOARD_ADC_1_TO_4			= 32,
+	CAN_PACKET_IO_BOARD_ADC_5_TO_8			= 33,
+	CAN_PACKET_IO_BOARD_ADC_9_TO_12			= 34,
+	CAN_PACKET_IO_BOARD_DIGITAL_IN			= 35,
+	CAN_PACKET_IO_BOARD_SET_OUTPUT_DIGITAL	= 36,
+	CAN_PACKET_IO_BOARD_SET_OUTPUT_PWM		= 37,
+	CAN_PACKET_BMS_V_TOT					= 38,
+	CAN_PACKET_BMS_I						= 39,
+	CAN_PACKET_BMS_AH_WH					= 40,
+	CAN_PACKET_BMS_V_CELL					= 41,
+	CAN_PACKET_BMS_BAL						= 42,
+	CAN_PACKET_BMS_TEMPS					= 43,
+	CAN_PACKET_BMS_HUM						= 44,
+	CAN_PACKET_BMS_SOC_SOH_TEMP_STAT		= 45,
+	CAN_PACKET_PSW_STAT						= 46,
+	CAN_PACKET_PSW_SWITCH					= 47,
+	CAN_PACKET_BMS_HW_DATA_1				= 48,
+	CAN_PACKET_BMS_HW_DATA_2				= 49,
+	CAN_PACKET_BMS_HW_DATA_3				= 50,
+	CAN_PACKET_BMS_HW_DATA_4				= 51,
+	CAN_PACKET_BMS_HW_DATA_5				= 52,
+	CAN_PACKET_BMS_AH_WH_CHG_TOTAL			= 53,
+	CAN_PACKET_BMS_AH_WH_DIS_TOTAL			= 54,
+	CAN_PACKET_UPDATE_PID_POS_OFFSET		= 55,
+	CAN_PACKET_POLL_ROTOR_POS				= 56,
+	CAN_PACKET_NOTIFY_BOOT					= 57,
+	CAN_PACKET_STATUS_6						= 58,
+	CAN_PACKET_GNSS_TIME					= 59,
+	CAN_PACKET_GNSS_LAT						= 60,
+	CAN_PACKET_GNSS_LON						= 61,
+	CAN_PACKET_GNSS_ALT_SPEED_HDOP			= 62,
 	CAN_PACKET_MAKE_ENUM_32_BITS = 0xFFFFFFFF,
 } CAN_PACKET_ID;
+
+typedef struct {
+	double lat;
+	double lon;
+	float height;
+	float speed;
+	float hdop;
+	int32_t ms_today;
+	int16_t yy;
+	int8_t mo;
+	int8_t dd;
+	systime_t last_update;
+} gnss_data;
 
 // Logged fault data
 typedef struct {
@@ -1144,6 +1200,9 @@ typedef struct {
 	int comm_step;
 	float temperature;
 	int drv8301_faults;
+	const char *info_str;
+	int info_argn;
+	float info_args[2];
 } fault_data;
 
 typedef struct {
@@ -1282,7 +1341,6 @@ typedef enum {
 	NRF_PAIR_FAIL
 } NRF_PAIR_RES;
 
-// Orientation data
 typedef struct {
 	float q0;
 	float q1;
@@ -1293,6 +1351,12 @@ typedef struct {
 	float integralFBz;
 	float accMagP;
 	int initialUpdateDone;
+
+	// Parameters
+	float acc_confidence_decay;
+	float kp;
+	float ki;
+	float beta;
 } ATTITUDE_INFO;
 
 // Custom EEPROM variables
@@ -1302,8 +1366,8 @@ typedef union {
 	float as_float;
 } eeprom_var;
 
-#define EEPROM_VARS_HW			64
-#define EEPROM_VARS_CUSTOM		64
+#define EEPROM_VARS_HW			32
+#define EEPROM_VARS_CUSTOM		128
 
 typedef struct {
 	float ah_tot;
@@ -1338,6 +1402,10 @@ typedef struct __attribute__((packed)) {
 
 	uint32_t runtime_init_flag;
 	uint64_t runtime; // Seconds
+
+	// HW-specific data
+	uint32_t hw_config_init_flag;
+	uint8_t hw_config[128];
 } backup_data;
 
 #endif /* DATATYPES_H_ */

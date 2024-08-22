@@ -36,10 +36,11 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "i2c_bb.h"
+
 void lsm6ds3_set_rate_hz(int hz);
-void lsm6ds3_init(stm32_gpio_t *sda_gpio, int sda_pin,
-		stm32_gpio_t *scl_gpio, int scl_pin,
-		stkalign_t *work_area, size_t work_area_size);
+void lsm6ds3_set_filter(IMU_FILTER f);
+void lsm6ds3_init(i2c_bb_state *i2c_state, stkalign_t *work_area, size_t work_area_size);
 void lsm6ds3_set_read_callback(void(*func)(float *accel, float *gyro, float *mag));
 void lsm6ds3_stop(void);
 
@@ -652,10 +653,10 @@ typedef enum {
 * Permission    : RW
 *******************************************************************************/
 typedef enum {
-	LSM6DS3_ACC_GYRO_ODR_XL_POWER_DOWN 		 = 0x00,
-	LSM6DS3_ACC_GYRO_ODR_XL_13Hz 		         = 0x10,
-	LSM6DS3_ACC_GYRO_ODR_XL_26Hz 		         = 0x20,
-	LSM6DS3_ACC_GYRO_ODR_XL_52Hz 		         = 0x30,
+	LSM6DS3_ACC_GYRO_ODR_XL_POWER_DOWN   = 0x00,
+	LSM6DS3_ACC_GYRO_ODR_XL_13Hz 		 = 0x10,
+	LSM6DS3_ACC_GYRO_ODR_XL_26Hz 		 = 0x20,
+	LSM6DS3_ACC_GYRO_ODR_XL_52Hz 		 = 0x30,
 	LSM6DS3_ACC_GYRO_ODR_XL_104Hz 		 = 0x40,
 	LSM6DS3_ACC_GYRO_ODR_XL_208Hz 		 = 0x50,
 	LSM6DS3_ACC_GYRO_ODR_XL_416Hz 		 = 0x60,
@@ -697,7 +698,7 @@ typedef enum {
 * Permission    : RW
 *******************************************************************************/
 typedef enum {
-	LSM6DS3_ACC_GYRO_ODR_G_POWER_DOWN 		 = 0x00,
+	LSM6DS3_ACC_GYRO_ODR_G_POWER_DOWN 	 = 0x00,
 	LSM6DS3_ACC_GYRO_ODR_G_13Hz 		 = 0x10,
 	LSM6DS3_ACC_GYRO_ODR_G_26Hz 		 = 0x20,
 	LSM6DS3_ACC_GYRO_ODR_G_52Hz 		 = 0x30,
@@ -706,6 +707,8 @@ typedef enum {
 	LSM6DS3_ACC_GYRO_ODR_G_416Hz 		 = 0x60,
 	LSM6DS3_ACC_GYRO_ODR_G_833Hz 		 = 0x70,
 	LSM6DS3_ACC_GYRO_ODR_G_1660Hz 		 = 0x80,
+	LSM6DS3TRC_ACC_GYRO_ODR_G_3330Hz 	 = 0x90,
+	LSM6DS3TRC_ACC_GYRO_ODR_G_6660Hz 	 = 0xA0,
 } LSM6DS3_ACC_GYRO_ODR_G_t;
 
 /*******************************************************************************
@@ -797,7 +800,7 @@ typedef enum {
 } LSM6DS3_ACC_GYRO_BOOT_t;
 
 /*******************************************************************************
-* Register      : CTRL4_C
+* Register      : CTRL4_C (Non TR-C Variant!)
 * Address       : 0X13
 * Bit Group Name: STOP_ON_FTH
 * Permission    : RW
@@ -808,7 +811,7 @@ typedef enum {
 } LSM6DS3_ACC_GYRO_STOP_ON_FTH_t;
 
 /*******************************************************************************
-* Register      : CTRL4_C
+* Register      : CTRL4_C (Non TR-C Variant!)
 * Address       : 0X13
 * Bit Group Name: MODE3_EN
 * Permission    : RW
@@ -817,6 +820,17 @@ typedef enum {
 	LSM6DS3_ACC_GYRO_MODE3_EN_DISABLED 		 = 0x00,
 	LSM6DS3_ACC_GYRO_MODE3_EN_ENABLED 		 = 0x02,
 } LSM6DS3_ACC_GYRO_MODE3_EN_t;
+
+/*******************************************************************************
+* Register      : CTRL4_C TR-C Variant ONLY!
+* Address       : 0X13
+* Bit Group Name: LPF1_SEL_G (Enable gyroscope digital lowpass filter LPF1)
+* Permission    : RW
+*******************************************************************************/
+typedef enum {
+	LSM6DS3_ACC_GYRO_LPF1_SEL_G_DISABLED		 = 0x00,
+	LSM6DS3_ACC_GYRO_LPF1_SEL_G_ENABLED 		 = 0x02,
+} LSM6DS3_ACC_GYRO_LPF1_SEL_G_t;
 
 /*******************************************************************************
 * Register      : CTRL4_C
@@ -841,7 +855,7 @@ typedef enum {
 } LSM6DS3_ACC_GYRO_DRDY_MSK_t;
 
 /*******************************************************************************
-* Register      : CTRL4_C
+* Register      : CTRL4_C (Non TR-C Variant!)
 * Address       : 0X13
 * Bit Group Name: FIFO_TEMP_EN
 * Permission    : RW
@@ -874,7 +888,7 @@ typedef enum {
 } LSM6DS3_ACC_GYRO_SLEEP_G_t;
 
 /*******************************************************************************
-* Register      : CTRL4_C
+* Register      : CTRL4_C (Non TR-C Variant!)
 * Address       : 0X13
 * Bit Group Name: BW_SCAL_ODR
 * Permission    : RW

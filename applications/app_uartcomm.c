@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "app.h"
 #include "ch.h"
 #include "hal.h"
@@ -247,3 +250,4 @@ static THD_FUNCTION(packet_process_thread, arg) {
 	}
 }
 
+#pragma GCC pop_options

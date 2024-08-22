@@ -1,0 +1,15 @@
+;; Force gc about twice in 512 element heap
+;; and once in 1024
+(range 100)
+(range 100)
+(range 100)
+(range 100)
+(range 100)
+(range 100)
+(range 100)
+(range 100)
+(range 100)
+(range 100)
+(range 100)
+(range 100)
+(check (eq (range 10) '(0 1 2 3 4 5 6 7 8 9)))

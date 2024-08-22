@@ -68,6 +68,9 @@
   ******************************************************************************
   */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_flash.h"
 
@@ -1607,6 +1610,8 @@ FLASH_Status FLASH_WaitForLastOperation(void)
   /* Return the operation status */
   return status;
 }
+
+#pragma GCC pop_options
 
 /**
   * @}

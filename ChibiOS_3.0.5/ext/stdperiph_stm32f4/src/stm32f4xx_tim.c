@@ -115,6 +115,9 @@
   ******************************************************************************
   */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_tim.h"
 #include "stm32f4xx_rcc.h"
@@ -3349,6 +3352,8 @@ static void TI4_Config(TIM_TypeDef* TIMx, uint16_t TIM_ICPolarity, uint16_t TIM_
   TIMx->CCMR2 = tmpccmr2;
   TIMx->CCER = tmpccer ;
 }
+
+#pragma GCC pop_options
 
 /**
   * @}

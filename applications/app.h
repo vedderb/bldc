@@ -27,12 +27,14 @@ const app_configuration* app_get_configuration(void);
 void app_set_configuration(app_configuration *conf);
 void app_disable_output(int time_ms);
 bool app_is_output_disabled(void);
-unsigned app_calc_crc(app_configuration* conf);
+unsigned short app_calc_crc(app_configuration* conf);
 
 // Standard apps
 void app_ppm_start(void);
 void app_ppm_stop(void);
 float app_ppm_get_decoded_level(void);
+void app_ppm_detach(bool detach);
+void app_ppm_override(float val);
 void app_ppm_configure(ppm_config *conf);
 
 void app_adc_start(bool use_rx_tx);
@@ -42,6 +44,13 @@ float app_adc_get_decoded_level(void);
 float app_adc_get_voltage(void);
 float app_adc_get_decoded_level2(void);
 float app_adc_get_voltage2(void);
+void app_adc_detach_adc(int detach);
+void app_adc_adc1_override(float val);
+void app_adc_adc2_override(float val);
+void app_adc_detach_buttons(bool state);
+void app_adc_rev_override(bool state);
+void app_adc_cc_override(bool state);
+bool app_adc_range_ok(void);
 
 typedef enum {
 	UART_PORT_COMM_HEADER = 0,
@@ -63,28 +72,15 @@ float app_nunchuk_get_decoded_y(void);
 bool app_nunchuk_get_bt_c(void);
 bool app_nunchuk_get_bt_z(void);
 bool app_nunchuk_get_is_rev(void);
+float app_nunchuk_get_update_age(void);
 void app_nunchuk_update_output(chuck_data *data);
-
-void app_balance_start(void);
-void app_balance_stop(void);
-void app_balance_configure(balance_config *conf, imu_config *conf2);
-float app_balance_get_pid_output(void);
-float app_balance_get_pitch_angle(void);
-float app_balance_get_roll_angle(void);
-uint32_t app_balance_get_diff_time(void);
-float app_balance_get_motor_current(void);
-uint16_t app_balance_get_state(void);
-uint16_t app_balance_get_switch_state(void);
-float app_balance_get_adc1(void);
-float app_balance_get_adc2(void);
-float app_balance_get_debug1(void);
-float app_balance_get_debug2(void);
 
 void app_pas_start(bool is_primary_output);
 void app_pas_stop(void);
 bool app_pas_is_running(void);
 void app_pas_configure(pas_config *conf);
 float app_pas_get_current_target_rel(void);
+float app_pas_get_pedal_rpm(void);
 void app_pas_set_current_sub_scaling(float current_sub_scaling);
 
 // Custom apps

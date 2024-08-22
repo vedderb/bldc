@@ -31,6 +31,9 @@
 #include "timeout.h"
 #include "buffer.h"
 
+#include "lispif.h"
+#include "lispbm.h"
+
 #include "app_finn_types.h"
 
 #include <math.h>
@@ -103,12 +106,51 @@ static bool can_eid_callback(uint32_t id, uint8_t *data, uint8_t len);
 static void terminal_mon(int argc, const char **argv);
 static void terminal_home(int argc, const char **argv);
 
+static lbm_value ext_pod_set_angle(lbm_value *args, lbm_uint argn) {
+	if (argn != 1 || !lbm_is_number(args[0])) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+	m_pod_state.req_angle = lbm_dec_as_float(args[0]);
+	m_pod_state.last_update = chVTGetSystemTimeX();
+	return lbm_enc_sym(SYM_TRUE);
+}
+
+static lbm_value ext_pod_get_angle(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(m_pod_state.actual_angle);
+}
+
+static lbm_value ext_pod_home(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	m_pod_state.homing_angle_now = HOMING_ANGLE_BACK + m_pod_state.req_angle + m_pod_state.angle_home + m_pod_state.angle_offset;
+	m_pod_state.homing_back_time = 0.0;
+	m_pod_state.homing_done = false;
+	m_pod_state.homing_error = false;
+	return lbm_enc_sym(SYM_TRUE);
+}
+
+static lbm_value ext_pod_set_enabled(lbm_value *args, lbm_uint argn) {
+	if (argn != 1 || !lbm_is_number(args[0])) {
+		return lbm_enc_sym(SYM_EERROR);
+	}
+	m_motors_enabled = lbm_dec_as_i32(args[0]);
+	return lbm_enc_sym(SYM_TRUE);
+}
+
+static void load_lbm_extensions(void) {
+	lbm_add_extension("pod-set-angle", ext_pod_set_angle);
+	lbm_add_extension("pod-get-angle", ext_pod_get_angle);
+	lbm_add_extension("pod-home", ext_pod_home);
+	lbm_add_extension("pod-set-enabled", ext_pod_set_enabled);
+}
+
 void app_custom_start(void) {
 	memset((void*)&m_pod_state, 0, sizeof(m_pod_state));
 	m_pod_state.homing_angle_now = HOMING_ANGLE_BACK;
 
 	commands_set_app_data_handler(process_custom_app_data);
 	comm_can_set_eid_rx_callback(can_eid_callback);
+	lispif_set_ext_load_callback(load_lbm_extensions);
 
 	palSetPadMode(HW_ADC_EXT_GPIO, HW_ADC_EXT_PIN, PAL_MODE_INPUT_PULLDOWN);
 	palSetPadMode(HW_ADC_EXT2_GPIO, HW_ADC_EXT2_PIN, PAL_MODE_INPUT_PULLDOWN);

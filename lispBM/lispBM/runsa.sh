@@ -1,4 +1,4 @@
 #!/bin/sh
 
 make clean
-scan-build-10 -o ./static_analysis make -j4
+scan-build-14 -o ./static_analysis make -j4

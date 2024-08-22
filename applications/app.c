@@ -17,6 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "app.h"
 #include "ch.h"
 #include "hal.h"
@@ -26,11 +29,12 @@
 #include "comm_can.h"
 #include "imu.h"
 #include "crc.h"
-#include "servo_simple.h"
+#include "pwm_servo.h"
+#include "servo_dec.h"
 
 // Private variables
-static app_configuration appconf;
-static virtual_timer_t output_vt;
+static app_configuration appconf = {0};
+static virtual_timer_t output_vt = {0};
 static bool output_vt_init_done = false;
 static volatile bool output_disabled_now = false;
 
@@ -48,14 +52,25 @@ const app_configuration* app_get_configuration(void) {
  * The new configuration to use.
  */
 void app_set_configuration(app_configuration *conf) {
+	bool app_changed = appconf.app_to_use != conf->app_to_use;
+
+	if (!app_changed) {
+		app_changed = appconf.servo_out_enable != conf->servo_out_enable;
+	}
+
 	appconf = *conf;
 
-	app_ppm_stop();
-	app_adc_stop();
-	app_uartcomm_stop(UART_PORT_COMM_HEADER);
-	app_nunchuk_stop();
-	app_balance_stop();
-	app_pas_stop();
+	if (app_changed) {
+		app_ppm_stop();
+		app_adc_stop();
+		app_uartcomm_stop(UART_PORT_COMM_HEADER);
+		app_nunchuk_stop();
+		app_pas_stop();
+
+#ifdef APP_CUSTOM_TO_USE
+		app_custom_stop();
+#endif
+	}
 
 	if (!conf_general_permanent_nrf_found) {
 		nrf_driver_stop();
@@ -65,86 +80,74 @@ void app_set_configuration(app_configuration *conf) {
 	comm_can_set_baud(conf->can_baud_rate);
 #endif
 
-#ifdef APP_CUSTOM_TO_USE
-	app_custom_stop();
-#endif
-
 	imu_init(&conf->imu_conf);
 
-	if (appconf.app_to_use != APP_PPM &&
-			appconf.app_to_use != APP_PPM_UART &&
-			appconf.servo_out_enable) {
-		servo_simple_init();
-	} else {
-		servo_simple_stop();
-	}
+	if (app_changed) {
+		if (appconf.app_to_use != APP_PPM &&
+				appconf.app_to_use != APP_PPM_UART &&
+				appconf.servo_out_enable) {
+			servodec_stop();
+			pwm_servo_init_servo();
+		} else {
+			pwm_servo_stop();
+		}
 
-	// Configure balance app before starting it.
-	app_balance_configure(&appconf.app_balance_conf, &appconf.imu_conf);
+		switch (appconf.app_to_use) {
+		case APP_PPM:
+			app_ppm_start();
+			break;
 
-	switch (appconf.app_to_use) {
-	case APP_PPM:
-		app_ppm_start();
-		break;
+		case APP_ADC:
+			app_adc_start(true);
+			break;
 
-	case APP_ADC:
-		app_adc_start(true);
-		break;
-
-	case APP_UART:
-		hw_stop_i2c();
-		app_uartcomm_start(UART_PORT_COMM_HEADER);
-		break;
-
-	case APP_PPM_UART:
-		hw_stop_i2c();
-		app_ppm_start();
-		app_uartcomm_start(UART_PORT_COMM_HEADER);
-		break;
-
-	case APP_ADC_UART:
-		hw_stop_i2c();
-		app_adc_start(false);
-		app_uartcomm_start(UART_PORT_COMM_HEADER);
-		break;
-
-	case APP_NUNCHUK:
-		app_nunchuk_start();
-		break;
-
-	case APP_BALANCE:
-		app_balance_start();
-		if(appconf.imu_conf.type == IMU_TYPE_INTERNAL){
+		case APP_UART:
 			hw_stop_i2c();
 			app_uartcomm_start(UART_PORT_COMM_HEADER);
-		}
-		break;
+			break;
 
-	case APP_PAS:
-		app_pas_start(true);
-		break;
+		case APP_PPM_UART:
+			hw_stop_i2c();
+			app_ppm_start();
+			app_uartcomm_start(UART_PORT_COMM_HEADER);
+			break;
 
-	case APP_ADC_PAS:
-		app_adc_start(false);
-		app_pas_start(false);
-		break;
+		case APP_ADC_UART:
+			hw_stop_i2c();
+			app_adc_start(false);
+			app_uartcomm_start(UART_PORT_COMM_HEADER);
+			break;
 
-	case APP_NRF:
-		if (!conf_general_permanent_nrf_found) {
-			nrf_driver_init();
-			rfhelp_restart();
-		}
-		break;
+		case APP_NUNCHUK:
+			app_nunchuk_start();
+			break;
 
-	case APP_CUSTOM:
+		case APP_PAS:
+			app_pas_start(true);
+			break;
+
+		case APP_ADC_PAS:
+			app_adc_start(false);
+			app_pas_start(false);
+			break;
+
+		case APP_NRF:
+			if (!conf_general_permanent_nrf_found) {
+				nrf_driver_init();
+				rfhelp_restart();
+			}
+			break;
+
+		case APP_CUSTOM:
 #ifdef APP_CUSTOM_TO_USE
-		hw_stop_i2c();
-		app_custom_start();
+			hw_stop_i2c();
+			app_custom_start();
 #endif
-		break;
+			break;
 
-	default:
-		break;
+		default:
+			break;
+		}
 	}
 
 	app_ppm_configure(&appconf.app_ppm_conf);
@@ -205,13 +208,16 @@ static void output_vt_cb(void *arg) {
  * @return
  * CRC16 (with crc field in struct temporarily set to zero).
  */
-unsigned app_calc_crc(app_configuration* conf) {
-	if(NULL == conf)
+unsigned short app_calc_crc(app_configuration* conf) {
+	if (NULL == conf) {
 		conf = &appconf;
+	}
 
-	unsigned crc_old = conf->crc;
+	unsigned short crc_old = conf->crc;
 	conf->crc = 0;
-	unsigned crc_new = crc16((uint8_t*)conf, sizeof(app_configuration));
+	unsigned short crc_new = crc16((uint8_t*)conf, sizeof(app_configuration));
 	conf->crc = crc_old;
 	return crc_new;
 }
+
+#pragma GCC pop_options

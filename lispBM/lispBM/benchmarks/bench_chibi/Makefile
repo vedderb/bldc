@@ -122,23 +122,22 @@ LDSCRIPT= $(STARTUPLD)/STM32F407xG.ld
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 
-LBMSRC = ../../src/compression.c \
-         ../../src/env.c \
+LBMSRC = ../../src/env.c \
          ../../src/eval_cps.c \
          ../../src/extensions.c \
          ../../src/fundamental.c \
          ../../src/heap.c \
          ../../src/lbm_memory.c \
-         ../../src/prelude.c \
          ../../src/print.c \
-         ../../src/qq_expand.c \
          ../../src/stack.c \
-         ../../src/streams.c \
          ../../src/symrepr.c \
          ../../src/tokpar.c \
          ../../src/lispbm.c \
          ../../src/lbm_c_interop.c \
-         ../../src/lbm_variables.c \
+         ../../src/lbm_custom_type.c \
+         ../../src/lbm_channel.c \
+	 ../../src/lbm_flags.c \
+         ../../src/lbm_flat_value.c \
          ../../platform/chibios/src/platform_mutex.c
 
 CSRC = $(ALLCSRC) \

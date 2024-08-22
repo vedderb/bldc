@@ -73,24 +73,24 @@ endif
 ##############################
 .PHONY: help
 help:
-	@echo
+	@echo ""
 	@echo "   This Makefile is known to work on Linux and Mac in a standard shell environment."
-	@echo
+	@echo ""
 	@echo "   Here is a summary of the available targets:"
-	@echo
+	@echo ""
 	@echo "   [Tool Installers]"
 	@echo "     arm_sdk_install      - Install the GNU ARM gcc toolchain"
 	@echo "     qt_install           - Install the all tools for Qt"
-	@echo
+	@echo ""
 	@echo "   [Big Hammer]"
 	@echo "     all_fw               - Build firmware for all boards"
 	@echo "     all_fw_package       - Packaage firmware for boards in package list"
-	@echo
+	@echo ""
 	@echo "   [Unit Tests]"
 	@echo "     all_ut               - Build all unit tests"
 	@echo "     all_ut_xml           - Run all unit tests and capture all XML output to files"
 	@echo "     all_ut_run           - Run all unit tests and dump XML output to console"
-	@echo
+	@echo ""
 	@echo "   [Firmware]"
 	@echo "     fw   - Build firmware for default target"
 	@echo "                            supported boards are: $(ALL_BOARD_NAMES)"
@@ -98,12 +98,12 @@ help:
 	@echo "     PROJECT=<target> fw   - Build firmware for <target>"
 	@echo "     fw_<board>_clean     - Remove firmware for <board>"
 	@echo "     fw_<board>_flash     - Use OpenOCD + SWD/JTAG to write firmware to <target>"
-	@echo
+	@echo ""
 	@echo "   Hint: Add V=1 to your command line to see verbose build output."
-	@echo
+	@echo ""
 	@echo "   Note: All tools will be installed into $(TOOLS_DIR)"
 	@echo "         All build output will be placed in $(BUILD_DIR)"
-	@echo
+	@echo ""
 
 
 $(DL_DIR):
@@ -173,8 +173,10 @@ fw_$(1)_clean:
 	$(V0) @echo " CLEAN      $$@"
 ifneq ($(OSFAMILY), windows)
 	$(V1) [ ! -d "$(BUILD_DIR)/$(1)" ] || $(RM) -r "$(BUILD_DIR)/$(1)"
+	$(V1) [ ! -d "$(ROOT_DIR)/.dep" ] || $(RM) -r "$(ROOT_DIR)/.dep"
 else
-	$(V1) powershell -noprofile -command if (Test-Path $(BUILD_DIR)/$(1)) {Remove-Item -Recurse $(BUILD_DIR)/$(1)}
+	$(V1) powershell -noprofile -command "& {if (Test-Path $(BUILD_DIR)/$(1)) {Remove-Item -Recurse $(BUILD_DIR)/$(1)}}"
+	$(V1) powershell -noprofile -command "& {if (Test-Path $(ROOT_DIR)/.dep) {Remove-Item -Recurse $(ROOT_DIR)/.dep}}"
 endif
 endef
 
@@ -228,7 +230,7 @@ all_fw_package: all_fw all_fw_package_clean
 ifneq ($(OSFAMILY), windows)
 	$(V1) $(RM) $(BUILD_CRUFT)
 else
-	$(V1) powershell -noprofile -command {Remove-Item $(BUILD_CRUFT)}
+	$(V1) powershell -noprofile -command "& {Remove-Item $(BUILD_CRUFT)}"
 endif
 
 .PHONY: all_fw_package_clean
@@ -237,7 +239,7 @@ all_fw_package_clean:
 ifneq ($(OSFAMILY), windows)
 	$(V1) [ ! -d "$(ROOT_DIR)/package/" ] || $(RM) -rf $(ROOT_DIR)/package/*
 else
-	$(V1) powershell -noprofile -command if (Test-Path $(ROOT_DIR)/package/*) {Remove-Item -Recurse $(ROOT_DIR)/package/*}
+	$(V1) powershell -noprofile -command "& {if (Test-Path $(ROOT_DIR)/package/*) {Remove-Item -Recurse $(ROOT_DIR)/package/*}}"
 endif
 
 
@@ -247,12 +249,12 @@ endif
 #
 ##############################
 
-ALL_UNITTESTS := utils
+ALL_UNITTESTS := utils_math
 
 UT_OUT_DIR := $(BUILD_DIR)/unit_tests
 
 $(UT_OUT_DIR):
-	$(V1) mkdir -p $@
+	$(V1) $(MKDIR) $@
 
 .PHONY: all_ut
 all_ut: $(addsuffix _elf, $(addprefix ut_, $(ALL_UNITTESTS))) $(ALL_PYTHON_UNITTESTS)
@@ -281,7 +283,7 @@ ut_$(1)_%: TARGET=$(1)
 ut_$(1)_%: OUTDIR=$(UT_OUT_DIR)/$$(TARGET)
 ut_$(1)_%: UT_ROOT_DIR=$(ROOT_DIR)/tests/$(1)
 ut_$(1)_%: $$(UT_OUT_DIR)
-	$(V1) mkdir -p $(UT_OUT_DIR)/$(1)
+	$(V1) $(MKDIR) $(UT_OUT_DIR)/$(1)
 	$(V1) cd $$(UT_ROOT_DIR) && \
 		$$(MAKE) -r --no-print-directory \
 		BUILD_TYPE=ut \

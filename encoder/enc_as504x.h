@@ -31,5 +31,9 @@ float enc_as504x_read_angle(AS504x_config_t *cfg);
 
 // Macros
 #define AS504x_LAST_ANGLE(cfg)		((cfg)->state.last_enc_angle)
+#define AS504x_IS_CONNECTED(cfg)	((cfg)->state.sensor_diag.is_connected)
+#define AS504x_IS_COMP_HIGH(cfg)	((cfg)->state.sensor_diag.is_Comp_high)
+#define AS504x_IS_COMP_LOW(cfg)		((cfg)->state.sensor_diag.is_Comp_low)
+
 
 #endif /* ENC_AS504X_H_ */

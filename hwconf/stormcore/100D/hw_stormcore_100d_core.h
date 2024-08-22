@@ -17,24 +17,35 @@
 #ifndef HW_STORMCORE_100D_CORE_H_
 #define HW_STORMCORE_100D_CORE_H_
 
-#ifdef HW_DUAL_CONFIG_PARALLEL
-#define HW_HAS_DUAL_PARALLEL
-#else
+#ifndef HW_HAS_DUAL_PARALLEL
 #define HW_HAS_DUAL_MOTORS
 #endif
 
 #ifdef HW_HAS_DUAL_PARALLEL
+#ifdef HW_VER_IS_100D_V2
+#define HW_NAME                 "STORMCORE_100D_V2_PARALLEL"
+#elif defined(HW_VER_IS_100DX)
+#define HW_NAME                 "STORMCORE_100DX_PARALLEL"
+#elif defined(HW_VER_IS_100D)
 #define HW_NAME                 "STORMCORE_100D_PARALLEL"
-#elif defined(HW_VER_IS_100D_V2)
+#endif
+#else
+#ifdef HW_VER_IS_100D_V2
 #define HW_NAME                 "STORMCORE_100D_V2"
 #elif defined(HW_VER_IS_100DX)
 #define HW_NAME                 "STORMCORE_100DX"
-#define INVERTED_SHUNT_POLARITY
-#define HW_DEAD_TIME_NSEC               600.0   // Dead time
 #elif defined(HW_VER_IS_100D)
 #define HW_NAME                 "STORMCORE_100D"
-#else
+#endif
+#endif
+
+#ifndef HW_NAME
 #error "Must define hardware type"
+#endif
+
+#ifdef HW_VER_IS_100DX
+#define INVERTED_SHUNT_POLARITY
+#define HW_DEAD_TIME_NSEC               1000.0   // Dead time
 #endif
 
 #ifndef HW_VER_IS_100DX
@@ -191,22 +202,21 @@
 /*
  * ADC Vector
  *
- * 0:  IN0    CURR3
- * 1:  IN15    CURR4
- * 2:  IN3     SERVO2/ADC
- * 3:   IN9     CURR1
- * 4:   IN8     CURR2
- * 5:   IN10    AN_IN
- * 6:   IN0     SENS2
- * 7:   IN1     SENS3
- * 8:   IN2     SENS1
- * 9:   IN5     ADC_EXT
- * 10:   IN4     ADC_TEMP
- * 11:   IN13    SENS4
- * 12:   Vrefint
- * 13:   IN11    SENS6
- * 14:  IN12    SENS5
- * 15:  IN6     ADC_EXT2
+ * 0:    IN9      CURR1
+ * 1:    IN8      CURR2
+ * 2:    IN10     V BUS DIV
+ * 3:    IN14     CURR4
+ * 4:    IN15     CURR3
+ * 5:    IN3      VM_SENS (12V)
+ * 6:    IN5      CURR6
+ * 7:    IN6      CURR5
+ * 8:    IN13     SENS4
+ * 9:    IN4      ADC_MUX
+ * 10:   IN12     SENS5
+ * 11:   IN11     SENS6
+ * 12:   IN0      SENS2
+ * 13:   IN1      SENS3
+ * 14:   IN2      SENS1
  */
 
 #define HW_ADC_CHANNELS			15
@@ -451,12 +461,15 @@
 #define HW_LIM_CURRENT_ABS			0.0, 400.0
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT	400.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_FOC_OFFSETS_CURRENT_0	4096.0 // Current 0 offset
+#define MCCONF_FOC_OFFSETS_CURRENT_1	4096.0 // Current 1 offset
+#define MCCONF_FOC_OFFSETS_CURRENT_2	4096.0 // Current 2 offset
 #endif
 #else
 #define HW_LIM_CURRENT				-150.0, 150.0
-#define HW_LIM_CURRENT_ABS			0.0, 200.0
+#define HW_LIM_CURRENT_ABS			0.0, 150.0
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT	200.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT	150.0	// The maximum absolute current above which a fault is generated
 #endif
 #endif
 #define HW_LIM_CURRENT_IN			-100.0, 100.0

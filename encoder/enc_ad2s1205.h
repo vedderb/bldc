@@ -29,6 +29,7 @@
 bool enc_ad2s1205_init(AD2S1205_config_t *AD2S1205_config);
 void enc_ad2s1205_deinit(AD2S1205_config_t *cfg);
 void enc_ad2s1205_routine(AD2S1205_config_t *cfg);
+void enc_ad2s1205_reset_errors(AD2S1205_config_t *cfg);
 
 // Macros
 #define AD2S1205_LAST_ANGLE(cfg)		((cfg)->state.last_enc_angle)
