@@ -386,7 +386,7 @@
 #define MCCONF_FOC_CURRENT_SAMPLE_MODE	FOC_CURRENT_SAMPLE_MODE_LONGEST_ZERO
 #endif
 #ifndef MCCONF_FOC_SAT_COMP_MODE
-#define MCCONF_FOC_SAT_COMP_MODE		SAT_COMP_LAMBDA		// Stator saturation compensation mode
+#define MCCONF_FOC_SAT_COMP_MODE		SAT_COMP_DISABLED		// Stator saturation compensation mode
 #endif
 #ifndef MCCONF_FOC_SAT_COMP
 #define MCCONF_FOC_SAT_COMP				0.0		// Stator saturation compensation factor

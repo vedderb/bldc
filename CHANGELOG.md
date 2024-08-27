@@ -1,5 +1,8 @@
-### 6.05
+### 6.06
 #### TBD
+
+### 6.05
+#### 2024-08-19
 * LispBM:
 	* Support for var in progn.
 	* Support for curly brackets instead of progn.
@@ -56,6 +59,7 @@
 * Configurable HFI error truncation to reject noise.
 * Removed GPDrive.
 * FOC: Option to short phases on 0 duty.
+* FOC: Added MXV observer.
 
 ### 6.02
 #### 2023-03-12

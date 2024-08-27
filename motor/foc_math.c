@@ -36,7 +36,10 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 	case SAT_COMP_LAMBDA:
 		// Here we assume that the inductance drops by the same amount as the flux linkage. I have
 		// no idea if this is a valid or even a reasonable assumption.
-		if (conf_now->foc_observer_type >= FOC_OBSERVER_ORTEGA_LAMBDA_COMP) {
+		if (conf_now->foc_observer_type >= FOC_OBSERVER_ORTEGA_LAMBDA_COMP ||
+				conf_now->foc_observer_type >= FOC_OBSERVER_MXLEMMING_LAMBDA_COMP ||
+				conf_now->foc_observer_type >= FOC_OBSERVER_MXV_LAMBDA_COMP ||
+				conf_now->foc_observer_type >= FOC_OBSERVER_MXV_LAMBDA_COMP_LIN) {
 			L = L * (state->lambda_est / lambda);
 		}
 		break;
@@ -48,7 +51,10 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 	} break;
 
 	case SAT_COMP_LAMBDA_AND_FACTOR: {
-		if (conf_now->foc_observer_type >= FOC_OBSERVER_ORTEGA_LAMBDA_COMP) {
+		if (conf_now->foc_observer_type >= FOC_OBSERVER_ORTEGA_LAMBDA_COMP ||
+				conf_now->foc_observer_type >= FOC_OBSERVER_MXLEMMING_LAMBDA_COMP ||
+				conf_now->foc_observer_type >= FOC_OBSERVER_MXV_LAMBDA_COMP ||
+				conf_now->foc_observer_type >= FOC_OBSERVER_MXV_LAMBDA_COMP_LIN) {
 			L = L * (state->lambda_est / lambda);
 		}
 		const float comp_fact = conf_now->foc_sat_comp * (motor->m_motor_state.i_abs_filter / conf_now->l_current_max);
@@ -115,16 +121,8 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 		state->x2 += (v_beta - R_ib) * dt - L * (i_beta - state->i_beta_last);
 
 		if (conf_now->foc_observer_type == FOC_OBSERVER_MXLEMMING_LAMBDA_COMP) {
-			// This is essentially the flux linkage observer from
-			// https://cas.mines-paristech.fr/~praly/Telechargement/Conferences/2017_IFAC_Bernard-Praly.pdf
-			// with a slight modification. We use the same gain here as it is related to the Ortega-gain,
-			// but we scale it down as it is not nearly as critical because the flux linkage is mostly DC.
-			// When the motor starts to saturate we still want to be able to keep up though, so the gain is
-			// still high enough to react with some "reasonable" speed.
 			float err = SQ(state->lambda_est) - (SQ(state->x1) + SQ(state->x2));
 			state->lambda_est += 0.1 * gamma_half * state->lambda_est * -err * dt;
-
-			// Clamp the observed flux linkage (not sure if this is needed)
 			utils_truncate_number(&(state->lambda_est), lambda * 0.3, lambda * 2.5);
 
 			utils_truncate_number_abs(&(state->x1), state->lambda_est);
@@ -160,6 +158,43 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 		state->x2 += x2_dot * dt;
 	} break;
 
+	case FOC_OBSERVER_MXV:
+	case FOC_OBSERVER_MXV_LAMBDA_COMP:
+	case FOC_OBSERVER_MXV_LAMBDA_COMP_LIN:
+		state->x1 += (v_alpha - R_ia) * dt;
+		state->x2 += (v_beta - R_ib) * dt;
+
+		if (conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP ||
+				conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP_LIN) {
+			if (conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP_LIN) {
+				float mag = NORM2_f(state->x1 - L_ia, state->x2 - L_ib);
+				UTILS_LP_FAST(state->lambda_est, mag, 0.1 * gamma_half * dt * SQ(state->lambda_est));
+				utils_truncate_number(&(state->lambda_est), lambda * 0.3, lambda * 2.5);
+
+				if (mag > state->lambda_est) {
+					state->x1 = (state->x1 / mag) * state->lambda_est;
+					state->x2 = (state->x2 / mag) * state->lambda_est;
+				}
+			} else if (conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP) {
+				float err = SQ(state->lambda_est) - (SQ(state->x1 - L_ia) + SQ(state->x2 - L_ib));
+				state->lambda_est += 0.2 * gamma_half * state->lambda_est * -err * dt;
+				utils_truncate_number(&(state->lambda_est), lambda * 0.3, lambda * 2.5);
+
+				float mag = NORM2_f(state->x1 - L_ia, state->x2 - L_ib);
+				if (mag > state->lambda_est) {
+					state->x1 = (state->x1 / mag) * state->lambda_est;
+					state->x2 = (state->x2 / mag) * state->lambda_est;
+				}
+			}
+		} else {
+			float mag = NORM2_f(state->x1 - L_ia, state->x2 - L_ib);
+			if (mag > lambda) {
+				state->x1 = (state->x1 / mag) * lambda;
+				state->x2 = (state->x2 / mag) * lambda;
+			}
+		}
+		break;
+
 	default:
 		break;
 	}
@@ -180,6 +215,10 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 	if (phase) {
 		*phase = utils_fast_atan2(state->x2 - L_ib, state->x1 - L_ia);
 	}
+
+	// Can we clamp the flux in dq with q flux = 0 and d flux is lambda
+	// Then the state->x1 and state->x2 (which are the alpha and beta fluxes) are set as lambda*sin and lambda*cos
+	// The d flux each time would have a residual after transform from ab to dq. This can be used as an input to the flux estimator
 }
 
 void foc_pll_run(float phase, float dt, float *phase_var,

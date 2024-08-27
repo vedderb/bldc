@@ -297,6 +297,7 @@ void encoder_update_config(volatile mc_configuration *conf) {
 
 	case SENSOR_PORT_MODE_ABI: {
 		encoder_cfg_ABI.counts = conf->m_encoder_counts;
+		TIM_SetAutoreload(encoder_cfg_ABI.timer, encoder_cfg_ABI.counts - 1);
 	} break;
 
 	default:
