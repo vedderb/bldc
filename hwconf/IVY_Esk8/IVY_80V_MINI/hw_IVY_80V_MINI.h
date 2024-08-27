@@ -53,7 +53,7 @@
 #define MCCONF_P_PID_KD_PROC 0.00035      // Derivative gain process
 #define MCCONF_P_PID_KD_FILTER 0.2        // Derivative filter
 #define MCCONF_P_PID_ANG_DIV 10.0         // Divide angle by this value
-#define MCCONF_P_PID_GAIN_DEC_ANGLE 500.0 // Decrease PID-gains when the error is below this value
+#define MCCONF_P_PID_GAIN_DEC_ANGLE 550.0 // Decrease PID-gains when the error is below this value
 #define MCCONF_P_PID_OFFSET 0.0           // Angle offset
 
 #ifndef MCCONF_L_MIN_VOLTAGE
