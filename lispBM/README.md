@@ -78,6 +78,26 @@ printed on a separate line.
 
 ---
 
+#### set-print-prefix
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.06+ |
+
+```clj
+(set-print-prefix str)
+```
+
+Add prefix to prints that are sent to the repl in VESC Tool. Useful when multiple devices print to the repl over CAN at the same time for determining which print comes from which device.
+
+Example:
+
+```clj
+(set-print-prefix "dev-1")
+```
+
+---
+
 #### puts
 
 | Platforms | Firmware |
