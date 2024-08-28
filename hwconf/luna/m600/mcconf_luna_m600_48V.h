@@ -459,6 +459,9 @@
 // Position PID Offset Angle
 #define MCCONF_P_PID_OFFSET 0
 
+// Position PID Use Potentiometer for Offset Angle Calibration
+#define MCCONF_P_PID_POT_OFFSET_CALIB 0
+
 // Startup boost
 #define MCCONF_CC_STARTUP_BOOST_DUTY 0.01
 

@@ -510,6 +510,7 @@ typedef struct {
 	float p_pid_ang_div;
 	float p_pid_gain_dec_angle;
 	float p_pid_offset;
+	bool p_pid_offset_pot_calib;
 
 	// Current controller
 	float cc_startup_boost_duty;

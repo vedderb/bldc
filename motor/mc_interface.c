@@ -1468,8 +1468,27 @@ float mc_interface_get_pid_pos_now(void) {
 void mc_interface_update_pid_pos_offset(float angle_now, bool store) {
 	mc_configuration *mcconf = mempools_alloc_mcconf();
 	*mcconf = *mc_interface_get_configuration();
+	    
+	// Use potentiometer to calibrate the offset if enabled
+	if (mcconf->p_pid_offset_pot_calib) {
+		const app_configuration *appconf = app_get_configuration();
+		const int adc_avg_window_size = 100;
+		float angle_potentiometer_sum = 0.0;
+		// moving average as a low pass filter
+		for (int i = 0; i < adc_avg_window_size; i++) {
+		float pwr = ADC_VOLTS(ADC_IND_EXT);
+		angle_potentiometer_sum +=
+			utils_map(pwr, appconf->app_adc_conf.voltage_start,
+						appconf->app_adc_conf.voltage_end, 0.0, 360.0);
+		chThdSleepMilliseconds(10);
+		}
+		float angle_potentiometer =
+			angle_potentiometer_sum / adc_avg_window_size;
+		mcconf->p_pid_offset = angle_potentiometer-angle_now;
+	}else{
+		mcconf->p_pid_offset += mc_interface_get_pid_pos_now() - angle_now;
+	}
 
-	mcconf->p_pid_offset += mc_interface_get_pid_pos_now() - angle_now;
 	utils_norm_angle(&mcconf->p_pid_offset);
 
 	if (store) {
