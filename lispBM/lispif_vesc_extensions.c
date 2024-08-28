@@ -4451,7 +4451,6 @@ lbm_value ext_lbm_set_gc_stack_size(lbm_value *args, lbm_uint argn) {
 				lbm_free(lbm_heap_state.gc_stack.data);
 				lbm_heap_state.gc_stack.data = new_stack;
 				lbm_heap_state.gc_stack.size = n;
-				lbm_heap_state.gc_stack.max_sp = 0;
 				lbm_heap_state.gc_stack.sp = 0;
 				return ENC_SYM_TRUE;
 			}

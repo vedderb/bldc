@@ -116,7 +116,7 @@ static void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
 	commands_printf_lisp("--------------------------------");
 	commands_printf_lisp("ContextID: %u", ctx->id);
 	commands_printf_lisp("Stack SP: %u",  ctx->K.sp);
-	commands_printf_lisp("Stack SP max: %u", ctx->K.max_sp);
+	commands_printf_lisp("Stack SP max: %u", lbm_get_max_stack(&ctx->K));
 	commands_printf_lisp("Result%s: %s", print_ret ? "" : " (trunc)", output);
 }
 
@@ -316,7 +316,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp("Recovered: %d\n", lbm_heap_state.gc_recovered);
 				commands_printf_lisp("Recovered arrays: %u\n", lbm_heap_state.gc_recovered_arrays);
 				commands_printf_lisp("Marked: %d\n", lbm_heap_state.gc_marked);
-				commands_printf_lisp("GC SP max: %u (size %u)\n", lbm_heap_state.gc_stack.max_sp, lbm_heap_state.gc_stack.size);
+				commands_printf_lisp("GC SP max: %u (size %u)\n", lbm_get_max_stack(&lbm_heap_state.gc_stack), lbm_heap_state.gc_stack.size);
 				commands_printf_lisp("--(Symbol and Array memory)--\n");
 				commands_printf_lisp("Memory size: %u bytes\n", lbm_memory_num_words() * 4);
 				commands_printf_lisp("Memory free: %u bytes\n", lbm_memory_num_free() * 4);
