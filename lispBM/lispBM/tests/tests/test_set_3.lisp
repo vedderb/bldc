@@ -1,0 +1,11 @@
+
+(let ((myset-1 nil)
+      (myset-2 (list 1))
+      (myset-3 (list 1 2 3)))
+      (check (and (eq (member myset-1 1) nil)
+                  (eq (member myset-2 2) nil)
+                  (eq (member myset-2 1) (list 1))
+                  (eq (member myset-3 4) nil)
+                  (eq (member myset-3 1) (list 1 2 3))
+                  (eq (member myset-3 2) (list 1 2 3))
+                  (eq (member myset-3 3) (list 1 2 3)))))              

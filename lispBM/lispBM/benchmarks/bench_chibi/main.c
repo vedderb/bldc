@@ -92,6 +92,46 @@ int inputline(BaseSequentialStream *chp, char *buffer, int size) {
 
 static char print_output[1024];
 
+void sleep_callback(uint32_t us) {
+  chThdSleepMicroseconds(us);
+}
+
+static void context_exists(eval_context_t *ctx, void *cid, void *b) {
+  if (ctx->id == *(lbm_cid*)cid) {
+    *(bool*)b = true;
+  }
+}
+
+static bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms) {
+
+  bool exists;
+  uint32_t i = 0;
+
+  do {
+    exists = false;
+    lbm_blocked_iterator(context_exists, &cid, &exists);
+    lbm_running_iterator(context_exists, &cid, &exists);
+
+    eval_context_t *ctx_running = lbm_get_current_context();
+
+    if (ctx_running &&
+        ctx_running->id == cid) {
+      exists = true;
+    }
+
+    if (exists) {
+       if (sleep_callback) {
+         sleep_callback(10);
+       }
+       if (timeout_ms > 0) i ++;
+    }
+  } while (exists && i < timeout_ms);
+
+  if (exists) return false;
+  return true;
+}
+
+
 void done_callback(eval_context_t *ctx) {
 
   char *output = print_output;
@@ -113,10 +153,6 @@ uint32_t timestamp_callback(void) {
   uint32_t ts = (uint32_t) ((1000000 / CH_CFG_ST_FREQUENCY) * t);
   //chprintf(chp,"timestamp %d\r\n ", ts);
   return ts;
-}
-
-void sleep_callback(uint32_t us) {
-  chThdSleepMicroseconds(us);
 }
 
 static THD_FUNCTION(eval, arg) {

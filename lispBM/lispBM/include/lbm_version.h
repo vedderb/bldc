@@ -27,16 +27,19 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0
 /** LBM minor version */
-#define LBM_MINOR_VERSION 25
+#define LBM_MINOR_VERSION 26
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0
 
-#define LBM_VERSION_STRING "0.25.0"
+#define LBM_VERSION_STRING "0.26.0"
 
 
 /*! \page changelog Changelog
+AUG 6 2024: Version 0.26.0
+  - Bugfix related to restargs.
+  - coverage report in relation to the unit tests.
 JUL 23 2024: Version 0.25.0
-  - Multiple bugfixes. 
+  - Multiple bugfixes.
   - Trap function on expressions.
   - Reference manual updates.
   - New String operations (Thanks Rasmus S)
@@ -45,7 +48,7 @@ JUL 23 2024: Version 0.25.0
 APR 28 2024: Version 0.24.0
   - Cleaning of lispbm repository. less to maintain.
   - Lots of improvements to documentation.
-  - lbm_memory optimization. 
+  - lbm_memory optimization.
 
 MAR 9 2024: Version 0.23.0
   - rest-args functionality added to function application of lambda defined function.
@@ -104,7 +107,7 @@ JUN 29 2023: version 0.15.0
   - Bug fix in reader.
   - Bug fix in dynamic load.
   - Bug fix in quasiquotation expansion.
-  - 
+  -
 
 JUN 8 2023: Version 0.14.0
   - wait-for that blocks code unless a flag is set.

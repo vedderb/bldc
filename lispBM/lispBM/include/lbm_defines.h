@@ -55,7 +55,8 @@
 #define LBM_TYPE_CUSTOM                  0xA0000000u
 #define LBM_TYPE_LISPARRAY               0xB0000000u // a "real" array
 #define LBM_TYPE_LISPARRAY_CONST         0xB4000000u
-#define LBM_POINTER_TYPE_LAST            0xBC000000u
+#define LBM_TYPE_DEFRAG_MEM              0xC0000000u
+#define LBM_POINTER_TYPE_LAST            0xCC000000u
 // POINTER_TYPE_LAST is less than the value used for CONTINUATION_INTERNAL
 
 #define LBM_CONS_TYPE_MASK               0xF0000000u
@@ -107,7 +108,8 @@
 #define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
 #define LBM_TYPE_LISPARRAY               (lbm_uint)0x9000000000000000
 #define LBM_TYPE_LISPARRAY_CONST         (lbm_uint)0x9400000000000000
-#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x9C00000000000000
+#define LBM_TYPE_DEFRAG_MEM              (lbm_uint)0xA000000000000000
+#define LBM_POINTER_TYPE_LAST            (lbm_uint)0xAC00000000000000
 // POINTER_TYPE_LAST is less than the value used for CONTINUATION_INTERNAL
 
 #define LBM_CONS_TYPE_MASK               (lbm_uint)0xF000000000000000
@@ -170,8 +172,10 @@
 #define SYM_CHANNEL_TYPE       0x37
 #define SYM_CUSTOM_TYPE        0x38
 #define SYM_LISPARRAY_TYPE     0x39
+#define SYM_DEFRAG_MEM_TYPE    0x3A
+#define SYM_DEFRAG_ARRAY_TYPE  0x3B
 //#define TYPE_CLASSIFIER_ENDS   0x39
-#define SYM_NONSENSE           0x3A
+#define SYM_NONSENSE           0x3C
 
 #define SYM_NO_MATCH       0x40
 #define SYM_MATCH_ANY      0x41
@@ -192,6 +196,8 @@
 #define SYM_TYPE_BYTE       0x5C
 #define SYM_TYPE_CHANNEL    0x5E
 #define SYM_TYPE_LISPARRAY  0x5F
+#define SYM_TYPE_DEFRAG_MEM 0x60
+#define SYM_TYPE_CUSTOM     0x61
 
 //Relevant for the tokenizer and reader
 #define TOKENIZER_SYMBOLS_START 0x70
@@ -322,6 +328,8 @@
 #define SYM_MKARRAY             0x2003A
 #define SYM_ARRAY_TO_LIST       0x2003B
 #define SYM_LIST_TO_ARRAY       0x2003C
+#define SYM_DM_CREATE           0x2003D
+#define SYM_DM_ALLOC            0x2003E
 
 // Apply funs:
 // Get their arguments in evaluated form on the stack.
@@ -405,6 +413,8 @@
 #define ENC_SYM_CHANNEL_TYPE       ENC_SYM(SYM_CHANNEL_TYPE)
 #define ENC_SYM_CUSTOM_TYPE        ENC_SYM(SYM_CUSTOM_TYPE)
 #define ENC_SYM_LISPARRAY_TYPE     ENC_SYM(SYM_LISPARRAY_TYPE)
+#define ENC_SYM_DEFRAG_MEM_TYPE    ENC_SYM(SYM_DEFRAG_MEM_TYPE)
+#define ENC_SYM_DEFRAG_ARRAY_TYPE  ENC_SYM(SYM_DEFRAG_ARRAY_TYPE)
 #define ENC_SYM_NONSENSE           ENC_SYM(SYM_NONSENSE)
 
 #define ENC_SYM_NO_MATCH       ENC_SYM(SYM_NO_MATCH)
@@ -425,6 +435,8 @@
 #define ENC_SYM_TYPE_BYTE       ENC_SYM(SYM_TYPE_BYTE)
 #define ENC_SYM_TYPE_CHANNEL    ENC_SYM(SYM_TYPE_CHANNEL)
 #define ENC_SYM_TYPE_LISPARRAY  ENC_SYM(SYM_TYPE_LISPARRAY)
+#define ENC_SYM_TYPE_DEFRAG_MEM ENC_SYM(SYM_TYPE_DEFRAG_MEM)
+#define ENC_SYM_TYPE_CUSTOM     ENC_SYM(SYM_TYPE_CUSTOM)
 
 #define ENC_SYM_OPENPAR          ENC_SYM(SYM_OPENPAR)
 #define ENC_SYM_CLOSEPAR         ENC_SYM(SYM_CLOSEPAR)
@@ -551,6 +563,7 @@
 #define ENC_SYM_MKARRAY             ENC_SYM(SYM_MKARRAY)
 #define ENC_SYM_ARRAY_TO_LIST       ENC_SYM(SYM_ARRAY_TO_LIST)
 #define ENC_SYM_LIST_TO_ARRAY       ENC_SYM(SYM_LIST_TO_ARRAY)
-
+#define ENC_SYM_DM_CREATE           ENC_SYM(SYM_DM_CREATE)
+#define ENC_SYM_DM_ALLOC            ENC_SYM(SYM_DM_ALLOC)
 
 #endif

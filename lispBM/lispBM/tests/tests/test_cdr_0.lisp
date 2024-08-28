@@ -1,2 +1,2 @@
 
-(check (eq (cdr 1) nil))
+(check (eq (trap (cdr 1)) '(exit-error type_error)))

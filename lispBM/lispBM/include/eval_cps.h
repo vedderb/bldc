@@ -169,15 +169,7 @@ bool lbm_event_queue_is_empty(void);
  * \return 1 if a context was successfully removed otherwise 0.
  */
 int lbm_remove_done_ctx(lbm_cid cid, lbm_value *v);
-/** Wait until a given cid is not present in any of the queues.
- *  If you have spawned this cid, you can conclude that it has
- *  run to completion or failure.
- *
- * \param cid Context id to wait for.
- * \param timeout_ms timeout in ms or 0 for no timeout.
- * \return Result computed by the program running in the context.
- */
-bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms);
+
 /** Creates a context and initializes it with the provided program. The context
  * is added to the ready queue and will start executing when the evaluator is free.
  *

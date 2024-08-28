@@ -110,6 +110,8 @@ special_sym const special_symbols[] =  {
   {"$custom"         , SYM_CUSTOM_TYPE},
   {"$array"          , SYM_LISPARRAY_TYPE},
   {"$nonsense"       , SYM_NONSENSE},
+  {"$dm-array"       , SYM_DEFRAG_ARRAY_TYPE},
+  {"$dm"             , SYM_DEFRAG_MEM_TYPE},
 
   // tokenizer symbols with unparsable names
   {"[openpar]"        , SYM_OPENPAR},
@@ -143,6 +145,8 @@ special_sym const special_symbols[] =  {
   {"type-byte"        , SYM_TYPE_BYTE},
   {"type-channel"     , SYM_TYPE_CHANNEL},
   {"type-lisparray"   , SYM_TYPE_LISPARRAY},
+  {"type-dm"          , SYM_TYPE_DEFRAG_MEM},
+  {"type-custom"      , SYM_TYPE_CUSTOM},
 
   // Fundamental operations
   {"+"                , SYM_ADD},
@@ -218,6 +222,9 @@ special_sym const special_symbols[] =  {
   {"mkarray"        , SYM_MKARRAY},
   {"array-to-list"  , SYM_ARRAY_TO_LIST},
   {"list-to-array"  , SYM_LIST_TO_ARRAY},
+
+  {"dm-create"      , SYM_DM_CREATE},
+  {"dm-alloc"       , SYM_DM_ALLOC},
 
   // fast access in list
   {"ix"             , SYM_IX},

@@ -247,7 +247,7 @@ void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
     printf("--------------------------------\n");
     printf("ContextID: %"PRI_UINT"\n", ctx->id);
     printf("Stack SP: %"PRI_UINT"\n",  ctx->K.sp);
-    printf("Stack SP max: %"PRI_UINT"\n", ctx->K.max_sp);
+    printf("Stack SP max: %"PRI_UINT"\n", lbm_get_max_stack(&ctx->K));
     if (print_ret) {
       printf("Value: %s\n", output);
     } else {

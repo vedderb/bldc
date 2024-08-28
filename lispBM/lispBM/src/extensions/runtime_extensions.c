@@ -116,8 +116,6 @@ lbm_value ext_lbm_heap_state(lbm_value *args, lbm_uint argn) {
 }
 
 lbm_value ext_env_get(lbm_value *args, lbm_uint argn) {
-  (void)args;
-  (void)argn;
   if (argn == 1 && lbm_is_number(args[0])) {
     lbm_uint ix = lbm_dec_as_u32(args[0]) & GLOBAL_ENV_MASK;
     return lbm_get_global_env()[ix];
@@ -144,7 +142,6 @@ lbm_value ext_set_gc_stack_size(lbm_value *args, lbm_uint argn) {
         lbm_free(lbm_heap_state.gc_stack.data);
         lbm_heap_state.gc_stack.data = new_stack;
         lbm_heap_state.gc_stack.size = n;
-        lbm_heap_state.gc_stack.max_sp = 0;
         lbm_heap_state.gc_stack.sp = 0;  // should already be 0
         return ENC_SYM_TRUE;
       }
@@ -163,6 +160,31 @@ lbm_value ext_is_64bit(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
   #endif
 }
+
+lbm_value ext_symbol_table_size(lbm_uint *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  return lbm_enc_u(lbm_get_symbol_table_size());
+}
+
+lbm_value ext_symbol_table_size_flash(lbm_uint *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  return lbm_enc_u(lbm_get_symbol_table_size_flash());
+}
+
+lbm_value ext_symbol_table_size_names(lbm_uint *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  return lbm_enc_u(lbm_get_symbol_table_size_names());
+}
+
+lbm_value ext_symbol_table_size_names_flash(lbm_uint *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  return lbm_enc_u(lbm_get_symbol_table_size_names_flash());
+}
+
 
 bool lbm_runtime_extensions_init(bool minimal) {
 
@@ -194,6 +216,10 @@ bool lbm_runtime_extensions_init(bool minimal) {
     res = res && lbm_add_extension("env-set", ext_env_set);
     res = res && lbm_add_extension("set-gc-stack-size", ext_set_gc_stack_size);
     res = res && lbm_add_extension("is-64bit", ext_is_64bit);
+    res = res && lbm_add_extension("symtab-size", ext_symbol_table_size);
+    res = res && lbm_add_extension("symtab-size-flash", ext_symbol_table_size_flash);
+    res = res && lbm_add_extension("symtab-size-names", ext_symbol_table_size_names);
+    res = res && lbm_add_extension("symtab-size-names-flash", ext_symbol_table_size_names_flash);
   }
   return res;
 }

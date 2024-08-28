@@ -6,12 +6,12 @@
 
 (defun smaller ( x ) {
        (gc)
-       (< x 10)
+       (< x 2)
        })
 
 (defun f (x)
   (atomic
-   (var z "apa")
+   (var z 5)
    (match x
           ( ((? x) . ((? y) . _))  (smaller z) (list y 'smaller))
           ( ((? x) . ((? y) . _))  (larger z) (list y 'larger))
