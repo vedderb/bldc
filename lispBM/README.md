@@ -93,7 +93,7 @@ Add prefix to prints that are sent to the repl in VESC Tool. Useful when multipl
 Example:
 
 ```clj
-(set-print-prefix "dev-1")
+(set-print-prefix "dev-1 ")
 ```
 
 ---
