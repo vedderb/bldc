@@ -433,7 +433,6 @@ int flatten_value_c(lbm_flat_value_t *fv, lbm_value v) {
 }
 
 lbm_value handle_flatten_error(int err_val) {
-  printf("handling flatten error %d\n", err_val);
   switch (err_val) {
   case FLATTEN_VALUE_ERROR_CANNOT_BE_FLATTENED:
     return ENC_SYM_EERROR;
@@ -479,7 +478,6 @@ lbm_value flatten_value(lbm_value v) {
       // it would be wasteful to run finish_flatten here.
       r = true;
     } else {
-      printf("flatten failed\n");
       r = false;
     }
 
@@ -493,7 +491,6 @@ lbm_value flatten_value(lbm_value v) {
     } 
   }
   lbm_set_car_and_cdr(array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
-  printf("required_mem = %d\n", required_mem);
   return handle_flatten_error(required_mem);
 }
 
