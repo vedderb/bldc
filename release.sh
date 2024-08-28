@@ -29,10 +29,15 @@ failing_gc_unit_tests_log_file="failing_gc_unit_tests_log_${release}.txt"
 
 
 ./run_tests.sh ../$reportdir/$failing_unit_tests_log_file >> ../$reportdir/$unit_tests_log_file
-./run_tests.sh ../$reportdir/$failing_unit_tests_64_log_file >> ../$reportdir/$unit_tests_64_log_file
+./run_tests64.sh ../$reportdir/$failing_unit_tests_64_log_file >> ../$reportdir/$unit_tests_64_log_file
 ./run_tests_gc.sh ../$reportdir/$failing_gc_unit_tests_log_file >> ../$reportdir/$gc_unit_tests_log_file
 
+# Run the 32bit tests for a coverage report.
+./run_tests_cov.sh
+
+
 cd ..
+cp -r tests/coverage $reportdir/coverage
 
 if ! command -v scan-build-14 &> /dev/null
 then

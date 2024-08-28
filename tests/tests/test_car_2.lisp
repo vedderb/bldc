@@ -1,2 +1,2 @@
 
-(check (eq (car [1 2 3]) nil))
+(check (eq (trap (car [1 2 3])) '(exit-error type_error)))

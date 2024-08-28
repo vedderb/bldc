@@ -32,6 +32,7 @@
 #include "extensions/matvec_extensions.h"
 #include "extensions/random_extensions.h"
 #include "extensions/loop_extensions.h"
+#include "extensions/set_extensions.h"
 #include "lbm_channel.h"
 #include "lbm_flat_value.h"
 
@@ -39,7 +40,7 @@
 
 #define GC_STACK_SIZE 96
 #define PRINT_STACK_SIZE 256
-#define EXTENSION_STORAGE_SIZE 100
+#define EXTENSION_STORAGE_SIZE 200
 #define CONSTANT_MEMORY_SIZE 32*1024
 
 
@@ -49,7 +50,11 @@
 lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
 lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 
+#ifndef LONGER_DELAY
 static uint32_t timeout = 10;
+#else
+static uint32_t timeout = 30;
+#endif
 
 void const_heap_init(void) {
   for (int i = 0; i < CONSTANT_MEMORY_SIZE; i ++) {
@@ -112,6 +117,11 @@ void context_done_callback(eval_context_t *ctx) {
   (void)lbm_print_value(output, 128, t);
 
   printf("Thread %d finished: %s\n", (int32_t)ctx->id, output);
+}
+
+void critical_error(void) {
+  printf("Critical error\n");
+  exit(EXIT_FAILURE);
 }
 
 bool dyn_load(const char *str, const char **code) {
@@ -413,6 +423,17 @@ LBM_EXTENSION(ext_load_inc_i, args, argn) {
   return ENC_SYM_TRUE;
 }
 
+
+LBM_EXTENSION(ext_flatten_depth, args, argn) {
+  lbm_value res = ENC_SYM_NIL;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    lbm_int i = lbm_dec_as_i32(args[0]);
+    lbm_set_max_flatten_depth(i);
+    res = ENC_SYM_TRUE;
+  }
+  return res;
+}
+
 int main(int argc, char **argv) {
 
   int res = 0;
@@ -601,6 +622,13 @@ int main(int argc, char **argv) {
     return FAIL;
   }
 
+  if (lbm_set_extensions_init()) {
+    printf("Set extensions initialized.\n");
+  } else {
+    printf("Set extensions failed.\n");
+    return FAIL;
+  }
+
   res = lbm_add_extension("ext-even", ext_even);
   if (res)
     printf("Extension added.\n");
@@ -721,10 +749,19 @@ int main(int argc, char **argv) {
     return FAIL;
   }
 
+  res = lbm_add_extension("flatten-depth", ext_flatten_depth);
+  if (res)
+    printf("extension load extension added.\n");
+  else {
+    printf("Error adding extension.\n");
+    return FAIL;
+  }
+
   lbm_set_dynamic_load_callback(dyn_load);
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_printf_callback(printf);
+  lbm_set_critical_error_callback(critical_error);
 
   lbm_set_verbose(true);
 

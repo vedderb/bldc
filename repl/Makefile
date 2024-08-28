@@ -23,8 +23,10 @@ endif
 improved_closures: CCFLAGS += -m32 -DCLEAN_UP_CLOSURES
 improved_closures: repl clean_cl.h
 
+CCFLAGS_COV = -g -coverage -O0 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 -m32
+
 all: CCFLAGS += -m32 
-all: repl 
+all: repl repl_cov
 
 all64: 	CCFLAGS += -DLBM64
 all64: repl
@@ -42,15 +44,20 @@ install: all
 	mkdir -p ~/.local/bin
 	cp repl ~/.local/bin/lbm
 
-
 debug: CCFLAGS += -g
 debug: repl
 
 repl: $(REPL_SRC) $(LISPBM_SRC) $(LISPBM_DEPS)
-	gcc $(CCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) $(REPL_SRC) -o repl $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread -lreadline -lhistory 
+	gcc $(CCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) $(REPL_SRC) -o repl $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread -lreadline -lhistory
+
+repl_cov: $(REPL_SRC) $(LISPBM_SRC) $(LISPBM_DEPS)
+	gcc $(CCFLAGS_COV) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) $(REPL_SRC) -o repl_cov $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread -lreadline -lhistory  
 
 pirepl: $(REPL_SRC) $(LISPBM_SRC) $(LISPBM_DEPS)
 	gcc $(PICCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) $(REPL_SRC) -o repl $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread -lreadline -lhistory 
 
 clean:
 	rm repl
+	rm repl_cov
+	rm *.gcda
+	rm *.gcno

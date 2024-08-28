@@ -77,9 +77,17 @@ unsigned int lbm_channel_column(lbm_char_channel_t *chan) {
   return chan->column(chan);
 }
 
+bool lbm_channel_may_block(lbm_char_channel_t *chan) {
+  return chan->may_block(chan);
+}
+
 /* ------------------------------------------------------------
    Implementation buffered channel
    ------------------------------------------------------------ */
+bool buffered_may_block(lbm_char_channel_t *chan) {
+  (void) chan;
+  return true;
+}
 
 bool buffered_more(lbm_char_channel_t *chan) {
   lbm_buffered_channel_state_t *st = (lbm_buffered_channel_state_t*)chan->state;
@@ -241,11 +249,17 @@ void lbm_create_buffered_char_channel(lbm_buffered_channel_state_t *st,
   chan->reader_is_closed = buffered_reader_is_closed;
   chan->row = buffered_row;
   chan->column = buffered_column;
+  chan->may_block = buffered_may_block;
 }
 
 /* ------------------------------------------------------------
    Implementation string channel
    ------------------------------------------------------------ */
+
+bool string_may_block(lbm_char_channel_t *chan) {
+  (void) chan;
+  return false;
+}
 
 bool string_more(lbm_char_channel_t *chan) {
   lbm_string_channel_state_t *st = (lbm_string_channel_state_t*)chan->state;
@@ -391,6 +405,7 @@ void lbm_create_string_char_channel(lbm_string_channel_state_t *st,
   chan->reader_is_closed = string_reader_is_closed;
   chan->row = string_row;
   chan->column = string_column;
+  chan->may_block = string_may_block;
 }
 
 void lbm_create_string_char_channel_size(lbm_string_channel_state_t *st,
@@ -421,4 +436,5 @@ void lbm_create_string_char_channel_size(lbm_string_channel_state_t *st,
   chan->reader_is_closed = string_reader_is_closed;
   chan->row = string_row;
   chan->column = string_column;
+  chan->may_block = string_may_block;
 }

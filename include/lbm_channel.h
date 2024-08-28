@@ -89,6 +89,8 @@ typedef struct lbm_char_channel_s {
   unsigned int (*row)(struct lbm_char_channel_s *chan);
   unsigned int (*column)(struct lbm_char_channel_s *chan);
 
+  bool (*may_block)(struct lbm_char_channel_s *chan);
+
 } lbm_char_channel_t;
 
 
@@ -193,6 +195,10 @@ unsigned int lbm_channel_row(lbm_char_channel_t *chan);
  */
 unsigned int lbm_channel_column(lbm_char_channel_t *chan);
 
+/** query if a channel has a potentially blocking
+ * interface. Buffered channels do, string backed channels don't.
+ */
+bool lbm_channel_may_block(lbm_char_channel_t *chan);
 
 /* Interface */
 /** Create a channel from a string. This channel can be read from but not

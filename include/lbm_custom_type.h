@@ -63,17 +63,26 @@ bool lbm_custom_type_create(lbm_uint value, custom_type_destructor fptr, const c
  */
 bool lbm_custom_type_destroy(lbm_uint *lbm_mem_ptr);
 
+static inline bool lbm_is_custom(lbm_value value) {
+  return (lbm_type_of(value) == LBM_TYPE_CUSTOM && !lbm_is_symbol_nil(lbm_car(value)));
+}
+
 static inline const char *lbm_get_custom_descriptor(lbm_value value) {
-  if (lbm_type_of(value) == LBM_TYPE_CUSTOM) {
+  const char *res = NULL;
+  if  (lbm_is_custom(value)) {
     lbm_uint *m = (lbm_uint*)lbm_dec_custom(value);
-    return (const char*)m[CUSTOM_TYPE_DESCRIPTOR];
+    res = (const char*)m[CUSTOM_TYPE_DESCRIPTOR];
   }
-  return NULL;
+  return res;
 }
 
 static inline lbm_uint lbm_get_custom_value(lbm_value value) {
-  lbm_uint *m = (lbm_uint*)lbm_dec_custom(value);
-  return m[CUSTOM_TYPE_VALUE];
+  lbm_uint res = 0;
+  if (lbm_is_custom(value)) {
+    lbm_uint *m = (lbm_uint*)lbm_dec_custom(value);
+    res = m[CUSTOM_TYPE_VALUE];
+  }
+  return res;
 }
 
 #ifdef __cplusplus

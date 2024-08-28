@@ -96,7 +96,9 @@ static jmp_buf critical_error_jmp_buf;
 #define MOVE_ARRAY_ELTS_TO_FLASH CONTINUATION(46)
 #define POP_READER_FLAGS      CONTINUATION(47)
 #define EXCEPTION_HANDLER     CONTINUATION(48)
-#define NUM_CONTINUATIONS     49
+#define RECV_TO               CONTINUATION(49)
+#define REBLOCK               CONTINUATION(50)
+#define NUM_CONTINUATIONS     51
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -383,7 +385,7 @@ static bool              blocking_extension_mutex_initialized = false;
 static lbm_uint          blocking_extension_timeout_us = 0;
 static bool              blocking_extension_timeout = false;
 
-static uint32_t          is_atomic = 0;
+static bool              is_atomic = false;
 
 /* Process queues */
 static eval_context_queue_t blocked  = {NULL, NULL};
@@ -651,9 +653,17 @@ static void call_fundamental(lbm_uint fundamental, lbm_value *args, lbm_uint arg
   ctx->r = res;
 }
 
+static void atomic_error(void) {
+  is_atomic = false;
+  lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
+  error_ctx(ENC_SYM_EERROR);
+}
+
 // block_current_ctx blocks a context until it is
 // woken up externally or a timeout period of time passes.
+// Blocking while in an atomic block would have bad consequences.
 static void block_current_ctx(uint32_t state, lbm_uint sleep_us,  bool do_cont) {
+  if (is_atomic) atomic_error();
   ctx_running->timestamp = timestamp_us_callback();
   ctx_running->sleep_us = sleep_us;
   ctx_running->state  = state;
@@ -941,33 +951,6 @@ static void context_exists(eval_context_t *ctx, void *cid, void *b) {
   }
 }
 
-bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms) {
-
-  bool exists;
-  uint32_t i = 0;
-
-  do {
-    exists = false;
-    lbm_blocked_iterator(context_exists, &cid, &exists);
-    lbm_running_iterator(context_exists, &cid, &exists);
-
-    if (ctx_running &&
-        ctx_running->id == cid) {
-      exists = true;
-    }
-
-    if (exists) {
-       if (usleep_callback) {
-         usleep_callback(1000);
-       }
-       if (timeout_ms > 0) i ++;
-    }
-  } while (exists && i < timeout_ms);
-
-  if (exists) return false;
-  return true;
-}
-
 void lbm_set_error_suspect(lbm_value suspect) {
   lbm_error_suspect = suspect;
   lbm_error_has_suspect = true;
@@ -1135,6 +1118,7 @@ static void wake_up_ctxs_nm(void) {
 }
 
 static void yield_ctx(lbm_uint sleep_us) {
+  if (is_atomic) atomic_error();
   if (timestamp_us_callback) {
     ctx_running->timestamp = timestamp_us_callback();
     ctx_running->sleep_us = sleep_us;
@@ -1320,6 +1304,9 @@ bool lbm_unblock_ctx_r(lbm_cid cid) {
   mutex_lock(&qmutex);
   found = lookup_ctx_nm(&blocked, cid);
   if (found) {
+    if (found->K.data[found->K.sp-1] == REBLOCK) {
+      pop_stack_ptr(found,2); // clear 2 fields.
+    }
     drop_ctx_nm(&blocked,found);
     enqueue_ctx_nm(&queue,found);
     r = true;
@@ -1337,6 +1324,9 @@ bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
   mutex_lock(&qmutex);
   found = lookup_ctx_nm(&blocked, cid);
   if (found) {
+    if (found->K.data[found->K.sp-1] == REBLOCK) {
+      pop_stack_ptr(found,2); // clear 2 fields.
+    }
     drop_ctx_nm(&blocked,found);
     found->r = unboxed;
     if (lbm_is_error(unboxed)) {
@@ -1597,6 +1587,8 @@ static void eval_symbol(eval_context_t *ctx) {
       }
     }
 
+    // Here, chan has either been assigned or execution has terminated.
+    
     lbm_value loader;
     WITH_GC_RMBR_1(loader, lbm_heap_allocate_list_init(2,
                                                        ENC_SYM_READ,
@@ -1644,12 +1636,9 @@ static void eval_progn(eval_context_t *ctx) {
 }
 
 static void eval_atomic(eval_context_t *ctx) {
-  if (is_atomic) {
-    lbm_set_error_reason("Atomic blocks cannot be nested!");
-    error_ctx(ENC_SYM_EERROR);
-  }
+  if (is_atomic) atomic_error();
   stack_reserve(ctx, 1)[0] = EXIT_ATOMIC;
-  is_atomic ++;
+  is_atomic = true;
   eval_progn(ctx);
 }
 
@@ -1790,13 +1779,8 @@ static void eval_app_cont(eval_context_t *ctx) {
 
 // Create a named location in an environment to later receive a value.
 static binding_location_status create_binding_location_internal(lbm_value key, lbm_value *env) {
-
-  if (lbm_is_symbol(key) &&
-      (key == ENC_SYM_NIL ||
-       key == ENC_SYM_DONTCARE))
-    return BL_OK;
-
   if (lbm_type_of(key) == LBM_TYPE_SYMBOL) { // default case
+    if (key == ENC_SYM_NIL || key == ENC_SYM_DONTCARE) return BL_OK;
     lbm_value binding;
     lbm_value new_env_tmp;
     binding = lbm_cons(key, ENC_SYM_NIL);
@@ -1841,39 +1825,36 @@ static void create_binding_location(lbm_value key, lbm_value *env) {
 }
 
 static void let_bind_values_eval(lbm_value binds, lbm_value exp, lbm_value env, eval_context_t *ctx) {
-
-  if (!lbm_is_cons(binds)) {
-    // binds better be nil or there is a programmer error.
-    ctx->curr_exp = exp;
-    return;
-  }
-
-  // Preallocate binding locations.
-  lbm_value curr = binds;
-  while (lbm_is_cons(curr)) {
-    lbm_value new_env_tmp = env;
-    lbm_value car_curr, cdr_curr;
-    get_car_and_cdr(curr, &car_curr, &cdr_curr);
-    lbm_value key = get_car(car_curr);
-    create_binding_location(key, &new_env_tmp);
-    env = new_env_tmp;
-    curr = cdr_curr;
-  }
-
-  lbm_value car_binds;
-  lbm_value cdr_binds;
-  get_car_and_cdr(binds, &car_binds, &cdr_binds);
-  lbm_value key_val[2];
-  extract_n(car_binds, key_val, 2);
-
-  lbm_uint *sptr = stack_reserve(ctx, 5);
-  sptr[0] = exp;
-  sptr[1] = cdr_binds;
-  sptr[2] = env;
-  sptr[3] = key_val[0];
-  sptr[4] = BIND_TO_KEY_REST;
-  ctx->curr_exp = key_val[1];
-  ctx->curr_env = env;
+  if (lbm_is_cons(binds)) {
+      // Preallocate binding locations.
+      lbm_value curr = binds;
+      while (lbm_is_cons(curr)) {
+        lbm_value new_env_tmp = env;
+        lbm_value car_curr, cdr_curr;
+        get_car_and_cdr(curr, &car_curr, &cdr_curr);
+        lbm_value key = get_car(car_curr);
+        create_binding_location(key, &new_env_tmp);
+        env = new_env_tmp;
+        curr = cdr_curr;
+      }
+      
+      lbm_value car_binds;
+      lbm_value cdr_binds;
+      get_car_and_cdr(binds, &car_binds, &cdr_binds);
+      lbm_value key_val[2];
+      extract_n(car_binds, key_val, 2);
+      
+      lbm_uint *sptr = stack_reserve(ctx, 5);
+      sptr[0] = exp;
+      sptr[1] = cdr_binds;
+      sptr[2] = env;
+      sptr[3] = key_val[0];
+      sptr[4] = BIND_TO_KEY_REST;
+      ctx->curr_exp = key_val[1];
+      ctx->curr_env = env;
+    } else {
+      ctx->curr_exp = exp;
+    }
 }
 
 // (var x (...)) - local binding inside of an progn
@@ -1925,6 +1906,7 @@ static void eval_var(eval_context_t *ctx) {
 }
 
 // (setq x (...)) - same as (set 'x (...)) or (setvar 'x (...))
+// does not error when given incorrect number of arguments.
 static void eval_setq(eval_context_t *ctx) {
   lbm_value parts[3];
   extract_n(ctx->curr_exp, parts, 3);
@@ -2096,29 +2078,23 @@ static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time
   return;
 }
 
+// Receive-timeout
+// (recv timeout (pattern expr)
+//               (pattern expr))
 static void eval_receive_timeout(eval_context_t *ctx) {
-  if (is_atomic) {
-    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-    error_ctx(ENC_SYM_EERROR);
-  }
+  if (is_atomic) atomic_error();
   lbm_value timeout_val = get_cadr(ctx->curr_exp);
-  if (!lbm_is_number(timeout_val)) {
-    error_ctx(ENC_SYM_EERROR);
-  }
-  float timeout_time = lbm_dec_as_float(timeout_val);
-  lbm_value pats = get_cdr(get_cdr(ctx->curr_exp));
-  receive_base(ctx, pats, timeout_time, true);
+  lbm_value *sptr = stack_reserve(ctx, 2);
+  sptr[0] = get_cdr(get_cdr(ctx->curr_exp));
+  sptr[1] = RECV_TO;
+  ctx->curr_exp = timeout_val;
 }
 
 // Receive
 // (recv (pattern expr)
 //       (pattern expr))
 static void eval_receive(eval_context_t *ctx) {
-
-  if (is_atomic) {
-    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-    error_at_ctx(ENC_SYM_EERROR, ctx->curr_exp);
-  }
+  if (is_atomic) atomic_error();
   lbm_value pats = get_cdr(ctx->curr_exp);
   receive_base(ctx, pats, 0, false);
 }
@@ -2249,6 +2225,15 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
       }
     } else if (lbm_type_of(args[0]) == LBM_TYPE_CHANNEL) {
       chan = args[0];
+      // Streaming transfers can freeze the evaluator if the stream is cut while
+      // the reader is reading inside of an atomic block.
+      // It is generally not advisable to read in an atomic block but now it is also
+      // enforced in the case where it can cause problems.
+      if (lbm_channel_may_block(lbm_dec_channel(chan)) && is_atomic) {
+       lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
+       is_atomic = false;
+       error_ctx(ENC_SYM_EERROR);
+      }
     } else {
       error_ctx(ENC_SYM_EERROR);
     }
@@ -2371,10 +2356,6 @@ static void apply_spawn_trap(lbm_value *args, lbm_uint nargs, eval_context_t *ct
 }
 
 static void apply_yield(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (is_atomic) {
-    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_YIELD);
-  }
   if (nargs == 1 && lbm_is_number(args[0])) {
     lbm_uint ts = lbm_dec_as_u32(args[0]);
     lbm_stack_drop(&ctx->K, nargs+1);
@@ -2386,10 +2367,6 @@ static void apply_yield(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 }
 
 static void apply_sleep(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if (is_atomic) {
-    lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-    error_at_ctx(ENC_SYM_EERROR, ENC_SYM_SLEEP);
-  }
   if (nargs == 1 && lbm_is_number(args[0])) {
     lbm_uint ts = (lbm_uint)(1000000.0f * lbm_dec_as_float(args[0]));
     lbm_stack_drop(&ctx->K, nargs+1);
@@ -2949,15 +2926,19 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
 
     ctx->app_cont = true;
     ctx->r = ext_res;
-
-    if (blocking_extension) {
+    
+    if (blocking_extension) { // block_current_ctx checks the atomic status and issues error.
       blocking_extension = false;
+      lbm_value *rptr = stack_reserve(ctx, 2);
       if (blocking_extension_timeout) {
         blocking_extension_timeout = false;
         block_current_ctx(LBM_THREAD_STATE_TIMEOUT, blocking_extension_timeout_us,true);
+        rptr[0] = lbm_enc_i((lbm_int)blocking_extension_timeout_us);
       } else {
         block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0,true);
+        rptr[0] = lbm_enc_i((lbm_int)-1);
       }
+      rptr[1] = REBLOCK;
       mutex_unlock(&blocking_extension_mutex);
     }
   }  break;
@@ -3255,7 +3236,7 @@ static void cont_match(eval_context_t *ctx) {
 }
 
 static void cont_exit_atomic(eval_context_t *ctx) {
-  is_atomic --;
+  is_atomic = false; // atomic blocks cannot nest!
   ctx->app_cont = true;
 }
 
@@ -4801,7 +4782,7 @@ static void cont_qq_list(eval_context_t *ctx) {
 
 static void cont_kill(eval_context_t *ctx) {
   (void) ctx;
-  finish_ctx();
+  ok_ctx(); 
 }
 
 static void cont_pop_reader_flags(eval_context_t *ctx) {
@@ -4821,6 +4802,29 @@ static void cont_exception_handler(eval_context_t *ctx) {
   ctx->flags = flags;
   ctx->r = retval;
   ctx->app_cont = true;
+}
+
+static void cont_recv_to(eval_context_t *ctx) {
+  lbm_value *sptr = pop_stack_ptr(ctx, 1);
+  lbm_value pats = sptr[0];
+
+  if (lbm_is_number(ctx->r)) {
+    float timeout_time = lbm_dec_as_float(ctx->r);
+    receive_base(ctx, pats, timeout_time, true);
+  } else {
+    error_ctx(ENC_SYM_TERROR);
+  }
+}
+
+static void cont_reblock(eval_context_t *ctx) {
+  lbm_value *sptr = get_stack_ptr(ctx, 1);
+  lbm_int timeout = lbm_dec_as_int(sptr[0]);
+  lbm_push(&ctx->K, REBLOCK);
+  if (timeout > 0) {
+    block_current_ctx(LBM_THREAD_STATE_TIMEOUT, blocking_extension_timeout_us,true); 
+  } else {
+    block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0,true);
+  }
 }
 
 /*********************************************************/
@@ -4876,7 +4880,9 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_closure_args_rest,
     cont_move_array_elts_to_flash,
     cont_pop_reader_flags,
-    cont_exception_handler
+    cont_exception_handler,
+    cont_recv_to,
+    cont_reblock
   };
 
 /*********************************************************/
@@ -5003,6 +5009,9 @@ static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
       found->app_cont = true;
     }
     found->r = v;
+    if (found->K.data[found->K.sp-1] == REBLOCK) {
+      pop_stack_ptr(found,2); // clear 2 fields.
+    }
     enqueue_ctx_nm(&queue,found);
   }
   mutex_unlock(&qmutex);
@@ -5108,12 +5117,7 @@ void lbm_run_eval(void){
       } else {
         if (eval_cps_state_changed) break;
         eval_steps_quota = eval_steps_refill;
-        if (is_atomic) {
-          if (!ctx_running) {
-            lbm_set_flags(LBM_FLAG_ATOMIC_MALFUNCTION);
-            is_atomic = 0;
-          }
-        } else {
+        if (!is_atomic) { 
           if (gc_requested) {
             gc();
           }
