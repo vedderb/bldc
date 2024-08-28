@@ -841,8 +841,6 @@ int lbm_gc_sweep_phase(void) {
           lbm_memory_free((lbm_uint*)heap[i].car);
           break;
 	case ENC_SYM_DEFRAG_ARRAY_TYPE:
-	  if (heap[i].car == 0)
-	    printf("GC_ERROR\n");
 	  lbm_defrag_mem_free((lbm_uint*)heap[i].car);
 	  break;
         case ENC_SYM_LISPARRAY_TYPE: /* fall through */
