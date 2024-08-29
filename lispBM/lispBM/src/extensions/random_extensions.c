@@ -40,10 +40,8 @@ static lbm_value ext_random(lbm_value *args, lbm_uint argn) {
   return lbm_enc_u(random_seed);
 }
 
-bool lbm_random_extensions_init(void) {
+void lbm_random_extensions_init(void) {
 
-  bool res = true;
-  res = res && lbm_add_extension("seed", ext_seed);
-  res = res && lbm_add_extension("random", ext_random);
-  return res;
+  lbm_add_extension("seed", ext_seed);
+  lbm_add_extension("random", ext_random);
 }

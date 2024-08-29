@@ -52,44 +52,34 @@ static lbm_value array_extensions_bufclear(lbm_value *args, lbm_uint argn);
 static lbm_value array_extensions_bufcpy(lbm_value *args, lbm_uint argn);
 static lbm_value array_extensions_bufset_bit(lbm_value *args, lbm_uint argn);
 
-bool lbm_array_extensions_init(void) {
+void lbm_array_extensions_init(void) {
 
-  if (!lbm_get_symbol_by_name("little-endian", &little_endian)) {
-    if (!lbm_add_symbol_const("little-endian", &little_endian)) {
-      return false;
-    }
-  }
-  if (!lbm_get_symbol_by_name("big-endian", &big_endian)) {
-    if (!lbm_add_symbol_const("big-endian", &big_endian)) {
-      return false;
-    }
-  }
-  bool res = true;
-  res = res && lbm_add_extension("free", array_extension_unsafe_free_array);
-  res = res && lbm_add_extension("bufset-i8", array_extension_buffer_append_i8);
-  res = res && lbm_add_extension("bufset-i16", array_extension_buffer_append_i16);
-  res = res && lbm_add_extension("bufset-i32", array_extension_buffer_append_i32);
-  res = res && lbm_add_extension("bufset-u8", array_extension_buffer_append_u8);
-  res = res && lbm_add_extension("bufset-u16", array_extension_buffer_append_u16);
-  res = res && lbm_add_extension("bufset-u24", array_extension_buffer_append_u24);
-  res = res && lbm_add_extension("bufset-u32", array_extension_buffer_append_u32);
-  res = res && lbm_add_extension("bufset-f32", array_extension_buffer_append_f32);
+  lbm_add_symbol_const("little-endian", &little_endian);
+  lbm_add_symbol_const("big-endian", &big_endian);
 
-  res = res && lbm_add_extension("bufget-i8", array_extension_buffer_get_i8);
-  res = res && lbm_add_extension("bufget-i16", array_extension_buffer_get_i16);
-  res = res && lbm_add_extension("bufget-i32", array_extension_buffer_get_i32);
-  res = res && lbm_add_extension("bufget-u8", array_extension_buffer_get_u8);
-  res = res && lbm_add_extension("bufget-u16", array_extension_buffer_get_u16);
-  res = res && lbm_add_extension("bufget-u24", array_extension_buffer_get_u24);
-  res = res && lbm_add_extension("bufget-u32", array_extension_buffer_get_u32);
-  res = res && lbm_add_extension("bufget-f32", array_extension_buffer_get_f32);
+  lbm_add_extension("free", array_extension_unsafe_free_array);
+  lbm_add_extension("bufset-i8", array_extension_buffer_append_i8);
+  lbm_add_extension("bufset-i16", array_extension_buffer_append_i16);
+  lbm_add_extension("bufset-i32", array_extension_buffer_append_i32);
+  lbm_add_extension("bufset-u8", array_extension_buffer_append_u8);
+  lbm_add_extension("bufset-u16", array_extension_buffer_append_u16);
+  lbm_add_extension("bufset-u24", array_extension_buffer_append_u24);
+  lbm_add_extension("bufset-u32", array_extension_buffer_append_u32);
+  lbm_add_extension("bufset-f32", array_extension_buffer_append_f32);
 
-  res = res && lbm_add_extension("buflen",  array_extension_buffer_length);
-  res = res && lbm_add_extension("bufclear", array_extensions_bufclear);
-  res = res && lbm_add_extension("bufcpy", array_extensions_bufcpy);
-  res = res && lbm_add_extension("bufset-bit", array_extensions_bufset_bit);
+  lbm_add_extension("bufget-i8", array_extension_buffer_get_i8);
+  lbm_add_extension("bufget-i16", array_extension_buffer_get_i16);
+  lbm_add_extension("bufget-i32", array_extension_buffer_get_i32);
+  lbm_add_extension("bufget-u8", array_extension_buffer_get_u8);
+  lbm_add_extension("bufget-u16", array_extension_buffer_get_u16);
+  lbm_add_extension("bufget-u24", array_extension_buffer_get_u24);
+  lbm_add_extension("bufget-u32", array_extension_buffer_get_u32);
+  lbm_add_extension("bufget-f32", array_extension_buffer_get_f32);
 
-  return res;
+  lbm_add_extension("buflen",  array_extension_buffer_length);
+  lbm_add_extension("bufclear", array_extensions_bufclear);
+  lbm_add_extension("bufcpy", array_extensions_bufcpy);
+  lbm_add_extension("bufset-bit", array_extensions_bufset_bit);
 }
 
 lbm_value array_extension_unsafe_free_array(lbm_value *args, lbm_uint argn) {

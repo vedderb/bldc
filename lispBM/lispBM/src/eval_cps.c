@@ -725,7 +725,15 @@ void print_environments(char *buf, unsigned int size) {
   }
 }
 
-void print_error_message(lbm_value error, bool has_at, lbm_value at, unsigned int row, unsigned int col, lbm_int row0, lbm_int row1) {
+void print_error_message(lbm_value error,
+			 bool has_at,
+			 lbm_value at,
+			 unsigned int row,
+			 unsigned int col,
+			 lbm_int row0,
+			 lbm_int row1,
+			 lbm_int cid,
+			 char *name) {
   if (!printf_callback) return;
 
   /* try to allocate a lbm_print_value buffer on the lbm_memory */
@@ -737,6 +745,11 @@ void print_error_message(lbm_value error, bool has_at, lbm_value at, unsigned in
 
   lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, error);
   printf_callback(  "***   Error: %s\n", buf);
+  if (name) {
+    printf_callback(  "***   ctx: %d \"%s\"\n", cid, name);
+  } else {
+    printf_callback(  "***   ctx: %d\n", cid);
+  }
   if (has_at) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, at);
     printf_callback("***   In:    %s\n",buf);
@@ -772,7 +785,6 @@ void print_error_message(lbm_value error, bool has_at, lbm_value at, unsigned in
   }
   if (lbm_verbose) {
     lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-    printf_callback("   In context: %d\n", ctx_running->id);
     printf_callback("   Current intermediate result: %s\n\n", buf);
 
     print_environments(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
@@ -1002,7 +1014,9 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
                       row,
                       column,
                       ctx_running->row0,
-                      ctx_running->row1);
+                      ctx_running->row1,
+		      ctx_running->id,
+		      ctx_running->name);
  error_ctx_base_done:
   ctx_running->r = err_val;
   finish_ctx();
@@ -2345,6 +2359,7 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
                                       name);
   ctx->r = lbm_enc_i(cid);
   ctx->app_cont = true;
+  if (cid == -1) error_ctx(ENC_SYM_MERROR); // Kill parent and signal out of memory.
 }
 
 static void apply_spawn(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {

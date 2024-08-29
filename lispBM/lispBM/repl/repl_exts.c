@@ -549,21 +549,11 @@ static lbm_value ext_unsafe_call_system(lbm_value *args, lbm_uint argn) {
 
 int init_exts(void) {
 
-  if (!lbm_array_extensions_init()) {
-    return 0;
-  }
-  if (!lbm_string_extensions_init()) {
-    return 0;
-  }
-  if (!lbm_math_extensions_init()) {
-    return 0;
-  }
-  if (!lbm_runtime_extensions_init(false)) {
-    return 0;
-  }
-  if (!lbm_set_extensions_init()) {
-    return 0;
-  }
+  lbm_array_extensions_init();
+  lbm_string_extensions_init();
+  lbm_math_extensions_init();
+  lbm_runtime_extensions_init(false);
+  lbm_set_extensions_init();
 
   lbm_add_symbol_const("a01", &sym_res);
   lbm_add_symbol_const("a02", &sym_loop);
@@ -598,7 +588,10 @@ int init_exts(void) {
   lbm_add_extension("me-looprange", ext_me_looprange);
   lbm_add_extension("me-loopforeach", ext_me_loopforeach);
 
-  return 1;
+  if (lbm_get_num_extensions() < lbm_get_max_extensions()) {
+    return 1;
+  }
+  return 0;
 }
 
 

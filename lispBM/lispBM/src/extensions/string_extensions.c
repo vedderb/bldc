@@ -727,28 +727,24 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
   return lbm_enc_i(-1);
 }
 
-bool lbm_string_extensions_init(void) {
-
-  bool res = true;
+void lbm_string_extensions_init(void) {
   
-  res = res && lbm_add_symbol_const("left", &sym_left);
-  res = res && lbm_add_symbol_const("nocase", &sym_case_insensitive);
+  lbm_add_symbol_const("left", &sym_left);
+  lbm_add_symbol_const("nocase", &sym_case_insensitive);
   
-  res = res && lbm_add_extension("str-from-n", ext_str_from_n);
-  res = res && lbm_add_extension("str-join", ext_str_join);
-  res = res && lbm_add_extension("str-to-i", ext_str_to_i);
-  res = res && lbm_add_extension("str-to-f", ext_str_to_f);
-  res = res && lbm_add_extension("str-part", ext_str_part);
-  res = res && lbm_add_extension("str-split", ext_str_split);
-  res = res && lbm_add_extension("str-replace", ext_str_replace);
-  res = res && lbm_add_extension("str-to-lower", ext_str_to_lower);
-  res = res && lbm_add_extension("str-to-upper", ext_str_to_upper);
-  res = res && lbm_add_extension("str-cmp", ext_str_cmp);
-  res = res && lbm_add_extension("to-str", ext_to_str);
-  res = res && lbm_add_extension("to-str-delim", ext_to_str_delim);
-  res = res && lbm_add_extension("str-len", ext_str_len);
-  res = res && lbm_add_extension("str-replicate", ext_str_replicate);
-  res = res && lbm_add_extension("str-find", ext_str_find);
-
-  return res;
+  lbm_add_extension("str-from-n", ext_str_from_n);
+  lbm_add_extension("str-join", ext_str_join);
+  lbm_add_extension("str-to-i", ext_str_to_i);
+  lbm_add_extension("str-to-f", ext_str_to_f);
+  lbm_add_extension("str-part", ext_str_part);
+  lbm_add_extension("str-split", ext_str_split);
+  lbm_add_extension("str-replace", ext_str_replace);
+  lbm_add_extension("str-to-lower", ext_str_to_lower);
+  lbm_add_extension("str-to-upper", ext_str_to_upper);
+  lbm_add_extension("str-cmp", ext_str_cmp);
+  lbm_add_extension("to-str", ext_to_str);
+  lbm_add_extension("to-str-delim", ext_to_str_delim);
+  lbm_add_extension("str-len", ext_str_len);
+  lbm_add_extension("str-replicate", ext_str_replicate);
+  lbm_add_extension("str-find", ext_str_find);
 }
