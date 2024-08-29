@@ -78,26 +78,6 @@ printed on a separate line.
 
 ---
 
-#### set-print-prefix
-
-| Platforms | Firmware |
-|---|---|
-| ESC, Express | 6.06+ |
-
-```clj
-(set-print-prefix str)
-```
-
-Add prefix to prints that are sent to the repl in VESC Tool. Useful when multiple devices print to the repl over CAN at the same time for determining which print comes from which device.
-
-Example:
-
-```clj
-(set-print-prefix "dev-1 ")
-```
-
----
-
 #### puts
 
 | Platforms | Firmware |
@@ -111,7 +91,7 @@ Example:
 Similar to `print`, but only takes one string as an argument and prints it without
 quotes. The string extensions can be used to format the output.
 
-**Note**  
+**Note:**  
 This extension can print longer strings than `print`. `print` will trim any
 output over 256 bytes, while this extension only trims strings over 400 bytes.
 
@@ -120,6 +100,41 @@ Example:
 ```clj
 (puts "Hello World")
 > Hello World
+```
+
+---
+
+#### set-print-prefix
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.06+ |
+
+```clj
+(set-print-prefix str)
+```
+
+Adds a prefix to prints that are sent to the repl in VESC Tool. Useful when
+multiple devices print to the repl over CAN at the same time for determining
+which print comes from which device. The prefix can't be longer than 50 bytes
+(including the null byte), and `str` will be trimmed if longer. The value is
+remembered until the next power cycle.
+
+**Note:**  
+This is applied to all text sent to the repl, not just text created by
+calling `print` or `puts`.
+
+
+Example:
+
+```clj
+(set-print-prefix "dev-1| ")
+(puts "This message has\na clear origin!")
+```
+which outputs
+```
+dev-1| This message has
+dev-1| a clear origin!
 ```
 
 ---
@@ -1149,7 +1164,7 @@ Stop playing tones on all channels.
 
 ### Motor Get Commands
 
-**Note**  
+**Note:**  
 If the optional optFilter-argument is 1 in the commands below the result will be the average since that function was called the last time. That is also how the plots are filtered in VESC Tool. Polling realtime data in VESC Tool at the same time will affect the averaging as it uses the same integrator. This function was added in firmware 6.05.
 
 ---
@@ -2676,7 +2691,7 @@ Raw data commands useful for debugging hardware issues.
 
 Get raw current measurements. Motor is the motor index (1 or 2), phase is the phase (1, 2 or 3) and useRaw is whether to convert the measurements to currents or to use raw ADC values.
 
-**NOTE**  
+**Note:**  
 These samples can come from either V0 or V7 depending on when the function is called (although most likely V7 as less other computations happen then), so when the motor is running this is most likely not going to look good, especially if the hardware does not have phase shunts. This function is intended for debugging hardware and returns just was goes into the ADC without any processing.
 
 Example for reading phase B on motor 1 as raw ADC values:
@@ -4997,7 +5012,7 @@ Byte arrays will be de-allocated by the garbage collector on a regular basis, bu
 
 This will clear the allocated memory for `arr`.
 
-**Note**  
+**Note:**  
 Strings in lispBM are treated the same as byte arrays, so all of the above can be done to the characters in strings too.
 
 ---
@@ -5039,7 +5054,7 @@ marked as smaller in an efficient manner which avoids any new allocations.
 
 It is possible to shrink an array to a length of zero.
 
-**Note**  
+**Note:**  
 The array will be resized in place. The returned reference to `arr` is just for
 convenience. (Unless `opt-copy-symbol` is `'copy` of course.)
 
