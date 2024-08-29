@@ -193,27 +193,25 @@ static lbm_value ext_is_inf(lbm_value *args, lbm_uint argn) {
 }
 
 
-bool lbm_math_extensions_init(void) {
+void lbm_math_extensions_init(void) {
 
-  bool res = true;
-  res = res && lbm_add_extension("sin", ext_sin);
-  res = res && lbm_add_extension("cos", ext_cos);
-  res = res && lbm_add_extension("tan", ext_tan);
-  res = res && lbm_add_extension("asin", ext_asin);
-  res = res && lbm_add_extension("acos", ext_acos);
-  res = res && lbm_add_extension("atan", ext_atan);
-  res = res && lbm_add_extension("atan2", ext_atan2);
-  res = res && lbm_add_extension("pow", ext_pow);
-  res = res && lbm_add_extension("exp", ext_exp);
-  res = res && lbm_add_extension("sqrt", ext_sqrt);
-  res = res && lbm_add_extension("log", ext_log);
-  res = res && lbm_add_extension("log10", ext_log10);
-  res = res && lbm_add_extension("floor", ext_floor);
-  res = res && lbm_add_extension("ceil", ext_ceil);
-  res = res && lbm_add_extension("round", ext_round);
-  res = res && lbm_add_extension("deg2rad", ext_deg2rad);
-  res = res && lbm_add_extension("rad2deg", ext_rad2deg);
-  res = res && lbm_add_extension("is-nan", ext_is_nan);
-  res = res && lbm_add_extension("is-inf", ext_is_inf);
-  return res;
+  lbm_add_extension("sin", ext_sin);
+  lbm_add_extension("cos", ext_cos);
+  lbm_add_extension("tan", ext_tan);
+  lbm_add_extension("asin", ext_asin);
+  lbm_add_extension("acos", ext_acos);
+  lbm_add_extension("atan", ext_atan);
+  lbm_add_extension("atan2", ext_atan2);
+  lbm_add_extension("pow", ext_pow);
+  lbm_add_extension("exp", ext_exp);
+  lbm_add_extension("sqrt", ext_sqrt);
+  lbm_add_extension("log", ext_log);
+  lbm_add_extension("log10", ext_log10);
+  lbm_add_extension("floor", ext_floor);
+  lbm_add_extension("ceil", ext_ceil);
+  lbm_add_extension("round", ext_round);
+  lbm_add_extension("deg2rad", ext_deg2rad);
+  lbm_add_extension("rad2deg", ext_rad2deg);
+  lbm_add_extension("is-nan", ext_is_nan);
+  lbm_add_extension("is-inf", ext_is_inf);
 }

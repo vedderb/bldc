@@ -138,6 +138,7 @@ LBMSRC = ../../src/env.c \
          ../../src/lbm_channel.c \
 	 ../../src/lbm_flags.c \
          ../../src/lbm_flat_value.c \
+         ../../src/lbm_defrag_mem.c \
          ../../platform/chibios/src/platform_mutex.c
 
 CSRC = $(ALLCSRC) \

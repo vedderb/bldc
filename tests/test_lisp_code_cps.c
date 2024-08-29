@@ -573,187 +573,37 @@ int main(int argc, char **argv) {
     return FAIL;
   }
 
-  if (lbm_array_extensions_init()) {
-    printf("Array extensions initialized.\n");
+  lbm_array_extensions_init();
+  lbm_math_extensions_init();
+  lbm_string_extensions_init();
+  lbm_runtime_extensions_init(false);
+  lbm_matvec_extensions_init();
+  lbm_random_extensions_init();
+  lbm_loop_extensions_init();
+
+  lbm_set_extensions_init();
+  lbm_add_extension("ext-even", ext_even);
+  lbm_add_extension("ext-odd", ext_odd);
+  lbm_add_extension("ext-numbers", ext_numbers);
+  lbm_add_extension("event-sym", ext_event_sym);
+  lbm_add_extension("event-float", ext_event_float);
+  lbm_add_extension("event-list-of-float", ext_event_list_of_float);
+  lbm_add_extension("event-array", ext_event_array);
+  lbm_add_extension("block", ext_block);
+  lbm_add_extension("unblock", ext_unblock);
+  lbm_add_extension("block-rmbr", ext_block_rmbr);
+
+  lbm_add_extension("unblock-rmbr", ext_unblock_rmbr);
+  lbm_add_extension("unblock-error", ext_unblock_error);
+  lbm_add_extension("const-prg", ext_const_prg);
+  lbm_add_extension("check", ext_check);
+  lbm_add_extension("load-inc-i", ext_load_inc_i);
+  lbm_add_extension("flatten-depth", ext_flatten_depth);
+
+  if (lbm_get_num_extensions() < lbm_get_max_extensions()) {
+    printf("Extensions loaded successfully\n");
   } else {
-    printf("Array extensions failed.\n");
-    return FAIL;
-  }
-
-  if (lbm_math_extensions_init()) {
-    printf("Math extensions initialized.\n");
-  } else {
-    printf("Math extensions failed.\n");
-    return FAIL;
-  }
-
-  if (lbm_string_extensions_init()) {
-    printf("String extensions initialized.\n");
-  } else {
-    printf("String extensions failed.\n");
-    return FAIL;
-  }
-
-  if (lbm_runtime_extensions_init(false)) {
-    printf("Runtime extensions initialized.\n");
-  } else {
-    printf("Runtime extensions failed.\n");
-    return FAIL;
-  }
-
-  if (lbm_matvec_extensions_init()) {
-    printf("Matvec extensions initialized.\n");
-  } else {
-    printf("Matvec extensions failed.\n");
-    return FAIL;
-  }
-
-  if (lbm_random_extensions_init()) {
-    printf("Random extensions initialized.\n");
-  } else {
-    printf("Random extensions failed.\n");
-    return FAIL;
-  }
-
-  if (lbm_loop_extensions_init()) {
-    printf("Loop extensions initialized.\n");
-  } else {
-    printf("Loop extensions failed.\n");
-    return FAIL;
-  }
-
-  if (lbm_set_extensions_init()) {
-    printf("Set extensions initialized.\n");
-  } else {
-    printf("Set extensions failed.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("ext-even", ext_even);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("ext-odd", ext_odd);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("ext-numbers", ext_numbers);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("event-sym", ext_event_sym);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("event-float", ext_event_float);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("event-list-of-float", ext_event_list_of_float);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("event-array", ext_event_array);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("block", ext_block);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("unblock", ext_unblock);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("block-rmbr", ext_block_rmbr);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("unblock-rmbr", ext_unblock_rmbr);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("unblock-error", ext_unblock_error);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("const-prg", ext_const_prg);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("check", ext_check);
-  if (res)
-    printf("Result check extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("load-inc-i", ext_load_inc_i);
-  if (res)
-    printf("extension load extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("flatten-depth", ext_flatten_depth);
-  if (res)
-    printf("extension load extension added.\n");
-  else {
-    printf("Error adding extension.\n");
+    printf("Failed to load Extensions\n");
     return FAIL;
   }
 

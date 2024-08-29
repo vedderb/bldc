@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-bool lbm_set_extensions_init(void);
+void lbm_set_extensions_init(void);
 
 #ifdef __cplusplus
 }

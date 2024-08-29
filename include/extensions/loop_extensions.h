@@ -26,7 +26,7 @@ extern "C" {
 
 extern const char *loop_extensions_dyn_load[4];
 
-bool lbm_loop_extensions_init(void);
+void lbm_loop_extensions_init(void);
 
 #ifdef __cplusplus
 }

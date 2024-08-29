@@ -182,7 +182,7 @@ const char *loop_extensions_dyn_load[4] = {
   "(define loopforeach (macro (it lst body) (me-loopforeach it lst body)))"
 };
 
-bool lbm_loop_extensions_init(void) {
+void lbm_loop_extensions_init(void) {
 
   lbm_add_symbol_const("a01", &sym_res);
   lbm_add_symbol_const("a02", &sym_loop);
@@ -190,10 +190,8 @@ bool lbm_loop_extensions_init(void) {
   lbm_add_symbol_const("a03", &sym_brk);
   lbm_add_symbol_const("a04", &sym_rst);
 
-  bool res = true;
-  res = res && lbm_add_extension("me-loopfor", ext_me_loopfor);
-  res = res && lbm_add_extension("me-loopwhile", ext_me_loopwhile);
-  res = res && lbm_add_extension("me-looprange", ext_me_looprange);
-  res = res && lbm_add_extension("me-loopforeach", ext_me_loopforeach);
-  return res;
+  lbm_add_extension("me-loopfor", ext_me_loopfor);
+  lbm_add_extension("me-loopwhile", ext_me_loopwhile);
+  lbm_add_extension("me-looprange", ext_me_looprange);
+  lbm_add_extension("me-loopforeach", ext_me_loopforeach);
 }

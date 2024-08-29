@@ -30,12 +30,15 @@
 #endif
 
 int lbm_stack_allocate(lbm_stack_t *s, lbm_uint stack_size) {
+  int r = 0;
   s->data = lbm_memory_allocate(stack_size);
-  memset(s->data, STACK_UNUSED_BYTE, stack_size * sizeof(lbm_uint));
-  s->sp = 0;
-  s->size = stack_size;
-  if (s->data) return 1;
-  return 0;
+  if (s->data) {
+    memset(s->data, STACK_UNUSED_BYTE, stack_size * sizeof(lbm_uint));
+    s->sp = 0;
+    s->size = stack_size;
+    r = 1;
+  }
+  return r;
 }
 
 int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, lbm_uint stack_size) {

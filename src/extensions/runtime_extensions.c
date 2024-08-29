@@ -186,7 +186,7 @@ lbm_value ext_symbol_table_size_names_flash(lbm_uint *args, lbm_uint argn) {
 }
 
 
-bool lbm_runtime_extensions_init(bool minimal) {
+void lbm_runtime_extensions_init(bool minimal) {
 
   if (!minimal) {
     lbm_add_symbol_const("get-heap-size", &sym_heap_size);
@@ -201,25 +201,23 @@ bool lbm_runtime_extensions_init(bool minimal) {
     lbm_add_symbol_const("get-gc-num-last-free", &sym_num_last_free);
   }
 
-  bool res = true;
   if (minimal) {
-    res = res && lbm_add_extension("set-eval-quota", ext_eval_set_quota);
+    lbm_add_extension("set-eval-quota", ext_eval_set_quota);
   } else {
-    res = res && lbm_add_extension("set-eval-quota", ext_eval_set_quota);
-    res = res && lbm_add_extension("mem-num-free", ext_memory_num_free);
-    res = res && lbm_add_extension("mem-longest-free", ext_memory_longest_free);
-    res = res && lbm_add_extension("mem-size", ext_memory_size);
-    res = res && lbm_add_extension("word-size", ext_memory_word_size);
-    res = res && lbm_add_extension("lbm-version", ext_lbm_version);
-    res = res && lbm_add_extension("lbm-heap-state", ext_lbm_heap_state);
-    res = res && lbm_add_extension("env-get", ext_env_get);
-    res = res && lbm_add_extension("env-set", ext_env_set);
-    res = res && lbm_add_extension("set-gc-stack-size", ext_set_gc_stack_size);
-    res = res && lbm_add_extension("is-64bit", ext_is_64bit);
-    res = res && lbm_add_extension("symtab-size", ext_symbol_table_size);
-    res = res && lbm_add_extension("symtab-size-flash", ext_symbol_table_size_flash);
-    res = res && lbm_add_extension("symtab-size-names", ext_symbol_table_size_names);
-    res = res && lbm_add_extension("symtab-size-names-flash", ext_symbol_table_size_names_flash);
+    lbm_add_extension("set-eval-quota", ext_eval_set_quota);
+    lbm_add_extension("mem-num-free", ext_memory_num_free);
+    lbm_add_extension("mem-longest-free", ext_memory_longest_free);
+    lbm_add_extension("mem-size", ext_memory_size);
+    lbm_add_extension("word-size", ext_memory_word_size);
+    lbm_add_extension("lbm-version", ext_lbm_version);
+    lbm_add_extension("lbm-heap-state", ext_lbm_heap_state);
+    lbm_add_extension("env-get", ext_env_get);
+    lbm_add_extension("env-set", ext_env_set);
+    lbm_add_extension("set-gc-stack-size", ext_set_gc_stack_size);
+    lbm_add_extension("is-64bit", ext_is_64bit);
+    lbm_add_extension("symtab-size", ext_symbol_table_size);
+    lbm_add_extension("symtab-size-flash", ext_symbol_table_size_flash);
+    lbm_add_extension("symtab-size-names", ext_symbol_table_size_names);
+    lbm_add_extension("symtab-size-names-flash", ext_symbol_table_size_names_flash);
   }
-  return res;
 }

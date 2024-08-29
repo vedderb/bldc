@@ -24,7 +24,7 @@
 extern "C" {
 #endif
 
-bool lbm_array_extensions_init(void);
+void lbm_array_extensions_init(void);
 
 #ifdef __cplusplus
 }
