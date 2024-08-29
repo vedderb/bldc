@@ -115,6 +115,11 @@ static void print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
 
 	commands_printf_lisp("--------------------------------");
 	commands_printf_lisp("ContextID: %u", ctx->id);
+
+	if (ctx->name) {
+		commands_printf_lisp("Context Name: %u", ctx->name);
+	}
+
 	commands_printf_lisp("Stack SP: %u",  ctx->K.sp);
 	commands_printf_lisp("Stack SP max: %u", lbm_get_max_stack(&ctx->K));
 	commands_printf_lisp("Result%s: %s", print_ret ? "" : " (trunc)", output);
