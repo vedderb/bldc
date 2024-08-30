@@ -88,6 +88,29 @@ void lbm_gc_unlock(void) {
 }
 #endif
 
+/***************************************************/
+/* The empty bytearr                               */
+static lbm_array_header_t empty_array = {
+  .size = 0,
+  .data = NULL
+};
+
+lbm_array_header_t *lbm_get_empty_array(void) {
+  return &empty_array;
+}
+
+static lbm_array_header_extended_t empty_lisp_array = {
+  .size = 0,
+  .data = NULL,
+  .index = 0
+};
+
+lbm_array_header_extended_t *lbm_get_empty_lisp_array(void) {
+  return &empty_lisp_array;
+}
+
+
+
 /****************************************************/
 /* ENCODERS DECODERS                                */
 
@@ -1153,13 +1176,26 @@ lbm_value lbm_index_list(lbm_value l, int32_t n) {
 // in the "heap of cons cells".
 int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size){
 
+  lbm_uint tag = ENC_SYM_ARRAY_TYPE;
+  lbm_uint type = LBM_TYPE_ARRAY;
+  if (!byte_array) {
+      tag = ENC_SYM_LISPARRAY_TYPE;
+      type = LBM_TYPE_LISPARRAY;
+      size = sizeof(lbm_value) * size;
+  }
   lbm_array_header_t *array = NULL;
-
   if (byte_array) {
-    array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
+    if (size == 0) {
+      array = lbm_get_empty_array();
+    } else {
+      array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
+    }
   } else {
-    // an extra 32bit quantity for a GC index.
-    array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_extended_t));
+    if (size == 0) {
+      array = (lbm_array_header_t*)lbm_get_empty_lisp_array(); // coercion
+    } else {
+      array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_extended_t));
+    }
   }
 
   if (array == NULL) {
@@ -1167,27 +1203,24 @@ int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size)
     return 0;
   }
 
-  lbm_uint tag = ENC_SYM_ARRAY_TYPE;
-  lbm_uint type = LBM_TYPE_ARRAY;
-  if (!byte_array) {
-      tag = ENC_SYM_LISPARRAY_TYPE;
-      type = LBM_TYPE_LISPARRAY;
-      size = sizeof(lbm_value) * size;
+  if ( size > 0) {
+    if (!byte_array) {
       lbm_array_header_extended_t *ext_array = (lbm_array_header_extended_t*)array;
       ext_array->index = 0;
-  }
+    }
 
-  array->data = (lbm_uint*)lbm_malloc(size);
+    array->data = (lbm_uint*)lbm_malloc(size);
 
-  if (array->data == NULL) {
-    lbm_memory_free((lbm_uint*)array);
-    *res = ENC_SYM_MERROR;
-    return 0;
+    if (array->data == NULL) {
+      lbm_memory_free((lbm_uint*)array);
+      *res = ENC_SYM_MERROR;
+      return 0;
+    }
+    // It is more important to zero out high-level arrays.
+    // 0 is symbol NIL which is perfectly safe for the GC to inspect.
+    memset(array->data, 0, size);
+    array->size = size;
   }
-  // It is more important to zero out high-level arrays.
-  // 0 is symbol NIL which is perfectly safe for the GC to inspect.
-  memset(array->data, 0, size);
-  array->size = size;
 
   // allocating a cell for array's heap-presence
   lbm_value cell  = lbm_heap_allocate_cell(type, (lbm_uint) array, tag);
@@ -1296,8 +1329,7 @@ uint8_t *lbm_heap_array_get_data_rw(lbm_value arr) {
 int lbm_heap_explicit_free_array(lbm_value arr) {
 
   int r = 0;
-  if (lbm_is_array_rw(arr)) {
-
+  if (lbm_is_array_rw(arr) && lbm_cdr(arr) == ENC_SYM_ARRAY_TYPE) {
     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
     if (header == NULL) {
       return 0;
