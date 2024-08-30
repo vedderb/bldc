@@ -1659,12 +1659,40 @@ int commands_printf_lisp(const char* format, ...) {
 
 	print_buffer[0] = COMM_LISP_PRINT;
 	int offset = 1;
-	offset += sprintf(print_buffer + offset, lispif_print_prefix(), "%s");
+	size_t prefix_len = sprintf(print_buffer + offset, lispif_print_prefix(), "%s");
+	offset += prefix_len;
 
-	len = vsnprintf(print_buffer + offset, (PRINT_BUFFER_SIZE - offset), format, arg);
-	va_end (arg);
+	len = vsnprintf(
+		print_buffer + offset, (PRINT_BUFFER_SIZE - offset), format, arg
+	);
+	va_end(arg);
 
 	int len_to_print = (len < (PRINT_BUFFER_SIZE - offset)) ? len + offset : PRINT_BUFFER_SIZE;
+	
+	for (size_t i = 2; i < (size_t)len_to_print; i++) {
+		// TODO: Handle newline character in prefix?
+		char chr = print_buffer[i - 1];
+		if (chr == '\0') {
+			break;
+		}
+		if (chr == '\n') {
+			int remaining_len = len_to_print - i;
+			if (remaining_len > (int)(PRINT_BUFFER_SIZE - i - prefix_len)) {
+				remaining_len = PRINT_BUFFER_SIZE - i - prefix_len;
+			}
+			if (remaining_len <= 0) {
+				break;
+			}
+			memmove(print_buffer + i + prefix_len, print_buffer + i, remaining_len);
+			memmove(print_buffer + i, lispif_print_prefix(), prefix_len);
+			i += prefix_len;
+			len_to_print += prefix_len;
+		}
+		
+		if (len_to_print > PRINT_BUFFER_SIZE) {
+			len_to_print = PRINT_BUFFER_SIZE;
+		}
+	}
 
 	if (len > 0) {
 		if (print_buffer[len_to_print - 1] == '\n') {
