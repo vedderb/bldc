@@ -254,16 +254,6 @@ typedef struct {
   uint32_t index;         // Limits arrays to max 2^32-1 elements.
 } lbm_array_header_extended_t;
 
-/** Get the empty array
- * /return a pointer to the empty array
- */
-lbm_array_header_t *lbm_get_empty_array(void);
-/** Get the empty lisp array
- * /return a pointer to the empty lisp array
- */
-lbm_array_header_extended_t *lbm_get_empty_lisp_array(void);
-
-
 /** Lock GC mutex
  *  Locks a mutex during GC marking when using the pointer reversal algorithm.
  *  Does nothing when using stack based GC mark.

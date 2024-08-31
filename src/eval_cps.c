@@ -126,6 +126,7 @@ const char* lbm_error_str_flash_not_possible = "Value cannot be written to flash
 const char* lbm_error_str_flash_error = "Error writing to flash.";
 const char* lbm_error_str_flash_full = "Flash memory is full.";
 const char* lbm_error_str_variable_not_bound = "Variable not bound.";
+const char* lbm_error_str_read_no_mem = "Out of memory while reading.";
 
 static lbm_value lbm_error_suspect;
 static bool lbm_error_has_suspect = false;
@@ -3922,25 +3923,34 @@ static void cont_read_start_array(eval_context_t *ctx) {
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
   }
+  if (ctx->r == ENC_SYM_CLOSEBRACK) {
+    lbm_value array;
 
-  lbm_uint num_free = lbm_memory_longest_free();
-  lbm_uint initial_size = (lbm_uint)((float)num_free * 0.9);
-  if (initial_size == 0) {
-    gc();
-    num_free = lbm_memory_longest_free();
-    initial_size = (lbm_uint)((float)num_free * 0.9);
-    if (initial_size == 0) {
+    if (!lbm_heap_allocate_array(&array, 0)) {
+      lbm_set_error_reason((char*)lbm_error_str_read_no_mem);
       lbm_channel_reader_close(str);
-      error_ctx(ENC_SYM_MERROR);
+      error_ctx(ENC_SYM_FATAL_ERROR); // Terminates ctx
     }
-  }
-
-  if (lbm_is_number(ctx->r)) {
+    lbm_stack_drop(&ctx->K, 1);
+    ctx->r = array;
+    ctx->app_cont = true;
+  } else if (lbm_is_number(ctx->r)) {
+    lbm_uint num_free = lbm_memory_longest_free();
+    lbm_uint initial_size = (lbm_uint)((float)num_free * 0.9);
+    if (initial_size == 0) {
+      gc();
+      num_free = lbm_memory_longest_free();
+      initial_size = (lbm_uint)((float)num_free * 0.9);
+      if (initial_size == 0) {
+	lbm_channel_reader_close(str);
+	error_ctx(ENC_SYM_MERROR);
+      }
+    }
     lbm_value array;
     initial_size = sizeof(lbm_uint) * initial_size;
 
     if (!lbm_heap_allocate_array(&array, initial_size)) {
-      lbm_set_error_reason("Out of memory while reading.");
+      lbm_set_error_reason((char*)lbm_error_str_read_no_mem);
       lbm_channel_reader_close(str);
       error_ctx(ENC_SYM_FATAL_ERROR);
       // NOTE: If array is not created evaluation ends here.
@@ -3952,8 +3962,7 @@ static void cont_read_start_array(eval_context_t *ctx) {
     rptr[0] = lbm_enc_u(initial_size);
     rptr[1] = lbm_enc_u(0);
     rptr[2] = stream;
-    rptr[3] = READ_APPEND_ARRAY;
-    ctx->app_cont = true;
+    rptr[3] = READ_APPEND_ARRAY;    ctx->app_cont = true;
   } else {
     lbm_channel_reader_close(str);
     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));

@@ -57,25 +57,23 @@ lbm_value lbm_defrag_mem_create(lbm_uint nbytes) {
 
 static void free_defrag_allocation(lbm_uint *allocation) {
   lbm_uint size = DEFRAG_ALLOC_SIZE(allocation); // array allocation is size in bytes
+  // a defrag-mem allocation is always bigger than 0
+  lbm_uint nwords = bs2ws(size) + 3;
+  lbm_value cell_back_ptr = DEFRAG_ALLOC_CELLPTR(allocation);
 
-  if (size > 0) { 
-    lbm_uint nwords = bs2ws(size) + 3;
-    lbm_value cell_back_ptr = DEFRAG_ALLOC_CELLPTR(allocation);
+  // I have a feeling that it should be impossible for the
+  // cell to be recovered if we end up here.
+  // if the cell is recovered, then the data should also have been
+  // cleared in the defrag_mem.
 
-    // I have a feeling that it should be impossible for the 
-    // cell to be recovered if we end up here.
-    // if the cell is recovered, then the data should also have been
-    // cleared in the defrag_mem.
+  cell_back_ptr = lbm_set_ptr_type(cell_back_ptr, LBM_TYPE_CONS);
+  bool marked = lbm_cdr(cell_back_ptr) & LBM_GC_MASK;
+  lbm_value new_cdr = marked ? (ENC_SYM_NIL | LBM_GC_MARKED) : ENC_SYM_NIL;
+  lbm_set_car_and_cdr(cell_back_ptr, ENC_SYM_NIL, new_cdr);
+  // possible optimize, if not marked. dont bother setting anything.
 
-    cell_back_ptr = lbm_set_ptr_type(cell_back_ptr, LBM_TYPE_CONS);
-    bool marked = lbm_cdr(cell_back_ptr) & LBM_GC_MASK;
-    lbm_value new_cdr = marked ? (ENC_SYM_NIL | LBM_GC_MARKED) : ENC_SYM_NIL;
-    lbm_set_car_and_cdr(cell_back_ptr, ENC_SYM_NIL, new_cdr);
-    // possible optimize, if not marked. dont bother setting anything.
-
-    for (lbm_uint i = 0; i < nwords; i ++) {
-      allocation[i] = 0;
-    }
+  for (lbm_uint i = 0; i < nwords; i ++) {
+    allocation[i] = 0;
   }
 }
 
@@ -89,7 +87,7 @@ void lbm_defrag_mem_destroy(lbm_uint *defrag_mem) {
     lbm_uint a = defrag_data[i];
     if (a != 0) {
       lbm_uint *allocation = &defrag_data[i];
-      lbm_uint alloc_words = 3 + bs2ws(DEFRAG_ALLOC_SIZE(allocation)); 
+      lbm_uint alloc_words = 3 + bs2ws(DEFRAG_ALLOC_SIZE(allocation));
       free_defrag_allocation(allocation);
       i += alloc_words;
     }
@@ -155,16 +153,16 @@ static void lbm_defrag_mem_defrag(lbm_uint *defrag_mem, lbm_uint bytes) {
 
 lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes) {
 
-  if (bytes == 0) return ENC_SYM_NIL;
+  if (bytes == 0) return ENC_SYM_EERROR;
   lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_DEFRAG_ARRAY_TYPE);
   if (lbm_is_symbol(cell)) {
     return cell;
   }
-  
+
   lbm_uint mem_size = DEFRAG_MEM_SIZE(defrag_mem);
   lbm_uint *mem_data = DEFRAG_MEM_DATA(defrag_mem);
 
-  lbm_uint num_words = bs2ws(bytes); 
+  lbm_uint num_words = bs2ws(bytes);
   lbm_uint alloc_words = num_words + 3;
 
   uint8_t state = INIT;
@@ -172,7 +170,7 @@ lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes) {
   lbm_uint free_start = 0;
   bool alloc_found = false;
   lbm_value res = ENC_SYM_MERROR;
-  
+
   for (lbm_uint i = 0; i < mem_size;) {
     switch(state) {
     case INIT:
