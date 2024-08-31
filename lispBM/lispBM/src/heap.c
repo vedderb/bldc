@@ -88,29 +88,6 @@ void lbm_gc_unlock(void) {
 }
 #endif
 
-/***************************************************/
-/* The empty bytearr                               */
-static lbm_array_header_t empty_array = {
-  .size = 0,
-  .data = NULL
-};
-
-lbm_array_header_t *lbm_get_empty_array(void) {
-  return &empty_array;
-}
-
-static lbm_array_header_extended_t empty_lisp_array = {
-  .size = 0,
-  .data = NULL,
-  .index = 0
-};
-
-lbm_array_header_extended_t *lbm_get_empty_lisp_array(void) {
-  return &empty_lisp_array;
-}
-
-
-
 /****************************************************/
 /* ENCODERS DECODERS                                */
 
@@ -1185,24 +1162,16 @@ int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size)
   }
   lbm_array_header_t *array = NULL;
   if (byte_array) {
-    if (size == 0) {
-      array = lbm_get_empty_array();
-    } else {
-      array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
-    }
+    array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
   } else {
-    if (size == 0) {
-      array = (lbm_array_header_t*)lbm_get_empty_lisp_array(); // coercion
-    } else {
-      array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_extended_t));
-    }
+    array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_extended_t));
   }
 
   if (array == NULL) {
     *res = ENC_SYM_MERROR;
     return 0;
   }
-
+  array->data = NULL;
   if ( size > 0) {
     if (!byte_array) {
       lbm_array_header_extended_t *ext_array = (lbm_array_header_extended_t*)array;
@@ -1219,8 +1188,8 @@ int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size)
     // It is more important to zero out high-level arrays.
     // 0 is symbol NIL which is perfectly safe for the GC to inspect.
     memset(array->data, 0, size);
-    array->size = size;
   }
+  array->size = size;
 
   // allocating a cell for array's heap-presence
   lbm_value cell  = lbm_heap_allocate_cell(type, (lbm_uint) array, tag);
