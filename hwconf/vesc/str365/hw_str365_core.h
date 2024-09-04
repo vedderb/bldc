@@ -86,6 +86,11 @@
 #define AUX_ON()				palSetPad(AUX_GPIO, AUX_PIN)
 #define AUX_OFF()				palClearPad(AUX_GPIO, AUX_PIN)
 
+#define AUX2_GPIO				GPIOC
+#define AUX2_PIN				13
+#define AUX2_ON()				palSetPad(AUX2_GPIO, AUX2_PIN)
+#define AUX2_OFF()				palClearPad(AUX2_GPIO, AUX2_PIN)
+
 // Shutdown pin
 #define HW_SHUTDOWN_GPIO		GPIOC
 #define HW_SHUTDOWN_PIN			5
