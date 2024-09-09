@@ -18,7 +18,6 @@
 */
 
 #ifndef HW_IVY_80V_MINI_H_
-
 #define HW_IVY_80V_MINI_H_
 
 #define HW_NAME "IVY_80V_MINI"
@@ -49,37 +48,24 @@
 // Position PID parameters
 #define MCCONF_P_PID_KP 0.03              // Proportional gain
 #define MCCONF_P_PID_KI 0.0               // Integral gain
-#define MCCONF_P_PID_KD 0.00000           // Derivative gain
+#define MCCONF_P_PID_KD 0.0               // Derivative gain
 #define MCCONF_P_PID_KD_PROC 0.00035      // Derivative gain process
 #define MCCONF_P_PID_KD_FILTER 0.2        // Derivative filter
 #define MCCONF_P_PID_ANG_DIV 10.0         // Divide angle by this value
 #define MCCONF_P_PID_GAIN_DEC_ANGLE 550.0 // Decrease PID-gains when the error is below this value
 #define MCCONF_P_PID_OFFSET 0.0           // Angle offset
 
-#ifndef MCCONF_L_MIN_VOLTAGE
 #define MCCONF_L_MIN_VOLTAGE 20.0 // Minimum input voltage
-#endif
-#ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE 70.0 // Maximum input voltage
-#endif
-#endif
-#ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE MOTOR_TYPE_FOC
-#endif
-#ifndef MCCONF_FOC_F_ZV
-#define MCCONF_FOC_F_ZV 30000.0
-#endif
-#ifndef MCCONF_L_MAX_ABS_CURRENT
+
 #define MCCONF_L_MAX_ABS_CURRENT 160.0 // The maximum absolute current above which a fault is generated
-#endif
-#ifndef MCCONF_FOC_SAMPLE_V0_V7
-#define MCCONF_FOC_SAMPLE_V0_V7 false // Run control loop in both v0 and v7 (requires phase shunts)
-#endif
-#ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX 110.0 // Input current limit in Amperes (Upper)
-#ifndef MCCONF_L_IN_CURRENT_MIN
+#define MCCONF_L_IN_CURRENT_MAX 110.0  // Input current limit in Amperes (Upper)
 #define MCCONF_L_IN_CURRENT_MIN -110.0 // Input current limit in Amperes (Lower)
-#endif
+
+#define MCCONF_FOC_F_ZV 30000.0
+#define MCCONF_FOC_CONTROL_SAMPLE_MODE FOC_CONTROL_SAMPLE_MODE_V0
+#define MCCONF_FOC_SAMPLE_V0_V7 false // Run control loop in both v0 and v7 (requires phase shunts)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
 #define HW_DEAD_TIME_NSEC 500.0
@@ -170,24 +156,14 @@
 // ADC macros and settings
 
 // Component parameters (can be overridden)
-#ifndef V_REG
 #define V_REG 3.30
-#endif
 
 // The voltage dividing acquisition circuit on the Makerbase VESC motherboard is 560K and 21.5K resistors.
-#ifndef VIN_R1
 #define VIN_R1 560000.0
-#endif
-#ifndef VIN_R2
 #define VIN_R2 22000.0
-#endif
 
-#ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN (-20.0)
-#endif
-#ifndef CURRENT_SHUNT_RES
 #define CURRENT_SHUNT_RES (0.0005)
-#endif
 
 // Input voltage
 #define GET_INPUT_VOLTAGE() ((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
@@ -205,15 +181,9 @@
 
 // Double samples in beginning and end for positive current measurement.
 // Useful when the shunt sense traces have noise that causes offset.
-#ifndef CURR1_DOUBLE_SAMPLE
 #define CURR1_DOUBLE_SAMPLE 0
-#endif
-#ifndef CURR2_DOUBLE_SAMPLE
 #define CURR2_DOUBLE_SAMPLE 0
-#endif
-#ifndef CURR3_DOUBLE_SAMPLE
 #define CURR3_DOUBLE_SAMPLE 0
-#endif
 
 // COMM-port ADC GPIOs
 #define HW_ADC_EXT_GPIO GPIOA
