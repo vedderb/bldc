@@ -6816,6 +6816,46 @@ Example:
 
 ---
 
+## Crypto
+
+---
+
+#### aes-ctr-crypt
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(aes-ctr-crypt key counter data start-offset length)
+```
+
+Performs in-place AES-CTR (128/192/256) encryption/decryption. Counter will also be updated.
+
+Example:
+
+```clj
+(def data [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15]) 
+(def key [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15]) 
+(def counter [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15])
+(def start-offset 5)
+(def len 6)
+; Encrypt data
+(aes-ctr-crypt key counter data start-offset len)
+(print data)
+> [0 1 2 3 4 15 146 12 189 72 100 11 12 13 14 15]
+(print counter)
+> [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 16]
+; Reset counter
+(setq counter [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15])
+; Decrypt data
+(aes-ctr-crypt key counter data start-offset len)
+(print data)
+> [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15]
+```
+
+---
+
 ## Sleep Modes
 
 ---
