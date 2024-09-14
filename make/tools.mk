@@ -190,21 +190,31 @@ GTEST_DIR       := $(TOOLS_DIR)/gtest-1.11.0
 .PHONY: gtest_install
 gtest_install: | $(DL_DIR) $(TOOLS_DIR)
 gtest_install: GTEST_URL  := https://github.com/google/googletest/archive/refs/tags/release-1.11.0.zip
-gtest_install: GTEST_FILE := $(notdir $(GTEST_URL))
+gtest_install: GTEST_FILE := googletest-$(notdir $(GTEST_URL))
 gtest_install: gtest_clean
 ifneq ($(OSFAMILY), windows)
+	$(eval GTEST_TMPDIR := $(shell mktemp -d))
+
 	# download the file unconditionally since google code gives back 404
 	# for HTTP HEAD requests which are used when using the wget -N option
-	$(V1) [ ! -f "$(DL_DIR)/$(GTEST_FILE)" ] || $(RM) -f "$(DL_DIR)/$(GTEST_FILE)"
-	$(V1) wget -P "$(DL_DIR)" "$(GTEST_URL)"
+	$(V1) wget "$(GTEST_URL)" -O "$(DL_DIR)/$(GTEST_FILE)"
 
-	# extract the source
-	$(V1) [ ! -d "$(GTEST_DIR)" ] || $(RM) -rf "$(GTEST_DIR)"
-	$(V1) $(MKDIR) "$(GTEST_DIR)"
-	$(V1) unzip -q -d "$(TOOLS_DIR)" "$(DL_DIR)/$(GTEST_FILE)"
+	# extract gtest source to tmp dir
+	$(V1) unzip -oq "$(DL_DIR)/$(GTEST_FILE)" -d "$(GTEST_TMPDIR)"
+
+	# move gtest to tools dir
+	$(V1) mv "$(GTEST_TMPDIR)/$(basename $(GTEST_FILE))/googletest" "$(GTEST_DIR)"
+
+	# remove gtest tmp dir
+	$(V1) $(RM) -rf "$(GTEST_TMPDIR)"
 else
 	$(V1) curl --continue - --location --insecure --output "$(DL_DIR)/$(GTEST_FILE)" "$(GTEST_URL)"
-	$(V1) powershell -noprofile -command Expand-Archive -DestinationPath $(GTEST_DIR) -LiteralPath "$(DL_DIR)/$(GTEST_FILE)"
+
+	$(V1) powershell -noprofile -command if (Test-Path $(DL_DIR)/$(basename $(GTEST_FILE))) {Remove-Item -Recurse $(DL_DIR)/$(basename $(GTEST_FILE))}
+	$(V1) powershell -noprofile -command Expand-Archive -DestinationPath "$(DL_DIR)" -LiteralPath "$(DL_DIR)/$(GTEST_FILE)"
+
+	$(V1) powershell -noprofile -command Move-Item -Path "$(DL_DIR)/$(basename $(GTEST_FILE))/googletest" -Destination $(GTEST_DIR)
+	$(V1) powershell -noprofile -command if (Test-Path $(DL_DIR)/$(basename $(GTEST_FILE))) {Remove-Item -Recurse $(DL_DIR)/$(basename $(GTEST_FILE))}
 endif
 
 .PHONY: gtest_clean
