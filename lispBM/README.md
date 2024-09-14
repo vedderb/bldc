@@ -1406,6 +1406,20 @@ Same as get-rpm-fast, but with even less filtering. This give the RPM-estimation
 
 ---
 
+#### get-rpm-set
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06+ |
+
+```clj
+(get-rpm-set)
+```
+
+Get motor ERPM setpoint for PID speed controller.
+
+---
+
 #### get-pos
 
 | Platforms | Firmware |
@@ -1459,6 +1473,20 @@ Get motor temperature.
 ```
 
 Get speed in meters per second. Requires that the number of motor poles, wheel diameter and gear ratio are set up correctly.
+
+---
+
+#### get-speed-set
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06+ |
+
+```clj
+(get-speed-set)
+```
+
+Get PID speed setpoint in meters per second. Requires that the number of motor poles, wheel diameter and gear ratio are set up correctly.
 
 ---
 

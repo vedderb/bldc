@@ -1029,6 +1029,10 @@ float mcpwm_foc_get_duty_cycle_now(void) {
 	return get_motor_now()->m_motor_state.duty_now;
 }
 
+float mcpwm_foc_get_pid_speed_set(void) {
+	return get_motor_now()->m_speed_pid_set_rpm;
+}
+
 float mcpwm_foc_get_pid_pos_set(void) {
 	return get_motor_now()->m_pos_pid_set;
 }

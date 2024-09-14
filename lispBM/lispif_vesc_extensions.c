@@ -1914,6 +1914,11 @@ static lbm_value ext_get_rpm(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(mc_interface_get_rpm());
 }
 
+static lbm_value ext_get_rpm_set(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_pid_speed_set());
+}
+
 static lbm_value ext_get_rpm_fast(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mcpwm_foc_get_rpm_fast());
@@ -1965,6 +1970,15 @@ static lbm_value ext_get_temp_mot(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_get_speed(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_speed());
+}
+
+static lbm_value ext_get_speed_set(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	const volatile mc_configuration *conf = mc_interface_get_configuration();
+	const float rpm = mcpwm_foc_get_pid_speed_set() / (conf->si_motor_poles / 2.0);
+
+	return lbm_enc_float((rpm / 60.0) * conf->si_wheel_diameter * M_PI / conf->si_gear_ratio);
 }
 
 static lbm_value ext_get_dist(lbm_value *args, lbm_uint argn) {
@@ -3937,6 +3951,8 @@ static lbm_value ext_conf_store(lbm_value *args, lbm_uint argn) {
 	bool res_app = conf_general_store_app_configuration(appconf);
 	mempools_free_appconf(appconf);
 
+	conf_general_store_backup_data();
+
 	return lbm_enc_sym((res_mc && res_app) ? SYM_TRUE : SYM_NIL);
 }
 
@@ -5387,10 +5403,12 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-rpm", ext_get_rpm);
 	lbm_add_extension("get-rpm-fast", ext_get_rpm_fast);
 	lbm_add_extension("get-rpm-faster", ext_get_rpm_faster);
+	lbm_add_extension("get-rpm-set", ext_get_rpm_set);
 	lbm_add_extension("get-pos", ext_get_pos);
 	lbm_add_extension("get-temp-fet", ext_get_temp_fet);
 	lbm_add_extension("get-temp-mot", ext_get_temp_mot);
 	lbm_add_extension("get-speed", ext_get_speed);
+	lbm_add_extension("get-speed-set", ext_get_speed_set);
 	lbm_add_extension("get-dist", ext_get_dist);
 	lbm_add_extension("get-dist-abs", ext_get_dist_abs);
 	lbm_add_extension("get-batt", ext_get_batt);
