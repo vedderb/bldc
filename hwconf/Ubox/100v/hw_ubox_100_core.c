@@ -42,7 +42,7 @@
 #define UBOX_QUERY_POWER_KEY_IO()		(palReadPad(GPIOC, 13))
 
 
-void shutdown_ubox_init(void);
+void shutdown_init(void);
 
 // Variables
 static volatile bool i2c_running = false;
@@ -131,8 +131,8 @@ void hw_init_gpio(void) {
 
 	palSetPadMode(GPIOC, 13, PAL_MODE_OUTPUT_OPENDRAIN | PAL_MODE_INPUT_PULLUP);
 	UBOX_POWER_KEY_IO_RELEASE();
-
-	shutdown_ubox_init();
+	
+	shutdown_init();
 }
 
 void hw_setup_adc_channels(void) {
@@ -287,21 +287,37 @@ float hw100_250_get_temp(void) {
 // Private variables
 static bool volatile m_button_pressed = false;
 static volatile float m_inactivity_time = 0.0;
-static THD_WORKING_AREA(shutdown_ubox_thread_wa, 256);
+static THD_WORKING_AREA(shutdown_thread_wa, 256);
 static mutex_t m_sample_mutex;
 static volatile bool m_init_done = false;
 static volatile bool m_sampling_disabled = false;
 
 // Private functions
-static THD_FUNCTION(shutdown_ubox_thread, arg);
+static THD_FUNCTION(shutdown_thread, arg);
 
-void shutdown_ubox_init(void) {
-	chMtxObjectInit(&m_sample_mutex);
-	chThdCreateStatic(shutdown_ubox_thread_wa, sizeof(shutdown_ubox_thread_wa), NORMALPRIO, shutdown_ubox_thread, NULL);
-	m_init_done = true;
+void shutdown_init(void) {
+	if(!m_init_done){
+		chMtxObjectInit(&m_sample_mutex);
+		chThdCreateStatic(shutdown_thread_wa, sizeof(shutdown_thread_wa), NORMALPRIO, shutdown_thread, NULL);
+		m_init_done = true;
+	}
 }
 
-static bool do_shutdown_ubox(void) {
+void shutdown_reset_timer(void) {
+	m_inactivity_time = 0.0;
+}
+
+float shutdown_get_inactivity_time(void) {
+	return m_inactivity_time;
+}
+
+void shutdown_hold(bool hold) {
+	(void)hold;
+}
+
+// TODO: Doesn't use resample. Maybe in future allow resampling if enPOWER_KEY_TYPE is momentary?
+bool do_shutdown(bool resample) {
+	(void)resample;
 	conf_general_store_backup_data();
 
 	chThdSleepMilliseconds(100);
@@ -309,7 +325,6 @@ static bool do_shutdown_ubox(void) {
 	UBOX_POWER_EN_OFF();
 	return true;
 }
-
 
 typedef enum {
 	power_key_type_undecided = 0,
@@ -321,7 +336,7 @@ static enPOWER_KEY_TYPE power_key_type = power_key_type_undecided;
 static uint32_t power_key_pressed_ms = 0;
 static bool power_key_pressed_when_power_on = false;
 
-static THD_FUNCTION(shutdown_ubox_thread, arg) {
+static THD_FUNCTION(shutdown_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("Shutdown_ubox");
 
@@ -352,6 +367,7 @@ static THD_FUNCTION(shutdown_ubox_thread, arg) {
 	            }
 	        } else {
 	            if((power_key_pressed_ms > 50) && (power_key_pressed_ms < 500)) {
+					// TODO: Could toggle different led types here??
 	                power_key_click = 1;
 	            }
 	            power_key_pressed_ms = 0;
@@ -394,7 +410,7 @@ static THD_FUNCTION(shutdown_ubox_thread, arg) {
 					//Inactive after 10 seconds, MCU cancels the enable signal, regulator shuts down if button released.
 					m_inactivity_time += dt;
 					if (m_inactivity_time >= 10.0f) {
-						do_shutdown_ubox();
+						do_shutdown(false);
 					}
 				break;
 				case SHUTDOWN_MODE_ALWAYS_ON:
@@ -414,7 +430,7 @@ static THD_FUNCTION(shutdown_ubox_thread, arg) {
 				break;
 				case SHUTDOWN_MODE_TOGGLE_BUTTON_ONLY:
 				if(clicked)	{
-					do_shutdown_ubox();
+					do_shutdown(true);
 				}
 				break;
 				default:	break;
@@ -434,7 +450,7 @@ static THD_FUNCTION(shutdown_ubox_thread, arg) {
 				default: break;
 				}
 				if (m_inactivity_time >= shutdown_timeout) {
-					do_shutdown_ubox();
+					do_shutdown(false);
 				}
 			} else {
 				//Because SHUTDOWN_MODE_ALWAYS_OFF's implementation will check m_inactivity_time.
@@ -444,7 +460,7 @@ static THD_FUNCTION(shutdown_ubox_thread, arg) {
 			}
 
 			if(power_key_pressed_ms > 2000) {
-				do_shutdown_ubox();
+				do_shutdown(true);
 			}
 	    } else {
 	    	m_inactivity_time += dt;
