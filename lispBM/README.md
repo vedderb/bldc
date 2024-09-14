@@ -713,6 +713,20 @@ Get statistics about the selected motor since boot (or since stats-reset). The f
 
 ---
 
+#### set-odometer
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06+ |
+
+```clj
+(set-odometer meters)
+```
+
+Set persistent odometer counter to meters.
+
+---
+
 #### stats-reset
 
 | Platforms | Firmware |

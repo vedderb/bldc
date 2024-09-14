@@ -1405,6 +1405,12 @@ static lbm_value ext_sysinfo(lbm_value *args, lbm_uint argn) {
 	return res;
 }
 
+static lbm_value ext_set_odometer(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1);
+	mc_interface_set_odometer(lbm_dec_as_u64(args[0]));
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_stats(lbm_value *args, lbm_uint argn) {
 	lbm_value res = ENC_SYM_EERROR;
 
@@ -5324,6 +5330,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("eeprom-store-i", ext_eeprom_store_i);
 	lbm_add_extension("eeprom-read-i", ext_eeprom_read_i);
 	lbm_add_extension("sysinfo", ext_sysinfo);
+	lbm_add_extension("set-odometer", ext_set_odometer);
 	lbm_add_extension("stats", ext_stats);
 	lbm_add_extension("stats-reset", ext_stats_reset);
 	lbm_add_extension("import", ext_empty);
