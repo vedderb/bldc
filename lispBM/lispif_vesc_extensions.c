@@ -224,6 +224,7 @@ typedef struct {
 	lbm_uint has_phase_filters;
 	lbm_uint uuid;
 	lbm_uint runtime;
+	lbm_uint odometer;
 	lbm_uint git_branch;
 	lbm_uint git_hash;
 	lbm_uint compiler;
@@ -562,6 +563,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("uuid", comp);
 		} else if (comp == &syms_vesc.runtime) {
 			lbm_add_symbol_const("runtime", comp);
+		} else if (comp == &syms_vesc.odometer) {
+			lbm_add_symbol_const("odometer", comp);
 		} else if (comp == &syms_vesc.git_branch) {
 			lbm_add_symbol_const("git-branch", comp);
 		} else if (comp == &syms_vesc.git_hash) {
@@ -1366,6 +1369,8 @@ static lbm_value ext_sysinfo(lbm_value *args, lbm_uint argn) {
 		res = lbm_cons(lbm_enc_i(STM32_UUID_8[0]), res);
 	} else if (compare_symbol(name, &syms_vesc.runtime)) {
 		res = lbm_enc_u64(g_backup.runtime);
+	} else if (compare_symbol(name, &syms_vesc.odometer)) {
+		res = lbm_enc_u64(g_backup.odometer);
 	} else if (compare_symbol(name, &syms_vesc.git_branch)) {
 		lbm_value lbm_res;
 		if (lbm_create_array(&lbm_res, strlen(GIT_BRANCH_NAME) + 1)) {
