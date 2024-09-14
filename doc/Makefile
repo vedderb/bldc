@@ -1,7 +1,5 @@
+# This makefile assumes that you have "lbm" installed on your path. You can
+# install it by running `make install` in ../repl.
+
 all:
-	doxygen
-
-
-
-publish:
-	cp -r html ../../svenssonjoel.github.com/lbmdoc
+	lbm -H 10000000 --src="lbmref.lisp" --eval="(render-manual)" --terminate

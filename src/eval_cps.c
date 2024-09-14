@@ -97,8 +97,7 @@ static jmp_buf critical_error_jmp_buf;
 #define POP_READER_FLAGS      CONTINUATION(47)
 #define EXCEPTION_HANDLER     CONTINUATION(48)
 #define RECV_TO               CONTINUATION(49)
-#define REBLOCK               CONTINUATION(50)
-#define NUM_CONTINUATIONS     51
+#define NUM_CONTINUATIONS     50
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -1087,7 +1086,7 @@ static void wake_up_ctxs_nm(void) {
   while (curr != NULL) {
     lbm_uint t_diff;
     eval_context_t *next = curr->next;
-    if (curr->state != LBM_THREAD_STATE_BLOCKED) {
+    if (LBM_IS_STATE_WAKE_UP_WAKABLE(curr->state)) {
       if ( curr->timestamp > t_now) {
         /* There was an overflow on the counter */
 #ifndef LBM64
@@ -1120,7 +1119,7 @@ static void wake_up_ctxs_nm(void) {
         }
         wake_ctx->next = NULL;
         wake_ctx->prev = NULL;
-        if (curr->state == LBM_THREAD_STATE_TIMEOUT) {
+        if (LBM_IS_STATE_TIMEOUT(curr->state)) {
           mailbox_add_mail(wake_ctx, ENC_SYM_TIMEOUT);
           wake_ctx->r = ENC_SYM_TIMEOUT;
         }
@@ -1318,11 +1317,9 @@ bool lbm_unblock_ctx_r(lbm_cid cid) {
   eval_context_t *found = NULL;
   mutex_lock(&qmutex);
   found = lookup_ctx_nm(&blocked, cid);
-  if (found) {
-    if (found->K.data[found->K.sp-1] == REBLOCK) {
-      pop_stack_ptr(found,2); // clear 2 fields.
-    }
+  if (found && (LBM_IS_STATE_UNBLOCKABLE(found->state))) {
     drop_ctx_nm(&blocked,found);
+    found->state = LBM_THREAD_STATE_READY;
     enqueue_ctx_nm(&queue,found);
     r = true;
   }
@@ -1338,16 +1335,14 @@ bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
   eval_context_t *found = NULL;
   mutex_lock(&qmutex);
   found = lookup_ctx_nm(&blocked, cid);
-  if (found) {
-    if (found->K.data[found->K.sp-1] == REBLOCK) {
-      pop_stack_ptr(found,2); // clear 2 fields.
-    }
+  if (found && (LBM_IS_STATE_UNBLOCKABLE(found->state))) {
     drop_ctx_nm(&blocked,found);
     found->r = unboxed;
     if (lbm_is_error(unboxed)) {
       get_stack_ptr(found, 1)[0] = TERMINATE; // replace TOS
       found->app_cont = true;
     }
+    found->state = LBM_THREAD_STATE_READY;
     enqueue_ctx_nm(&queue,found);
     r = true;
   }
@@ -1404,8 +1399,9 @@ lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
       return ENC_SYM_NIL;
     }
 
-    if (found_blocked){
+    if (found_blocked && LBM_IS_STATE_RECV(found->state)) {
       drop_ctx_nm(&blocked,found);
+      found->state = LBM_THREAD_STATE_READY;
       enqueue_ctx_nm(&queue,found);
     }
     mutex_unlock(&qmutex);
@@ -2048,9 +2044,9 @@ static void eval_match(eval_context_t *ctx) {
 static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time, bool timeout) {
    if (ctx->num_mail == 0) {
      if (timeout) {
-       block_current_ctx(LBM_THREAD_STATE_TIMEOUT, S_TO_US(timeout_time), false);
+       block_current_ctx(LBM_THREAD_STATE_RECV_TO, S_TO_US(timeout_time), false);
      } else {
-       block_current_ctx(LBM_THREAD_STATE_BLOCKED,0,false);
+       block_current_ctx(LBM_THREAD_STATE_RECV_BL,0,false);
      }
   } else {
     lbm_value *msgs = ctx->mailbox;
@@ -2083,9 +2079,9 @@ static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time
       } else { /* No match  go back to sleep */
         ctx->r = ENC_SYM_NO_MATCH;
         if (timeout) {
-          block_current_ctx(LBM_THREAD_STATE_TIMEOUT,S_TO_US(timeout_time),false);
+          block_current_ctx(LBM_THREAD_STATE_RECV_TO,S_TO_US(timeout_time),false);
         } else {
-          block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0,false);
+          block_current_ctx(LBM_THREAD_STATE_RECV_BL, 0,false);
         }
       }
     }
@@ -2625,6 +2621,7 @@ static void apply_kill(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
       found->K.data[found->K.sp - 1] = KILL;
       found->r = args[1];
       found->app_cont = true;
+      found->state = LBM_THREAD_STATE_READY;
       enqueue_ctx_nm(&queue,found);
       ctx->r = ENC_SYM_TRUE;
     } else {
@@ -2945,16 +2942,12 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
     
     if (blocking_extension) { // block_current_ctx checks the atomic status and issues error.
       blocking_extension = false;
-      lbm_value *rptr = stack_reserve(ctx, 2);
       if (blocking_extension_timeout) {
         blocking_extension_timeout = false;
         block_current_ctx(LBM_THREAD_STATE_TIMEOUT, blocking_extension_timeout_us,true);
-        rptr[0] = lbm_enc_i((lbm_int)blocking_extension_timeout_us);
       } else {
         block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0,true);
-        rptr[0] = lbm_enc_i((lbm_int)-1);
       }
-      rptr[1] = REBLOCK;
       mutex_unlock(&blocking_extension_mutex);
     }
   }  break;
@@ -4823,7 +4816,7 @@ static void cont_exception_handler(eval_context_t *ctx) {
   lbm_value retval = sptr[0];
   lbm_value flags = sptr[1];
   lbm_set_car(get_cdr(retval), ctx->r);
-  ctx->flags = flags;
+  ctx->flags = (uint32_t)flags;
   ctx->r = retval;
   ctx->app_cont = true;
 }
@@ -4837,17 +4830,6 @@ static void cont_recv_to(eval_context_t *ctx) {
     receive_base(ctx, pats, timeout_time, true);
   } else {
     error_ctx(ENC_SYM_TERROR);
-  }
-}
-
-static void cont_reblock(eval_context_t *ctx) {
-  lbm_value *sptr = get_stack_ptr(ctx, 1);
-  lbm_int timeout = lbm_dec_as_int(sptr[0]);
-  lbm_push(&ctx->K, REBLOCK);
-  if (timeout > 0) {
-    block_current_ctx(LBM_THREAD_STATE_TIMEOUT, blocking_extension_timeout_us,true); 
-  } else {
-    block_current_ctx(LBM_THREAD_STATE_BLOCKED, 0,true);
   }
 }
 
@@ -4906,7 +4888,6 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_pop_reader_flags,
     cont_exception_handler,
     cont_recv_to,
-    cont_reblock
   };
 
 /*********************************************************/
@@ -5026,16 +5007,14 @@ static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
   mutex_lock(&qmutex);
 
   found = lookup_ctx_nm(&blocked, cid);
-  if (found) {
+  if (found && LBM_IS_STATE_UNBLOCKABLE(found->state)){
     drop_ctx_nm(&blocked,found);
     if (lbm_is_error(v)) {
       get_stack_ptr(found, 1)[0] = TERMINATE; // replace TOS
       found->app_cont = true;
     }
     found->r = v;
-    if (found->K.data[found->K.sp-1] == REBLOCK) {
-      pop_stack_ptr(found,2); // clear 2 fields.
-    }
+    found->state = LBM_THREAD_STATE_READY;
     enqueue_ctx_nm(&queue,found);
   }
   mutex_unlock(&qmutex);

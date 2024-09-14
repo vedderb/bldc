@@ -47,12 +47,18 @@ extern "C" {
 /** The eval_context_t struct represents a lispbm process.
  *
  */
-#define LBM_THREAD_STATE_READY     (uint32_t)0
-#define LBM_THREAD_STATE_BLOCKED   (uint32_t)1
-#define LBM_THREAD_STATE_TIMEOUT   (uint32_t)2
-#define LBM_THREAD_STATE_SLEEPING  (uint32_t)3
-#define LBM_THREAD_STATE_GC_BIT    (uint32_t)(1 << 31)
+#define LBM_THREAD_STATE_READY      (uint32_t)0
+#define LBM_THREAD_STATE_BLOCKED    (uint32_t)1
+#define LBM_THREAD_STATE_TIMEOUT    (uint32_t)2
+#define LBM_THREAD_STATE_SLEEPING   (uint32_t)4
+#define LBM_THREAD_STATE_RECV_BL    (uint32_t)8
+#define LBM_THREAD_STATE_RECV_TO    (uint32_t)16
+#define LBM_THREAD_STATE_GC_BIT     (uint32_t)(1 << 31)
 
+#define LBM_IS_STATE_TIMEOUT(X) (X & (LBM_THREAD_STATE_TIMEOUT | LBM_THREAD_STATE_RECV_TO))
+#define LBM_IS_STATE_WAKE_UP_WAKABLE(X) (X & (LBM_THREAD_STATE_SLEEPING | LBM_IS_STATE_TIMEOUT(X)))
+#define LBM_IS_STATE_UNBLOCKABLE(X) (X & (LBM_THREAD_STATE_BLOCKED | LBM_THREAD_STATE_TIMEOUT))
+#define LBM_IS_STATE_RECV(X) (X & (LBM_THREAD_STATE_RECV_BL | LBM_THREAD_STATE_RECV_TO))
 typedef struct eval_context_s{
   lbm_value program;
   lbm_value curr_exp;

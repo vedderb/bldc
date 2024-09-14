@@ -312,6 +312,7 @@ struct option options[] = {
   {"help", no_argument, NULL, 'h'},
   {"heap_size", required_argument, NULL, 'H'},
   {"src", required_argument, NULL, 's'},
+  {"eval", required_argument, NULL, 'e'},
   {"load_env", required_argument, NULL, LOAD_ENVIRONMENT},
   {"store_env", required_argument, NULL, STORE_ENVIRONMENT},
   {"store_res", required_argument, NULL, STORE_RESULT},
@@ -356,42 +357,78 @@ int src_list_len(void) {
   return n;
 }
 
+typedef struct expr_list_s {
+  char *expr;
+  struct expr_list_s *next;
+} expr_list_t;
+
+expr_list_t *expressions = NULL;
+
+bool expr_list_add(char *expr) {
+  if (strlen(expr) == 0) return false;
+  expr_list_t *entry=malloc(sizeof(expr_list_t));
+  if (!entry) return false;
+
+  entry->expr = expr;
+  entry->next = NULL;
+
+  if (!expressions) {
+    expressions = entry;
+    return true;
+  }
+  expr_list_t *curr = expressions;
+  while(curr->next) {
+    curr = curr->next;
+  }
+  curr->next = entry;
+  return true;
+}
+
 void parse_opts(int argc, char **argv) {
 
   int c;
   opterr = 1;
   int opt_index = 0;
-  while ((c = getopt_long(argc, argv, "H:hs:",options, &opt_index)) != -1) {
+  while ((c = getopt_long(argc, argv, "H:hse:",options, &opt_index)) != -1) {
     switch (c) {
     case 'H':
       heap_size = (unsigned int)atoi((char*)optarg);
       break;
     case 'h':
       printf("Usage: %s [OPTION...]\n\n", argv[0]);
-      printf("    -h, --help                    Prints help\n");
-      printf("    -H SIZE, --heap_size=SIZE     Set heap_size to be SIZE number of\n"\
-             "                                  cells.\n");
-      printf("    -s FILEPATH, --src=FILEPATH   Load and evaluate lisp src\n");
+      printf("    -h, --help                        Prints help\n");
+      printf("    -H SIZE, --heap_size=SIZE         Set heap_size to be SIZE number of\n"\
+             "                                      cells.\n");
+      printf("    -s FILEPATH, --src=FILEPATH       Load and evaluate lisp src\n");
+      printf("    -e EXPRESSION, --eval=EXPRESSION  Load and evaluate lisp src\n");
       printf("\n");
-      printf("    --load_env=FILEPATH           Load the global environment from a file at\n"\
-             "                                  startup.\n");
-      printf("    --store_env=FILEPATH          Store the global environment to a file upon\n"\
-             "                                  exit.\n");
-      printf("    --store_res=FILEPATH          Store the result of the last program\n"\
-             "                                  specified with the --src/-s options.\n");
-      printf("    --terminate                   Terminate the REPL after evaluating the\n"\
-             "                                  source files specified with --src/-s\n");
-      printf("    --silent                      The REPL will print as little as possible\n");
+      printf("    --load_env=FILEPATH               Load the global environment from a file at\n"\
+             "                                      startup.\n");
+      printf("    --store_env=FILEPATH              Store the global environment to a file upon\n"\
+             "                                      exit.\n");
+      printf("    --store_res=FILEPATH              Store the result of the last program\n"\
+             "                                      specified with the --src/-s options.\n");
+      printf("    --terminate                       Terminate the REPL after evaluating the\n"\
+             "                                      source files specified with --src/-s\n");
+      printf("    --silent                          The REPL will print as little as possible\n");
       printf("\n");
-      printf("Multiple sourcefiles can be added with multiple uses of the --src/-s flag.\n" \
-             "Multiple sources are evaluated in sequence in the order they are specified\n" \
-             "on the command-line. Source file N will not start evaluating until after\n" \
+      printf("Multiple sourcefiles and expressions can be added with multiple uses\n" \
+             "of the --src/-s and --eval/-e flags.\n" \
+             "Sources and expressions are evaluated in sequence in the order they are\n" \
+             "specified on the command-line, and all source files are evaluated before\n" \
+             "expressions. Source file N will not start evaluating until after\n" \
              "source file (N-1) has terminated, for N larger than 1.\n");
       terminate_repl(REPL_EXIT_SUCCESS);
     case 's':
       if (!src_list_add((char*)optarg)) {
         printf("Error adding source file to source list\n");
         terminate_repl(REPL_EXIT_INVALID_SOURCE_FILE);
+      }
+      break;
+    case 'e':
+      if (!expr_list_add((char*)optarg)) {
+        printf("Error adding expression to eval list\n");
+        terminate_repl(REPL_EXIT_INVALID_EXPRESSION);
       }
       break;
     case LOAD_ENVIRONMENT:
@@ -577,6 +614,37 @@ bool evaluate_sources(void) {
   return true;
 }
 
+bool evaluate_expressions(void) {
+  expr_list_t *curr = expressions;
+  char *expr = NULL;
+  
+  while (curr) {
+    // if (expr) free(expr);
+    expr = curr->expr;
+    lbm_create_string_char_channel(&string_tok_state,
+                                   &string_tok,
+                                   expr);
+    lbm_pause_eval_with_gc(50);
+    while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+      sleep_callback(10);
+    }
+
+    startup_cid = lbm_load_and_eval_program_incremental(&string_tok, NULL);
+    if (res_output_file) {
+      store_result_cid = startup_cid;
+    }
+    lbm_continue_eval();
+
+    int counter = 0;
+    while (startup_cid != -1) {
+      sleep_callback(10);
+      counter++;
+    }
+    curr = curr->next;
+  }
+  return true;
+}
+
 #define NAME_BUF_SIZE 1024
 
 void startup_procedure(void) {
@@ -696,6 +764,9 @@ void startup_procedure(void) {
   }
   if (sources) {
     evaluate_sources();
+  }
+  if (expressions) {
+    evaluate_expressions();
   }
 
   if(terminate_after_startup) {

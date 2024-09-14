@@ -25,6 +25,8 @@
 
 #include <lispbm.h>
 #include <lbm_custom_type.h>
+#include <extensions/display_extensions.h>
+
 
 typedef struct {
   uint32_t sdl_id;
@@ -41,7 +43,7 @@ sdl_symbol_t lbm_sdl_events[] = {
 
 
 static int register_sdl_event_symbols(void) {
-  for (int i = 0; i < (sizeof(lbm_sdl_events) / sizeof(sdl_symbol_t)); i ++) {
+  for (size_t i = 0; i < (sizeof(lbm_sdl_events) / sizeof(sdl_symbol_t)); i ++) {
     if (!lbm_add_symbol(lbm_sdl_events[i].name, &lbm_sdl_events[i].sym_id))
       return 0;
   }
@@ -49,7 +51,7 @@ static int register_sdl_event_symbols(void) {
 }
 
 static lbm_uint lookup_sdl_event_symbol(uint32_t sdl_event) {
-  for (int i = 0; i < (sizeof(lbm_sdl_events) / sizeof(sdl_symbol_t)); i ++) {
+  for (size_t i = 0; i < (sizeof(lbm_sdl_events) / sizeof(sdl_symbol_t)); i ++) {
     if (sdl_event == lbm_sdl_events[i].sdl_id) {
       return lbm_sdl_events[i].sym_id;
     }
@@ -64,7 +66,7 @@ static lbm_value ext_sdl_init(lbm_value *args, lbm_uint argn) {
   if ((SDL_Init(SDL_INIT_EVERYTHING) == 0) &&
       (IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG))) {
     res = lbm_enc_sym(SYM_TRUE);
-  }  
+  }
   return res;
 }
 
@@ -82,7 +84,7 @@ static lbm_value ext_sdl_create_window(lbm_value *args, lbm_uint argn) {
     char *title = lbm_dec_str(args[0]);
 
     if (title) {
-    
+
       int32_t w = lbm_dec_as_i32(args[1]);
       int32_t h = lbm_dec_as_i32(args[2]);
 
@@ -221,7 +223,7 @@ static lbm_value ext_sdl_poll_event(lbm_value *args, lbm_uint argn) {
 
 
 ////////////////////////////////////////////////////////////
-// Images and Textures 
+// Images and Textures
 
 static bool sdl_texture_destructor(lbm_uint value) {
   SDL_DestroyTexture((SDL_Texture*)value);
@@ -276,26 +278,216 @@ static lbm_value ext_sdl_blit(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+// Display interface
+
+
+SDL_Renderer *active_rend = NULL;
+
+static lbm_value ext_sdl_set_active_renderer(lbm_value *args, lbm_uint argn) {
+  lbm_value res = lbm_enc_sym(SYM_NIL);
+  if (argn == 1 &&
+      (lbm_type_of(args[0]) == LBM_TYPE_CUSTOM)) {
+
+    lbm_uint *m = (lbm_uint *)lbm_dec_custom(args[0]);
+    SDL_Renderer *rend = (SDL_Renderer*)m[CUSTOM_TYPE_VALUE];
+
+    active_rend = rend;
+    res = ENC_SYM_TRUE;
+  }
+  return res;
+}
+
+// hacky
+static void blast_indexed2(uint8_t *dest, int dest_pitch, image_buffer_t *img, color_t *colors) {
+
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
+  int num_pix = w * h;
+
+  uint32_t *w_dest = (uint32_t *)dest;
+  for (int i = 0; i < num_pix; i ++) {
+    int byte = i >> 3;
+    int bit  = 7 - (i & 0x7);
+    int color_ind = (data[byte] & (1 << bit)) >> bit;
+
+    uint32_t color = COLOR_TO_RGB888(colors[color_ind],
+                                     i % w, i / w);
+    w_dest[i] = color;
+  }
+}
+
+static void blast_indexed4(uint8_t *dest, int dest_pitch, image_buffer_t *img, color_t *colors) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
+  int num_pix = w * h;
+
+  uint32_t *w_dest = (uint32_t *)dest;
+  for (int i = 0; i < num_pix; i ++) {
+    int byte = i >> 2;
+    int bit = (3 - (i & 0x03)) * 2;
+    int color_ind = (data[byte] & (0x03 << bit)) >> bit;
+
+    uint32_t color = COLOR_TO_RGB888(colors[color_ind],
+                                     i % w, i / w);
+    w_dest[i] = color;
+  }
+}
+
+static void blast_indexed16(uint8_t *dest, int dest_pitch,image_buffer_t *img, color_t *colors) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
+  int num_pix = w * h;
+
+  uint32_t *w_dest = (uint32_t *)dest;
+  for (int i = 0; i < num_pix; i ++) {
+    int byte = i >> 1;    // byte to access is pix / 2
+    int bit = (1 - (i & 0x01)) * 4; // bit position to access within byte
+    int color_ind = (data[byte] & (0x0F << bit)) >> bit; // extract 4 bit value.
+
+    uint32_t color = COLOR_TO_RGB888(colors[color_ind],
+                                     i % w, i / w);
+    w_dest[i] = color;
+  }
+}
+
+static void blast_rgb332(uint8_t *dest, int dest_pitch,image_buffer_t *img) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
+  int num_pix = w * h;
+
+  uint32_t *w_dest = (uint32_t *)dest;
+  for (int i = 0; i < num_pix; i ++) {
+    uint8_t pix = data[i];
+    uint32_t r = (uint32_t)((pix >> 5) & 0x7);
+    uint32_t g = (uint32_t)((pix >> 2) & 0x7);
+    uint32_t b = (uint32_t)(pix & 0x3);
+    uint32_t rgb888 = r << (16 + 5) | g << (8 + 5) | b << 6;
+    w_dest[i] = rgb888;
+  }
+}
+
+static void blast_rgb565(uint8_t *dest, int dest_pitch, image_buffer_t *img) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
+  int num_pix = w * h;
+
+  uint32_t *w_dest = (uint32_t *)dest;
+  for (int i = 0; i < num_pix; i ++) {
+    uint16_t pix = (((uint16_t)data[2 * i]) << 8) | ((uint16_t)data[2 * i + 1]);
+
+    uint32_t r = (uint32_t)(pix >> 11);
+    uint32_t g = (uint32_t)((pix >> 5) & 0x3F);
+    uint32_t b = (uint32_t)(pix & 0x1F);
+    uint32_t rgb888 = r << (16 + 3) | g << (8 + 2) | b << 3;
+    w_dest[i] = rgb888;
+  }
+}
+
+static void blast_rgb888(uint8_t *dest, int dest_pitch, image_buffer_t *img) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
+  int num_pix = w * h;
+
+  uint32_t *w_dest = (uint32_t *)dest;
+  for (int i = 0; i < num_pix; i ++) {
+    uint32_t r = data[3 * i];
+    uint32_t g = data[3 * i + 1];
+    uint32_t b = data[3 * i + 2];
+
+    uint32_t rgb888 = r << 16 | g << 8 | b;
+    w_dest[i] = rgb888;
+  }
+}
+
+
+bool sdl_render_image(image_buffer_t *img, uint16_t x, uint16_t y, color_t *colors) {
+
+  if (active_rend) {
+
+    uint16_t w = img->width;
+    uint16_t h = img->height;
+    uint8_t  bpp = img->fmt;
+
+    SDL_Texture* tex = SDL_CreateTexture(active_rend, SDL_PIXELFORMAT_RGB888,SDL_TEXTUREACCESS_STREAMING, w, h);
+    int pitch = 0;
+
+    uint8_t* p = NULL;
+    SDL_LockTexture(tex, NULL, (void**)&p, &pitch);
+    switch(bpp) {
+    case indexed2:
+      blast_indexed2(p, pitch, img, colors);
+      break;
+    case indexed4:
+      blast_indexed4(p, pitch, img, colors);
+      break;
+    case indexed16:
+      blast_indexed16(p, pitch, img, colors);
+      break;
+    case rgb332:
+      blast_rgb332(p, pitch, img);
+      break;
+    case rgb565:
+      blast_rgb565(p, pitch, img);
+      break;
+    case rgb888:
+      blast_rgb888(p, pitch, img);
+      break;
+    default:
+      break;
+    }
+
+    SDL_UnlockTexture(tex);
+
+    SDL_Rect dest = { x, y, w, h };
+    SDL_RenderCopy(active_rend, tex, NULL, &dest);
+    SDL_RenderPresent(active_rend);
+  }
+  return true;
+}
+
+
+void sdl_clear(uint32_t color) {
+  if (active_rend) {
+    SDL_RenderClear(active_rend);
+    SDL_RenderPresent(active_rend);
+  }
+}
+
+void sdl_reset(void) {
+  return;
+}
+
 
 ////////////////////////////////////////////////////////////
-// Active LBM SDL extensions 
+// Active LBM SDL extensions
 bool lbm_sdl_init(void) {
-
-  bool res = true;
 
   register_sdl_event_symbols();
 
-  res = res && lbm_add_extension("sdl-init", ext_sdl_init);
-  res = res && lbm_add_extension("sdl-create-window",ext_sdl_create_window);
-  res = res && lbm_add_extension("sdl-create-soft-renderer", ext_sdl_create_soft_renderer);
-  res = res && lbm_add_extension("sdl-renderer-set-color", ext_sdl_renderer_set_color);
-  res = res && lbm_add_extension("sdl-draw-point", ext_sdl_draw_point);
-  res = res && lbm_add_extension("sdl-draw-line", ext_sdl_draw_line);
-  res = res && lbm_add_extension("sdl-clear", ext_sdl_clear);
-  res = res && lbm_add_extension("sdl-present", ext_sdl_present);
-  res = res && lbm_add_extension("sdl-poll-event", ext_sdl_poll_event);
+  lbm_add_extension("sdl-init", ext_sdl_init);
+  lbm_add_extension("sdl-create-window",ext_sdl_create_window);
+  lbm_add_extension("sdl-create-soft-renderer", ext_sdl_create_soft_renderer);
+  lbm_add_extension("sdl-renderer-set-color", ext_sdl_renderer_set_color);
+  lbm_add_extension("sdl-draw-point", ext_sdl_draw_point);
+  lbm_add_extension("sdl-draw-line", ext_sdl_draw_line);
+  lbm_add_extension("sdl-clear", ext_sdl_clear);
+  lbm_add_extension("sdl-present", ext_sdl_present);
+  lbm_add_extension("sdl-poll-event", ext_sdl_poll_event);
 
-  res = res && lbm_add_extension("sdl-load-texture", ext_sdl_load_texture);
-  res = res && lbm_add_extension("sdl-blit", ext_sdl_blit);
-  return res;
+  lbm_add_extension("sdl-load-texture", ext_sdl_load_texture);
+  lbm_add_extension("sdl-blit", ext_sdl_blit);
+
+  lbm_add_extension("sdl-set-active-renderer", ext_sdl_set_active_renderer);
+  lbm_display_extensions_init();
+  lbm_display_extensions_set_callbacks(sdl_render_image,
+                                       sdl_clear,
+                                       sdl_reset);
+
+  return lbm_get_num_extensions() < lbm_get_max_extensions();
 }

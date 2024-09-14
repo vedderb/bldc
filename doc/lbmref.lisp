@@ -1,6 +1,4 @@
 
-(defun str-merge () (str-join (rest-args)))
-
 (defun is-read-eval-txt (x)
   (match x
          ( (read-eval . _) true)
@@ -2558,6 +2556,32 @@
                           ))
               end)))
 
+(define conc-kill
+  (ref-entry "kill"
+             (list
+              (para (list "The `kill` function allows you to force terminate"
+                          "another thread. It has the signature `(kill thread-id-expr val-expr)`,"
+                          "where `thread-id-expr` is the thread that you want to terminate,"
+                          "and `val-expr` is the final result the thread dies with."
+                          ))
+              (program '(((defun f () (f))
+                          (define id (spawn f))
+                          (kill id nil)
+                          )
+                         ))
+              (para (list "The `val-expr` can be observed if the thread exit status is captured using `spawn-trap`"
+                          ))
+              (program '(((defun f () (f))
+                          (define id (spawn-trap f))
+                          (kill id 'kurt-russel)
+                          (recv (( ? x) x))
+                          )
+                         ))
+              (para (list "The `val-expr` could be used to communicate to a thread monitor that the"
+                          "thread it monitors has been intentionally but externally killed."
+                          ))
+              
+              end)))
 
 
 
@@ -2592,6 +2616,7 @@
             conc-atomic
             conc-exit-ok
             conc-exit-error
+            conc-kill
             )
            ))
 
@@ -2623,6 +2648,8 @@
              (list
               (para (list "Like [recv](#recv), `recv-to` is used to receive"
                           "messages but `recv-to` takes an extra timeout argument."
+                          "It then receives a message containing the symbol"
+                          "`timeout` after the timeout period ends."
                           ))
               (para (list "The form of an `recv-to` expression is"
                           "```clj"
@@ -2635,6 +2662,13 @@
               (program '(((send (self) 28)
                           (recv-to 0.1
                                    ((? n) (+ n 1))
+                                   (timeout 'no-message))
+
+                          )
+                         ))
+              (program '(((send (self) 'not-foo)
+                          (recv-to 0.1
+                                   (foo 'got-foo)
                                    (timeout 'no-message))
 
                           )
