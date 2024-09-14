@@ -7535,6 +7535,79 @@ The `exit-error` function terminates the thread with an error specified by the p
 
 ---
 
+
+### kill
+
+The `kill` function allows you to force terminate another thread. It has the signature `(kill thread-id-expr val-expr)`, where `thread-id-expr` is the thread that you want to terminate, and `val-expr` is the final result the thread dies with. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun f nil (f))
+(define id (spawn f))
+(kill id nil)
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+The `val-expr` can be observed if the thread exit status is captured using `spawn-trap` 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun f nil (f))
+(define id (spawn-trap f))
+(kill id 'kurt-russel)
+(recv ((? x) x))
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+(exit-ok 170323 kurt-russel)
+```
+
+
+</td>
+</tr>
+</table>
+
+The `val-expr` could be used to communicate to a thread monitor that the thread it monitors has been intentionally but externally killed. 
+
+
+
+
+---
+
 ## Message-passing
 
 
@@ -7588,7 +7661,7 @@ To receive a message use the `recv` command. A process will block on a `recv` un
 
 ### recv-to
 
-Like [recv](#recv), `recv-to` is used to receive messages but `recv-to` takes an extra timeout argument. 
+Like [recv](#recv), `recv-to` is used to receive messages but `recv-to` takes an extra timeout argument. It then receives a message containing the symbol `timeout` after the timeout period ends. 
 
 The form of an `recv-to` expression is ```clj (recv-to timeout-secs                 (pattern1 exp1)                 ...                 (patternN expN)) ``` 
 
@@ -7615,6 +7688,36 @@ The form of an `recv-to` expression is ```clj (recv-to timeout-secs             
 
 ```clj
 29
+```
+
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(send (self) 'not-foo)
+(recv-to 0.100000f32
+         (foo 'got-foo)
+         (timeout 'no-message))
+
+```
+
+
+</td>
+<td>
+
+
+```clj
+0.100000f32
 ```
 
 

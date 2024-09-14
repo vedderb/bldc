@@ -74,9 +74,10 @@ The REPL depends on libreadline.
 * libreadline
 * lib32readline
 * gcc-multilib
+* libpng
 
 On Ubunty you can obtain the depencies by:
-`sudo apt-get install gcc-multilib libreadline-dev lib32readline-dev`
+`sudo apt-get install gcc-multilib libreadline-dev lib32readline-dev libpng-dev libpng-dev:i386`
 
 Then issue command `make` in the repl directory.
 

@@ -125,6 +125,7 @@ lbm_value lbm_enc_float(float x) {
 #endif
 }
 
+#ifndef LBM64
 static lbm_value enc_64_on_32(uint8_t *source, lbm_uint type_qual, lbm_uint type) {
   lbm_value res = ENC_SYM_MERROR;
   res = lbm_cons(ENC_SYM_NIL,ENC_SYM_NIL);
@@ -140,6 +141,7 @@ static lbm_value enc_64_on_32(uint8_t *source, lbm_uint type_qual, lbm_uint type
   }
   return res;
 }
+#endif
 
 lbm_value lbm_enc_i64(int64_t x) {
 #ifndef LBM64
