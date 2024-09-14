@@ -22,6 +22,8 @@
 #ifndef HW_UBOX_V2_100_CORE_H_
 #define HW_UBOX_V2_100_CORE_H_
 
+#define HW_SHUTDOWN_CUSTOM
+
 #ifdef HW_UBOX_V2_100
 #define HW_NAME					"UBOX_V2_100"
 #elif defined (HW_UBOX_SINGLE_100)

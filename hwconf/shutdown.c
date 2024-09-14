@@ -26,7 +26,9 @@
 #include "lispif.h"
 #endif
 
-#ifdef HW_SHUTDOWN_HOLD_ON
+#ifdef HW_SHUTDOWN_CUSTOM
+// Do nothing. All shutdown functionality is handled in the hardware file.
+#elif defined(HW_SHUTDOWN_HOLD_ON)
 
 // Private variables
 bool volatile m_button_pressed = false;
