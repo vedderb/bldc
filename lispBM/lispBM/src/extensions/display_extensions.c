@@ -26,6 +26,7 @@
 #include <extensions/display_extensions.h>
 #include <lbm_utils.h>
 #include <lbm_custom_type.h>
+#include <lbm_defrag_mem.h>
 
 #define MAX_WIDTH 32000
 #define MAX_HEIGHT 32000
@@ -251,6 +252,23 @@ static lbm_value image_buffer_allocate(color_format_t fmt, uint16_t width, uint1
   return res;
 }
 
+static lbm_value image_buffer_allocate_dm(lbm_uint *dm, color_format_t fmt, uint16_t width, uint16_t height) {
+  uint32_t size_bytes = image_dims_to_size_bytes(fmt, width, height);
+
+  lbm_value res = lbm_defrag_mem_alloc(dm, IMAGE_BUFFER_HEADER_SIZE + size_bytes);
+  if (lbm_is_symbol(res)) {
+    return res;
+  }
+  lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
+  uint8_t *buf = (uint8_t*)arr->data;
+  buf[0] = (uint8_t)(width >> 8);
+  buf[1] = (uint8_t)width;
+  buf[2] = (uint8_t)(height >> 8);
+  buf[3] = (uint8_t)height;
+  buf[4] = color_format_to_byte(fmt);  
+  return res;
+}
+
 // Exported interface
 bool display_is_color(lbm_value v) {
   return ((lbm_uint)lbm_get_custom_descriptor(v) == (lbm_uint)color_desc);
@@ -381,7 +399,7 @@ static uint32_t  rgb565to888(uint16_t rgb) {
   return res_rgb888;
 }
 
-static void image_buffer_clear(image_buffer_t *img, uint32_t cc) {
+void image_buffer_clear(image_buffer_t *img, uint32_t cc) {
   color_format_t fmt = img->fmt;
   uint32_t w = img->width;
   uint32_t h = img->height;
@@ -1157,7 +1175,8 @@ static void handle_arc_slice(image_buffer_t *img, int outer_x, int outer_y, int 
 
   // Find slice width if arc spanned the complete circle.
   int x, x1;
-  int width, width1;
+  int width = 0;
+  int width1 = 0;
   bool slice_is_split = false;
 
   bool slice_filled;
@@ -1941,18 +1960,35 @@ static lbm_value ext_image_dims(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_image_buffer(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
-
-  if (argn == 3 &&
-      lbm_is_symbol(args[0]) &&
-      lbm_is_number(args[1]) &&
-      lbm_is_number(args[2])) {
-
-    color_format_t fmt = sym_to_color_format(args[0]);
-    lbm_uint w = lbm_dec_as_u32(args[1]);
-    lbm_uint h = lbm_dec_as_u32(args[2]);
-
-    if (fmt != format_not_supported && w > 0 && h > 0 && w < MAX_WIDTH && h < MAX_HEIGHT) {
+  bool args_ok = false;
+  color_format_t fmt = indexed2;
+  lbm_uint w = 0;
+  lbm_uint h = 0;
+  
+  if (argn == 4 &&
+      lbm_is_defrag_mem(args[0]) &&
+      lbm_is_symbol(args[1]) &&
+      lbm_is_number(args[2]) &&
+      lbm_is_number(args[3])) {
+    fmt = sym_to_color_format(args[1]);
+    w = lbm_dec_as_u32(args[2]);
+    h = lbm_dec_as_u32(args[3]);
+    args_ok = true;
+  } else if (argn == 3 &&
+	     lbm_is_symbol(args[0]) &&
+	     lbm_is_number(args[1]) &&
+	     lbm_is_number(args[2])) {
+    fmt = sym_to_color_format(args[0]);
+    w = lbm_dec_as_u32(args[1]);
+    h = lbm_dec_as_u32(args[2]);
+    args_ok = true;
+  }
+    
+  if (args_ok && fmt != format_not_supported && w > 0 && h > 0 && w < MAX_WIDTH && h < MAX_HEIGHT) {
+    if (argn == 3) {
       res = image_buffer_allocate(fmt, (uint16_t)w, (uint16_t)h);
+    } else {
+      res = image_buffer_allocate_dm((lbm_uint*)lbm_car(args[0]), fmt, (uint16_t)w, (uint16_t)h);
     }
   }
   return res;

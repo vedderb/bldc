@@ -576,7 +576,7 @@ int main(int argc, char **argv) {
   lbm_array_extensions_init();
   lbm_math_extensions_init();
   lbm_string_extensions_init();
-  lbm_runtime_extensions_init(false);
+  lbm_runtime_extensions_init();
   lbm_matvec_extensions_init();
   lbm_random_extensions_init();
   lbm_loop_extensions_init();

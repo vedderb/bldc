@@ -5929,7 +5929,7 @@ apa
 
 ### rotate
 
-`rotate` creates a list containing the same elements as an existing list but rotated some number of step along a direction. The form of a `reverse` expression is `(rotate list-exp dist-expr)`. The sign of the value dist-expr evaluates to, decides direction of rotation. 
+`rotate` creates a list containing the same elements as an existing list but rotated some number of step along a direction. The form of a `rotate` expression is `(rotate list-exp dist-expr)`. The sign of the value dist-expr evaluates to, decides direction of rotation. 
 
 <table>
 <tr>
@@ -7386,7 +7386,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-660
+2868
 ```
 
 
@@ -7593,7 +7593,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 170323 kurt-russel)
+(exit-ok 171641 kurt-russel)
 ```
 
 
@@ -8251,7 +8251,9 @@ Flash memory can be used to store data and functions that are constant. Things c
 
 ### @const-symbol-strings
 
-if `@const-symbol-strings` directive is placed in a file, symbols will be created in flash memory instead of the arrays memory. 
+`@const-symbol-strings` functionality have been combined with `@const-start` and `@const-end`. Now symbols created while in a const block, end up in flash storage. 
+
+~~if `@const-symbol-strings` directive is placed in a file, symbols will be created in flash memory instead of the arrays memory.~~ 
 
 
 
