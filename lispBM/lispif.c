@@ -682,9 +682,9 @@ bool lispif_restart(bool print, bool load_code, bool load_imports) {
 			lbm_eval_init_events(20);
 		}
 
-		lbm_reset_eval();
-		while (lbm_get_eval_state() != EVAL_CPS_STATE_RESET) {
-			lbm_reset_eval();
+		lbm_pause_eval();
+		while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+			lbm_pause_eval();
 			chThdSleepMilliseconds(1);
 		}
 
