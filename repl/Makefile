@@ -6,7 +6,7 @@ include $(LISPBM)/lispbm.mk
 PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
 PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c
 
-CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 
+CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 -DFULL_RTS_LIB
 
 PICCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11
 

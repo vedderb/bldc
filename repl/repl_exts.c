@@ -445,8 +445,12 @@ static lbm_value ext_load_file(lbm_value *args, lbm_uint argn) {
           lbm_value val;
           lbm_lift_array(&val, (char*)data, (lbm_uint)size);
           if (!lbm_is_symbol(val)) {
-            fread(data, 1, (size_t)size, h->fp);
-            res = val;
+            size_t n = fread(data, 1, (size_t)size, h->fp);
+            if ( n > 0) {
+              res = val;
+            } else {
+              res = ENC_SYM_NIL; // or some empty indicator?
+            }
           }
         } else {
           res = ENC_SYM_MERROR;
@@ -593,15 +597,17 @@ static void buffer_blast_indexed2(uint8_t *dest, uint8_t *img, color_t *colors) 
   uint16_t h    = image_buffer_height(img);
   int num_pix = w * h;
 
-  uint32_t *w_dest = (uint32_t *)dest;
+  uint32_t t_pos = 0;
   for (int i = 0; i < num_pix; i ++) {
     int byte = i >> 3;
     int bit  = 7 - (i & 0x7);
     int color_ind = (data[byte] & (1 << bit)) >> bit;
 
-    uint32_t color = COLOR_TO_RGB888(colors[color_ind],
+    uint32_t color = (uint32_t)COLOR_TO_RGB888(colors[color_ind],
                                      i % w, i / w);
-    w_dest[i] = color;
+    dest[t_pos++] = (uint8_t)(color >> 16);
+    dest[t_pos++] = (uint8_t)(color >> 8);
+    dest[t_pos++] = (uint8_t)(color);
   }
 }
 
@@ -610,8 +616,8 @@ static void buffer_blast_indexed4(uint8_t *dest, uint8_t *img, color_t *colors) 
   uint16_t w    = image_buffer_width(img);
   uint16_t h    = image_buffer_height(img);
   int num_pix = w * h;
-
-  uint32_t *w_dest = (uint32_t *)dest;
+  
+  uint32_t t_pos = 0;
   for (int i = 0; i < num_pix; i ++) {
     int byte = i >> 2;
     int bit = (3 - (i & 0x03)) * 2;
@@ -619,7 +625,9 @@ static void buffer_blast_indexed4(uint8_t *dest, uint8_t *img, color_t *colors) 
 
     uint32_t color = COLOR_TO_RGB888(colors[color_ind],
                                      i % w, i / w);
-    w_dest[i] = color;
+    dest[t_pos++] = (uint8_t)(color >> 16);
+    dest[t_pos++] = (uint8_t)(color >> 8);
+    dest[t_pos++] = (uint8_t)(color);
   }
 }
 
@@ -629,7 +637,7 @@ static void buffer_blast_indexed16(uint8_t *dest, uint8_t *img, color_t *colors)
   uint16_t h    = image_buffer_height(img);
   int num_pix = w * h;
 
-  //uint32_t *w_dest = (uint32_t *)dest;
+  uint32_t t_pos = 0;
   for (int i = 0; i < num_pix; i ++) {
     int byte = i >> 1;    // byte to access is pix / 2
     int bit = (1 - (i & 0x01)) * 4; // bit position to access within byte
@@ -637,7 +645,9 @@ static void buffer_blast_indexed16(uint8_t *dest, uint8_t *img, color_t *colors)
 
     uint32_t color = COLOR_TO_RGB888(colors[color_ind],
                                      i % w, i / w);
-    //w_dest[i] = color;
+    dest[t_pos++] = (uint8_t)(color >> 16);
+    dest[t_pos++] = (uint8_t)(color >> 8);
+    dest[t_pos++] = (uint8_t)(color);
   }
 }
 
@@ -647,14 +657,16 @@ static void buffer_blast_rgb332(uint8_t *dest, uint8_t *img) {
   uint16_t h    = image_buffer_height(img);
   int num_pix = w * h;
 
-  uint32_t *w_dest = (uint32_t *)dest;
+  uint32_t t_pos = 0;
   for (int i = 0; i < num_pix; i ++) {
     uint8_t pix = data[i];
     uint32_t r = (uint32_t)((pix >> 5) & 0x7);
     uint32_t g = (uint32_t)((pix >> 2) & 0x7);
     uint32_t b = (uint32_t)(pix & 0x3);
-    uint32_t rgb888 = r << (16 + 5) | g << (8 + 5) | b << 6;
-    w_dest[i] = rgb888;
+    uint32_t color = r << (16 + 5) | g << (8 + 5) | b << 6;
+    dest[t_pos++] = (uint8_t)(color >> 16);
+    dest[t_pos++] = (uint8_t)(color >> 8);
+    dest[t_pos++] = (uint8_t)(color);
   }
 }
 
@@ -664,15 +676,17 @@ static void buffer_blast_rgb565(uint8_t *dest, uint8_t *img) {
   uint16_t h    = image_buffer_height(img);
   int num_pix = w * h;
 
-  uint32_t *w_dest = (uint32_t *)dest;
+  uint32_t t_pos = 0;
   for (int i = 0; i < num_pix; i ++) {
     uint16_t pix = (((uint16_t)data[2 * i]) << 8) | ((uint16_t)data[2 * i + 1]);
 
     uint32_t r = (uint32_t)(pix >> 11);
     uint32_t g = (uint32_t)((pix >> 5) & 0x3F);
     uint32_t b = (uint32_t)(pix & 0x1F);
-    uint32_t rgb888 = r << (16 + 3) | g << (8 + 2) | b << 3;
-    w_dest[i] = rgb888;
+    uint32_t color = r << (16 + 3) | g << (8 + 2) | b << 3;
+    dest[t_pos++] = (uint8_t)(color >> 16);
+    dest[t_pos++] = (uint8_t)(color >> 8);
+    dest[t_pos++] = (uint8_t)(color);
   }
 }
 
@@ -682,28 +696,31 @@ static void buffer_blast_rgb888(uint8_t *dest, uint8_t *img) {
   uint16_t h    = image_buffer_height(img);
   int num_pix = w * h;
 
-  uint32_t *w_dest = (uint32_t *)dest;
+  uint32_t t_pos = 0;
   for (int i = 0; i < num_pix; i ++) {
     uint32_t r = data[3 * i];
     uint32_t g = data[3 * i + 1];
     uint32_t b = data[3 * i + 2];
 
-    uint32_t rgb888 = r << 16 | g << 8 | b;
-    w_dest[i] = rgb888;
+    uint32_t color = r << 16 | g << 8 | b;
+    dest[t_pos++] = (uint8_t)(color >> 16);
+    dest[t_pos++] = (uint8_t)(color >> 8);
+    dest[t_pos++] = (uint8_t)(color);
   }
 }
 
 void copy_image_area(uint8_t*target, uint16_t tw, uint16_t th, uint16_t x, uint16_t y, uint8_t * buffer, uint16_t w, uint16_t h) {
 
   if (x < tw && y < th) {  // if at all on screen
-    if ( y + h > th) h -= (th - (y + h));
+    if ( y + h > th) h -= (uint16_t)(th - (y + h));
     int lines = h;
     int pos_y = y;
 
-    int len = (x + w > tw) ? tw - (tw - (x + w)): tw;
+    int len = (x + w > tw) ? tw - (tw - (x + w)) : w;
 
     for (int i = 0; i < lines; i ++) {
-      memcpy(target + (pos_y * tw *3) + x, buffer + (i * w * 3), len * 3);
+      memcpy(target + (pos_y * tw *3) + x, buffer + (i * w * 3), (size_t)(len * 3));
+      pos_y++;
     }
   }
 }
@@ -829,14 +846,22 @@ static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, c
       uint16_t t_h = image_buffer_height(target_image);
       copy_image_area(image_buffer_data(target_image), t_w, t_h, x, y, buffer, w, h);
       free(buffer);
+      r = true;
     }
   }
   return r;
 }
 
 static void image_renderer_clear(uint32_t color) {
-  (void) color;
-  ;
+  if (lbm_is_array_r(active_image)) {
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(active_image);
+    image_buffer_t img;
+    img.fmt = image_buffer_format((uint8_t*)arr->data);
+    img.width = image_buffer_width((uint8_t*)arr->data);
+    img.height = image_buffer_height((uint8_t*)arr->data);
+    img.data = image_buffer_data((uint8_t*)arr->data);
+    image_buffer_clear(&img, color);
+  }
 }
 
 static void image_renderer_reset(void) {
@@ -866,7 +891,7 @@ int init_exts(void) {
   lbm_array_extensions_init();
   lbm_string_extensions_init();
   lbm_math_extensions_init();
-  lbm_runtime_extensions_init(false);
+  lbm_runtime_extensions_init();
   lbm_set_extensions_init();
   lbm_display_extensions_init();
 

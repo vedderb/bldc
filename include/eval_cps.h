@@ -32,6 +32,7 @@ extern "C" {
 #define EVAL_CPS_STATE_RUNNING 2
 #define EVAL_CPS_STATE_KILL    4
 #define EVAL_CPS_STATE_DEAD    8
+#define EVAL_CPS_STATE_RESET   16
 
 #define EVAL_CPS_DEFAULT_MAILBOX_SIZE 10
 
@@ -195,7 +196,13 @@ lbm_cid lbm_eval_program_ext(lbm_value lisp, unsigned int stack_size);
  *  lbm_run_eval should be started in a new thread provided by the underlying HAL or OS.
  */
 void lbm_run_eval(void);
-
+/** Indicate that the evaluator should reset at the next opportunity.
+ * You cannot assume that the evaluator has entered reset state unless you call lbm_get_eval_state and get the
+ * return value EVAL_CPS_STATE_RESET.
+ * While in reset state, all LBM memories should be reinitialized and cleared.
+ * Use lbm_continue_eval(), to resume operation after reset.
+ */
+void lbm_reset_eval(void);
 /** Indicate that the evaluator should pause at the next iteration.
  * You cannot assume that the evaluator has paused unless you call lbm_get_eval_state and get the
  * return value EVAL_CPS_STATE_PAUSED.

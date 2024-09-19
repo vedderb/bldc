@@ -54,7 +54,7 @@ typedef struct {
 
 
 typedef struct {
-  int color1;
+  int color1;    // I dont know why these are int when most uses of them are as if uint32_t.
   int color2;
   uint16_t param1;
   uint16_t param2;
@@ -157,11 +157,13 @@ static inline uint32_t color_apply_precalc(color_t color, int x, int y) {
 }
 
 #define COLOR_CHECK_PRE(color, x, y) (color.precalc ? color_apply_precalc(color, x, y) : lbm_display_rgb888_from_color(color, x, y))
-#define COLOR_TO_RGB888(color, x, y) (color.type == COLOR_REGULAR ? color.color1 : COLOR_CHECK_PRE(color, x, y))
+#define COLOR_TO_RGB888(color, x, y) (color.type == COLOR_REGULAR ? (uint32_t)color.color1 : COLOR_CHECK_PRE(color, x, y))
 
 // Interface
 bool lbm_display_is_color(lbm_value v);
 uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y);
+void image_buffer_clear(image_buffer_t *img, uint32_t cc);
+
 
 void lbm_display_extensions_init(void);
 void lbm_display_extensions_set_callbacks(

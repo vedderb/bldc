@@ -2940,7 +2940,14 @@ static void application(eval_context_t *ctx, lbm_value *fun_args, lbm_uint arg_c
     ctx->app_cont = true;
     ctx->r = ext_res;
     
-    if (blocking_extension) { // block_current_ctx checks the atomic status and issues error.
+    if (blocking_extension) {
+      if (is_atomic) {
+        // Check atomic_error explicitly so that the mutex
+        // can be released if there is an error.
+        blocking_extension = false;
+        mutex_unlock(&blocking_extension_mutex);
+        atomic_error();
+      }
       blocking_extension = false;
       if (blocking_extension_timeout) {
         blocking_extension_timeout = false;
@@ -3710,12 +3717,12 @@ static void cont_read_next_token(eval_context_t *ctx) {
       lbm_stack_drop(&ctx->K, 2);
       ctx->r = ENC_SYM_CLOSEPAR;
       return;
+    case TOKCONSTSYMSTR: /* fall through */
     case TOKCONSTSTART: /* fall through */
-    case TOKCONSTEND:
-    case TOKCONSTSYMSTR: {
+    case TOKCONSTEND: {
+      if (match == TOKCONSTSYMSTR)  printf_callback("WARNING: @const-symbol-string does nothing!");
       if (match == TOKCONSTSTART)  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
       if (match == TOKCONSTEND)    ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
-      if (match == TOKCONSTSYMSTR) ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS;
       sptr[0] = stream;
       sptr[1] = lbm_enc_u(0);
       stack_reserve(ctx,1)[0] = READ_NEXT_TOKEN;
@@ -3851,10 +3858,10 @@ static void cont_read_next_token(eval_context_t *ctx) {
           error_ctx(ENC_SYM_MERROR);
         }
       } else {
-        if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS &&
+        if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST &&
             ctx->flags & EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ) {
           r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id, true); //flash
-           if (!r) {
+          if (!r) {
             lbm_set_error_reason((char*)lbm_error_str_flash_error);
             error_ctx(ENC_SYM_FATAL_ERROR);
           }
@@ -4974,6 +4981,15 @@ static void evaluation_step(void){
   return;
 }
 
+
+// Reset has a built in pause.
+// so after reset, continue.
+void lbm_reset_eval(void) {
+  eval_cps_next_state_arg = 0;
+  eval_cps_next_state = EVAL_CPS_STATE_RESET;
+  if (eval_cps_next_state != eval_cps_run_state) eval_cps_state_changed = true;
+}
+
 void lbm_pause_eval(void ) {
   eval_cps_next_state_arg = 0;
   eval_cps_next_state = EVAL_CPS_STATE_PAUSED;
@@ -5094,16 +5110,33 @@ void lbm_run_eval(void){
     if (eval_cps_state_changed  || eval_cps_run_state == EVAL_CPS_STATE_PAUSED) {
       eval_cps_state_changed = false;
       switch (eval_cps_next_state) {
+      case EVAL_CPS_STATE_RESET:
+        if (eval_cps_run_state != EVAL_CPS_STATE_RESET) {
+          is_atomic = false;
+          blocked.first = NULL;
+          blocked.last = NULL;
+          queue.first = NULL;
+          queue.last = NULL;
+          ctx_running = NULL;
+          eval_steps_quota = eval_steps_refill;
+          eval_cps_run_state = EVAL_CPS_STATE_RESET;
+          if (blocking_extension) {
+            blocking_extension = false;
+            mutex_unlock(&blocking_extension_mutex);
+          }
+        }
+        usleep_callback(EVAL_CPS_MIN_SLEEP);
+        continue;
       case EVAL_CPS_STATE_PAUSED:
         if (eval_cps_run_state != EVAL_CPS_STATE_PAUSED) {
           if (lbm_heap_num_free() < eval_cps_next_state_arg) {
             gc();
           }
           eval_cps_next_state_arg = 0;
+          eval_cps_run_state = EVAL_CPS_STATE_PAUSED;
         }
-        eval_cps_run_state = EVAL_CPS_STATE_PAUSED;
         usleep_callback(EVAL_CPS_MIN_SLEEP);
-        continue; /* jump back to start of eval_running loop */
+        continue;
       case EVAL_CPS_STATE_KILL:
         eval_cps_run_state = EVAL_CPS_STATE_DEAD;
         eval_running = false;
