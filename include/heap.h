@@ -307,13 +307,12 @@ lbm_uint lbm_heap_size(void);
 lbm_uint lbm_heap_size_bytes(void);
 /** Allocate an lbm_cons_t cell from the heap.
  *
- * \param r_val pointer to lbm_value to hold the result.
  * \param type A type that can be encoded onto the cell (most often LBM_PTR_TYPE_CONS).
  * \param car Value to write into car position of allocated cell.
  * \param cdr Value to write into cdr position of allocated cell.
- * \return true on success, false if out of memory on the heap (then run GC)..
+ * \return a heap cell on success and Memory_error on failure.
  */
-bool lbm_heap_allocate_cell(lbm_value *r_val, lbm_type type, lbm_value car, lbm_value cdr);
+lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr);
 /** Allocate a list of n heap-cells.
  * \param n The number of heap-cells to allocate.
  * \return A list of heap-cells of Memory error if unable to allocate.
@@ -414,6 +413,7 @@ lbm_uint lbm_dec_raw(lbm_value v);
  * \param cdr The value to put in the cdr field of the allocated lbm_cons_t.
  * \return A value referencing the lbm_cons_t or enc_sym(SYM_MERROR) if heap is full.
  */
+
 lbm_value lbm_cons(lbm_value car, lbm_value cdr);
 
 /** Accesses the car field of an lbm_cons_t.

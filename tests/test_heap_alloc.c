@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
   lbm_cons_t *heap_storage = NULL;
 
   unsigned int heap_size = 1024 * 1024;
-  uint32_t cell;
+  lbm_value cell;
 
   res = lbm_symrepr_init();
   if (!res) {
@@ -51,7 +51,8 @@ int main(int argc, char **argv) {
   printf("Initialized heap: OK\n");
 
   for (unsigned int i = 0; i < heap_size; i ++) {
-    if (!lbm_heap_allocate_cell(&cell, LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_NIL)) {
+    cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_NIL);
+    if (cell == ENC_SYM_MERROR) {
       printf("Error allocating cell %d\n", i);
       return 0;
     }
@@ -59,7 +60,8 @@ int main(int argc, char **argv) {
   printf("Allocated %d heap cells: OK\n", heap_size);
 
   for (int i = 0; i < 34; i ++) {
-    if (lbm_heap_allocate_cell(&cell, LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_NIL)) {
+    cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_NIL);
+    if (cell != ENC_SYM_MERROR) {
       printf("Error allocation succeeded on full heap\n");
       return 0;
     }

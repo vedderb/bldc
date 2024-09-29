@@ -553,19 +553,19 @@ int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
   return generate_freelist(num_cells);
 }
 
-// Could make use of NIL == 0 here and return the lbm_value,
-// it can still be used in conditionals as false/true.
-bool lbm_heap_allocate_cell(lbm_value *r_val, lbm_type ptr_type, lbm_value car, lbm_value cdr) {
-  bool r = false;
+
+lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr) {
+  lbm_value r;
   lbm_value cell = lbm_heap_state.freelist;
-  if (!(lbm_is_symbol_nil(cell))) {
+  if (cell) {
     lbm_uint heap_ix = lbm_dec_ptr(cell);
     lbm_heap_state.freelist = lbm_heap_state.heap[heap_ix].cdr;
     lbm_heap_state.num_alloc++;
     lbm_heap_state.heap[heap_ix].car = car;
     lbm_heap_state.heap[heap_ix].cdr = cdr;
-    *r_val = lbm_set_ptr_type(cell, ptr_type);
-    r = true;
+    r = lbm_set_ptr_type(cell, ptr_type);
+  } else {
+    r = ENC_SYM_MERROR;
   }
   return r;
 }
@@ -842,9 +842,9 @@ int lbm_gc_sweep_phase(void) {
         case ENC_SYM_IND_F_TYPE:
           lbm_memory_free((lbm_uint*)heap[i].car);
           break;
-	case ENC_SYM_DEFRAG_ARRAY_TYPE:
-	  lbm_defrag_mem_free((lbm_uint*)heap[i].car);
-	  break;
+        case ENC_SYM_DEFRAG_ARRAY_TYPE:
+          lbm_defrag_mem_free((lbm_uint*)heap[i].car);
+          break;
         case ENC_SYM_LISPARRAY_TYPE: /* fall through */
         case ENC_SYM_ARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
@@ -866,9 +866,9 @@ int lbm_gc_sweep_phase(void) {
           lbm_custom_type_destroy(t);
           lbm_memory_free(t);
           } break;
-	case ENC_SYM_DEFRAG_MEM_TYPE: {
-	  lbm_uint *ptr = (lbm_uint *)heap[i].car;
-	  lbm_defrag_mem_destroy(ptr);
+        case ENC_SYM_DEFRAG_MEM_TYPE: {
+          lbm_uint *ptr = (lbm_uint *)heap[i].car;
+          lbm_defrag_mem_destroy(ptr);
           } break;
         default:
           break;
@@ -896,9 +896,7 @@ void lbm_gc_state_inc(void) {
 
 // construct, alter and break apart
 lbm_value lbm_cons(lbm_value car, lbm_value cdr) {
-  lbm_value r = ENC_SYM_MERROR;
-  lbm_heap_allocate_cell(&r, LBM_TYPE_CONS, car, cdr);
-  return r;
+  return lbm_heap_allocate_cell(LBM_TYPE_CONS, car, cdr);
 }
 
 lbm_value lbm_car(lbm_value c){
@@ -1196,8 +1194,8 @@ int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size)
   array->size = size;
 
   // allocating a cell for array's heap-presence
-  lbm_value cell;
-  if (!lbm_heap_allocate_cell(&cell, type, (lbm_uint) array, tag)) {
+  lbm_value cell = lbm_heap_allocate_cell(type, (lbm_uint) array, tag);
+  if (cell == ENC_SYM_MERROR) {
     lbm_memory_free((lbm_uint*)array->data);
     lbm_memory_free((lbm_uint*)array);
     *res = ENC_SYM_MERROR;
@@ -1223,9 +1221,9 @@ int lbm_heap_allocate_lisp_array(lbm_value *res, lbm_uint size) {
 int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   lbm_array_header_t *array = NULL;
-  lbm_value cell = ENC_SYM_NIL;
+  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
 
-  if (!lbm_heap_allocate_cell(&cell, LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE)) {
+  if (cell == ENC_SYM_MERROR) {
     *value = cell;
     return 0;
   }

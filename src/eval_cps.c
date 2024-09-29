@@ -838,8 +838,8 @@ bool create_string_channel(char *str, lbm_value *res) {
   }
 
   lbm_create_string_char_channel(st, chan, str);
-  lbm_value cell;
-  if (!lbm_heap_allocate_cell(&cell, LBM_TYPE_CHANNEL, (lbm_uint) chan, ENC_SYM_CHANNEL_TYPE)) {
+  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CHANNEL, (lbm_uint) chan, ENC_SYM_CHANNEL_TYPE);
+  if (cell == ENC_SYM_MERROR) {
     lbm_memory_free((lbm_uint*)st);
     lbm_memory_free((lbm_uint*)chan);
     return false;
@@ -850,8 +850,8 @@ bool create_string_channel(char *str, lbm_value *res) {
 }
 
 bool lift_char_channel(lbm_char_channel_t *chan , lbm_value *res) {
-  lbm_value cell;
-  if (!lbm_heap_allocate_cell(&cell, LBM_TYPE_CHANNEL, (lbm_uint) chan, ENC_SYM_CHANNEL_TYPE)) {
+  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CHANNEL, (lbm_uint) chan, ENC_SYM_CHANNEL_TYPE);
+  if (cell == ENC_SYM_MERROR) {
     return false;
   }
   *res = cell;

@@ -45,11 +45,11 @@ lbm_value lbm_defrag_mem_create(lbm_uint nbytes) {
       memset((uint8_t*)data , 0, DEFRAG_MEM_HEADER_BYTES + nwords*sizeof(lbm_uint));
       data[0] = nwords;
       data[1] = 0;      //flags
-      lbm_value cell;
-      if (lbm_heap_allocate_cell(&cell, LBM_TYPE_DEFRAG_MEM, (lbm_uint)data, ENC_SYM_DEFRAG_MEM_TYPE)) {
-        res = cell;
-      } else {
+      lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_DEFRAG_MEM, (lbm_uint)data, ENC_SYM_DEFRAG_MEM_TYPE);
+      if (cell == ENC_SYM_MERROR) {
         lbm_free(data);
+      } else {
+        res = cell;
       }
     }
   }
@@ -155,9 +155,10 @@ static void lbm_defrag_mem_defrag(lbm_uint *defrag_mem, lbm_uint bytes) {
 lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes) {
 
   if (bytes == 0) return ENC_SYM_EERROR;
-  lbm_value cell;
-  if (!lbm_heap_allocate_cell(&cell, LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_DEFRAG_ARRAY_TYPE)) {
-    return ENC_SYM_MERROR;
+  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_DEFRAG_ARRAY_TYPE);
+
+  if (cell == ENC_SYM_MERROR) {
+    return cell;
   }
 
   lbm_uint mem_size = DEFRAG_MEM_SIZE(defrag_mem);
