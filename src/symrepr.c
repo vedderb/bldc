@@ -226,6 +226,9 @@ special_sym const special_symbols[] =  {
   {"dm-create"      , SYM_DM_CREATE},
   {"dm-alloc"       , SYM_DM_ALLOC},
 
+  {"list?"          , SYM_IS_LIST},
+  {"number?"        , SYM_IS_NUMBER},
+  
   // fast access in list
   {"ix"             , SYM_IX},
 
@@ -402,6 +405,7 @@ static bool add_symbol_to_symtab(char* name, lbm_uint id) {
   if (m == NULL) return false;
 
   symbol_table_size_list += 3;
+  symbol_table_size_strings += alloc_size;
   m[NAME] = (lbm_uint)&storage[3];
   m[NEXT] = (lbm_uint) symlist;
   symlist = m;

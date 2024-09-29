@@ -1362,6 +1362,24 @@ static lbm_value fundamental_dm_alloc(lbm_value *args, lbm_uint argn, eval_conte
   return res;
 }
 
+static lbm_value fundamental_is_list(lbm_value *args, lbm_uint argn, eval_context_t *ctx) {
+  (void) ctx;
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1) {
+    res = lbm_is_list_rw(args[0]) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  }
+  return res;
+}
+
+static lbm_value fundamental_is_number(lbm_value *args, lbm_uint argn, eval_context_t *ctx) {
+  (void) ctx;
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1) {
+    res = lbm_is_number(args[0]) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  }
+  return res;
+}
+
 const fundamental_fun fundamental_table[] =
   {fundamental_add,
    fundamental_sub,
@@ -1425,5 +1443,7 @@ const fundamental_fun fundamental_table[] =
    fundamental_array_to_list,
    fundamental_list_to_array,
    fundamental_dm_create,
-   fundamental_dm_alloc
+   fundamental_dm_alloc,
+   fundamental_is_list,
+   fundamental_is_number
   };

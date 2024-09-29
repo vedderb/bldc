@@ -127,8 +127,7 @@ lbm_value lbm_enc_float(float x) {
 
 #ifndef LBM64
 static lbm_value enc_64_on_32(uint8_t *source, lbm_uint type_qual, lbm_uint type) {
-  lbm_value res = ENC_SYM_MERROR;
-  res = lbm_cons(ENC_SYM_NIL,ENC_SYM_NIL);
+  lbm_value res = lbm_cons(ENC_SYM_NIL,ENC_SYM_NIL);
   if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
     uint8_t* storage = lbm_malloc(sizeof(uint64_t));
     if (storage) {
@@ -554,20 +553,21 @@ int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
   return generate_freelist(num_cells);
 }
 
-lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr) {
-  lbm_value res;
-  // it is a ptr replace freelist with cdr of freelist;
-  res = lbm_heap_state.freelist;
-  if (lbm_type_of(res) == LBM_TYPE_CONS) {
-    lbm_uint heap_ix = lbm_dec_ptr(res);
+// Could make use of NIL == 0 here and return the lbm_value,
+// it can still be used in conditionals as false/true.
+bool lbm_heap_allocate_cell(lbm_value *r_val, lbm_type ptr_type, lbm_value car, lbm_value cdr) {
+  bool r = false;
+  lbm_value cell = lbm_heap_state.freelist;
+  if (!(lbm_is_symbol_nil(cell))) {
+    lbm_uint heap_ix = lbm_dec_ptr(cell);
     lbm_heap_state.freelist = lbm_heap_state.heap[heap_ix].cdr;
     lbm_heap_state.num_alloc++;
     lbm_heap_state.heap[heap_ix].car = car;
     lbm_heap_state.heap[heap_ix].cdr = cdr;
-    res = lbm_set_ptr_type(res, ptr_type);
-    return res;
+    *r_val = lbm_set_ptr_type(cell, ptr_type);
+    r = true;
   }
-  return ENC_SYM_MERROR;
+  return r;
 }
 
 lbm_value lbm_heap_allocate_list(lbm_uint n) {
@@ -896,7 +896,9 @@ void lbm_gc_state_inc(void) {
 
 // construct, alter and break apart
 lbm_value lbm_cons(lbm_value car, lbm_value cdr) {
-  return lbm_heap_allocate_cell(LBM_TYPE_CONS, car, cdr);
+  lbm_value r = ENC_SYM_MERROR;
+  lbm_heap_allocate_cell(&r, LBM_TYPE_CONS, car, cdr);
+  return r;
 }
 
 lbm_value lbm_car(lbm_value c){
@@ -1194,16 +1196,14 @@ int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size)
   array->size = size;
 
   // allocating a cell for array's heap-presence
-  lbm_value cell  = lbm_heap_allocate_cell(type, (lbm_uint) array, tag);
-
-  *res = cell;
-
-  if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) { // Out of heap memory
+  lbm_value cell;
+  if (!lbm_heap_allocate_cell(&cell, type, (lbm_uint) array, tag)) {
     lbm_memory_free((lbm_uint*)array->data);
     lbm_memory_free((lbm_uint*)array);
     *res = ENC_SYM_MERROR;
     return 0;
   }
+  *res = cell;
 
   lbm_heap_state.num_alloc_arrays ++;
 
@@ -1223,9 +1223,9 @@ int lbm_heap_allocate_lisp_array(lbm_value *res, lbm_uint size) {
 int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   lbm_array_header_t *array = NULL;
-  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
+  lbm_value cell = ENC_SYM_NIL;
 
-  if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) { // Out of heap memory
+  if (!lbm_heap_allocate_cell(&cell, LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE)) {
     *value = cell;
     return 0;
   }

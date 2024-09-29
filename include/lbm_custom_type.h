@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2022, 2024 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -45,20 +45,20 @@ extern "C" {
 typedef bool (*custom_type_destructor)(lbm_uint);
 
 /** Create a value of a custom type with a destructor and a description
- *  
- * \param value The custom value. This can be a pointer to memory allocated 
- *              on the C-side. 
- * \param fptr The destructor function. This function should free any memory 
- *             allocated on the C-side. 
+ *
+ * \param value The custom value. This can be a pointer to memory allocated
+ *              on the C-side.
+ * \param fptr The destructor function. This function should free any memory
+ *             allocated on the C-side.
  * \param desc A description of the type that will be used for printing.
  * \param result Pointer to lbm_value that will hold the value of the custom type.
  * \return true on success or false otherwise.
  */
 bool lbm_custom_type_create(lbm_uint value, custom_type_destructor fptr, const char *desc, lbm_value *result);  
 
-/** Called by garbage collector and invokes the destructor 
- * on the custom value.  
- * 
+/** Called by garbage collector and invokes the destructor
+ * on the custom value.
+ *
  * /return true on success or false otherwise.
  */
 bool lbm_custom_type_destroy(lbm_uint *lbm_mem_ptr);
@@ -67,22 +67,16 @@ static inline bool lbm_is_custom(lbm_value value) {
   return (lbm_type_of(value) == LBM_TYPE_CUSTOM && !lbm_is_symbol_nil(lbm_car(value)));
 }
 
+// Must check is_custom before calling get_custom_descriptor
 static inline const char *lbm_get_custom_descriptor(lbm_value value) {
-  const char *res = NULL;
-  if  (lbm_is_custom(value)) {
-    lbm_uint *m = (lbm_uint*)lbm_dec_custom(value);
-    res = (const char*)m[CUSTOM_TYPE_DESCRIPTOR];
-  }
-  return res;
+  lbm_uint *m = (lbm_uint*)(lbm_ref_cell(value)->car);
+  return (const char*)m[CUSTOM_TYPE_DESCRIPTOR];
 }
 
+// Must check is_custom before calling get_custom_descriptor
 static inline lbm_uint lbm_get_custom_value(lbm_value value) {
-  lbm_uint res = 0;
-  if (lbm_is_custom(value)) {
     lbm_uint *m = (lbm_uint*)lbm_dec_custom(value);
-    res = m[CUSTOM_TYPE_VALUE];
-  }
-  return res;
+    return m[CUSTOM_TYPE_VALUE];
 }
 
 #ifdef __cplusplus

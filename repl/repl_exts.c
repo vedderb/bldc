@@ -663,10 +663,9 @@ static void buffer_blast_rgb332(uint8_t *dest, uint8_t *img) {
     uint32_t r = (uint32_t)((pix >> 5) & 0x7);
     uint32_t g = (uint32_t)((pix >> 2) & 0x7);
     uint32_t b = (uint32_t)(pix & 0x3);
-    uint32_t color = r << (16 + 5) | g << (8 + 5) | b << 6;
-    dest[t_pos++] = (uint8_t)(color >> 16);
-    dest[t_pos++] = (uint8_t)(color >> 8);
-    dest[t_pos++] = (uint8_t)(color);
+    dest[t_pos++] = (uint8_t)r;
+    dest[t_pos++] = (uint8_t)g;
+    dest[t_pos++] = (uint8_t)b;
   }
 }
 
@@ -683,10 +682,9 @@ static void buffer_blast_rgb565(uint8_t *dest, uint8_t *img) {
     uint32_t r = (uint32_t)(pix >> 11);
     uint32_t g = (uint32_t)((pix >> 5) & 0x3F);
     uint32_t b = (uint32_t)(pix & 0x1F);
-    uint32_t color = r << (16 + 3) | g << (8 + 2) | b << 3;
-    dest[t_pos++] = (uint8_t)(color >> 16);
-    dest[t_pos++] = (uint8_t)(color >> 8);
-    dest[t_pos++] = (uint8_t)(color);
+    dest[t_pos++] = (uint8_t)r;
+    dest[t_pos++] = (uint8_t)g;
+    dest[t_pos++] = (uint8_t)b;
   }
 }
 
@@ -695,32 +693,20 @@ static void buffer_blast_rgb888(uint8_t *dest, uint8_t *img) {
   uint16_t w    = image_buffer_width(img);
   uint16_t h    = image_buffer_height(img);
   int num_pix = w * h;
-
-  uint32_t t_pos = 0;
-  for (int i = 0; i < num_pix; i ++) {
-    uint32_t r = data[3 * i];
-    uint32_t g = data[3 * i + 1];
-    uint32_t b = data[3 * i + 2];
-
-    uint32_t color = r << 16 | g << 8 | b;
-    dest[t_pos++] = (uint8_t)(color >> 16);
-    dest[t_pos++] = (uint8_t)(color >> 8);
-    dest[t_pos++] = (uint8_t)(color);
-  }
+  memcpy(dest, data, (size_t)num_pix * 3);
 }
 
 void copy_image_area(uint8_t*target, uint16_t tw, uint16_t th, uint16_t x, uint16_t y, uint8_t * buffer, uint16_t w, uint16_t h) {
 
   if (x < tw && y < th) {  // if at all on screen
-    if ( y + h > th) h -= (uint16_t)(th - (y + h));
-    int lines = h;
-    int pos_y = y;
+    int end_y = y + h > th ? th : y + h;
+    int start_y = y;
 
-    int len = (x + w > tw) ? tw - (tw - (x + w)) : w;
-
-    for (int i = 0; i < lines; i ++) {
-      memcpy(target + (pos_y * tw *3) + x, buffer + (i * w * 3), (size_t)(len * 3));
-      pos_y++;
+    int len = (x + w > tw) ? w - (tw - (x + w)) : w;    
+    int read_y = 0;    
+    for (int i = start_y; i < end_y; i ++){
+      memcpy(target + (i * tw * 3) + (x * 3), buffer + (read_y * w * 3), (size_t)(len * 3));
+      read_y++;
     }
   }
 }
@@ -837,6 +823,7 @@ static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, c
         buffer_blast_rgb565(buffer, data);
         break;
       case rgb888:
+	printf("blasting 888\n");
         buffer_blast_rgb888(buffer, data);
         break;
       default:
@@ -844,7 +831,11 @@ static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, c
       }
       uint16_t t_w = image_buffer_width(target_image);
       uint16_t t_h = image_buffer_height(target_image);
-      copy_image_area(image_buffer_data(target_image), t_w, t_h, x, y, buffer, w, h);
+      if (t_w == w && t_h == h) {
+	memcpy(image_buffer_data(target_image), buffer, (size_t)w * h * 3);
+      } else {
+	copy_image_area(image_buffer_data(target_image), t_w, t_h, x, y, buffer, w, h);
+      }
       free(buffer);
       r = true;
     }

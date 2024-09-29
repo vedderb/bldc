@@ -47,8 +47,9 @@ allrev: $(EXECS)
 
 
 clean:
-	rm *.gcda
-	rm *.gcno
-	rm *.exe
-	rm test_lisp_code_cps
+	rm -f *.exe
+	rm -f test_lisp_code_cps
+	rm -f test_heap_alloc
+	rm -f *.gcda
+	rm -f *.gcno
 

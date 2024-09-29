@@ -271,7 +271,7 @@ static lbm_value image_buffer_allocate_dm(lbm_uint *dm, color_format_t fmt, uint
 
 // Exported interface
 bool display_is_color(lbm_value v) {
-  return ((lbm_uint)lbm_get_custom_descriptor(v) == (lbm_uint)color_desc);
+  return (lbm_is_custom(v) && ((lbm_uint)lbm_get_custom_descriptor(v) == (lbm_uint)color_desc));
 }
 
 // Register symbols
@@ -1995,19 +1995,18 @@ static lbm_value ext_image_buffer(lbm_value *args, lbm_uint argn) {
 }
 
 
-// Just check validity (should it copy, are these bins in flash ?)
-static lbm_value ext_image_buffer_from_bin(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_is_image_buffer(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
 
-  if (argn == 1 &&
-      lbm_is_array_r(args[0])) {
-
-    lbm_value arr = args[0];
-    lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(arr);
-    uint8_t *data = (uint8_t*)array->data;
-    // Todo. Maybe copy the buffer if it is not a rw array ?
-    if (image_buffer_is_valid(data, array->size)) {
-      res = arr;
+  if (argn == 1) {
+    res = ENC_SYM_NIL;
+    if (lbm_is_array_r(args[0])) {
+      lbm_value arr = args[0];
+      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(arr);
+      uint8_t *data = (uint8_t*)array->data;
+      if (image_buffer_is_valid(data, array->size)) {
+	res = ENC_SYM_TRUE;;
+      }
     }
   }
   return res;
@@ -2804,7 +2803,7 @@ void lbm_display_extensions_init(void) {
   disp_reset = NULL;
 
   lbm_add_extension("img-buffer", ext_image_buffer);
-  lbm_add_extension("img-buffer-from-bin", ext_image_buffer_from_bin);
+  lbm_add_extension("img-buffer?", ext_is_image_buffer);
   lbm_add_extension("img-color", ext_color);
   lbm_add_extension("img-color-set", ext_color_set);
   lbm_add_extension("img-color-get", ext_color_get);

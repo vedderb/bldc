@@ -135,8 +135,10 @@ bool f_sym_string(lbm_flat_value_t *v, char *str) {
   bool res = false;
   if (str) {
     lbm_uint sym_bytes = strlen(str) + 1;
-    res = write_byte(v, S_SYM_STRING);
-    res = write_bytes(v, (uint8_t*)str, sym_bytes);
+    if (write_byte(v, S_SYM_STRING) &&
+	write_bytes(v, (uint8_t*)str, sym_bytes)) {
+      res = true;
+    }
   }
   return res;
 }
@@ -355,7 +357,7 @@ int flatten_value_c(lbm_flat_value_t *fv, lbm_value v) {
     lbm_value *arrdata = (lbm_value*)header->data;
     lbm_uint size = header->size / sizeof(lbm_value);
     if (!f_lisp_array(fv, size)) return FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY;
-    int fv_r;
+    int fv_r = FLATTEN_VALUE_OK;
     for (lbm_uint i = 0; i < size; i ++ ) {
       fv_r =  flatten_value_c(fv, arrdata[i]);
       if (fv_r != FLATTEN_VALUE_OK) {
@@ -451,8 +453,9 @@ lbm_value handle_flatten_error(int err_val) {
 
 lbm_value flatten_value(lbm_value v) {
 
-  lbm_value array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
-  if (lbm_type_of(array_cell) == LBM_TYPE_SYMBOL) {
+  lbm_value array_cell;
+
+  if (!lbm_heap_allocate_cell(&array_cell, LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE)) {
     return ENC_SYM_MERROR;
   }
 
