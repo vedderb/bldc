@@ -79,31 +79,35 @@ static volatile bool pid_thd_stop;
 
 // Macros
 #ifdef HW_HAS_3_SHUNTS
-#define TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3) \
+#define TIMER_UPDATE_DUTY_M1(top, duty1, duty2, duty3) \
 		TIM1->CR1 |= TIM_CR1_UDIS; \
 		TIM1->CCR1 = duty1; \
 		TIM1->CCR2 = duty2; \
 		TIM1->CCR3 = duty3; \
+		TIM1->ARR = top; \
 		TIM1->CR1 &= ~TIM_CR1_UDIS;
 
-#define TIMER_UPDATE_DUTY_M2(duty1, duty2, duty3) \
+#define TIMER_UPDATE_DUTY_M2(top, duty1, duty2, duty3) \
 		TIM8->CR1 |= TIM_CR1_UDIS; \
 		TIM8->CCR1 = duty1; \
 		TIM8->CCR2 = duty2; \
 		TIM8->CCR3 = duty3; \
+		TIM8->ARR = top; \
 		TIM8->CR1 &= ~TIM_CR1_UDIS;
 #else
-#define TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3) \
+#define TIMER_UPDATE_DUTY_M1(top, duty1, duty2, duty3) \
 		TIM1->CR1 |= TIM_CR1_UDIS; \
 		TIM1->CCR1 = duty1; \
 		TIM1->CCR2 = duty3; \
 		TIM1->CCR3 = duty2; \
+		TIM1->ARR = top; \
 		TIM1->CR1 &= ~TIM_CR1_UDIS;
-#define TIMER_UPDATE_DUTY_M2(duty1, duty2, duty3) \
+#define TIMER_UPDATE_DUTY_M2(top, duty1, duty2, duty3) \
 		TIM8->CR1 |= TIM_CR1_UDIS; \
 		TIM8->CCR1 = duty1; \
 		TIM8->CCR2 = duty3; \
 		TIM8->CCR3 = duty2; \
+		TIM8->ARR = top; \
 		TIM8->CR1 &= ~TIM_CR1_UDIS;
 #endif
 
@@ -2474,7 +2478,8 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 	float current_sum[3] = {0.0, 0.0, 0.0};
 	float voltage_sum[3] = {0.0, 0.0, 0.0};
 
-	TIMER_UPDATE_DUTY_M1(TIM1->ARR / 2, TIM1->ARR / 2, TIM1->ARR / 2);
+	const uint32_t top = SYSTEM_CORE_CLOCK / (int)m_motor_1.m_conf->foc_f_zv;
+	TIMER_UPDATE_DUTY_M1(top, top / 2, top / 2, top / 2);
 
 	// Start PWM on phase 1
 	stop_pwm_hw((motor_all_state_t*)&m_motor_1);
@@ -2487,7 +2492,7 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 #ifdef HW_HAS_DUAL_MOTORS
 	float current_sum_m2[3] = {0.0, 0.0, 0.0};
 	float voltage_sum_m2[3] = {0.0, 0.0, 0.0};
-	TIMER_UPDATE_DUTY_M2(TIM8->ARR / 2, TIM8->ARR / 2, TIM8->ARR / 2);
+	TIMER_UPDATE_DUTY_M2(top / 2, top / 2, top / 2);
 
 	stop_pwm_hw((motor_all_state_t*)&m_motor_2);
 	PHASE_FILTER_ON_M2();
@@ -2683,7 +2688,8 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 	float current_sum[3] = {0.0, 0.0, 0.0};
 	float voltage_sum[3] = {0.0, 0.0, 0.0};
 
-	TIMER_UPDATE_DUTY_M1(TIM1->ARR / 2, TIM1->ARR / 2, TIM1->ARR / 2);
+	const uint32_t top = SYSTEM_CORE_CLOCK / (int)m_motor_1.m_conf->foc_f_zv;
+	TIMER_UPDATE_DUTY_M1(top, top / 2, top / 2, top / 2);
 
 	stop_pwm_hw((motor_all_state_t*)&m_motor_1);
 	PHASE_FILTER_ON();
@@ -2850,6 +2856,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	mc_configuration *conf_now = motor_now->m_conf;
 	mc_configuration *conf_other = motor_other->m_conf;
+	const uint32_t top = SYSTEM_CORE_CLOCK / (int)conf_other->foc_f_zv;
 
 	bool skip_interpolation = motor_other->m_cc_was_hfi;
 
@@ -2874,9 +2881,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		float curr0 = (GET_CURRENT1() - conf_other->foc_offsets_current[0]) * FAC_CURRENT1;
 		float curr1 = (GET_CURRENT2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT2;
 
-		TIMER_UPDATE_DUTY_M1(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
+		TIMER_UPDATE_DUTY_M1(top, motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 #ifdef HW_HAS_DUAL_PARALLEL
-		TIMER_UPDATE_DUTY_M2(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
+		TIMER_UPDATE_DUTY_M2(top, motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 #endif
 #endif
 
@@ -2922,8 +2929,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		state_m->mod_alpha_raw = c * state_m->mod_d - s * state_m->mod_q;
 		state_m->mod_beta_raw  = c * state_m->mod_q + s * state_m->mod_d;
 
-		uint32_t duty1, duty2, duty3, top;
-		top = TIM1->ARR;
+		uint32_t duty1, duty2, duty3;
 		foc_svm(state_m->mod_alpha_raw, state_m->mod_beta_raw,
 				top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
 
@@ -2939,7 +2945,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 #endif
 		}
 #else
-		TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3);
+		TIMER_UPDATE_DUTY_M1(top, duty1, duty2, duty3);
 #endif
 	}
 
@@ -4652,11 +4658,11 @@ static void control_current(motor_all_state_t *motor, float dt) {
 				state_m->mod_beta_raw = mod_beta_v0;
 			}
 #endif
-
+			const uint32_t top = SYSTEM_CORE_CLOCK / (int)motor->m_conf->foc_f_zv;
 			// Delay adding the HFI voltage when not sampling in both 0 vectors, as it will cancel
 			// itself with the opposite pulse from the previous HFI sample. This makes more sense
 			// when drawing the SVM waveform.
-			foc_svm(mod_alpha_v7, mod_beta_v7, TIM1->ARR,
+			foc_svm(mod_alpha_v7, mod_beta_v7, top,
 				(uint32_t*)&motor->m_duty1_next,
 				(uint32_t*)&motor->m_duty2_next,
 				(uint32_t*)&motor->m_duty3_next,
@@ -4681,21 +4687,21 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	}
 
 	// Set output (HW Dependent)
-	uint32_t duty1, duty2, duty3, top;
-	top = TIM1->ARR;
+	uint32_t duty1, duty2, duty3;
+	const uint32_t top = SYSTEM_CORE_CLOCK / (int)conf_now->foc_f_zv;
 
 	// Calculate the duty cycles for all the phases. This also injects a zero modulation signal to
 	// be able to fully utilize the bus voltage. See https://microchipdeveloper.com/mct5001:start
 	foc_svm(state_m->mod_alpha_raw, state_m->mod_beta_raw, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
 
 	if (motor == &m_motor_1) {
-		TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3);
+		TIMER_UPDATE_DUTY_M1(top, duty1, duty2, duty3);
 #ifdef HW_HAS_DUAL_PARALLEL
-		TIMER_UPDATE_DUTY_M2(duty1, duty2, duty3);
+		TIMER_UPDATE_DUTY_M2(top, duty1, duty2, duty3);
 #endif
 	} else {
 #ifndef HW_HAS_DUAL_PARALLEL
-		TIMER_UPDATE_DUTY_M2(duty1, duty2, duty3);
+		TIMER_UPDATE_DUTY_M2(top, duty1, duty2, duty3);
 #endif
 	}
 
