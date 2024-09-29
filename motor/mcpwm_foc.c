@@ -204,7 +204,7 @@ static void timer_reinit(const int f_zv) {
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = period / 2;
+	TIM_OCInitStructure.TIM_Pulse = 0;
 
 #ifndef INVERTED_TOP_DRIVER_INPUT
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High; // gpio high = top fets on
@@ -337,6 +337,20 @@ static void timer_reinit(const int f_zv) {
 	utils_sys_unlock_cnt();
 
 	nvicEnableVector(TIM2_IRQn, 6);
+}
+
+/**
+ * Calculates rendomized timer period reload value based on passed
+ * center frequency and bandwidth.
+ * Assumes that the timer is clocked at system core clock frequency.
+ * @param zvf Center frequency in Hz.
+ * @param bandwidth Bandwidth, ratio. Must satisfy 0 <= bandwidth <=1.
+ */
+static uint32_t get_randomized_timer_period(const uint32_t zvf, const float bandwidth) {
+	const uint32_t period_center = SYSTEM_CORE_CLOCK / zvf;
+	const uint32_t period_bandwidth = period_center * bandwidth;
+	const uint32_t period_bottom = period_center - period_bandwidth / 2;
+	return period_bottom + rand() % period_bandwidth;
 }
 
 static void init_audio_state(volatile mc_audio_state *s) {
@@ -2455,7 +2469,7 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 	float current_sum[3] = {0.0, 0.0, 0.0};
 	float voltage_sum[3] = {0.0, 0.0, 0.0};
 
-	const uint32_t top = SYSTEM_CORE_CLOCK / (int)m_motor_1.m_conf->foc_f_zv;
+	const uint32_t top = get_randomized_timer_period((uint32_t)m_motor_1.m_conf->foc_f_zv, m_motor_1.m_conf->foc_f_zv_bandwidth);
 	TIMER_UPDATE_DUTY_M1(top, top / 2, top / 2, top / 2);
 
 	// Start PWM on phase 1
@@ -2665,7 +2679,7 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 	float current_sum[3] = {0.0, 0.0, 0.0};
 	float voltage_sum[3] = {0.0, 0.0, 0.0};
 
-	const uint32_t top = SYSTEM_CORE_CLOCK / (int)m_motor_1.m_conf->foc_f_zv;
+	const uint32_t top = get_randomized_timer_period((uint32_t)m_motor_1.m_conf->foc_f_zv, m_motor_1.m_conf->foc_f_zv_bandwidth);
 	TIMER_UPDATE_DUTY_M1(top, top / 2, top / 2, top / 2);
 
 	stop_pwm_hw((motor_all_state_t*)&m_motor_1);
@@ -2833,7 +2847,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	mc_configuration *conf_now = motor_now->m_conf;
 	mc_configuration *conf_other = motor_other->m_conf;
-	const uint32_t top = SYSTEM_CORE_CLOCK / (int)conf_other->foc_f_zv;
+	const uint32_t top = get_randomized_timer_period((uint32_t)conf_other->foc_f_zv, conf_other->foc_f_zv_bandwidth);
 
 	bool skip_interpolation = motor_other->m_cc_was_hfi;
 
@@ -2848,11 +2862,11 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		if (is_second_motor) {
 			curr0 = (GET_CURRENT1() - conf_other->foc_offsets_current[0]) * FAC_CURRENT1;
 			curr1 = (GET_CURRENT2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT2;
-			TIMER_UPDATE_DUTY_M1(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
+			TIMER_UPDATE_DUTY_M1(top, motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 		} else {
 			curr0 = (GET_CURRENT1_M2() - conf_other->foc_offsets_current[0]) * FAC_CURRENT1_M2;
 			curr1 = (GET_CURRENT2_M2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT2_M2;
-			TIMER_UPDATE_DUTY_M2(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
+			TIMER_UPDATE_DUTY_M2(top, motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 		}
 #else
 		float curr0 = (GET_CURRENT1() - conf_other->foc_offsets_current[0]) * FAC_CURRENT1;
@@ -4635,7 +4649,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 				state_m->mod_beta_raw = mod_beta_v0;
 			}
 #endif
-			const uint32_t top = SYSTEM_CORE_CLOCK / (int)motor->m_conf->foc_f_zv;
+			const uint32_t top = get_randomized_timer_period((uint32_t)motor->m_conf->foc_f_zv, motor->m_conf->foc_f_zv_bandwidth);
 			// Delay adding the HFI voltage when not sampling in both 0 vectors, as it will cancel
 			// itself with the opposite pulse from the previous HFI sample. This makes more sense
 			// when drawing the SVM waveform.
@@ -4665,7 +4679,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 
 	// Set output (HW Dependent)
 	uint32_t duty1, duty2, duty3;
-	const uint32_t top = SYSTEM_CORE_CLOCK / (int)conf_now->foc_f_zv;
+	const uint32_t top = get_randomized_timer_period((uint32_t) conf_now->foc_f_zv, conf_now->foc_f_zv_bandwidth);
 
 	// Calculate the duty cycles for all the phases. This also injects a zero modulation signal to
 	// be able to fully utilize the bus voltage. See https://microchipdeveloper.com/mct5001:start
