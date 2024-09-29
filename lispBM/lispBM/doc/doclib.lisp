@@ -158,6 +158,52 @@
     (rend "</table>\n\n")
     })
 
+(defun render-code-disp-pairs (rend cs)
+  (match cs
+         (nil t)
+         ( ((? x) . (? xs))
+           (let ((x-str (if (is-read-eval-txt x)
+                            (ix x 1)
+                            (pretty x)))
+                 (x-code (if (is-read-eval-txt x)
+                             (read (ix x 1))
+                             x))
+		 (png (png-file))
+		 )
+	     {
+	     (var res (eval nil x-code))
+	     (var rstr (to-str res))
+	     (save-active-image png)
+	     (rend "<tr>\n")
+	     (rend "<td>\n\n")
+	     (rend "```clj\n")
+	     (rend x-str)
+	     (rend "\n```\n")
+	     (rend "\n\n</td>\n")
+	     ;; image
+	     (rend "<td>\n\n")
+	     (rend (str-merge "<img src=" png " >"))
+	     (rend "\n\n</td>\n")	     
+	     (rend "<td>\n\n")
+	     (rend "```clj\n")
+	     (rend rstr)
+	     (rend "\n```\n")
+	     (rend "\n\n</td>\n")
+	     (rend "</tr>\n")
+	     (render-code-disp-pairs rend  xs)
+	     }))))
+  
+(defun render-code-disp-table (rend c)
+    {
+    (rend "<table>\n")
+    (rend "<tr>\n")
+    (rend "<td> Example </td> <td> Image </td> <td> Result </td>\n")
+    (rend "</tr>\n")
+    (render-code-disp-pairs rend c)
+    (rend "</table>\n\n")
+    })
+
+
 (defun intersperse (str strs)
   (match strs
          ( ((? s) . nil) s)
@@ -240,6 +286,8 @@
          ( (code (? c)) (render-code-table rend c))
 	 ( (code-png (? img) (? colors) (? c))
 	   (render-code-png-table rend (eval img) colors c))
+	 ( (code-disp  (? c))
+	   (render-code-disp-table rend  c))
          ( (image (? alt) (? url))
            (rend (str-merge "![" alt "](" url " \"" alt "\")\n\n")))
          ( (image-pair (? cap0) (? txt0) (? fig0) (? cap1) (? txt1) (? fig1))
@@ -299,6 +347,9 @@
 
 (defun code-png (img colors c)
   (list 'code-png img colors c))
+
+(defun code-disp (c)
+  (list 'code-disp c))
 
 (defun code-examples (c)
   (list 'code-examples c))

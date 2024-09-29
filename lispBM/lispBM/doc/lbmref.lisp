@@ -729,6 +729,45 @@
                  )
            ))
 
+;; Predicates
+
+(define is-a-list
+  (ref-entry "list?"
+             (list
+              (para (list "the `list?` predicate is true for all lists, empty (nil) or not."
+                          ))
+              (code '((list? nil)
+                      (list? '())
+                      (list? (list 1 2 3))
+                      (list? '(1 2 3))
+                      (list? 2)
+                      (list? 'kurt-russel)
+                      ))
+              end)))
+
+(define is-a-number
+  (ref-entry "number?"
+             (list
+              (para (list "the `number?` predicate is true for all numbers."
+                          ))
+              (code '((number? nil)
+                      (number? 1)
+                      (number? 2u)
+                      (number? 3.14f32)
+                      (number? 'michael-shanks)
+                      (number? 'james-spader)
+                      ))
+              end)))
+
+
+(define predicates
+  (section 2 "Predicates"
+           (list 'hline
+                 is-a-list
+                 is-a-number
+                 )
+           ))
+
 ;; Bitwise operations
 (define bit-shl
   (ref-entry "shl"
@@ -2863,6 +2902,7 @@
                            (list arithmetic
                                  comparisons
                                  boolean
+                                 predicates
                                  bitwise
                                  nil-and-t
                                  quotes

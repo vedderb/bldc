@@ -330,6 +330,9 @@
 #define SYM_LIST_TO_ARRAY       0x2003C
 #define SYM_DM_CREATE           0x2003D
 #define SYM_DM_ALLOC            0x2003E
+#define SYM_IS_LIST             0x2003F
+#define SYM_IS_NUMBER           0x20040
+
 
 // Apply funs:
 // Get their arguments in evaluated form on the stack.
@@ -565,5 +568,7 @@
 #define ENC_SYM_LIST_TO_ARRAY       ENC_SYM(SYM_LIST_TO_ARRAY)
 #define ENC_SYM_DM_CREATE           ENC_SYM(SYM_DM_CREATE)
 #define ENC_SYM_DM_ALLOC            ENC_SYM(SYM_DM_ALLOC)
+#define ENC_SYM_IS_LIST             ENC_SYM(SYM_IS_LIST)
+#define ENC_SYM_IS_NUMBER           ENC_SYM(SYM_IS_NUMBER)
 
 #endif

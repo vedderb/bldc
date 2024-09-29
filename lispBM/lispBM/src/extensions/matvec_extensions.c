@@ -39,7 +39,7 @@ static lbm_value vector_float_allocate(lbm_uint size) {
                                     size * sizeof(float));
   if (!mem) return ENC_SYM_MERROR;
   mem->size = size;
-  lbm_value res;
+  lbm_value res = 0;
   lbm_custom_type_create((lbm_uint)mem,
                          common_destructor,
                          vector_float_desc,
@@ -48,7 +48,7 @@ static lbm_value vector_float_allocate(lbm_uint size) {
 }
 
 static bool is_vector_float(lbm_value v) {
-  return ((lbm_uint)lbm_get_custom_descriptor(v) == (lbm_uint)vector_float_desc);
+  return (lbm_is_custom(v) && ((lbm_uint)lbm_get_custom_descriptor(v) == (lbm_uint)vector_float_desc));
 }
 
 /* **************************************************
@@ -68,7 +68,7 @@ static lbm_value matrix_float_allocate(unsigned int rows, unsigned int cols) {
   if (!mem) return ENC_SYM_MERROR;
   mem->rows = rows;
   mem->cols = cols;
-  lbm_value res;
+  lbm_value res = 0;
   lbm_custom_type_create((lbm_uint)mem,
                          common_destructor,
                          matrix_float_desc,
@@ -77,7 +77,7 @@ static lbm_value matrix_float_allocate(unsigned int rows, unsigned int cols) {
 }
 
 static bool is_matrix_float(lbm_value m) {
-  return ((lbm_uint)lbm_get_custom_descriptor(m) == (lbm_uint)matrix_float_desc);
+  return (lbm_is_custom(m) && (lbm_uint)lbm_get_custom_descriptor(m) == (lbm_uint)matrix_float_desc);
 }
 
 /* **************************************************

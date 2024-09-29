@@ -1,10 +1,27 @@
 
 
+(define font-file (fopen "font_15_18.bin" "r"))
+(define font (load-file font-file))
+
+
+(define llama-file (fopen "images/lama2.bin" "r"))
+(define llama-bin (load-file llama-file))
+
 
 (display-to-image)
 (define render-target (img-buffer 'rgb888 320 200))
 (set-active-image render-target)
 (disp-clear)
+
+(define img-rgb888 (img-buffer 'rgb888 320 200))
+
+;(define small (img-buffer 'rgb888 10 10)) 
+
+(define img-100-100 (img-buffer 'indexed2 100 100))
+
+(img-blit img-100-100 llama-bin 0 0 -1 '(scale 0.3))
+
+(defun code-disp-str (xs) (code-disp (map (lambda (x) (list 'read-eval x)) xs)))
 
 (define create_image1
   (ref-entry "img-buffer"
@@ -20,8 +37,18 @@
                          ))
               end)))
 
+(define image-from-bin
+  (ref-entry "img-buffer?"
+             (list
+              (para (list "Checks if the argument is likely to be an image buffer."
+                          ))
+              (code '((img-buffer? llama-bin)
+		      (img-buffer? 'apa)
+                      ))
+              end)))
+
 (define arcs
-    (ref-entry "arcs"
+    (ref-entry "img-arc"
 	       (list
 		(code-png 'my-img '(0x00 0xffffff)
 			  '((img-arc my-img 100 100 50 160 100 1)
@@ -38,7 +65,7 @@
 
 
 (define circles
-  (ref-entry "circles"
+  (ref-entry "img-circle"
              (list
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-circle my-img 100 100 80 1)
@@ -52,7 +79,7 @@
               end)))
 
 (define circle-sectors
-  (ref-entry "circle sectors"
+  (ref-entry "img-circle-sector"
              (list
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-circle-sector my-img 220 40 40 90 200 1)
@@ -61,7 +88,7 @@
               end)))
 
 (define circle-segments
-  (ref-entry "circle segments"
+  (ref-entry "img-circle-segment"
              (list
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-circle-segment my-img 100 100 80 0 100 1)
@@ -69,27 +96,144 @@
                           ))
               end)))
 
-
 (define lines
-    (ref-entry "lines"
-	       (list
-		(code-png 'my-img '(0x00 0xffffff)
-			  '((img-line my-img 0 0 320 200 1)
-                            (img-line my-img 0 200 320 0 1 '(dotted 4 20))
-			    ))
-		end)))
-	       
+  (ref-entry "img-line"
+	     (list
+	      (code-png 'my-img '(0x00 0xffffff)
+			'((img-line my-img 0 0 320 200 1)
+                          (img-line my-img 0 200 320 0 1 '(thickness 5))
+                          (img-line my-img 0 0 320 200 1 '(dotted 4 20))
+			  ))
+	      end)))
+
+(define rectangles
+  (ref-entry "img-rectangle"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-rectangle my-img 10 10 120 180 1)
+                          (img-rectangle my-img 10 10 120 180 1 '(filled))
+                          (img-rectangle my-img 10 10 120 180 1 '(rounded 45))
+                          ))
+              end)))
+
+(define texts
+  (ref-entry "img-text"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-text my-img 10 10 1 0 font "LispBM")
+                          ))
+              end)))
+
+(define setpixel
+  (ref-entry "img-setpix"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-setpix my-img 10 10 1)
+                          ))
+              end)))
+
+(define triangles
+  (ref-entry "img-triangle"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-triangle my-img 30 60 160 120 10 180 1)
+                          (img-triangle my-img 30 60 160 120 10 180 1 '(filled))
+                          (img-triangle my-img 30 60 160 120 10 180 1 '(dotted 14 14))
+                          ))
+              end)))
+
+
+(define blitting
+  (ref-entry "img-blit"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-blit my-img llama-bin 10 10 -1)
+                          (img-blit my-img llama-bin 10 10 -1 '(rotate 128 128 45))
+                          (img-blit my-img llama-bin 10 10 -1 '(scale 0.5))
+                          ))
+             end)))
 
 
 (define manual
   (list
-   (section 1 "LispBM Display Reference Manual"
+   (section 1 "LispBM Display Library"
+            (list 
+	     (para (list "The display extensions contains a graphics library designed"
+			 "for platforms for with very limited memory resources."
+			 "The drawing routines in the library operate on rectangular images (arrays) of pixels"
+			 ", called an image buffer."
+			 ))
+	     (para (list "The values stored in image buffers represents colors via an encoding"
+			 "determined by the image buffer pixel format. A pixel buffer has one of"
+			 "the following formats:"
+			 ))
+	     (bullet '("indexed2 : 2 colors (1 bit per pixel)"
+		       "indexed4 : 4 colors (2 bits per pixel)"
+		       "indexed16 : 16 colors (4 bits per pixel)"
+		       "rgb332 : 8Bit color"
+		       "rgb565 : 16bit color"
+		       "rgb888 : 24bit color"
+		       ))
+	     (para (list "Note that the RAM requirenment of a 100x100 image is;"
+			 ))
+	     (bullet '("at indexed2: 1250 Bytes"
+		       "at indexed4: 2500 Bytes"
+		       "at indexed16: 5000 Bytes"
+		       "at rgb332: 10000 Bytes"
+		       "at rgb565: 20000 Bytes"
+		       "at rgb888; 30000 Bytes"
+		       ))
+	     (para (list "So on an embedded platform you most likely not be able to be"
+			 "working with rgb565, rgb888 other than in very limited areas."
+			 ))
+	     (para (list "At the low-level end of things you will want to display graphics"
+			 "onto an display. The interface towards the low-level end needs to"
+			 "be implemented for the particular hardware platform and display."
+			 "For examples of this see [vesc_express](https://github.com/vedderb/vesc_express/tree/main/main/display)."
+			 "The LBM linux REPL has SDL and png backends for the display library."
+			 ))
+	     (para (list "the display library is specifically designed to allow for using many"
+			 "colors simultaneously on screen, without needing to use full screen high-color"
+			 "buffers."
+			 "This is done by delaying the choice of collor mapping in the `indexed2`, `indexed4` and `indexed16`"
+			 "images until they are presented on screen."
+			 ))
+	     (para (list "images are rendered onto a display using the function `disp-render`."
+			 "`disp-render` takes an image, a position (x,y) where to draw the image, and a colormapping"
+			 "that can be expressed as a list of colors."
+			 "for example:"
+			 ))
+	     (code-disp-str '("(disp-render llama-bin 10 10 '(0x000000 0xFFFFFF))"
+			      "(disp-render llama-bin 20 20 '(0x000000 0xFF0000))"
+			      "(disp-render llama-bin 30 30 '(0x000000 0x00FF00))"
+			      "(disp-render llama-bin 30 30 '(0x000000 0x0000FF))"
+			      "(disp-clear)"
+			      ))
+
+	     (code-disp-str '("(disp-render img-100-100 0 0 '(0x000000 0xFFFFFF))"
+			      "(disp-render img-100-100 0 100 '(0x000000 0xFF0000))"
+			      "(disp-render img-100-100 100 0 '(0x000000 0x00FF00))"
+			      "(disp-render img-100-100 100 100 '(0x000000 0x0000FF))"
+			      "(disp-render img-100-100 200 0 '(0x000000 0x00FFFF))"
+			      "(disp-render img-100-100 200 100 '(0x000000 0xFF00FF))"
+			      ))
+	
+	     
+	     
+	    end ))
+   (section 1 "Reference"
             (list create_image1
+                  image-from-bin
+                  blitting
 		  arcs
                   circles
                   circle-sectors
                   circle-segments
-		  lines)
+		  lines
+                  rectangles
+                  setpixel
+                  texts
+                  triangles)
             )
    )
   )
