@@ -173,7 +173,7 @@ static void update_hfi_samples(foc_hfi_samples samples, volatile motor_all_state
 #pragma GCC push_options
 #pragma GCC optimize ("Os")
 
-static void timer_reinit(int f_zv) {
+static void timer_reinit(const int f_zv) {
 	utils_sys_lock_cnt();
 
 	TIM_DeInit(TIM1);
@@ -191,9 +191,10 @@ static void timer_reinit(int f_zv) {
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
 
+	const uint32_t period = (SYSTEM_CORE_CLOCK / f_zv);
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_CenterAligned1;
-	TIM_TimeBaseStructure.TIM_Period = (SYSTEM_CORE_CLOCK / f_zv);
+	TIM_TimeBaseStructure.TIM_Period = period;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 
@@ -203,7 +204,7 @@ static void timer_reinit(int f_zv) {
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
+	TIM_OCInitStructure.TIM_Pulse = period / 2;
 
 #ifndef INVERTED_TOP_DRIVER_INPUT
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High; // gpio high = top fets on
@@ -312,7 +313,7 @@ static void timer_reinit(int f_zv) {
 #endif
 
 #ifdef HW_HAS_DUAL_MOTORS
-	TIM8->CNT = TIM1->ARR;
+	TIM8->CNT = period;
 #else
 	TIM8->CNT = 0;
 #endif
@@ -641,30 +642,6 @@ void mcpwm_foc_set_configuration(mc_configuration *configuration) {
 	foc_precalc_values((motor_all_state_t*)get_motor_now());
 
 	// Below we check if anything in the configuration changed that requires stopping the motor.
-
-	uint32_t top = SYSTEM_CORE_CLOCK / (int)configuration->foc_f_zv;
-	if (TIM1->ARR != top) {
-#ifdef HW_HAS_DUAL_MOTORS
-		m_motor_1.m_control_mode = CONTROL_MODE_NONE;
-		m_motor_1.m_state = MC_STATE_OFF;
-		stop_pwm_hw((motor_all_state_t*)&m_motor_1);
-
-		m_motor_2.m_control_mode = CONTROL_MODE_NONE;
-		m_motor_2.m_state = MC_STATE_OFF;
-		stop_pwm_hw((motor_all_state_t*)&m_motor_2);
-
-		timer_reinit((int)configuration->foc_f_zv);
-#else
-		get_motor_now()->m_control_mode = CONTROL_MODE_NONE;
-		get_motor_now()->m_state = MC_STATE_OFF;
-		stop_pwm_hw((motor_all_state_t*)get_motor_now());
-		TIMER_UPDATE_SAMP_TOP_M1(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
-#ifdef  HW_HAS_DUAL_PARALLEL
-		TIMER_UPDATE_SAMP_TOP_M2(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
-#endif
-#endif
-	}
-
 	if (((1 << get_motor_now()->m_conf->foc_hfi_samples) * 8) != get_motor_now()->m_hfi.samples) {
 		get_motor_now()->m_control_mode = CONTROL_MODE_NONE;
 		get_motor_now()->m_state = MC_STATE_OFF;
