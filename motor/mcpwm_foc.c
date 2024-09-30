@@ -79,31 +79,35 @@ static volatile bool pid_thd_stop;
 
 // Macros
 #ifdef HW_HAS_3_SHUNTS
-#define TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3) \
+#define TIMER_UPDATE_DUTY_M1(top, duty1, duty2, duty3) \
 		TIM1->CR1 |= TIM_CR1_UDIS; \
 		TIM1->CCR1 = duty1; \
 		TIM1->CCR2 = duty2; \
 		TIM1->CCR3 = duty3; \
+		TIM1->ARR = top; \
 		TIM1->CR1 &= ~TIM_CR1_UDIS;
 
-#define TIMER_UPDATE_DUTY_M2(duty1, duty2, duty3) \
+#define TIMER_UPDATE_DUTY_M2(top, duty1, duty2, duty3) \
 		TIM8->CR1 |= TIM_CR1_UDIS; \
 		TIM8->CCR1 = duty1; \
 		TIM8->CCR2 = duty2; \
 		TIM8->CCR3 = duty3; \
+		TIM8->ARR = top; \
 		TIM8->CR1 &= ~TIM_CR1_UDIS;
 #else
-#define TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3) \
+#define TIMER_UPDATE_DUTY_M1(top, duty1, duty2, duty3) \
 		TIM1->CR1 |= TIM_CR1_UDIS; \
 		TIM1->CCR1 = duty1; \
 		TIM1->CCR2 = duty3; \
 		TIM1->CCR3 = duty2; \
+		TIM1->ARR = top; \
 		TIM1->CR1 &= ~TIM_CR1_UDIS;
-#define TIMER_UPDATE_DUTY_M2(duty1, duty2, duty3) \
+#define TIMER_UPDATE_DUTY_M2(top, duty1, duty2, duty3) \
 		TIM8->CR1 |= TIM_CR1_UDIS; \
 		TIM8->CCR1 = duty1; \
 		TIM8->CCR2 = duty3; \
 		TIM8->CCR3 = duty2; \
+		TIM8->ARR = top; \
 		TIM8->CR1 &= ~TIM_CR1_UDIS;
 #endif
 
@@ -169,7 +173,7 @@ static void update_hfi_samples(foc_hfi_samples samples, volatile motor_all_state
 #pragma GCC push_options
 #pragma GCC optimize ("Os")
 
-static void timer_reinit(int f_zv) {
+static void timer_reinit(const int f_zv) {
 	utils_sys_lock_cnt();
 
 	TIM_DeInit(TIM1);
@@ -187,9 +191,10 @@ static void timer_reinit(int f_zv) {
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM8, ENABLE);
 
+	const uint32_t period = (SYSTEM_CORE_CLOCK / f_zv);
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_CenterAligned1;
-	TIM_TimeBaseStructure.TIM_Period = (SYSTEM_CORE_CLOCK / f_zv);
+	TIM_TimeBaseStructure.TIM_Period = period;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 
@@ -199,7 +204,7 @@ static void timer_reinit(int f_zv) {
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = TIM1->ARR / 2;
+	TIM_OCInitStructure.TIM_Pulse = 0;
 
 #ifndef INVERTED_TOP_DRIVER_INPUT
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High; // gpio high = top fets on
@@ -308,7 +313,7 @@ static void timer_reinit(int f_zv) {
 #endif
 
 #ifdef HW_HAS_DUAL_MOTORS
-	TIM8->CNT = TIM1->ARR;
+	TIM8->CNT = period;
 #else
 	TIM8->CNT = 0;
 #endif
@@ -332,6 +337,25 @@ static void timer_reinit(int f_zv) {
 	utils_sys_unlock_cnt();
 
 	nvicEnableVector(TIM2_IRQn, 6);
+}
+
+/**
+ * Calculates rendomized timer period reload value based on passed
+ * center frequency and bandwidth.
+ * Assumes that the timer is clocked at system core clock frequency.
+ * @param zvf Center frequency in Hz.
+ * @param bandwidth Bandwidth, percent.
+ */
+static uint32_t get_randomized_timer_period(const uint32_t zvf, const uint32_t bandwidth_pct) {
+	const uint32_t period_center = SYSTEM_CORE_CLOCK / zvf;
+	// mod zero is undefined, return early.
+	if (bandwidth_pct == 0) {
+		return period_center;
+	}
+	// Period * 100 is well within uint32_t range because timer prescaler is 1.
+	const uint32_t period_bandwidth = period_center * bandwidth_pct / 100;
+	const uint32_t period_bottom = period_center - period_bandwidth / 2;
+	return period_bottom + rand() % period_bandwidth;
 }
 
 static void init_audio_state(volatile mc_audio_state *s) {
@@ -637,30 +661,6 @@ void mcpwm_foc_set_configuration(mc_configuration *configuration) {
 	foc_precalc_values((motor_all_state_t*)get_motor_now());
 
 	// Below we check if anything in the configuration changed that requires stopping the motor.
-
-	uint32_t top = SYSTEM_CORE_CLOCK / (int)configuration->foc_f_zv;
-	if (TIM1->ARR != top) {
-#ifdef HW_HAS_DUAL_MOTORS
-		m_motor_1.m_control_mode = CONTROL_MODE_NONE;
-		m_motor_1.m_state = MC_STATE_OFF;
-		stop_pwm_hw((motor_all_state_t*)&m_motor_1);
-
-		m_motor_2.m_control_mode = CONTROL_MODE_NONE;
-		m_motor_2.m_state = MC_STATE_OFF;
-		stop_pwm_hw((motor_all_state_t*)&m_motor_2);
-
-		timer_reinit((int)configuration->foc_f_zv);
-#else
-		get_motor_now()->m_control_mode = CONTROL_MODE_NONE;
-		get_motor_now()->m_state = MC_STATE_OFF;
-		stop_pwm_hw((motor_all_state_t*)get_motor_now());
-		TIMER_UPDATE_SAMP_TOP_M1(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
-#ifdef  HW_HAS_DUAL_PARALLEL
-		TIMER_UPDATE_SAMP_TOP_M2(MCPWM_FOC_CURRENT_SAMP_OFFSET, top);
-#endif
-#endif
-	}
-
 	if (((1 << get_motor_now()->m_conf->foc_hfi_samples) * 8) != get_motor_now()->m_hfi.samples) {
 		get_motor_now()->m_control_mode = CONTROL_MODE_NONE;
 		get_motor_now()->m_state = MC_STATE_OFF;
@@ -2474,7 +2474,8 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 	float current_sum[3] = {0.0, 0.0, 0.0};
 	float voltage_sum[3] = {0.0, 0.0, 0.0};
 
-	TIMER_UPDATE_DUTY_M1(TIM1->ARR / 2, TIM1->ARR / 2, TIM1->ARR / 2);
+	const uint32_t top = get_randomized_timer_period((uint32_t)m_motor_1.m_conf->foc_f_zv, m_motor_1.m_conf->foc_f_zv_bandwidth_pct);
+	TIMER_UPDATE_DUTY_M1(top, top / 2, top / 2, top / 2);
 
 	// Start PWM on phase 1
 	stop_pwm_hw((motor_all_state_t*)&m_motor_1);
@@ -2487,7 +2488,7 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 #ifdef HW_HAS_DUAL_MOTORS
 	float current_sum_m2[3] = {0.0, 0.0, 0.0};
 	float voltage_sum_m2[3] = {0.0, 0.0, 0.0};
-	TIMER_UPDATE_DUTY_M2(TIM8->ARR / 2, TIM8->ARR / 2, TIM8->ARR / 2);
+	TIMER_UPDATE_DUTY_M2(top / 2, top / 2, top / 2);
 
 	stop_pwm_hw((motor_all_state_t*)&m_motor_2);
 	PHASE_FILTER_ON_M2();
@@ -2683,7 +2684,8 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 	float current_sum[3] = {0.0, 0.0, 0.0};
 	float voltage_sum[3] = {0.0, 0.0, 0.0};
 
-	TIMER_UPDATE_DUTY_M1(TIM1->ARR / 2, TIM1->ARR / 2, TIM1->ARR / 2);
+	const uint32_t top = get_randomized_timer_period((uint32_t)m_motor_1.m_conf->foc_f_zv, m_motor_1.m_conf->foc_f_zv_bandwidth_pct);
+	TIMER_UPDATE_DUTY_M1(top, top / 2, top / 2, top / 2);
 
 	stop_pwm_hw((motor_all_state_t*)&m_motor_1);
 	PHASE_FILTER_ON();
@@ -2850,6 +2852,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	mc_configuration *conf_now = motor_now->m_conf;
 	mc_configuration *conf_other = motor_other->m_conf;
+	const uint32_t top = get_randomized_timer_period((uint32_t)conf_other->foc_f_zv, conf_other->foc_f_zv_bandwidth_pct);
 
 	bool skip_interpolation = motor_other->m_cc_was_hfi;
 
@@ -2864,19 +2867,19 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		if (is_second_motor) {
 			curr0 = (GET_CURRENT1() - conf_other->foc_offsets_current[0]) * FAC_CURRENT1;
 			curr1 = (GET_CURRENT2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT2;
-			TIMER_UPDATE_DUTY_M1(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
+			TIMER_UPDATE_DUTY_M1(top, motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 		} else {
 			curr0 = (GET_CURRENT1_M2() - conf_other->foc_offsets_current[0]) * FAC_CURRENT1_M2;
 			curr1 = (GET_CURRENT2_M2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT2_M2;
-			TIMER_UPDATE_DUTY_M2(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
+			TIMER_UPDATE_DUTY_M2(top, motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 		}
 #else
 		float curr0 = (GET_CURRENT1() - conf_other->foc_offsets_current[0]) * FAC_CURRENT1;
 		float curr1 = (GET_CURRENT2() - conf_other->foc_offsets_current[1]) * FAC_CURRENT2;
 
-		TIMER_UPDATE_DUTY_M1(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
+		TIMER_UPDATE_DUTY_M1(top, motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 #ifdef HW_HAS_DUAL_PARALLEL
-		TIMER_UPDATE_DUTY_M2(motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
+		TIMER_UPDATE_DUTY_M2(top, motor_other->m_duty1_next, motor_other->m_duty2_next, motor_other->m_duty3_next);
 #endif
 #endif
 
@@ -2922,8 +2925,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		state_m->mod_alpha_raw = c * state_m->mod_d - s * state_m->mod_q;
 		state_m->mod_beta_raw  = c * state_m->mod_q + s * state_m->mod_d;
 
-		uint32_t duty1, duty2, duty3, top;
-		top = TIM1->ARR;
+		uint32_t duty1, duty2, duty3;
 		foc_svm(state_m->mod_alpha_raw, state_m->mod_beta_raw,
 				top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
 
@@ -2939,7 +2941,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 #endif
 		}
 #else
-		TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3);
+		TIMER_UPDATE_DUTY_M1(top, duty1, duty2, duty3);
 #endif
 	}
 
@@ -4652,11 +4654,11 @@ static void control_current(motor_all_state_t *motor, float dt) {
 				state_m->mod_beta_raw = mod_beta_v0;
 			}
 #endif
-
+			const uint32_t top = get_randomized_timer_period((uint32_t)motor->m_conf->foc_f_zv, motor->m_conf->foc_f_zv_bandwidth_pct);
 			// Delay adding the HFI voltage when not sampling in both 0 vectors, as it will cancel
 			// itself with the opposite pulse from the previous HFI sample. This makes more sense
 			// when drawing the SVM waveform.
-			foc_svm(mod_alpha_v7, mod_beta_v7, TIM1->ARR,
+			foc_svm(mod_alpha_v7, mod_beta_v7, top,
 				(uint32_t*)&motor->m_duty1_next,
 				(uint32_t*)&motor->m_duty2_next,
 				(uint32_t*)&motor->m_duty3_next,
@@ -4681,21 +4683,21 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	}
 
 	// Set output (HW Dependent)
-	uint32_t duty1, duty2, duty3, top;
-	top = TIM1->ARR;
+	uint32_t duty1, duty2, duty3;
+	const uint32_t top = get_randomized_timer_period((uint32_t) conf_now->foc_f_zv, conf_now->foc_f_zv_bandwidth_pct);
 
 	// Calculate the duty cycles for all the phases. This also injects a zero modulation signal to
 	// be able to fully utilize the bus voltage. See https://microchipdeveloper.com/mct5001:start
 	foc_svm(state_m->mod_alpha_raw, state_m->mod_beta_raw, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
 
 	if (motor == &m_motor_1) {
-		TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3);
+		TIMER_UPDATE_DUTY_M1(top, duty1, duty2, duty3);
 #ifdef HW_HAS_DUAL_PARALLEL
-		TIMER_UPDATE_DUTY_M2(duty1, duty2, duty3);
+		TIMER_UPDATE_DUTY_M2(top, duty1, duty2, duty3);
 #endif
 	} else {
 #ifndef HW_HAS_DUAL_PARALLEL
-		TIMER_UPDATE_DUTY_M2(duty1, duty2, duty3);
+		TIMER_UPDATE_DUTY_M2(top, duty1, duty2, duty3);
 #endif
 	}
 

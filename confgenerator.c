@@ -64,6 +64,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->foc_current_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_current_ki, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_f_zv, &ind);
+	buffer_append_uint32(buffer, conf->foc_f_zv_bandwidth_pct, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_dt_us, &ind);
 	buffer[ind++] = conf->foc_encoder_inverted;
 	buffer_append_float32_auto(buffer, conf->foc_encoder_offset, &ind);
@@ -400,6 +401,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_current_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_current_ki = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_f_zv = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_f_zv_bandwidth_pct = buffer_get_uint32(buffer, &ind);
 	conf->foc_dt_us = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_encoder_inverted = buffer[ind++];
 	conf->foc_encoder_offset = buffer_get_float32_auto(buffer, &ind);
@@ -732,6 +734,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_current_kp = MCCONF_FOC_CURRENT_KP;
 	conf->foc_current_ki = MCCONF_FOC_CURRENT_KI;
 	conf->foc_f_zv = MCCONF_FOC_F_ZV;
+	conf->foc_f_zv_bandwidth_pct = MCCONF_FOC_F_ZV_BANDWIDTH_PCT;
 	conf->foc_dt_us = MCCONF_FOC_DT_US;
 	conf->foc_encoder_inverted = MCCONF_FOC_ENCODER_INVERTED;
 	conf->foc_encoder_offset = MCCONF_FOC_ENCODER_OFFSET;

@@ -262,6 +262,9 @@
 #ifndef MCCONF_FOC_F_ZV
 #define MCCONF_FOC_F_ZV					25000.0
 #endif
+#ifndef MCCONF_FOC_F_ZV_BANDWIDTH_PCT
+#define MCCONF_FOC_F_ZV_BANDWIDTH_PCT	0
+#endif
 #ifndef MCCONF_FOC_DT_US
 #define MCCONF_FOC_DT_US				0.12 // Microseconds for dead time compensation
 #endif

@@ -425,6 +425,7 @@ typedef struct {
 	float foc_current_kp;
 	float foc_current_ki;
 	float foc_f_zv;
+	uint32_t foc_f_zv_bandwidth_pct;
 	float foc_dt_us;
 	float foc_encoder_offset;
 	bool foc_encoder_inverted;
