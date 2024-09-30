@@ -122,7 +122,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_uint16(buffer, conf->foc_hfi_start_samples, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_hfi_obs_ovr_sec, &ind);
 	buffer[ind++] = conf->foc_hfi_samples;
-	buffer[ind++] = conf->foc_offsets_cal_on_boot;
+	buffer[ind++] = conf->foc_offsets_cal_mode;
 	buffer_append_float32_auto(buffer, conf->foc_offsets_current[0], &ind);
 	buffer_append_float32_auto(buffer, conf->foc_offsets_current[1], &ind);
 	buffer_append_float32_auto(buffer, conf->foc_offsets_current[2], &ind);
@@ -458,7 +458,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_hfi_start_samples = buffer_get_uint16(buffer, &ind);
 	conf->foc_hfi_obs_ovr_sec = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_hfi_samples = buffer[ind++];
-	conf->foc_offsets_cal_on_boot = buffer[ind++];
+	conf->foc_offsets_cal_mode = buffer[ind++];
 	conf->foc_offsets_current[0] = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_offsets_current[1] = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_offsets_current[2] = buffer_get_float32_auto(buffer, &ind);
@@ -790,7 +790,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_hfi_start_samples = MCCONF_FOC_HFI_START_SAMPLES;
 	conf->foc_hfi_obs_ovr_sec = MCCONF_FOC_HFI_OBS_OVR_SEC;
 	conf->foc_hfi_samples = MCCONF_FOC_HFI_SAMPLES;
-	conf->foc_offsets_cal_on_boot = MCCONF_FOC_OFFSETS_CAL_ON_BOOT;
+	conf->foc_offsets_cal_mode = MCCONF_FOC_OFFSETS_CAL_MODE;
 	conf->foc_offsets_current[0] = MCCONF_FOC_OFFSETS_CURRENT_0;
 	conf->foc_offsets_current[1] = MCCONF_FOC_OFFSETS_CURRENT_1;
 	conf->foc_offsets_current[2] = MCCONF_FOC_OFFSETS_CURRENT_2;

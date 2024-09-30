@@ -1,5 +1,9 @@
 ### 6.06
 #### TBD
+* LispBM:
+	* New core extansions, optimization and much more unit testing.
+* New offset calibration modes and options.
+* Automatic offset calibration support.
 
 ### 6.05
 #### 2024-08-19

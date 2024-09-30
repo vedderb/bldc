@@ -3516,7 +3516,11 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-sl-openloop-time   ; Stay in openloop for this amount of time
 'foc-temp-comp          ; Use observer temperature compensation
 'foc-temp-comp-base-temp ; Temperature at which parameters were measured
-'foc-offsets-cal-on-boot ; Measure offsets at boot (Added in FW 6.05)
+'foc-offsets-cal-on-boot ; Measure offsets at boot (FW 6.05 only)
+'foc-offsets-cal-mode   ; Offset Calibration Mode (Added in FW 6.06)
+                        ; Bit 0: Calibrate on Boot
+                        ; Bit 1: Enable Write from VESC Tool
+                        ; Bit 2: Auto-calibrate when undriven
 'foc-fw-current-max     ; Maximum field weakening current (Added in FW 6.05)
 'foc-fw-duty-start      ; Duty where field weakening starts (Added in FW 6.05)
 'foc-short-ls-on-zero-duty ; Short low-side FETs on 0 duty (Added in FW 6.05)

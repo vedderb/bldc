@@ -61,7 +61,6 @@ static void full_brake_hw(motor_all_state_t *motor);
 static void terminal_tmp(int argc, const char **argv);
 static void terminal_plot_hfi(int argc, const char **argv);
 static void timer_update(motor_all_state_t *motor, float dt);
-static void input_current_offset_measurement( void );
 static void hfi_update(volatile motor_all_state_t *motor, float dt);
 
 // Threads
@@ -480,7 +479,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 #ifdef HW_USE_ALTERNATIVE_DC_CAL
 	m_dccal_done = true;
 #else
-	if (m_motor_1.m_conf->foc_offsets_cal_on_boot) {
+	if (m_motor_1.m_conf->foc_offsets_cal_mode & (1 << 0)) {
 		systime_t cal_start_time = chVTGetSystemTimeX();
 		float cal_start_timeout = 10.0;
 
@@ -3913,6 +3912,13 @@ static void timer_update(motor_all_state_t *motor, float dt) {
 
 		utils_truncate_number((float*)&motor->m_r_est_state, conf_now->foc_motor_r * 0.25, conf_now->foc_motor_r * 3.0);
 	}
+
+	// Current offset calibration if motor is undriven
+	if (motor->m_state == MC_STATE_OFF && (motor->m_conf->foc_offsets_cal_mode & (1 << 2))) {
+		UTILS_LP_FAST(motor->m_conf->foc_offsets_current[0], motor->m_currents_adc[0], 0.0001);
+		UTILS_LP_FAST(motor->m_conf->foc_offsets_current[1], motor->m_currents_adc[1], 0.0001);
+		UTILS_LP_FAST(motor->m_conf->foc_offsets_current[2], motor->m_currents_adc[2], 0.0001);
+	}
 }
 
 static void terminal_tmp(int argc, const char **argv) {
@@ -3962,22 +3968,6 @@ static void terminal_tmp(int argc, const char **argv) {
 	}
 }
 
-// TODO: This won't work for dual motors
-static void input_current_offset_measurement(void) {
-#ifdef HW_HAS_INPUT_CURRENT_SENSOR
-	static uint16_t delay_current_offset_measurement = 0;
-
-	if (delay_current_offset_measurement < 1000) {
-		delay_current_offset_measurement++;
-	} else {
-		if (delay_current_offset_measurement == 1000) {
-			delay_current_offset_measurement++;
-			MEASURE_INPUT_CURRENT_OFFSET();
-		}
-	}
-#endif
-}
-
 static THD_FUNCTION(timer_thread, arg) {
 	(void)arg;
 
@@ -3996,7 +3986,18 @@ static THD_FUNCTION(timer_thread, arg) {
 		timer_update((motor_all_state_t*)&m_motor_2, dt);
 #endif
 
-		input_current_offset_measurement();
+#ifdef HW_HAS_INPUT_CURRENT_SENSOR
+		static uint16_t delay_current_offset_measurement = 0;
+
+		if (delay_current_offset_measurement < 1000) {
+			delay_current_offset_measurement++;
+		} else {
+			if (delay_current_offset_measurement == 1000) {
+				delay_current_offset_measurement++;
+				MEASURE_INPUT_CURRENT_OFFSET();
+			}
+		}
+#endif
 
 		chThdSleepMilliseconds(1);
 	}

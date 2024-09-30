@@ -436,8 +436,8 @@
 #ifndef MCCONF_FOC_HFI_SAMPLES
 #define MCCONF_FOC_HFI_SAMPLES			HFI_SAMPLES_16 // Samples per motor revolution for HFI
 #endif
-#ifndef MCCONF_FOC_OFFSETS_CAL_ON_BOOT
-#define MCCONF_FOC_OFFSETS_CAL_ON_BOOT	true // Measure offsets every boot
+#ifndef MCCONF_FOC_OFFSETS_CAL_MODE
+#define MCCONF_FOC_OFFSETS_CAL_MODE		1 // Offset calibration mode
 #endif
 #ifndef MCCONF_FOC_OFFSETS_CURRENT_0
 #define MCCONF_FOC_OFFSETS_CURRENT_0	2048.0 // Current 0 offset

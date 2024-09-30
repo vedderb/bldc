@@ -180,7 +180,7 @@ typedef struct {
 	lbm_uint foc_sl_openloop_time;
 	lbm_uint foc_temp_comp;
 	lbm_uint foc_temp_comp_base_temp;
-	lbm_uint foc_offsets_cal_on_boot;
+	lbm_uint foc_offsets_cal_mode;
 	lbm_uint foc_fw_current_max;
 	lbm_uint foc_fw_duty_start;
 	lbm_uint foc_short_ls_on_zero_duty;
@@ -477,8 +477,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("foc-temp-comp", comp);
 		} else if (comp == &syms_vesc.foc_temp_comp_base_temp) {
 			lbm_add_symbol_const("foc-temp-comp-base-temp", comp);
-		} else if (comp == &syms_vesc.foc_offsets_cal_on_boot) {
-			lbm_add_symbol_const("foc-offsets-cal-on-boot", comp);
+		} else if (comp == &syms_vesc.foc_offsets_cal_mode) {
+			lbm_add_symbol_const("foc-offsets-cal-mode", comp);
 		} else if (comp == &syms_vesc.foc_fw_current_max) {
 			lbm_add_symbol_const("foc-fw-current-max", comp);
 		} else if (comp == &syms_vesc.foc_fw_duty_start) {
@@ -3433,8 +3433,8 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.si_battery_ah)) {
 		mcconf->si_battery_ah = lbm_dec_as_float(args[1]);
 		changed_mc = 1;
-	} else if (compare_symbol(name, &syms_vesc.foc_offsets_cal_on_boot)) {
-		mcconf->foc_offsets_cal_on_boot = lbm_dec_as_i32(args[1]);
+	} else if (compare_symbol(name, &syms_vesc.foc_offsets_cal_mode)) {
+		mcconf->foc_offsets_cal_mode = lbm_dec_as_i32(args[1]);
 		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.foc_short_ls_on_zero_duty)) {
 		mcconf->foc_short_ls_on_zero_duty = lbm_dec_as_i32(args[1]);
@@ -3850,8 +3850,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_i(mcconf->foc_temp_comp);
 	} else if (compare_symbol(name, &syms_vesc.foc_temp_comp_base_temp)) {
 		res = lbm_enc_float(mcconf->foc_temp_comp_base_temp);
-	} else if (compare_symbol(name, &syms_vesc.foc_offsets_cal_on_boot)) {
-		res = lbm_enc_i(mcconf->foc_offsets_cal_on_boot);
+	} else if (compare_symbol(name, &syms_vesc.foc_offsets_cal_mode)) {
+		res = lbm_enc_i(mcconf->foc_offsets_cal_mode);
 	} else if (compare_symbol(name, &syms_vesc.foc_fw_current_max)) {
 		res = lbm_enc_float(mcconf->foc_fw_current_max);
 	} else if (compare_symbol(name, &syms_vesc.foc_fw_duty_start)) {

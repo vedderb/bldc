@@ -476,7 +476,7 @@ typedef struct {
 	uint16_t foc_hfi_start_samples;
 	float foc_hfi_obs_ovr_sec;
 	foc_hfi_samples foc_hfi_samples;
-	bool foc_offsets_cal_on_boot;
+	uint8_t foc_offsets_cal_mode;
 	float foc_offsets_current[3];
 	float foc_offsets_voltage[3];
 	float foc_offsets_voltage_undriven[3];
