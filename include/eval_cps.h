@@ -157,7 +157,7 @@ bool lbm_event_define(lbm_value key, lbm_flat_value_t *fv);
 /** Send an event causing the user_callback to be run at the next convenience.
     \return true if event is successfully added to queue.
   */
-bool lbm_event_run_user_callback(void);
+bool lbm_event_run_user_callback(void *arg);
 /** Send an event to the registered event handler process.
  * If lbm_event returns false the C code will still be responsible for
  * the flat_value passed into lbm_event. If lbm_event returns true,
@@ -257,7 +257,7 @@ void lbm_set_error_suspect(lbm_value suspect);
   */
 void lbm_critical_error(void);
 /** Set the arbitrary user function callback */
-void lbm_set_user_callback(void (*fptr)(void));
+void lbm_set_user_callback(void (*fptr)(void *));
 /** Set the critical error callback */
 void lbm_set_critical_error_callback(void (*fptr)(void));
 /** Create a context and enqueue it as runnable.
