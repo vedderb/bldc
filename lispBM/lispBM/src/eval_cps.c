@@ -254,7 +254,8 @@ static void critical_nonsense(void) {
   return;
 }
 
-static void user_callback_nonsense(void) {
+static void user_callback_nonsense(void *arg) {
+  (void) arg;
   return;
 }
 
@@ -264,9 +265,9 @@ static uint32_t (*timestamp_us_callback)(void) = timestamp_nonsense;
 static void (*ctx_done_callback)(eval_context_t *) = ctx_done_nonsense;
 static int (*printf_callback)(const char *, ...) = printf_nonsense;
 static bool (*dynamic_load_callback)(const char *, const char **) = dynamic_load_nonsense;
-static void (*user_callback)(void) = user_callback_nonsense;
+static void (*user_callback)(void *) = user_callback_nonsense;
 
-void lbm_set_user_callback(void (*fptr)(void)) {
+void lbm_set_user_callback(void (*fptr)(void *)) {
   if (fptr == NULL) user_callback = user_callback_nonsense;
   else user_callback = fptr;
 }
@@ -347,8 +348,8 @@ bool lbm_event_define(lbm_value key, lbm_flat_value_t *fv) {
   return event_internal(LBM_EVENT_DEFINE, key, (lbm_uint)fv->buf, fv->buf_size);
 }
 
-bool lbm_event_run_user_callback(void) {
-  return event_internal(LBM_EVENT_RUN_USER_CALLBACK, 0, 0, 0);
+bool lbm_event_run_user_callback(void *arg) {
+  return event_internal(LBM_EVENT_RUN_USER_CALLBACK, (lbm_uint)arg, 0, 0);
 }
 
 bool lbm_event_unboxed(lbm_value unboxed) {
@@ -5106,7 +5107,7 @@ static void process_events(void) {
       }
       break;
     case LBM_EVENT_RUN_USER_CALLBACK:
-      user_callback();
+      user_callback((void*)e.parameter);
       break;
     }
   }

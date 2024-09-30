@@ -1,5 +1,5 @@
 /*
-  Copyright 2023       Benjamin Vedder		benjamin@vedder.se
+  Copyright 2023, 2024 Benjamin Vedder		benjamin@vedder.se
   Copyright 2023, 2024 Joel Svensson		svenssonjoel@yahoo.se
   Copyright 2023       Rasmus Söderhielm	rasmus.soderhielm@gmail.com
 
@@ -121,6 +121,9 @@ static lbm_uint symbol_color_1 = 0;
 static lbm_uint symbol_width = 0;
 static lbm_uint symbol_offset = 0;
 static lbm_uint symbol_repeat_type = 0;
+
+static lbm_uint symbol_down = 0;
+static lbm_uint symbol_up = 0;
 
 static color_format_t sym_to_color_format(lbm_value v) {
   lbm_uint s = lbm_dec_sym(v);
@@ -306,6 +309,9 @@ static bool register_symbols(void) {
   res = res && lbm_add_symbol_const("width", &symbol_width);
   res = res && lbm_add_symbol_const("offset", &symbol_offset);
   res = res && lbm_add_symbol_const("repeat-type", &symbol_repeat_type);
+
+  res = res && lbm_add_symbol_const("down", &symbol_down);
+  res = res && lbm_add_symbol_const("up", &symbol_up);
 
   return res;
 }
@@ -1636,7 +1642,8 @@ static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0,
   }
 }
 
-static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int num_colors, uint8_t *font_data, uint8_t ch) {
+static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int num_colors,
+                     uint8_t *font_data, uint8_t ch, bool up, bool down) {
   uint8_t w = font_data[0];
   uint8_t h = font_data[1];
   uint8_t char_num = font_data[2];
@@ -1669,7 +1676,13 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
       uint8_t pixel_value = (byte >> (bit_pos * 2)) & 0x03;
       int x0 = i % w;
       int y0 = i / w;
-      putpixel(img, x + x0, y + y0, colors[pixel_value]);
+      if (up) {
+        putpixel(img, x + y0, y - x0, colors[pixel_value]);
+      } else if (down) {
+        putpixel(img, x - y0, y + x0, colors[pixel_value]);
+      } else {
+        putpixel(img, x + x0, y + y0, colors[pixel_value]);
+      }
     }
   } else {
     if (num_colors < 1) {
@@ -1690,7 +1703,14 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
       if (bit || bg >= 0) {
         int x0 = i % w;
         int y0 = i / w;
-        putpixel(img, x + x0, y + y0, bit ? (uint32_t)fg : (uint32_t)bg);
+
+        if (up) {
+          putpixel(img, x + y0, y - x0, bit ? (uint32_t)fg : (uint32_t)bg);
+        } else if (down) {
+          putpixel(img, x - y0, y + x0, bit ? (uint32_t)fg : (uint32_t)bg);
+        } else {
+          putpixel(img, x + x0, y + y0, bit ? (uint32_t)fg : (uint32_t)bg);
+        }
       }
     }
   }
@@ -2498,6 +2518,21 @@ static lbm_value ext_triangle(lbm_value *args, lbm_uint argn) {
 
 // lisp args: img x y fg bg font str
 static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
+  bool up = false;
+  bool down = false;
+
+  if (argn >= 7 && lbm_is_symbol(args[argn - 1])) {
+    if (lbm_dec_sym(args[argn - 1]) == symbol_up) {
+      up = true;
+      argn--;
+    }
+
+    if (lbm_dec_sym(args[argn - 1]) == symbol_down) {
+      down = true;
+      argn--;
+    }
+  }
+
   if (argn != 6 && argn != 7) {
     return ENC_SYM_TERROR;
   }
@@ -2555,10 +2590,22 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
 
   uint8_t *font_data = (uint8_t*)font->data;
   uint8_t w = font_data[0];
+  uint8_t h = font_data[1];
+
+  int incx = 1;
+  int incy = 0;
+  if (up) {
+    incx = 0;
+    incy = -1;
+  } else if (down) {
+    incx = 0;
+    incy = 1;
+  }
 
   int ind = 0;
   while (txt[ind] != 0) {
-    img_putc(&img_buf, x + ind * w, y, (uint32_t *)colors, 4, font_data, (uint8_t)txt[ind]);
+    img_putc(&img_buf, x + ind * w * incx, y + ind * h * incy,
+      (uint32_t *)colors, 4, font_data, (uint8_t)txt[ind], up, down);
     ind++;
   }
 
