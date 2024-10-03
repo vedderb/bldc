@@ -56,6 +56,7 @@ static lbm_string_channel_state_t string_tok_state;
 static lbm_char_channel_t string_tok;
 static lbm_buffered_channel_state_t buffered_tok_state;
 static lbm_char_channel_t buffered_string_tok;
+static bool string_tok_valid = false;
 
 static lbm_const_heap_t const_heap;
 static lbm_uint *const_heap_ptr = 0;
@@ -541,6 +542,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			}
 
 			lbm_create_buffered_char_channel(&buffered_tok_state, &buffered_string_tok);
+			string_tok_valid = true;
 
 			if (lbm_load_and_eval_program(&buffered_string_tok, "main-s") <= 0) {
 				lispif_unlock_lbm();
@@ -555,6 +557,14 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			lbm_continue_eval();
 			buffered_channel_created = true;
 			lispif_unlock_lbm();
+		}
+
+		if (!string_tok_valid) {
+			result_last = -15;
+			buffer_append_int16(send_buffer, result_last, &send_ind);
+			commands_printf_lisp("Tokenizer Invalid");
+			reply_func(send_buffer, ind);
+			break;
 		}
 
 		int32_t written = 0;
@@ -580,6 +590,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		if (ind == (int32_t)len) {
 			if ((offset + written) == tot_len) {
 				lbm_channel_writer_close(&buffered_string_tok);
+				string_tok_valid = false;
 				offset_last = -1;
 				commands_printf_lisp("Stream done, starting...");
 			}
@@ -637,6 +648,7 @@ bool lispif_restart(bool print, bool load_code, bool load_imports) {
 
 	restart_cnt++;
 	prof_running = false;
+	string_tok_valid = false;
 
 	char *code_data = (char*)flash_helper_code_data(CODE_IND_LISP);
 	int32_t code_len = flash_helper_code_size(CODE_IND_LISP);
