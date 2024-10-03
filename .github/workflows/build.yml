@@ -1,0 +1,25 @@
+name: Build BLDC
+on:
+  push
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Install ARM SDK
+        run: make arm_sdk_install
+      - name: Build 75_100_V1
+        run: make 75_100_no_limits
+      - name: Build 75_100_V2
+        run: make 75_100_V2_no_limits
+      - uses: actions/upload-artifact@v3
+        with:
+          name: 75_100_no_limits
+          path: build/75_100_no_limits/75_100_no_limits.bin
+      - uses: actions/upload-artifact@v3
+        with:
+          name: 75_100_V2_no_limits
+          path: build/75_100_V2_no_limits/75_100_V2_no_limits.bin
