@@ -1886,6 +1886,7 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 #ifdef HW_LIM_CURRENT
 	utils_truncate_number(&mcconf->l_current_max, HW_LIM_CURRENT);
 	utils_truncate_number(&mcconf->l_current_min, HW_LIM_CURRENT);
+	utils_truncate_number(&mcconf->foc_hfi_amb_current, HW_LIM_CURRENT);
 #endif
 #ifdef HW_LIM_CURRENT_IN
 	utils_truncate_number(&mcconf->l_in_current_max, HW_LIM_CURRENT_IN);

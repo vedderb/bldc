@@ -62,11 +62,6 @@
 #include <ctype.h>
 #include <stdarg.h>
 
-/**
- * Bytes per word in the LBM memory.
- */
-#define LBM_WORD_SIZE 4
-
 typedef struct {
 	// BMS
 	lbm_uint v_tot;
@@ -151,6 +146,10 @@ typedef struct {
 	lbm_uint bms_vmax_limit_end;
 	lbm_uint motor_type;
 	lbm_uint foc_sensor_mode;
+	lbm_uint foc_hfi_amb_mode;
+	lbm_uint foc_hfi_amb_current;
+	lbm_uint foc_hfi_amb_tres;
+	lbm_uint foc_hfi_start_samples;
 	lbm_uint foc_current_kp;
 	lbm_uint foc_current_ki;
 	lbm_uint foc_f_zv;
@@ -419,6 +418,14 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("motor-type", comp);
 		} else if (comp == &syms_vesc.foc_sensor_mode) {
 			lbm_add_symbol_const("foc-sensor-mode", comp);
+		} else if (comp == &syms_vesc.foc_hfi_amb_mode) {
+			lbm_add_symbol_const("foc-hfi-amb-mode", comp);
+		} else if (comp == &syms_vesc.foc_hfi_amb_current) {
+			lbm_add_symbol_const("foc-hfi-amb-current", comp);
+		} else if (comp == &syms_vesc.foc_hfi_amb_tres) {
+			lbm_add_symbol_const("foc-hfi-amb-tres", comp);
+		} else if (comp == &syms_vesc.foc_hfi_start_samples) {
+			lbm_add_symbol_const("foc-hfi-start-samples", comp);
 		} else if (comp == &syms_vesc.foc_current_kp) {
 			lbm_add_symbol_const("foc-current-kp", comp);
 		} else if (comp == &syms_vesc.foc_current_ki) {
@@ -1902,6 +1909,17 @@ static lbm_value ext_foc_est_res(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_foc_est_ind(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mcpwm_foc_get_est_ind());
+}
+
+static lbm_value ext_foc_hfi_res(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	volatile const hfi_state_t *hfi = mcpwm_foc_get_hfi_state();
+	lbm_value hfi_data = ENC_SYM_NIL;
+	hfi_data = lbm_cons(lbm_enc_float(hfi->buffer[7]), hfi_data);
+	hfi_data = lbm_cons(lbm_enc_float(hfi->buffer[6]), hfi_data);
+	hfi_data = lbm_cons(lbm_enc_float(hfi->buffer[5]), hfi_data);
+
+	return hfi_data;
 }
 
 static lbm_value ext_get_duty(lbm_value *args, lbm_uint argn) {
@@ -3470,6 +3488,18 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.foc_sensor_mode)) {
 			mcconf->foc_sensor_mode = lbm_dec_as_i32(args[1]);
 			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_hfi_amb_mode)) {
+			mcconf->foc_hfi_amb_mode = lbm_dec_as_i32(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_hfi_amb_current)) {
+			mcconf->foc_hfi_amb_current = lbm_dec_as_float(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_hfi_amb_tres)) {
+			mcconf->foc_hfi_amb_tres = lbm_dec_as_i32(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_hfi_start_samples)) {
+			mcconf->foc_hfi_start_samples = lbm_dec_as_i32(args[1]);
+			changed_mc = 2;
 		} else if (compare_symbol(name, &syms_vesc.foc_current_kp)) {
 			mcconf->foc_current_kp = lbm_dec_as_float(args[1]);
 			changed_mc = 2;
@@ -3792,6 +3822,14 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_i(mcconf->motor_type);
 	} else if (compare_symbol(name, &syms_vesc.foc_sensor_mode)) {
 		res = lbm_enc_i(mcconf->foc_sensor_mode);
+	} else if (compare_symbol(name, &syms_vesc.foc_hfi_amb_mode)) {
+		res = lbm_enc_i(mcconf->foc_hfi_amb_mode);
+	} else if (compare_symbol(name, &syms_vesc.foc_hfi_amb_current)) {
+		res = lbm_enc_float(mcconf->foc_hfi_amb_current);
+	} else if (compare_symbol(name, &syms_vesc.foc_hfi_amb_tres)) {
+		res = lbm_enc_i(mcconf->foc_hfi_amb_tres );
+	} else if (compare_symbol(name, &syms_vesc.foc_hfi_start_samples)) {
+		res = lbm_enc_i(mcconf->foc_hfi_start_samples);
 	} else if (compare_symbol(name, &syms_vesc.foc_current_kp)) {
 		res = lbm_enc_float(mcconf->foc_current_kp);
 	} else if (compare_symbol(name, &syms_vesc.foc_current_ki)) {
@@ -5399,6 +5437,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("get-est-lambda", ext_foc_est_lambda);
 	lbm_add_extension("get-est-res", ext_foc_est_res);
 	lbm_add_extension("get-est-ind", ext_foc_est_ind);
+	lbm_add_extension("get-hfi-res", ext_foc_hfi_res);
 	lbm_add_extension("get-duty", ext_get_duty);
 	lbm_add_extension("get-rpm", ext_get_rpm);
 	lbm_add_extension("get-rpm-fast", ext_get_rpm_fast);

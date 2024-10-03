@@ -1350,6 +1350,26 @@ Get FOC estimated motor inductance Henry. Only works while the first HFI is runn
 
 ---
 
+#### get-hfi-res
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06+ |
+
+```clj
+(get-hfi-res)
+```
+
+Get HFI result. Only valid when using single or double pulse ambiguity resolution mode. Returns a list with the following valies:
+
+```clj
+(i1 i2 diff)
+```
+
+Where i1 is the delta current for the first voltage, i2 is the response current for the second voltage and diff is the difference between them. This can be used to determine how much ambiguity resolution current is required for a given motor.
+
+---
+
 #### get-duty
 
 | Platforms | Firmware |
@@ -3495,6 +3515,12 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-motor-r            ; Motor resistance in milliOhm
 'foc-motor-flux-linkage ; Motor flux linkage in milliWeber
 'foc-observer-gain      ; Observer gain x1M
+'foc-hfi-amb-mode       ; HFI Ambiguity Resolve Mode (FW 6.06)
+                        ; 0 : Six Vector
+                        ; 1 : ID Single Pulse
+                        ; 2 : ID Double Pulse
+'foc-hfi-amb-current    ; HFI Ambiguity Resolve Current (FW 6.06)
+'foc-hfi-amb-tres       ; HFI Ambiguity Resolve Threshold (FW 6.06)
 'foc-hfi-voltage-start  ; HFI start voltage (V) (for resolving ambiguity)
 'foc-hfi-voltage-run    ; HFI voltage (V) HFI voltage at min current
 'foc-hfi-voltage-max    ; HFI voltage (V) at max current

@@ -35,6 +35,7 @@ typedef struct {
 	float mod_alpha_raw;
 	float mod_beta_raw;
 	float id_target;
+	bool id_override_hfi;
 	float iq_target;
 	float max_duty;
 	float duty_now;
@@ -85,6 +86,7 @@ typedef struct {
 	float sign_last_sample;
 	float cos_last, sin_last;
 	float prev_sample;
+	float prev_sample_d;
 	float angle;
 	float double_integrator;
 	int est_done_cnt;

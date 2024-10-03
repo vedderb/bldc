@@ -406,6 +406,15 @@
 #ifndef MCCONF_FOC_OBSERVER_TYPE
 #define MCCONF_FOC_OBSERVER_TYPE		FOC_OBSERVER_MXLEMMING_LAMBDA_COMP // Position observer type for FOC
 #endif
+#ifndef MCCONF_FOC_HFI_AMB_MODE
+#define MCCONF_FOC_HFI_AMB_MODE			FOC_AMB_MODE_SIX_VECTOR // HFI ambiguity resolution mode
+#endif
+#ifndef MCCONF_FOC_HFI_AMB_CURRENT
+#define MCCONF_FOC_HFI_AMB_CURRENT		60.0 // HFI ambiguity resolution current
+#endif
+#ifndef MCCONF_FOC_HFI_AMB_TRES
+#define MCCONF_FOC_HFI_AMB_TRES			15 // HFI ambiguity resolution threshold
+#endif
 #ifndef MCCONF_FOC_HFI_VOLTAGE_START
 #define MCCONF_FOC_HFI_VOLTAGE_START	20 // HFI voltage at start when resolving ambiguity
 #endif

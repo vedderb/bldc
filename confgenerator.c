@@ -112,6 +112,9 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->foc_current_filter_const, 10000, &ind);
 	buffer[ind++] = conf->foc_cc_decoupling;
 	buffer[ind++] = conf->foc_observer_type;
+	buffer[ind++] = conf->foc_hfi_amb_mode;
+	buffer_append_float16(buffer, conf->foc_hfi_amb_current, 10, &ind);
+	buffer[ind++] = (uint8_t)conf->foc_hfi_amb_tres;
 	buffer_append_float16(buffer, conf->foc_hfi_voltage_start, 10, &ind);
 	buffer_append_float16(buffer, conf->foc_hfi_voltage_run, 10, &ind);
 	buffer_append_float16(buffer, conf->foc_hfi_voltage_max, 10, &ind);
@@ -448,6 +451,9 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_current_filter_const = buffer_get_float16(buffer, 10000, &ind);
 	conf->foc_cc_decoupling = buffer[ind++];
 	conf->foc_observer_type = buffer[ind++];
+	conf->foc_hfi_amb_mode = buffer[ind++];
+	conf->foc_hfi_amb_current = buffer_get_float16(buffer, 10, &ind);
+	conf->foc_hfi_amb_tres = buffer[ind++];
 	conf->foc_hfi_voltage_start = buffer_get_float16(buffer, 10, &ind);
 	conf->foc_hfi_voltage_run = buffer_get_float16(buffer, 10, &ind);
 	conf->foc_hfi_voltage_max = buffer_get_float16(buffer, 10, &ind);
@@ -780,6 +786,9 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_current_filter_const = MCCONF_FOC_CURRENT_FILTER_CONST;
 	conf->foc_cc_decoupling = MCCONF_FOC_CC_DECOUPLING;
 	conf->foc_observer_type = MCCONF_FOC_OBSERVER_TYPE;
+	conf->foc_hfi_amb_mode = MCCONF_FOC_HFI_AMB_MODE;
+	conf->foc_hfi_amb_current = MCCONF_FOC_HFI_AMB_CURRENT;
+	conf->foc_hfi_amb_tres = MCCONF_FOC_HFI_AMB_TRES;
 	conf->foc_hfi_voltage_start = MCCONF_FOC_HFI_VOLTAGE_START;
 	conf->foc_hfi_voltage_run = MCCONF_FOC_HFI_VOLTAGE_RUN;
 	conf->foc_hfi_voltage_max = MCCONF_FOC_HFI_VOLTAGE_MAX;
