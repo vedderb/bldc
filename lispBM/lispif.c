@@ -469,20 +469,16 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		int32_t tot_len = buffer_get_int32(data, &ind);
 		int8_t restart = data[ind++];
 
-		static bool buffered_channel_created = false;
 		static int32_t offset_last = -1;
 		static int16_t result_last = -1;
 
 		if (offset == 0) {
 			if (!lisp_thd_running) {
 				lispif_restart(true, restart == 2 ? true : false, true);
-				buffered_channel_created = false;
 			} else if (restart == 1) {
 				lispif_restart(true, false, true);
-				buffered_channel_created = false;
 			} else if (restart == 2) {
 				lispif_restart(true, true, true);
-				buffered_channel_created = false;
 			}
 		}
 
@@ -508,7 +504,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		}
 
 		if (offset == 0) {
-			if (buffered_channel_created) {
+			if (string_tok_valid) {
 				int timeout = 1500;
 				while (!buffered_tok_state.reader_closed) {
 					lbm_channel_writer_close(&buffered_string_tok);
@@ -555,7 +551,6 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 			}
 
 			lbm_continue_eval();
-			buffered_channel_created = true;
 			lispif_unlock_lbm();
 		}
 
