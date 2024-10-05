@@ -1123,7 +1123,7 @@ static lbm_value ext_get_imu_gyro_derot(lbm_value *args, lbm_uint argn) {
 
 static void send_app_data(unsigned char *data, unsigned int len, int interface, int can_id) {
 	int32_t index = 0;
-	uint8_t *send_buffer_global = mempools_get_packet_buffer();
+	uint8_t *send_buffer_global = mempools_get_lbm_packet_buffer();
 	send_buffer_global[index++] = COMM_CUSTOM_APP_DATA;
 	memcpy(send_buffer_global + index, data, len);
 	index += len;
@@ -1488,7 +1488,7 @@ static lbm_value ext_can_cmd(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_EERROR;
 	}
 
-	uint8_t *send_buf = mempools_get_packet_buffer();
+	uint8_t *send_buf = mempools_get_lbm_packet_buffer();
 	send_buf[0] = COMM_LISP_REPL_CMD;
 	memcpy(send_buf + 1, array->data, array->size);
 	comm_can_send_buffer(id, send_buf, array->size + 1, 2);
@@ -4762,7 +4762,7 @@ static lbm_value log_send_fxx(bool is_64, lbm_value *args, lbm_uint argn) {
 	}
 
 	int32_t ind = 0;
-	uint8_t *buffer = mempools_get_packet_buffer();
+	uint8_t *buffer = mempools_get_lbm_packet_buffer();
 
 	buffer[ind++] = is_64 ? COMM_LOG_DATA_F64 : COMM_LOG_DATA_F32;
 	buffer_append_int16(buffer, field_start, &ind);
@@ -5256,7 +5256,7 @@ static lbm_value ext_canmsg_send(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_TERROR;
 	}
 
-	uint8_t *buf = mempools_get_packet_buffer();
+	uint8_t *buf = mempools_get_lbm_packet_buffer();
 	buf[0] = COMM_LISP_RMSG;
 	buf[1] = slot;
 	memcpy(buf + 2, array->data, array->size);
