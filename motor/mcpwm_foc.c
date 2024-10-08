@@ -4147,15 +4147,15 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 						motor->m_motor_state.id_override_hfi = true;
 						motor->m_hfi.ind = 10;
 					} else {
-						if (motor->m_hfi.ind == 10) {
-							// Flip the angle when doing the negative part as the HFI
-							// is less stable with negative D-axis current in the axis
-							// that we treat as the D-axis.
-							float angle_new = motor->m_hfi.angle + M_PI;
-							utils_norm_angle_rad(&angle_new);
-							motor->m_hfi.angle = angle_new;
-						}
-						motor->m_motor_state.id_target = motor->m_conf->foc_hfi_amb_current;
+//						if (motor->m_hfi.ind == 10) {
+//							// Flip the angle when doing the negative part as the HFI
+//							// is less stable with negative D-axis current in the axis
+//							// that we treat as the D-axis.
+//							float angle_new = motor->m_hfi.angle + M_PI;
+//							utils_norm_angle_rad(&angle_new);
+//							motor->m_hfi.angle = angle_new;
+//						}
+						motor->m_motor_state.id_target = -motor->m_conf->foc_hfi_amb_current;
 						motor->m_motor_state.id_override_hfi = true;
 						motor->m_hfi.ind = 3;
 					}
@@ -4206,9 +4206,9 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 					}
 
 					// A flip has already been done in double pulse mode
-					if (motor->m_conf->foc_hfi_amb_mode == FOC_AMB_MODE_D_DOUBLE_PULSE) {
-						diff = -diff;
-					}
+//					if (motor->m_conf->foc_hfi_amb_mode == FOC_AMB_MODE_D_DOUBLE_PULSE) {
+//						diff = -diff;
+//					}
 
 					// Flip if needed
 					if (diff > 0.0) {
