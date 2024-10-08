@@ -1453,7 +1453,8 @@
                           "`(read string)`."
                           ))
               (code '((read-eval "(read \"1\")")
-                      (read-eval "(read \"(lambda (x) (+ x 1))\"")
+                      (read-eval "(read \"(+ 1 2)\")")
+                      (read-eval "(read \"(lambda (x) (+ x 1))\")")
                       ))
               end)))
 

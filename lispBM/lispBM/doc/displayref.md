@@ -1143,7 +1143,7 @@ t
 <td>
 
 ```clj
-(img-text my-img 10 10 1 0 font LispBM)
+(img-text my-img 40 40 1 0 font "LispBM")
 ```
 
 
@@ -1151,6 +1151,52 @@ t
 <td>
 
 <img src=./images/img38.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-text my-img 40 120 1 0 font "LispBM" 'up)
+```
+
+
+</td>
+<td>
+
+<img src=./images/img39.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-text my-img 40 40 1 0 font "LispBM" 'down)
+```
+
+
+</td>
+<td>
+
+<img src=./images/img40.png >
 
 </td>
 <td>
@@ -1187,7 +1233,7 @@ t
 </td>
 <td>
 
-<img src=./images/img39.png >
+<img src=./images/img41.png >
 
 </td>
 <td>
@@ -1210,7 +1256,7 @@ t
 </td>
 <td>
 
-<img src=./images/img40.png >
+<img src=./images/img42.png >
 
 </td>
 <td>
@@ -1233,10 +1279,66 @@ t
 </td>
 <td>
 
-<img src=./images/img41.png >
+<img src=./images/img43.png >
 
 </td>
 <td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+# Examples
+
+
+### Example: Sierpinsky triangle
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define w 320)
+(define h 200)
+(define corners (list (cons 10 (- h 10)) (cons (- w 10) (- h 10)) (cons (/ w 2) 10)))
+(define s-img (img-buffer 'indexed2 w h))
+(defun point (p) (img-setpix s-img (car p) (cdr p) 1))
+(defun mid-point (p1 p2) (progn (let ((x (/ (+ (car p1) (car p2)) 2))
+      (y (/ (+ (cdr p1) (cdr p2)) 2)))
+     (cons x y))))
+(defun sierp (n corners p) (if (= n 0) nil (let ((i (mod (rand) 3))
+      (target (ix corners i))
+      (mid (mid-point p target)))
+     (progn (point mid)
+            (sierp (- n 1) corners mid)))))
+(sierp 25000 corners (car corners))
+(disp-render s-img 0 0 '(0 16777215))
+
+```
+
+
+</td>
+<td>
+
+<img src=./images/img44.png >
+
+</td>
+<td>
+
 
 ```clj
 t
