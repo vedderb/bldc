@@ -4135,7 +4135,7 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 						motor->m_hfi.buffer[2] = 0.0;
 						motor->m_hfi.buffer[3] = 0.0;
 						motor->m_hfi.buffer[4] = 0.0;
-						motor->m_hfi.ind = 0;
+						motor->m_hfi.ind = 10;
 						motor->m_motor_state.id_target = 0.0;
 						motor->m_motor_state.id_override_hfi = true;
 					} else if (motor->m_hfi.est_done_cnt < (motor->m_conf->foc_hfi_start_samples * 0.5)) {
@@ -4145,9 +4145,17 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 					} else if (motor->m_hfi.est_done_cnt < (motor->m_conf->foc_hfi_start_samples * 0.7)) {
 						motor->m_motor_state.id_target = 0.0;
 						motor->m_motor_state.id_override_hfi = true;
-						motor->m_hfi.ind = 0;
+						motor->m_hfi.ind = 10;
 					} else {
-						motor->m_motor_state.id_target = -motor->m_conf->foc_hfi_amb_current;
+						if (motor->m_hfi.ind == 10) {
+							// Flip the angle when doing the negative part as the HFI
+							// is less stable with negative D-axis current in the axis
+							// that we treat as the D-axis.
+							float angle_new = motor->m_hfi.angle + M_PI;
+							utils_norm_angle_rad(&angle_new);
+							motor->m_hfi.angle = angle_new;
+						}
+						motor->m_motor_state.id_target = motor->m_conf->foc_hfi_amb_current;
 						motor->m_motor_state.id_override_hfi = true;
 						motor->m_hfi.ind = 3;
 					}
@@ -4158,7 +4166,7 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 						motor->m_hfi.buffer[2] = 0.0;
 						motor->m_hfi.buffer[3] = 0.0;
 						motor->m_hfi.buffer[4] = 0.0;
-						motor->m_hfi.ind = 0;
+						motor->m_hfi.ind = 10;
 						motor->m_motor_state.id_target = 0.0;
 						motor->m_motor_state.id_override_hfi = true;
 					} else if (motor->m_hfi.est_done_cnt < (motor->m_conf->foc_hfi_start_samples * 0.6)) {
@@ -4195,6 +4203,11 @@ static void hfi_update(volatile motor_all_state_t *motor, float dt) {
 					// the signal with 15% (could be a configurable number...) as a reasonable threshold.
 					if (motor->m_conf->foc_hfi_amb_mode == FOC_AMB_MODE_D_SINGLE_PULSE) {
 						diff += (float)motor->m_conf->foc_hfi_amb_tres / 100.0;
+					}
+
+					// A flip has already been done in double pulse mode
+					if (motor->m_conf->foc_hfi_amb_mode == FOC_AMB_MODE_D_DOUBLE_PULSE) {
+						diff = -diff;
 					}
 
 					// Flip if needed
