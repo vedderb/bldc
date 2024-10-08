@@ -22,6 +22,7 @@
 (img-blit img-100-100 llama-bin 0 0 -1 '(scale 0.3))
 
 (defun code-disp-str (xs) (code-disp (map (lambda (x) (list 'read-eval x)) xs)))
+(defun code-png-str (img c xs) (code-png img c (map (lambda (x) (list 'read-eval x)) xs)))
 
 (define create_image1
   (ref-entry "img-buffer"
@@ -119,9 +120,11 @@
 (define texts
   (ref-entry "img-text"
              (list
-              (code-png 'my-img '(0x00 0xffffff)
-                        '((img-text my-img 10 10 1 0 font "LispBM")
-                          ))
+              (code-png-str 'my-img '(0x00 0xffffff)
+                            '("(img-text my-img 40 40 1 0 font \"LispBM\")"
+                              "(img-text my-img 40 120 1 0 font \"LispBM\" 'up)"
+                              "(img-text my-img 40 40 1 0 font \"LispBM\" 'down)"
+                              ))
               end)))
 
 (define setpixel
@@ -151,7 +154,37 @@
                           (img-blit my-img llama-bin 10 10 -1 '(rotate 128 128 45))
                           (img-blit my-img llama-bin 10 10 -1 '(scale 0.5))
                           ))
+              end)))
+
+(define sierpinsky
+  (ref-entry "Example: Sierpinsky triangle"
+             (list
+              (program-disp '(((define w 320)
+                               (define h 200)
+                               (define corners (list (cons 10 (- h 10))
+                                                     (cons (- w 10) (- h 10))
+                                                     (cons (/ w 2) 10)))
+                               (define s-img (img-buffer 'indexed2 w h))
+                               (defun point (p) (img-setpix s-img (car p) (cdr p) 1))
+                               (defun mid-point (p1 p2)
+                                 { (let ((x (/ (+ (car p1) (car p2)) 2))
+                                         (y (/ (+ (cdr p1) (cdr p2)) 2)))
+                                     (cons x y))
+                                 })
+                               (defun sierp (n corners p)
+                                 (if (= n 0) ()
+                                   (let ((i (mod (rand) 3))
+                                         (target (ix corners i))
+                                         (mid    (mid-point p target)))
+                                     { (point mid)
+                                       (sierp (- n 1) corners mid)
+                                       })))
+                               (sierp 25000 corners (car corners))
+                               (disp-render s-img 0 0 '(0x000000 0xFFFFFF))
+                               ))
+                            )
              end)))
+
 
 
 (define manual
@@ -233,8 +266,11 @@
                   rectangles
                   setpixel
                   texts
-                  triangles)
+                  triangles
+                  )
             )
+   (section 1 "Examples"
+            (list sierpinsky))
    )
   )
 

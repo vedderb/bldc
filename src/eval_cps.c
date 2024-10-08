@@ -2139,9 +2139,11 @@ static void eval_receive(eval_context_t *ctx) {
 /*********************************************************/
 /*  Continuation functions                               */
 
-/* cont_set_global_env
-   sp-1 : Key-symbol
- */
+// cont_set_global_env:
+//
+//   s[sp-1] = Key-symbol
+//
+//   ctx->r = Value
 static void cont_set_global_env(eval_context_t *ctx){
 
   lbm_value key;
@@ -2164,10 +2166,23 @@ static void cont_set_global_env(eval_context_t *ctx){
   return;
 }
 
+// cont_resume:
+//
+// s[sp-2] = Expression
+// s[sp-1] = Environment
+//
+// ctx->r = Irrelevant.
 static void cont_resume(eval_context_t *ctx) {
   lbm_pop_2(&ctx->K, &ctx->curr_env, &ctx->curr_exp);
 }
 
+// cont_progn_rest:
+//
+// s[sp-3] = Environment to evaluate each expression in.
+// s[sp-2] = Flag indicating if env has been copied.
+// s[sp-1] = list of expressions to evaluate.
+//
+// ctx->r = Result of last evaluated expression.
 static void cont_progn_rest(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 3);
 
@@ -2343,6 +2358,8 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
   lbm_uint stack_size = EVAL_CPS_DEFAULT_STACK_SIZE;
   lbm_uint closure_pos = 0;
   char *name = NULL;
+  // allowed arguments:
+  // (spawn opt-name opt-stack-size closure arg1 ... argN)
 
   if (nargs >= 1 &&
       lbm_is_closure(args[0])) {
@@ -2357,7 +2374,7 @@ static void apply_spawn_base(lbm_value *args, lbm_uint nargs, eval_context_t *ct
              lbm_is_closure(args[1])) {
     name = lbm_dec_str(args[0]);
     closure_pos = 1;
-  }else if (nargs >= 3 &&
+  } else if (nargs >= 3 &&
              lbm_is_array_r(args[0]) &&
              lbm_is_number(args[1]) &&
              lbm_is_closure(args[2])) {
@@ -3280,6 +3297,16 @@ static void cont_exit_atomic(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+// cont_map:
+//
+// sptr[0]: s[sp-6] = Rest of the input list.
+// sptr[1]: s[sp-5] = Environment to restore for the eval of each application.
+// sptr[2]: s[sp-4] = Result list.
+// sptr[3]: s[sp-3] = Cell that goes into result list after being populated with application result.
+// sptr[4]: s[sp-2] = Ref to application.
+// sptr[5]: s[sp-1] = Ref to application argument.
+//
+// ctx->r  = eval result of previous application.
 static void cont_map(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 6);
 
@@ -4218,7 +4245,6 @@ static void cont_read_done(eval_context_t *ctx) {
       read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
     }
   }
-
   ctx->row0 = -1;
   ctx->row1 = -1;
   ctx->app_cont = true;
@@ -4285,13 +4311,13 @@ static void cont_application_start(eval_context_t *ctx) {
         ctx->curr_exp = cl[CLO_BODY];
         ctx->curr_env = cl[CLO_ENV];
       } else if (p_nil) {
+        reserved[1] = get_cdr(args);      // protect cdr(args) from allocate_binding
+        ctx->curr_exp = get_car(args);    // protect car(args) from allocate binding
+        ctx->curr_env = arg_env;
         lbm_value rest_binder = allocate_binding(ENC_SYM_REST_ARGS, ENC_SYM_NIL, cl[CLO_ENV]);
         reserved[0] = rest_binder;
-        reserved[1] = get_cdr(args);
         reserved[2] = get_car(rest_binder);
         reserved[3] = CLOSURE_ARGS_REST;
-        ctx->curr_exp = get_car(args);
-        ctx->curr_env = arg_env;
       } else {
         lbm_set_error_reason((char*)lbm_error_str_num_args);
         error_at_ctx(ENC_SYM_EERROR, ctx->r);

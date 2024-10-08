@@ -258,6 +258,45 @@
     (rend "</table>\n\n")
     })
 
+(defun render-program-disp-res-pairs (rend cs)
+  (match cs
+         (nil t)
+         ( ((? x) . (? xs))
+           (let ((cstrs (map (lambda (c) (str-merge (pretty c) "\n"))  x))
+                 (res (eval-program nil x))
+                 (rstr (to-str res))
+                 (png (png-file)))
+             {
+             (save-active-image png)
+             (rend "<tr>\n")
+             (rend "<td>\n\n")
+             (rend "\n```clj\n")
+             (map rend cstrs)
+             (rend "\n```\n")
+             (rend "\n\n</td>\n")
+              ;; image
+	     (rend "<td>\n\n")
+	     (rend (str-merge "<img src=" png " >"))
+             (rend "\n\n</td>\n")	     
+             (rend "<td>\n\n")
+             (rend "\n```clj\n")
+             (rend rstr)
+             (rend "\n```\n")
+             (rend "\n\n</td>\n")
+             (rend "</tr>\n")
+             (render-program-res-pairs rend xs)
+             }))))
+
+(defun render-program-disp-table (rend c)
+  {
+    (rend "<table>\n")
+    (rend "<tr>\n")
+    (rend "<td> Example </td> <td> Image </td> <td> Result </td>\n")
+    (rend "</tr>\n")
+    (render-program-disp-res-pairs rend c)
+    (rend "</table>\n\n")
+    })
+
 (defun str-merge-list (strs)
   (match strs
          ( nil "" )
@@ -288,6 +327,8 @@
 	   (render-code-png-table rend (eval img) colors c))
 	 ( (code-disp  (? c))
 	   (render-code-disp-table rend  c))
+         ( (program-disp (? c))
+           (render-program-disp-table rend c))
          ( (image (? alt) (? url))
            (rend (str-merge "![" alt "](" url " \"" alt "\")\n\n")))
          ( (image-pair (? cap0) (? txt0) (? fig0) (? cap1) (? txt1) (? fig1))
@@ -356,6 +397,9 @@
 
 (defun program (c)
   (list 'program c))
+
+(defun program-disp (c)
+  (list 'program-disp c))
 
 (defun newline ()
   'newline)

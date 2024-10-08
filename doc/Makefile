@@ -17,7 +17,7 @@ runtimeref.md: doclib.env runtimeref.lisp
 	lbm -H 10000000 --src="runtimeref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
 clean:
-	rm doclib.env
-	rm displayref.md
-	rm lbmref.md
-	rm runtimeref.md
+	rm -f doclib.env
+	rm -f displayref.md
+	rm -f lbmref.md
+	rm -f runtimeref.md
