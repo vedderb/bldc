@@ -1127,10 +1127,17 @@ void terminal_process_string(char *str) {
 				commands_printf("Invalid arguments\n");
 			}
 		}
-	} else if (strcmp(argv[0], "fwinfo") == 0) {
-		commands_printf("GIT Branch: %s", GIT_BRANCH_NAME);
-		commands_printf("GIT Hash  : %s", GIT_COMMIT_HASH);
-		commands_printf("Compiler  : %s\n", ARM_GCC_VERSION);
+	} else if (strcmp(argv[0], "fw_info") == 0) {
+		commands_printf("Git Branch: %s", GIT_BRANCH_NAME);
+		commands_printf("Git Hash  : %s", GIT_COMMIT_HASH);
+		commands_printf("Compiler  : %s", ARM_GCC_VERSION);
+#ifdef USER_GIT_BRANCH_NAME
+		commands_printf("User Git Branch: %s", USER_GIT_BRANCH_NAME);
+#endif
+#ifdef USER_GIT_COMMIT_HASH
+		commands_printf("User Git Hash  : %s", USER_GIT_COMMIT_HASH);
+#endif
+		commands_printf(" ");
 	} else if (strcmp(argv[0], "rebootwdt") == 0) {
 		chSysLock();
 		for (;;) {__NOP();}
@@ -1246,7 +1253,7 @@ void terminal_process_string(char *str) {
 		commands_printf("update_pid_pos_offset [angle_now] [store]");
 		commands_printf("  Update position PID offset.");
 
-		commands_printf("fwinfo");
+		commands_printf("fw_info");
 		commands_printf("  Print detailed firmware info.");
 
 		commands_printf("rebootwdt");

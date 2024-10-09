@@ -118,19 +118,20 @@ $(TOOLS_DIR):
 #
 ##############################
 
-# $(1) = Canonical board name all in lower case (e.g. 100_250)
-# $(2) = Target hardware directory
+# $(1) = destination variable
+# $(2) = Canonical board name all in lower case (e.g. 100_250)
+# $(3) = Target hardware directory
 define FIND_TARGET_C_CODE
    # Remove `_no_limits`
-   $(eval ROOT_TARGET_NAME = $(subst _no_limits,,$(1)))
+   $(eval ROOT_TARGET_NAME = $(subst _no_limits,,$(2)))
 
    # Look for `*_core.c` file
-   ifneq ("$(wildcard $(2)/hw_*_core.c)","")
+   ifneq ("$(wildcard $(3)/hw_*_core.c)","")
       # Good luck, there it is!
-      HW_SRC_FILE = $(wildcard $(2)/hw_*_core.c)
+      $(1) = $(realpath $(wildcard $(3)/hw_*_core.c))
    else
       # There isn't one, so let's hope for the sister `.c` file
-      HW_SRC_FILE = $(2)/hw_$(ROOT_TARGET_NAME).c
+      $(1) = $(realpath $(3)/hw_$(ROOT_TARGET_NAME).c)
    endif
 
 endef
@@ -146,8 +147,18 @@ define FW_TEMPLATE
 $(1): fw_$(1)_vescfw
 fw_$(1): fw_$(1)_vescfw
 
-fw_$(1)_vescfw: $(eval HW_DIR = $(dir $(filter %/hw_$(1).h, $(TARGET_PATHS))))  # Find the directory for this header file
-fw_$(1)_vescfw: $(eval HW_SRC_FILE = $(call FIND_TARGET_C_CODE,$(1),$(HW_DIR)))  # Find the c code associated to this header file
+$(1)_HW_DIR = $(dir $(filter %/hw_$(1).h, $(TARGET_PATHS)))
+$$(eval $$(call FIND_TARGET_C_CODE,$(1)_HW_SRC_FILE,$(1),$$($(1)_HW_DIR)))
+$(1)_BUILD_MACROS = -DHW_SOURCE=\"$$($(1)_HW_SRC_FILE)\" -DHW_HEADER=\"$$($(1)_HW_DIR)/hw_$(1).h\" -DGIT_BRANCH_NAME=\"$(4)\" -DGIT_COMMIT_HASH=\"$(5)\" -DARM_GCC_VERSION=\"$(6)\"
+ifdef USER_GIT_COMMIT_HASH
+  $(1)_BUILD_MACROS += -DUSER_GIT_COMMIT_HASH=\"$(USER_GIT_COMMIT_HASH)\"
+endif
+ifdef USER_GIT_BRANCH_NAME
+  $(1)_BUILD_MACROS += -DUSER_GIT_BRANCH_NAME=\"$(USER_GIT_BRANCH_NAME)\"
+endif
+
+fw_$(1)_vescfw: $$($(1)_HW_DIR)
+fw_$(1)_vescfw: $$($(1)_HW_SRC_FILE)
 fw_$(1)_vescfw:
 	@echo "********* BUILD: $(1) **********"
 	$(V1) $(MKDIR) $(BUILD_DIR)/$(1)
@@ -155,7 +166,7 @@ fw_$(1)_vescfw:
 		TCHAIN_PREFIX="$(ARM_SDK_PREFIX)" \
 		BUILDDIR="$(2)" \
 		PROJECT="$(3)" \
-		build_args='-DHW_SOURCE=\"$(HW_SRC_FILE)\" -DHW_HEADER=\"$(HW_DIR)/hw_$(1).h\" -DGIT_BRANCH_NAME=\"$(4)\" -DGIT_COMMIT_HASH=\"$(5)\" -DARM_GCC_VERSION=\"$(6)\"' USE_VERBOSE_COMPILE=no
+		build_args='$$($(1)_BUILD_MACROS)' USE_VERBOSE_COMPILE=no
 
 $(1)_flash: fw_$(1)_flash
 fw_$(1)_flash: fw_$(1)_vescfw fw_$(1)_flash_only
