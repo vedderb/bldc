@@ -194,11 +194,19 @@
 #define HW_SPI_PORT_MISO        GPIOA
 #define HW_SPI_PIN_MISO         6
 
+#ifdef ADV200
 // IMU: BMI160
 #define BMI160_SDA_GPIO         GPIOB
 #define BMI160_SDA_PIN          2
 #define BMI160_SCL_GPIO         GPIOA
 #define BMI160_SCL_PIN          15
+#else
+// LSM6DS3
+#define LSM6DS3_SDA_GPIO        GPIOB
+#define LSM6DS3_SDA_PIN         2
+#define LSM6DS3_SCL_GPIO        GPIOA
+#define LSM6DS3_SCL_PIN         15
+#endif
 
 // NRF SWD
 #define NRF5x_SWDIO_GPIO        GPIOB
