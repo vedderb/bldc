@@ -371,7 +371,7 @@ static uint8_t rgb888to332(uint32_t rgb) {
   uint8_t r = (uint8_t)(rgb >> (16 + 5));
   uint8_t g = (uint8_t)(rgb >> (8 + 5));
   uint8_t b = (uint8_t)(rgb >> 6);
-  r <<= 5;
+  r = (uint8_t)(r << 5);
   g = (g & 0x7) << 2;  ;
   b = (b & 0x3);
   uint8_t res_rgb332 = r | g | b;
@@ -382,7 +382,7 @@ static uint16_t rgb888to565(uint32_t rgb) {
   uint16_t r = (uint16_t)(rgb >> (16 + 3));
   uint16_t g = (uint16_t)(rgb >> (8 + 2));
   uint16_t b = (uint16_t)(rgb >> 3);
-  r <<= 11;
+  r = (uint8_t)(r << 11);
   g = (g & 0x3F) << 5;
   b = (b & 0x1F);
   uint16_t res_rgb565 = r | g | b;
@@ -428,7 +428,7 @@ void image_buffer_clear(image_buffer_t *img, uint32_t cc) {
   case indexed16: {
     uint32_t bytes = (img_size / 2) + (img_size % 2 ? 1 : 0);
     uint8_t ix = (uint8_t)(cc & 0xF);
-    uint8_t color = (ix | ix << 4);  // create a color based on duplication of index
+    uint8_t color = (uint8_t)(ix | ix << 4);  // create a color based on duplication of index
     memset(data, color, bytes);
   }
     break;
@@ -490,14 +490,14 @@ static void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
       uint32_t pos = (uint32_t)y*w + x;
       uint32_t byte = pos >> 2;
       uint32_t ix  = 3 - (pos & 0x3);
-      data[byte] = (uint8_t)(data[byte] & ~indexed4_mask[ix]) | (uint8_t)c << indexed4_shift[ix];
+      data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed4_mask[ix]) | (uint8_t)(c << indexed4_shift[ix]));
       break;
     }
     case indexed16: {
       uint32_t pos = (uint32_t)y*w + x;
       uint32_t byte = pos >> 1;
       uint32_t ix  = 1 - (pos & 0x1);
-      data[byte] = (uint8_t)(data[byte] & ~indexed16_mask[ix]) | (uint8_t)c << indexed16_shift[ix];
+      data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed16_mask[ix]) | (uint8_t)(c << indexed16_shift[ix]));
       break;
     }
     case rgb332: {
@@ -559,7 +559,7 @@ static uint32_t getpixel(image_buffer_t* img, int x_i, int y_i) {
     }
     case rgb565: {
       int pos = y*(w<<1) + (x<<1);
-      uint16_t c = ((uint16_t)data[pos] << 8) | (uint16_t)data[pos+1];
+      uint16_t c = (uint16_t)(((uint16_t)data[pos] << 8) | (uint16_t)data[pos+1]);
       return rgb565to888(c);
     }
     case rgb888: {
@@ -1655,10 +1655,11 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
     bytes_per_char += 1;
   }
 
-  if (char_num == 10) {
-    ch -= '0';
+  // There are some expectations on ch that are not documented here.
+  if (char_num == 10) {  
+    ch = (uint8_t)(ch - '0');
   } else {
-    ch -= ' ';
+    ch = (uint8_t)(ch - ' ');
   }
 
   if (ch >= char_num) {
@@ -1699,7 +1700,7 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
     for (int i = 0; i < w * h; i++) {
       uint8_t byte = font_data[4 + bytes_per_char * ch + (i / 8)];
       uint8_t bit_pos = (uint8_t)(i % 8);
-      uint8_t bit = byte & (1 << bit_pos);
+      uint8_t bit = (uint8_t)(byte & (1 << bit_pos));
       if (bit || bg >= 0) {
         int x0 = i % w;
         int y0 = i / w;

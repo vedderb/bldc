@@ -3,7 +3,7 @@
 echo "BUILDING"
 
 make clean
-make
+make gc
 
 date=$(date +"%Y-%m-%d_%H-%M")
 logfile="log_gc_${date}.log"

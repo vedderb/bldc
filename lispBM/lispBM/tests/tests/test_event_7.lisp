@@ -1,4 +1,6 @@
 
+;; If run at mailbox size 10 this can be scheduled such that some mail is never delivered.
+(set-mailbox-size 100)
 
 (event-register-handler (self))
 

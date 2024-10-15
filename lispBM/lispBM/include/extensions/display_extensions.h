@@ -72,11 +72,11 @@ static inline uint8_t color_format_to_byte(color_format_t fmt) {
 }
 
 static inline uint16_t image_buffer_width(uint8_t *data) {
-  return ((uint16_t)data[0] << 8 | (uint16_t)data[1]);
+  return (uint16_t)(data[0] << 8 | data[1]);
 }
 
 static inline uint16_t image_buffer_height(uint8_t *data) {
-  return ((uint16_t)data[2] << 8 | (uint16_t)data[3]);
+  return (uint16_t)(data[2] << 8 | data[3]);
 }
 
 static inline uint8_t image_buffer_format(uint8_t *data) {
@@ -88,12 +88,12 @@ static inline uint8_t *image_buffer_data(uint8_t *data) {
 }
 
 static inline void image_buffer_set_width(uint8_t *data, uint16_t w) {
-  data[0] = (uint8_t)w >> 8;
+  data[0] = (uint8_t)(w >> 8);
   data[1] = (uint8_t)w;
 }
 
 static inline void image_buffer_set_height(uint8_t *data, uint16_t h) {
-  data[2] = (uint8_t)h >> 8;
+  data[2] = (uint8_t)(h >> 8);
   data[3] = (uint8_t)h;
 }
 
