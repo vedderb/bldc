@@ -43,9 +43,7 @@ bool lbm_start_flatten(lbm_flat_value_t *v, size_t buffer_size) {
 }
 
 bool lbm_finish_flatten(lbm_flat_value_t *v) {
-
   lbm_uint size_words;
-
   if (v->buf_pos % sizeof(lbm_uint) == 0) {
     size_words = v->buf_pos / sizeof(lbm_uint);
   } else {

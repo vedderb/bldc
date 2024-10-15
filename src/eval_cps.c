@@ -613,6 +613,15 @@ static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value en
 
 // Allocate a binding and attach it to a list (if so desired)
 static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cdr) {
+#ifdef LBM_ALWAYS_GC
+  lbm_gc_mark_phase(key);
+  lbm_gc_mark_phase(val);
+  lbm_gc_mark_phase(the_cdr);
+  gc();
+  if (lbm_heap_num_free() < 2) {
+    error_ctx(ENC_SYM_MERROR);
+  }
+#else
   if (lbm_heap_num_free() < 2) {
     lbm_gc_mark_phase(key);
     lbm_gc_mark_phase(val);
@@ -622,6 +631,7 @@ static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cd
       error_ctx(ENC_SYM_MERROR);
     }
   }
+#endif
   lbm_cons_t* heap = lbm_heap_state.heap;
   lbm_value binding_cell = lbm_heap_state.freelist;
   lbm_uint binding_cell_ix = lbm_dec_ptr(binding_cell);
@@ -1409,44 +1419,50 @@ void lbm_undo_block_ctx_from_extension(void) {
   mutex_unlock(&blocking_extension_mutex);
 }
 
-lbm_value lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
+#define LBM_RECEIVER_FOUND 0
+#define LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED -1
+#define LBM_RECEIVER_NOT_FOUND -2
+
+int lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   mutex_lock(&qmutex);
   eval_context_t *found = NULL;
-  bool found_blocked = false;
 
   found = lookup_ctx_nm(&blocked, cid);
-  if (found) found_blocked = true;
-
-  if (found == NULL) {
-    found = lookup_ctx_nm(&queue, cid);
-  }
-
   if (found) {
-    if (!mailbox_add_mail(found, msg)) {
-      mutex_unlock(&qmutex);
-      return ENC_SYM_NIL;
-    }
-
-    if (found_blocked && LBM_IS_STATE_RECV(found->state)) {
+    if (LBM_IS_STATE_RECV(found->state)) { // only if unblock receivers here.
       drop_ctx_nm(&blocked,found);
       found->state = LBM_THREAD_STATE_READY;
       enqueue_ctx_nm(&queue,found);
     }
+    if (!mailbox_add_mail(found, msg)) {
+      mutex_unlock(&qmutex);
+      return LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
+    }
     mutex_unlock(&qmutex);
-    return ENC_SYM_TRUE;
+    return LBM_RECEIVER_FOUND;
+  }
+
+  found = lookup_ctx_nm(&queue, cid);
+  if (found) {
+    if (!mailbox_add_mail(found, msg)) {
+      mutex_unlock(&qmutex);
+      return LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
+    }
+    mutex_unlock(&qmutex);
+    return LBM_RECEIVER_FOUND;
   }
 
   /* check the current context */
   if (ctx_running && ctx_running->id == cid) {
     if (!mailbox_add_mail(ctx_running, msg)) {
       mutex_unlock(&qmutex);
-      return ENC_SYM_NIL;
+      return LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
     }
     mutex_unlock(&qmutex);
-    return ENC_SYM_TRUE;
+    return LBM_RECEIVER_FOUND;
   }
   mutex_unlock(&qmutex);
-  return ENC_SYM_NIL;
+  return LBM_RECEIVER_NOT_FOUND;
 }
 
 // a match binder looks like (? x) or (? _) for example.
@@ -1680,6 +1696,8 @@ static void eval_atomic(eval_context_t *ctx) {
 /* (call-cc (lambda (k) .... ))  */
 static void eval_callcc(eval_context_t *ctx) {
   lbm_value cont_array;
+  lbm_uint *sptr0 = stack_reserve(ctx, 1);
+  sptr0[0] = is_atomic ? ENC_SYM_TRUE : ENC_SYM_NIL;
   if (!lbm_heap_allocate_lisp_array(&cont_array, ctx->K.sp)) {
     gc();
     lbm_heap_allocate_lisp_array(&cont_array, ctx->K.sp);
@@ -1691,10 +1709,10 @@ static void eval_callcc(eval_context_t *ctx) {
     lbm_value acont = cons_with_gc(ENC_SYM_CONT, cont_array, ENC_SYM_NIL);
     lbm_value arg_list = cons_with_gc(acont, ENC_SYM_NIL, ENC_SYM_NIL);
     // Go directly into application evaluation without passing go
-    lbm_uint *sptr = stack_reserve(ctx, 3);
-    sptr[0] = ctx->curr_env;
-    sptr[1] = arg_list;
-    sptr[2] = APPLICATION_START;
+    lbm_uint *sptr = stack_reserve(ctx, 2);
+    sptr0[0] = ctx->curr_env;
+    sptr[0] = arg_list;
+    sptr[1] = APPLICATION_START;
     ctx->curr_exp = get_cadr(ctx->curr_exp);
   } else {
     // failed to create continuation array.
@@ -2514,10 +2532,10 @@ static void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     if (lbm_type_of(args[0]) == LBM_TYPE_I) {
       lbm_cid cid = (lbm_cid)lbm_dec_i(args[0]);
       lbm_value msg = args[1];
-      lbm_value status = lbm_find_receiver_and_send(cid, msg);
+      int r = lbm_find_receiver_and_send(cid, msg);
       /* return the status */
       lbm_stack_drop(&ctx->K, nargs+1);
-      ctx->r = status;
+      ctx->r = r == 0 ? ENC_SYM_TRUE : ENC_SYM_NIL;
       ctx->app_cont = true;
     } else {
       error_at_ctx(ENC_SYM_TERROR, ENC_SYM_SEND);
@@ -4352,6 +4370,10 @@ static void cont_application_start(eval_context_t *ctx) {
       ctx->K.sp = arr->size / sizeof(lbm_uint);
       memcpy(ctx->K.data, arr->data, arr->size);
 
+      lbm_value atomic;
+      lbm_pop(&ctx->K, &atomic);
+      is_atomic = atomic ? 1 : 0;
+
       ctx->curr_exp = arg;
       break;
     }
@@ -5061,8 +5083,8 @@ uint32_t lbm_get_eval_state(void) {
   return eval_cps_run_state;
 }
 
-// Will wake up thread that is sleeping as well.
-// Not sure this is good behavior.
+// Only unblocks threads that are unblockable.
+// A sleeping thread is not unblockable.
 static void handle_event_unblock_ctx(lbm_cid cid, lbm_value v) {
   eval_context_t *found = NULL;
   mutex_lock(&qmutex);
@@ -5114,11 +5136,12 @@ static lbm_value get_event_value(lbm_event_t *e) {
 
 static void process_events(void) {
 
-  if (!lbm_events) return;
+  if (!lbm_events) {
+    return;
+  }
+
   lbm_event_t e;
-
   while (lbm_event_pop(&e)) {
-
     lbm_value event_val = get_event_value(&e);
     switch(e.type) {
     case LBM_EVENT_UNBLOCK_CTX:

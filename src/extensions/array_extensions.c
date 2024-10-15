@@ -312,7 +312,7 @@ static lbm_uint float_to_u(float number) {
     e += 126;
   }
 
-  uint32_t res = ((e & 0xFF) << 23) | (sig_i & 0x7FFFFF);
+  uint32_t res = (((uint32_t)e & 0xFFu) << 23) | (uint32_t)(sig_i & 0x7FFFFFu);
   if (sig < 0) {
     res |= 1U << 31;
   }
