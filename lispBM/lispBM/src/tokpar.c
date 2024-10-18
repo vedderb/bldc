@@ -28,11 +28,8 @@
 #include "heap.h"
 #include "env.h"
 
-char tokpar_sym_str[TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH];
-
-static void clear_sym_str(void) {
-  memset(tokpar_sym_str,0,TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH);
-}
+// +1 to ensure there is always a zero at last ix
+char tokpar_sym_str[TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH+1];
 
 typedef struct {
   const char *str;
@@ -177,7 +174,7 @@ int tok_symbol(lbm_char_channel_t *chan) {
   if (r == CHANNEL_SUCCESS && !symchar0(c)) {
     return TOKENIZER_NO_TOKEN;
   }
-  clear_sym_str();
+  memset(tokpar_sym_str,0,TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH+1);
   tokpar_sym_str[0] = (char)tolower(c);
 
   int len = 1;
@@ -224,7 +221,7 @@ int tok_string(lbm_char_channel_t *chan, unsigned int *string_len) {
   if (c != '\"') return TOKENIZER_NO_TOKEN;;
   n++;
 
-  memset(tokpar_sym_str, 0 , TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH);
+  memset(tokpar_sym_str,0,TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH+1);
 
   // read string into buffer
   r = lbm_channel_peek(chan,n,&c);
@@ -520,7 +517,6 @@ int tok_integer(lbm_char_channel_t *chan, token_int *result) {
       (!result->negative && n > 0)) valid_num = true;
 
   if (valid_num) {
-    //lbm_channel_drop(chan,n + drop_type_str);
     result->value = acc;
     return (int)n + type_len;
   }

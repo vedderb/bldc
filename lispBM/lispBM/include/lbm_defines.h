@@ -148,7 +148,7 @@
 #define SYM_DONTCARE      0x9
 #define SYM_TIMEOUT       0xA
 
-// 0x20 - 0x2F are errors
+// 0x20 - 0x2F are errors/special
 #define SYM_RERROR                0x20  /* READ ERROR */
 #define SYM_TERROR                0x21  /* TYPE ERROR */
 #define SYM_EERROR                0x22  /* EVAL ERROR */
@@ -159,6 +159,7 @@
 #define SYM_STACK_ERROR           0x27
 #define SYM_RECOVERED             0x28
 #define SYM_ERROR_FLASH_HEAP_FULL 0x29
+#define SYM_PLACEHOLDER 0x2A
 
 
 //#define TYPE_CLASSIFIER_STARTS 0x30
@@ -405,6 +406,7 @@
 #define ENC_SYM_STACK_ERROR           ENC_SYM(SYM_STACK_ERROR)
 #define ENC_SYM_RECOVERED             ENC_SYM(SYM_RECOVERED)
 #define ENC_SYM_ERROR_FLASH_HEAP_FULL ENC_SYM(SYM_ERROR_FLASH_HEAP_FULL)
+#define ENC_SYM_PLACEHOLDER           ENC_SYM(SYM_PLACEHOLDER)
 
 #define ENC_SYM_ARRAY_TYPE         ENC_SYM(SYM_ARRAY_TYPE)
 #define ENC_SYM_RAW_I_TYPE         ENC_SYM(SYM_RAW_I_TYPE)

@@ -22,49 +22,49 @@
 #include <stdbool.h>
 
 void buffer_append_int16(uint8_t* buffer, int16_t number, int32_t *index) {
-	buffer[(*index)++] = number >> 8;
-	buffer[(*index)++] = number;
+	buffer[(*index)++] = (uint8_t)(number >> 8);
+	buffer[(*index)++] = (uint8_t)(number);
 }
 
 void buffer_append_uint16(uint8_t* buffer, uint16_t number, int32_t *index) {
-	buffer[(*index)++] = number >> 8;
-	buffer[(*index)++] = number;
+	buffer[(*index)++] = (uint8_t)(number >> 8);
+	buffer[(*index)++] = (uint8_t)(number);
 }
 
 void buffer_append_int32(uint8_t* buffer, int32_t number, int32_t *index) {
-	buffer[(*index)++] = number >> 24;
-	buffer[(*index)++] = number >> 16;
-	buffer[(*index)++] = number >> 8;
-	buffer[(*index)++] = number;
+	buffer[(*index)++] = (uint8_t)(number >> 24);
+	buffer[(*index)++] = (uint8_t)(number >> 16);
+	buffer[(*index)++] = (uint8_t)(number >> 8);
+	buffer[(*index)++] = (uint8_t)(number);
 }
 
 void buffer_append_uint32(uint8_t* buffer, uint32_t number, int32_t *index) {
-	buffer[(*index)++] = number >> 24;
-	buffer[(*index)++] = number >> 16;
-	buffer[(*index)++] = number >> 8;
-	buffer[(*index)++] = number;
+	buffer[(*index)++] = (uint8_t)(number >> 24);
+	buffer[(*index)++] = (uint8_t)(number >> 16);
+	buffer[(*index)++] = (uint8_t)(number >> 8);
+	buffer[(*index)++] = (uint8_t)(number);
 }
 
 void buffer_append_int64(uint8_t* buffer, int64_t number, int32_t *index) {
-	buffer[(*index)++] = number >> 56;
-	buffer[(*index)++] = number >> 48;
-	buffer[(*index)++] = number >> 40;
-	buffer[(*index)++] = number >> 32;
-	buffer[(*index)++] = number >> 24;
-	buffer[(*index)++] = number >> 16;
-	buffer[(*index)++] = number >> 8;
-	buffer[(*index)++] = number;
+	buffer[(*index)++] = (uint8_t)(number >> 56);
+	buffer[(*index)++] = (uint8_t)(number >> 48);
+	buffer[(*index)++] = (uint8_t)(number >> 40);
+	buffer[(*index)++] = (uint8_t)(number >> 32);
+	buffer[(*index)++] = (uint8_t)(number >> 24);
+	buffer[(*index)++] = (uint8_t)(number >> 16);
+	buffer[(*index)++] = (uint8_t)(number >> 8);
+	buffer[(*index)++] = (uint8_t)(number);
 }
 
 void buffer_append_uint64(uint8_t* buffer, uint64_t number, int32_t *index) {
-	buffer[(*index)++] = number >> 56;
-	buffer[(*index)++] = number >> 48;
-	buffer[(*index)++] = number >> 40;
-	buffer[(*index)++] = number >> 32;
-	buffer[(*index)++] = number >> 24;
-	buffer[(*index)++] = number >> 16;
-	buffer[(*index)++] = number >> 8;
-	buffer[(*index)++] = number;
+	buffer[(*index)++] = (uint8_t)(number >> 56);
+	buffer[(*index)++] = (uint8_t)(number >> 48);
+	buffer[(*index)++] = (uint8_t)(number >> 40);
+	buffer[(*index)++] = (uint8_t)(number >> 32);
+	buffer[(*index)++] = (uint8_t)(number >> 24);
+	buffer[(*index)++] = (uint8_t)(number >> 16);
+	buffer[(*index)++] = (uint8_t)(number >> 8);
+	buffer[(*index)++] = (uint8_t)(number);
 }
 
 
@@ -146,7 +146,7 @@ void buffer_append_float32_auto(uint8_t* buffer, float number, int32_t *index) {
 }
 
 void buffer_append_float64_auto(uint8_t* buffer, double number, int32_t *index) {
-	float n = number;
+	float n = (float)number;
 	float err = (float)(number - (double)n);
 	buffer_append_float32_auto(buffer, n, index);
 	buffer_append_float32_auto(buffer, err, index);
@@ -231,7 +231,7 @@ float buffer_get_float32_auto(const uint8_t *buffer, int32_t *index) {
 
 	float sig = 0.0;
 	if (e != 0 || sig_i != 0) {
-		sig = (float)sig_i / (8388608.0 * 2.0) + 0.5;
+		sig = (float)sig_i / (8388608.0f * 2.0f) + 0.5f;
 		e -= 126;
 	}
 

@@ -43,18 +43,18 @@ void packet_send_packet(unsigned char *data, unsigned int len, PACKET_STATE_t *s
 		return;
 	}
 
-	int b_ind = 0;
+	unsigned int b_ind = 0;
 
 	if (len <= 255) {
 		state->tx_buffer[b_ind++] = 2;
-		state->tx_buffer[b_ind++] = len;
+		state->tx_buffer[b_ind++] = (unsigned char)len;
 	} else if (len <= 65535) {
 		state->tx_buffer[b_ind++] = 3;
-		state->tx_buffer[b_ind++] = len >> 8;
+		state->tx_buffer[b_ind++] = (unsigned char)(len >> 8);
 		state->tx_buffer[b_ind++] = len & 0xFF;
 	} else {
 		state->tx_buffer[b_ind++] = 4;
-		state->tx_buffer[b_ind++] = len >> 16;
+		state->tx_buffer[b_ind++] = (unsigned char)(len >> 16);
 		state->tx_buffer[b_ind++] = (len >> 8) & 0xFF;
 		state->tx_buffer[b_ind++] = len & 0xFF;
 	}
@@ -115,8 +115,8 @@ void packet_process_byte(uint8_t rx_data, PACKET_STATE_t *state) {
 		}
 
 		if (res > 0) {
-			data_len -= res;
-			state->rx_read_ptr += res;
+			data_len -= (unsigned int)res;
+			state->rx_read_ptr += (unsigned int)res;
 		} else if (res == -1) {
 			// Something went wrong. Move pointer forward and try again.
 			state->rx_read_ptr++;
@@ -183,7 +183,7 @@ static int try_decode_packet(unsigned char *buffer, unsigned int in_len,
 
 	// Not enough data to determine length
 	if (in_len < data_start) {
-		*bytes_left = data_start - in_len;
+		*bytes_left = (int)(data_start - in_len);
 		return -2;
 	}
 
@@ -221,7 +221,7 @@ static int try_decode_packet(unsigned char *buffer, unsigned int in_len,
 
 	// Need more data to determine rest of packet
 	if (in_len < (len + data_start + 3)) {
-		*bytes_left = (len + data_start + 3) - in_len;
+		*bytes_left = (int)((len + data_start + 3) - in_len);
 		return -2;
 	}
 
@@ -239,7 +239,7 @@ static int try_decode_packet(unsigned char *buffer, unsigned int in_len,
 			process_func(buffer + data_start, len);
 		}
 
-		return len + data_start + 3;
+		return (int)(len + data_start + 3);
 	} else {
 		return -1;
 	}

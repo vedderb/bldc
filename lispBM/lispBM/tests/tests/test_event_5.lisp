@@ -1,5 +1,5 @@
 
-
+(set-mailbox-size 20) ;; large enough independent of scheduling.
 
 (event-register-handler (self))
 
