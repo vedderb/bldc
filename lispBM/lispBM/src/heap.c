@@ -735,7 +735,7 @@ void lbm_gc_mark_phase(lbm_value root) {
       continue;
     }
 
-     t_ptr = lbm_type_of(curr);
+    t_ptr = lbm_type_of(curr);
 
     // An array is marked in O(N) time using an additional 32bit
     // value per array that keeps track of how far into the array GC
@@ -766,6 +766,16 @@ void lbm_gc_mark_phase(lbm_value root) {
       cell->cdr = lbm_set_gc_mark(cell->cdr);
       lbm_heap_state.gc_marked ++;
       lbm_pop(s, &curr); // Remove array from GC stack as we are done marking it.
+      continue;
+    } else if (t_ptr == LBM_TYPE_CHANNEL) {
+      cell->cdr = lbm_set_gc_mark(cell->cdr);
+      lbm_heap_state.gc_marked ++;
+      // TODO: Can channels be explicitly freed ?
+      if (cell->car != ENC_SYM_NIL) {
+	lbm_char_channel_t *chan = (lbm_char_channel_t *)cell->car;
+	curr = chan->dependency;
+	goto mark_shortcut;
+      }
       continue;
     }
 

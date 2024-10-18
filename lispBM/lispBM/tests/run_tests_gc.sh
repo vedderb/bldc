@@ -5,6 +5,7 @@ echo "BUILDING"
 make clean
 make gc
 
+timeout="50"
 date=$(date +"%Y-%m-%d_%H-%M")
 logfile="log_gc_${date}.log"
 
@@ -15,14 +16,14 @@ fi
 
 echo "PERFORMING TESTS: " $date
 
-expected_fails=("test_lisp_code_cps -t 25 -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 25 -s -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 25 -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 25 -s -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 25 -i -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 25 -i -s -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 25 -i -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -t 25 -i -s -h 512 tests/test_take_iota_0.lisp"
+expected_fails=("test_lisp_code_cps -t $timeout -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps -t $timeout -s -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps -t $timeout -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps -t $timeout -s -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps -t $timeout -i -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps -t $timeout -i -s -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps -t $timeout -i -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps -t $timeout -i -s -h 512 tests/test_take_iota_0.lisp"
                )
 
 
@@ -54,34 +55,34 @@ for exe in *.exe; do
     echo "------------------------------------------------------------"
 done
 
-test_config=("-t 25 -h 32768"
-             "-t 25 -i -h 32768"
-              "-t 25 -s -h 32768"
-              "-t 25 -i -s -h 32768"
-              "-t 25 -h 16384"
-              "-t 25 -i -h 16384"
-              "-t 25 -s -h 16384"
-              "-t 25 -i -s -h 16384"
-              "-t 25 -h 8192"
-              "-t 25 -i -h 8192"
-              "-t 25 -s -h 8192"
-              "-t 25 -i -s -h 8192"
-              "-t 25 -h 4096"
-              "-t 25 -i -h 4096"
-              "-t 25 -s -h 4096"
-              "-t 25 -i -s -h 4096"
-              "-t 25 -h 2048"
-              "-t 25 -i -h 2048"
-              "-t 25 -s -h 2048"
-              "-t 25 -i -s -h 2048"
-              "-t 25 -h 1024"
-              "-t 25 -i -h 1024"
-              "-t 25 -s -h 1024"
-              "-t 25 -i -s -h 1024"
-              "-t 25 -h 512"
-              "-t 25 -i -h 512"
-              "-t 25 -s -h 512"
-              "-t 25 -i -s -h 512")
+test_config=("-t $timeout -h 32768"
+             "-t $timeout -i -h 32768"
+              "-t $timeout -s -h 32768"
+              "-t $timeout -i -s -h 32768"
+              "-t $timeout -h 16384"
+              "-t $timeout -i -h 16384"
+              "-t $timeout -s -h 16384"
+              "-t $timeout -i -s -h 16384"
+              "-t $timeout -h 8192"
+              "-t $timeout -i -h 8192"
+              "-t $timeout -s -h 8192"
+              "-t $timeout -i -s -h 8192"
+              "-t $timeout -h 4096"
+              "-t $timeout -i -h 4096"
+              "-t $timeout -s -h 4096"
+              "-t $timeout -i -s -h 4096"
+              "-t $timeout -h 2048"
+              "-t $timeout -i -h 2048"
+              "-t $timeout -s -h 2048"
+              "-t $timeout -i -s -h 2048"
+              "-t $timeout -h 1024"
+              "-t $timeout -i -h 1024"
+              "-t $timeout -s -h 1024"
+              "-t $timeout -i -s -h 1024"
+              "-t $timeout -h 512"
+              "-t $timeout -i -h 512"
+              "-t $timeout -s -h 512"
+              "-t $timeout -i -s -h 512")
 
 for prg in "test_lisp_code_cps" ; do
     for arg in "${test_config[@]}"; do

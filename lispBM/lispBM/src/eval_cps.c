@@ -836,7 +836,7 @@ void print_error_message(lbm_value error,
 /****************************************************/
 /* Tokenizing and parsing                           */
 
-bool create_string_channel(char *str, lbm_value *res) {
+bool create_string_channel(char *str, lbm_value *res, lbm_value dep) {
 
   lbm_char_channel_t *chan = NULL;
   lbm_string_channel_state_t *st = NULL;
@@ -858,6 +858,8 @@ bool create_string_channel(char *str, lbm_value *res) {
     lbm_memory_free((lbm_uint*)chan);
     return false;
   }
+
+  lbm_char_channel_set_dependency(chan, dep);
 
   *res = cell;
   return true;
@@ -1663,9 +1665,9 @@ static void eval_symbol(eval_context_t *ctx) {
 #ifdef LBM_ALWAYS_GC
     gc();
 #endif
-    if (!create_string_channel((char *)code_str, &chan)) {
+    if (!create_string_channel((char *)code_str, &chan, ENC_SYM_NIL)) {
       gc();
-      if (!create_string_channel((char *)code_str, &chan)) {
+      if (!create_string_channel((char *)code_str, &chan, ENC_SYM_NIL)) {
         error_ctx(ENC_SYM_MERROR);
       }
     }
@@ -2339,19 +2341,17 @@ static void apply_setvar(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 
 static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx, bool program, bool incremental) {
   if (nargs == 1) {
-    lbm_value save_array = ENC_SYM_NIL;
     lbm_value chan = ENC_SYM_NIL;
     if (lbm_type_of_functional(args[0]) == LBM_TYPE_ARRAY) {
 #ifdef LBM_ALWAYS_GC
       gc();
 #endif
-      if (!create_string_channel(lbm_dec_str(args[0]), &chan)) {
+      if (!create_string_channel(lbm_dec_str(args[0]), &chan, args[0])) {
         gc();
-        if (!create_string_channel(lbm_dec_str(args[0]), &chan)) {
+        if (!create_string_channel(lbm_dec_str(args[0]), &chan, args[0])) {
           error_ctx(ENC_SYM_MERROR);
         }
       }
-      save_array = args[0];
     } else if (lbm_type_of(args[0]) == LBM_TYPE_CHANNEL) {
       chan = args[0];
       // Streaming transfers can freeze the evaluator if the stream is cut while
@@ -2369,18 +2369,17 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
     lbm_value *sptr = get_stack_ptr(ctx, 2);
 
     // If we are inside a reader, its settings are stored.
-    sptr[0] = save_array;
-    sptr[1] = lbm_enc_u(ctx->flags);  // flags stored.
-    lbm_value  *rptr = stack_reserve(ctx,3);
-    rptr[0] = chan;
+    sptr[0] = lbm_enc_u(ctx->flags);  // flags stored.
+    sptr[1] = chan;
+    lbm_value  *rptr = stack_reserve(ctx,2);
     if (!program && !incremental) {
-      rptr[1] = READING_EXPRESSION;
+      rptr[0] = READING_EXPRESSION;
     } else if (program && !incremental) {
-      rptr[1] = READING_PROGRAM;
+      rptr[0] = READING_PROGRAM;
     } else if (program && incremental) {
-      rptr[1] = READING_PROGRAM_INCREMENTALLY;
+      rptr[0] = READING_PROGRAM_INCREMENTALLY;
     }  // the last combo is illegal
-    rptr[2] = READ_DONE;
+    rptr[1] = READ_DONE;
 
     // Each reader starts in a fresh situation
     ctx->flags &= ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
@@ -4313,9 +4312,7 @@ static void cont_read_done(eval_context_t *ctx) {
   lbm_value stream;
   lbm_value f_val;
   lbm_value reader_mode;
-  lbm_value saved_array;
-  lbm_pop_2(&ctx->K, &reader_mode, &stream);
-  lbm_pop_2(&ctx->K, &f_val, &saved_array);
+  lbm_pop_3(&ctx->K, &reader_mode, &stream, &f_val);
 
   uint32_t flags = lbm_dec_as_u32(f_val);
   ctx->flags &= ~EVAL_CPS_CONTEXT_READER_FLAGS_MASK;
