@@ -17,6 +17,7 @@
 
 #include <lbm_channel.h>
 #include <string.h>
+#include <lbm_defines.h>
 
 /* ------------------------------------------------------------
    Interface
@@ -390,6 +391,7 @@ void lbm_create_string_char_channel(lbm_string_channel_state_t *st,
   st->row = 1;
   st->column = 1;
 
+  chan->dependency = ENC_SYM_NIL;
   chan->state = st;
   chan->more = string_more;
   chan->peek = string_peek;
@@ -421,6 +423,7 @@ void lbm_create_string_char_channel_size(lbm_string_channel_state_t *st,
   st->row = 1;
   st->column = 1;
 
+  chan->dependency = ENC_SYM_NIL;
   chan->state = st;
   chan->more = string_more;
   chan->peek = string_peek;
@@ -438,3 +441,8 @@ void lbm_create_string_char_channel_size(lbm_string_channel_state_t *st,
   chan->column = string_column;
   chan->may_block = string_may_block;
 }
+
+void lbm_char_channel_set_dependency(lbm_char_channel_t *chan, lbm_value dep) {
+  chan->dependency = dep;
+}
+

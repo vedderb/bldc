@@ -367,7 +367,7 @@ eval_context_t *lbm_get_current_context(void);
  */
 bool lbm_mailbox_change_size(eval_context_t *ctx, lbm_uint new_size);
 
-bool create_string_channel(char *str, lbm_value *res);
+bool create_string_channel(char *str, lbm_value *res, lbm_value dep);
 
 bool lift_char_channel(lbm_char_channel_t *ch, lbm_value *res);
 
