@@ -106,14 +106,14 @@ volatile bool silent_mode = false;
 
 struct read_state_s {
   char *str;   // String being read.
-  int  cid;    // Reader thread id.
+  lbm_cid cid;    // Reader thread id.
   struct read_state_s *next;
 };
 
 typedef struct read_state_s read_state_t;
 read_state_t *readers = NULL; // ongoing list of readers.
 
-void add_reader(char *str, int cid) {
+void add_reader(char *str, lbm_cid cid) {
   read_state_t *new_reader = (read_state_t*)malloc(sizeof(read_state_t));
   new_reader->str = str;
   new_reader->cid = cid;
@@ -133,7 +133,7 @@ void clear_readers(void) {
   readers = NULL;
 }
 
-bool drop_reader(int cid) {
+bool drop_reader(lbm_cid cid) {
 
   bool r = false;
   read_state_t *prev = NULL;
@@ -304,7 +304,6 @@ char * load_file(char *filename) {
   //trailing whitespace
   while (len > 0) {
     if (filename[len-1] == ' ') {
-      printf("shortening\n");
       filename[len-1] = 0;
     }
     else break;
@@ -1225,7 +1224,7 @@ long unsigned int get_cpu_last_ticks = 1;
 
 float get_cpu_usage(void) {
 
-  int ticks_per_s = sysconf(_SC_CLK_TCK);
+  int ticks_per_s = (int)sysconf(_SC_CLK_TCK);
   float cpu_usage = -1;
 
   char fname[200] ;
@@ -1242,7 +1241,7 @@ float get_cpu_usage(void) {
       unsigned int t_diff = t_now - get_cpu_last_time;
 
       // Not sure about this :)
-      cpu_usage = 100.0f * (float)(((float)ticks / ((float)t_diff / 1000000.0f))  / ticks_per_s);
+      cpu_usage = 100.0f * (float)(((float)ticks / ((float)t_diff / 1000000.0f))  / (float)ticks_per_s);
       if (cpu_usage > 100) cpu_usage = 100;
       if (cpu_usage < 0) cpu_usage = 0;
 
@@ -1586,7 +1585,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
           if (buffer) {
             memcpy(buffer, data, len);
             lbm_create_string_char_channel(&string_tok_state, &string_tok, buffer);
-            int cid = lbm_load_and_eval_expression(&string_tok);
+            lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
             if (cid >= 0) { 
               add_reader(buffer, cid);
             } else {
@@ -1820,7 +1819,7 @@ void send_tcp_bytes(unsigned char *buffer, unsigned int len) {
   int error_cnt = 0;
 
   while (to_write > 0) {
-    int written = write (connected_socket, buffer + ((int)len - to_write), (size_t)to_write);
+    ssize_t written = write(connected_socket, buffer + ((int)len - to_write), (size_t)to_write);
     if (written < 0) {
       error_cnt ++;
       if (error_cnt > SEND_MAX_RETRY) {
@@ -1828,7 +1827,7 @@ void send_tcp_bytes(unsigned char *buffer, unsigned int len) {
       }
       sleep_callback(10);
     }
-    to_write -= written;
+    to_write -= (int)written;
   }
 }
 
@@ -1847,7 +1846,7 @@ void *vesctcp_client_handler(void *arg) {
   uint8_t buffer[1024];
   packet_init(send_tcp_bytes, process_packet_local,&packet);
   send_func = send_packet_local;
-  int len;
+  ssize_t len;
 
   struct sockaddr_in addr;
   socklen_t addr_size = sizeof(struct sockaddr_in);
@@ -1919,6 +1918,7 @@ int main(int argc, char **argv) {
 
       if (client_socket >= 0 && !vesctcp_server_in_use ) {
         vesctcp_server_in_use = true;
+        // TODO: is this cast really ok?
         pthread_create(&client_thread, NULL, vesctcp_client_handler, (void*)client_socket);
 
       } else if (client_socket >= 0) {

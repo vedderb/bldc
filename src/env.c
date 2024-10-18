@@ -59,13 +59,13 @@ lbm_value lbm_env_copy_spine(lbm_value env) {
 
 // A less safe version of lookup. It should be fine unless env is corrupted.
 bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
-
   lbm_value curr = env;
 
   while (lbm_is_ptr(curr)) {
-    lbm_value c = lbm_ref_cell(curr)->car;
-    if ((lbm_ref_cell(c)->car) == sym) {
-      *res = lbm_ref_cell(c)->cdr;
+    lbm_cons_t *pair = lbm_ref_cell(lbm_ref_cell(curr)->car);
+    if ((pair->car == sym)
+        && (pair->cdr != ENC_SYM_PLACEHOLDER)) {
+      *res = pair->cdr;
       return true;
     }
     curr = lbm_ref_cell(curr)->cdr;

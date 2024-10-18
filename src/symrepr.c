@@ -107,6 +107,7 @@ special_sym const special_symbols[] =  {
   {"$ind_f"          , SYM_IND_F_TYPE},
   {"$channel"        , SYM_CHANNEL_TYPE},
   {"$recovered"      , SYM_RECOVERED},
+  {"$placeholder"    , SYM_PLACEHOLDER},
   {"$custom"         , SYM_CUSTOM_TYPE},
   {"$array"          , SYM_LISPARRAY_TYPE},
   {"$nonsense"       , SYM_NONSENSE},
