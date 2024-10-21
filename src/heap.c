@@ -858,18 +858,14 @@ int lbm_gc_sweep_phase(void) {
         case ENC_SYM_LISPARRAY_TYPE: /* fall through */
         case ENC_SYM_ARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
-          if (lbm_memory_ptr_inside((lbm_uint*)arr->data)) {
-            lbm_memory_free((lbm_uint *)arr->data);
-            lbm_heap_state.gc_recovered_arrays++;
-          }
+	  lbm_memory_free((lbm_uint *)arr->data);
+	  lbm_heap_state.gc_recovered_arrays++;
           lbm_memory_free((lbm_uint *)arr);
         } break;
         case ENC_SYM_CHANNEL_TYPE:{
           lbm_char_channel_t *chan = (lbm_char_channel_t*)heap[i].car;
-          if (lbm_memory_ptr_inside((lbm_uint*)chan)) {
-            lbm_memory_free((lbm_uint*)chan->state);
-            lbm_memory_free((lbm_uint*)chan);
-          }
+	  lbm_memory_free((lbm_uint*)chan->state);
+	  lbm_memory_free((lbm_uint*)chan);
         } break;
         case ENC_SYM_CUSTOM_TYPE: {
           lbm_uint *t = (lbm_uint*)heap[i].car;

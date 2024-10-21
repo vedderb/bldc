@@ -229,7 +229,7 @@ special_sym const special_symbols[] =  {
 
   {"list?"          , SYM_IS_LIST},
   {"number?"        , SYM_IS_NUMBER},
-  
+
   // fast access in list
   {"ix"             , SYM_IX},
 
@@ -387,31 +387,41 @@ static bool store_symbol_name_flash(char *name, lbm_uint *res) {
   return true;
 }
 
+// Symbol table
+// non-const name copied into symbol-table-entry:
+// Entry
+//   |
+//   [name-ptr | symbol-id | next-ptr | name n-bytes]
+//       |                             /
+//        ------------points here -----
+//
+// const name referenced by symbol-table-entry:
+// Entry
+//   |
+//   [name-ptr | symbol-id | next-ptr]
+//       |
+//        [name n-bytes]
+//
 static bool add_symbol_to_symtab(char* name, lbm_uint id) {
+  bool r = false;
   size_t n = strlen(name) + 1;
-  if (n == 1) return 0; // failure if empty symbol
+  if (n > 1 && n <= 257) {
+    size_t alloc_size = n + (3 * sizeof(lbm_uint));
+    char *storage = lbm_malloc(alloc_size);
+    if (storage) {
+      memcpy(storage + (3 * sizeof(lbm_uint)), name, n);
+      lbm_uint *m = (lbm_uint*)storage;
 
-  lbm_uint alloc_size;
-  if (n % sizeof(lbm_uint) == 0) {
-    alloc_size = n/(sizeof(lbm_uint));
-  } else {
-    alloc_size = (n/(sizeof(lbm_uint))) + 1;
+      symbol_table_size_list += 3 * sizeof(lbm_uint); // Bytes
+      symbol_table_size_strings += n; // Bytes
+      m[NAME] = (lbm_uint)&m[3];
+      m[NEXT] = (lbm_uint) symlist;
+      symlist = m;
+      m[ID] =id;
+      r = true;
+    }
   }
-
-  lbm_uint *storage = lbm_memory_allocate(alloc_size + 3);
-  if (storage == NULL) return false;
-  strncpy(((char*)storage) + (3 * sizeof(lbm_uint)), name, n);
-  lbm_uint *m = storage;
-
-  if (m == NULL) return false;
-
-  symbol_table_size_list += 3;
-  symbol_table_size_strings += alloc_size;
-  m[NAME] = (lbm_uint)&storage[3];
-  m[NEXT] = (lbm_uint) symlist;
-  symlist = m;
-  m[ID] =id;
-  return true;
+  return r;
 }
 
 static bool add_symbol_to_symtab_flash(lbm_uint name, lbm_uint id) {
@@ -496,8 +506,7 @@ int lbm_str_to_symbol(char *name, lbm_uint *sym_id) {
 }
 
 lbm_uint lbm_get_symbol_table_size(void) {
-  return (symbol_table_size_list +
-          symbol_table_size_strings) * sizeof(lbm_uint);
+  return (symbol_table_size_list +symbol_table_size_strings);
 }
 
 lbm_uint lbm_get_symbol_table_size_flash(void) {
@@ -506,7 +515,7 @@ lbm_uint lbm_get_symbol_table_size_flash(void) {
 }
 
 lbm_uint lbm_get_symbol_table_size_names(void) {
-  return symbol_table_size_strings * sizeof(lbm_uint);
+  return symbol_table_size_strings; // Bytes already
 }
 
 lbm_uint lbm_get_symbol_table_size_names_flash(void) {
