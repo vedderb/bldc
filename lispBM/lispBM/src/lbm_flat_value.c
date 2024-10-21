@@ -751,17 +751,13 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
   }
   case S_SYM_STRING: {
     lbm_uint sym_id;
-    int r = lbm_get_symbol_by_name((char *)(v->buf + v->buf_pos), &sym_id);
-    if (!r) {
-      r = lbm_add_symbol_base((char *)(v->buf + v->buf_pos), &sym_id,false); //ram
-    }
-    if (r) {
+    if (lbm_add_symbol((char *)(v->buf + v->buf_pos), &sym_id)) {
       lbm_uint num_bytes = strlen((char*)(v->buf + v->buf_pos)) + 1;
       v->buf_pos += num_bytes;
       *res = lbm_enc_sym(sym_id);
       return UNFLATTEN_OK;
     }
-    return UNFLATTEN_MALFORMED;
+    return UNFLATTEN_GC_RETRY;
   }
   default:
     return UNFLATTEN_MALFORMED;
@@ -770,6 +766,9 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
 
 bool lbm_unflatten_value(lbm_flat_value_t *v, lbm_value *res) {
   bool b = false;
+#ifdef LBM_ALWAYS_GC
+  lbm_perform_gc();
+#endif
   int r = lbm_unflatten_value_internal(v,res);
   if (r == UNFLATTEN_GC_RETRY) {
     lbm_perform_gc();

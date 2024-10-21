@@ -982,12 +982,10 @@ static void finish_ctx(void) {
   /* Drop the continuation stack immediately to free up lbm_memory */
   lbm_stack_free(&ctx_running->K);
   ctx_done_callback(ctx_running);
-  if (lbm_memory_ptr_inside((lbm_uint*)ctx_running->name)) {
-    lbm_free(ctx_running->name);
-  }
-  if (lbm_memory_ptr_inside((lbm_uint*)ctx_running->error_reason)) {
-    lbm_memory_free((lbm_uint*)ctx_running->error_reason);
-  }
+
+  lbm_free(ctx_running->name); //free name if in LBM_MEM
+  lbm_memory_free((lbm_uint*)ctx_running->error_reason); //free error_reason if in LBM_MEM
+
   lbm_memory_free((lbm_uint*)ctx_running->mailbox);
   lbm_memory_free((lbm_uint*)ctx_running);
   ctx_running = NULL;
@@ -1745,6 +1743,8 @@ static void eval_callcc(eval_context_t *ctx) {
   if (lbm_is_ptr(cont_array)) {
     lbm_array_header_t *arr = assume_array(cont_array);
     memcpy(arr->data, ctx->K.data, ctx->K.sp * sizeof(lbm_uint));
+    // The stored stack contains the is_atomic flag.
+    // This flag is overwritten in the following execution path.
 
     lbm_value acont = cons_with_gc(ENC_SYM_CONT, cont_array, ENC_SYM_NIL);
     lbm_value arg_list = cons_with_gc(acont, ENC_SYM_NIL, ENC_SYM_NIL);
@@ -4229,7 +4229,7 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
         return;
       }
     }
-    lbm_value *rptr = stack_reserve(ctx, 6);
+    lbm_value *rptr = stack_reserve(ctx, 8);
     rptr[0] = stream;
     rptr[1] = env;
     rptr[2] = READ_EVAL_CONTINUE;

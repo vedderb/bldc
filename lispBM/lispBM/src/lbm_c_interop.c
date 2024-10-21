@@ -71,7 +71,6 @@ lbm_cid eval_cps_load_and_eval(lbm_char_channel_t *tokenizer, bool program, bool
   if (lbm_type_of(launcher) != LBM_TYPE_CONS ||
       lbm_type_of(evaluator) != LBM_TYPE_CONS ||
       lbm_type_of(start_prg) != LBM_TYPE_CONS ) {
-    //lbm_explicit_free_token_stream(stream);
     return -1;
   }
   return lbm_create_ctx(start_prg, ENC_SYM_NIL, 256, name);
@@ -93,8 +92,7 @@ lbm_cid eval_cps_load_and_define(lbm_char_channel_t *tokenizer, char *symbol, bo
 
   if (!lbm_get_symbol_by_name(symbol, &sym_id)) {
     if (!lbm_add_symbol_base(symbol, &sym_id,false)) { //ram
-      //lbm_explicit_free_token_stream(stream);
-      return 0;
+      return -1;
     }
   }
 
@@ -111,7 +109,6 @@ lbm_cid eval_cps_load_and_define(lbm_char_channel_t *tokenizer, char *symbol, bo
   if (lbm_type_of(launcher) != LBM_TYPE_CONS ||
       lbm_type_of(binding) != LBM_TYPE_CONS ||
       lbm_type_of(definer) != LBM_TYPE_CONS ) {
-    //lbm_explicit_free_token_stream(stream);
     return -1;
   }
   return lbm_create_ctx(definer, lbm_enc_sym(SYM_NIL), 256, NULL);
