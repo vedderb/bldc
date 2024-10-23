@@ -272,7 +272,8 @@
              chapter-scheduling
              chapter-symboltable
              chapter-versioning
-            ))
+             ))
+   info
    )
   )
 

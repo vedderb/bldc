@@ -154,6 +154,7 @@ special_sym const special_symbols[] =  {
   {"-"                , SYM_SUB},
   {"*"                , SYM_MUL},
   {"/"                , SYM_DIV},
+  {"//"               , SYM_INT_DIV},
   {"mod"              , SYM_MOD},
   {"="                , SYM_NUMEQ},
   {"!="               , SYM_NUM_NOT_EQ},

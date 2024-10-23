@@ -271,6 +271,7 @@
             )
    (section 1 "Examples"
             (list sierpinsky))
+   info
    )
   )
 

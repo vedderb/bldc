@@ -959,7 +959,7 @@ Multiplying an arbitrary number of values. The form of a `*` expression is `(* e
 
 ### /
 
-Division. The form of a `/` expression is `(/ expr1 ... exprN)`. 
+Division. The form of a `/` expression is `(/ expr1 ... exprN)`. The resulting type is the same as the inputs (after their types have been promoted of course). 
 
 <table>
 <tr>
@@ -1006,6 +1006,24 @@ Division. The form of a `/` expression is `(/ expr1 ... exprN)`.
 
 ```clj
 (/ 256 2 2 2 2 2 2 2)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(/ 5 2)
 ```
 
 
@@ -1091,6 +1109,60 @@ Modulo operation. The form of a `mod` expression is `(mod expr1 exp2)`. The modu
 </tr>
 </table>
 
+
+
+
+---
+
+
+### //
+
+Integer division operation. Like normal division except if the result is a floating point value it is cast to an integer, which floors the result. The form of a `//` expression is `(// expr1 ... exprN)`. Can be used as a elegant complement to `mod`, with `//` returning the quotient and `mod` returning the remainder of a division. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(// 5.000000f32 2)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(progn (var total-seconds 62.500000f32)
+       (var minutes (// total-seconds 60))
+       (var seconds (mod total-seconds 60))
+       (str-join (list (str-from-n minutes) m  (str-from-n seconds) s) [0]))
+```
+
+
+</td>
+<td>
+
+```clj
+1m 2.5s
+```
+
+
+</td>
+</tr>
+</table>
 
 
 
@@ -7864,7 +7936,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 175664 kurt-russel)
+(exit-ok 178333 kurt-russel)
 ```
 
 
