@@ -821,9 +821,9 @@ static lbm_value fundamental_set_cdr(lbm_value *args, lbm_uint nargs, eval_conte
 
 static lbm_value fundamental_set_ix(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-  lbm_value result = ENC_SYM_EERROR;
+  lbm_value result = ENC_SYM_TERROR;
   if (nargs == 3 && IS_NUMBER(args[1])) {
-    if (lbm_is_cons(args[0])) {
+    if (lbm_is_list_rw(args[0])) {
       lbm_value curr = args[0];
       lbm_uint i = 0;
       lbm_int ix_pre = lbm_dec_as_i32(args[1]);
@@ -832,16 +832,17 @@ static lbm_value fundamental_set_ix(lbm_value *args, lbm_uint nargs, eval_contex
         ix_pre = len + ix_pre;
       }
       lbm_uint ix = (lbm_uint)ix_pre;
-      result = ENC_SYM_NIL;
-      while (lbm_is_ptr(curr)) {
+      while (lbm_is_cons_rw(curr)) { // rw as we are going to modify
+        lbm_value next = lbm_cdr(curr);
         if (i == ix) {
           lbm_set_car(curr, args[2]);
-          result = args[0];
+          result = args[0]; // Acts as true and as itself.
           break;
-        } else if (i > ix) {
+        } else if (lbm_is_symbol_nil(next)) {
+          result = ENC_SYM_NIL; // index out of bounds, no update.
           break;
         }
-        curr = lbm_cdr(curr);
+        curr = next;
         i++;
       }
     } else if (lbm_is_lisp_array_rw(args[0])) {
@@ -1380,6 +1381,22 @@ static lbm_value fundamental_is_number(lbm_value *args, lbm_uint argn, eval_cont
   return res;
 }
 
+static lbm_value fundamental_int_div(lbm_value *args, lbm_uint argn, eval_context_t *ctx) {
+  lbm_value res = fundamental_div(args, argn, ctx);
+  switch (lbm_type_of(res)) {
+    case LBM_TYPE_FLOAT: {
+      res = lbm_enc_i((lbm_int)lbm_dec_float(res));
+      break;
+    }
+    case LBM_TYPE_DOUBLE: {
+      res = lbm_enc_i((lbm_int)lbm_dec_double(res));
+      break;
+    }
+  }
+
+  return res;
+}
+
 const fundamental_fun fundamental_table[] =
   {fundamental_add,
    fundamental_sub,
@@ -1445,5 +1462,6 @@ const fundamental_fun fundamental_table[] =
    fundamental_dm_create,
    fundamental_dm_alloc,
    fundamental_is_list,
-   fundamental_is_number
+   fundamental_is_number,
+   fundamental_int_div,
   };

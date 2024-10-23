@@ -841,21 +841,21 @@ bool create_string_channel(char *str, lbm_value *res, lbm_value dep) {
   lbm_char_channel_t *chan = NULL;
   lbm_string_channel_state_t *st = NULL;
 
-  st = (lbm_string_channel_state_t*)lbm_memory_allocate(sizeof(lbm_string_channel_state_t) / sizeof(lbm_uint) +1);
+  st = (lbm_string_channel_state_t*)lbm_malloc(sizeof(lbm_string_channel_state_t));
   if (st == NULL) {
     return false;
   }
-  chan = (lbm_char_channel_t*)lbm_memory_allocate(sizeof(lbm_char_channel_t) / sizeof(lbm_uint) + 1);
+  chan = (lbm_char_channel_t*)lbm_malloc(sizeof(lbm_char_channel_t));
   if (chan == NULL) {
-    lbm_memory_free((lbm_uint*)st);
+    lbm_free(st);
     return false;
   }
 
   lbm_create_string_char_channel(st, chan, str);
   lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CHANNEL, (lbm_uint) chan, ENC_SYM_CHANNEL_TYPE);
   if (cell == ENC_SYM_MERROR) {
-    lbm_memory_free((lbm_uint*)st);
-    lbm_memory_free((lbm_uint*)chan);
+    lbm_free(st);
+    lbm_free(chan);
     return false;
   }
 
@@ -1250,12 +1250,12 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
       gc();
     }
 #endif
-    ctx->name = lbm_malloc(strlen(name) + 1);
+    ctx->name = lbm_malloc(name_len);
     if (ctx->name == NULL) {
       lbm_value roots[2] = {program, env};
       lbm_gc_mark_roots(roots, 2);
       gc();
-      ctx->name = lbm_malloc(strlen(name) + 1);
+      ctx->name = lbm_malloc(name_len);
     }
     if (ctx->name == NULL) {
       lbm_stack_free(&ctx->K);
@@ -1263,7 +1263,7 @@ static lbm_cid lbm_create_ctx_parent(lbm_value program, lbm_value env, lbm_uint 
       lbm_memory_free((lbm_uint*)ctx);
       return -1;
     }
-    memcpy(ctx->name, name, name_len+1);
+    memcpy(ctx->name, name, name_len);
   } else {
      ctx->name = NULL;
   }
@@ -1689,16 +1689,19 @@ static void eval_symbol(eval_context_t *ctx) {
   }
 }
 
+// (quote e) => e
 static void eval_quote(eval_context_t *ctx) {
   ctx->r = get_cadr(ctx->curr_exp);
   ctx->app_cont = true;
 }
 
+// a => a
 static void eval_selfevaluating(eval_context_t *ctx) {
   ctx->r = ctx->curr_exp;
   ctx->app_cont = true;
 }
 
+// (progn e1 ... en)
 static void eval_progn(eval_context_t *ctx) {
   lbm_value exps = get_cdr(ctx->curr_exp);
 
@@ -1712,8 +1715,7 @@ static void eval_progn(eval_context_t *ctx) {
       sptr[2] = cell->cdr;     // Requirement: sptr[2] is a cons.
       sptr[3] = PROGN_REST;
     }
-    // Nothing is pushed to stack for final element in progn. (tail-call req)
-  } else if (lbm_is_symbol_nil(exps)) {
+  } else if (lbm_is_symbol_nil(exps)) { // Empty progn is nil
     ctx->r = ENC_SYM_NIL;
     ctx->app_cont = true;
   } else {
@@ -1721,6 +1723,7 @@ static void eval_progn(eval_context_t *ctx) {
   }
 }
 
+// (atomic e1 ... en)
 static void eval_atomic(eval_context_t *ctx) {
   if (is_atomic) atomic_error();
   stack_reserve(ctx, 1)[0] = EXIT_ATOMIC;
@@ -2184,8 +2187,8 @@ static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time
 }
 
 // Receive-timeout
-// (recv timeout (pattern expr)
-//               (pattern expr))
+// (recv-to timeout (pattern expr)
+//                  (pattern expr))
 static void eval_receive_timeout(eval_context_t *ctx) {
   if (is_atomic) atomic_error();
   lbm_value timeout_val = get_cadr(ctx->curr_exp);
@@ -2266,7 +2269,7 @@ static void cont_progn_rest(eval_context_t *ctx) {
     sptr[2] = rest_cdr; // Requirement: rest_cdr is a cons
     stack_reserve(ctx, 1)[0] = PROGN_REST;
   } else {
-    // allow for tail recursion
+    // Nothing is pushed to stack for final element in progn. (tail-call req)
     lbm_stack_drop(&ctx->K, 3);
   }
 }
