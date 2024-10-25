@@ -334,9 +334,8 @@ Allocate an image buffer from lbm memory or from a compactible region. The form 
 
 
 ```clj
-(define my-dm (dm-create 10000))
-(define my-img (img-buffer my-dm 'indexed2 320 200))
-
+ (define my-dm (dm-create 10000))
+ (define my-img (img-buffer my-dm 'indexed2 320 200))
 ```
 
 
@@ -1312,22 +1311,21 @@ t
 
 
 ```clj
-(define w 320)
-(define h 200)
-(define corners (list (cons 10 (- h 10)) (cons (- w 10) (- h 10)) (cons (/ w 2) 10)))
-(define s-img (img-buffer 'indexed2 w h))
-(defun point (p) (img-setpix s-img (car p) (cdr p) 1))
-(defun mid-point (p1 p2) (progn (let ((x (/ (+ (car p1) (car p2)) 2))
+ (define w 320)
+ (define h 200)
+ (define corners (list (cons 10 (- h 10)) (cons (- w 10) (- h 10)) (cons (/ w 2) 10)))
+ (define s-img (img-buffer 'indexed2 w h))
+ (defun point (p) (img-setpix s-img (car p) (cdr p) 1))
+ (defun mid-point (p1 p2) (progn (let ((x (/ (+ (car p1) (car p2)) 2))
       (y (/ (+ (cdr p1) (cdr p2)) 2)))
      (cons x y))))
-(defun sierp (n corners p) (if (= n 0) nil (let ((i (mod (rand) 3))
+ (defun sierp (n corners p) (if (= n 0) nil (let ((i (mod (rand) 3))
       (target (ix corners i))
       (mid (mid-point p target)))
      (progn (point mid)
             (sierp (- n 1) corners mid)))))
-(sierp 25000 corners (car corners))
-(disp-render s-img 0 0 '(0 16777215))
-
+ (sierp 25000 corners (car corners))
+ (disp-render s-img 0 0 '(0 16777215))
 ```
 
 

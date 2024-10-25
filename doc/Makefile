@@ -19,7 +19,7 @@ runtimeref.md: doclib.env runtimeref.lisp
 strange.md: doclib.env strange.lisp
 	lbm -H 10000000 --src="strange.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
-strange.md: doclib.env efficient.lisp
+efficient.md: doclib.env efficient.lisp
 	lbm -H 10000000 --src="efficient.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
 clean:
