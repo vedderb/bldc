@@ -4107,6 +4107,34 @@ Example that forever prints "Hello World" every two seconds:
 })))
 ```
 
+From firmware 6.06 it is possible to give the thread a name and/or a stack size. That gives the following combinations of possibilities:
+
+```clj
+; No name and default stack size
+(loopwhile-thd () t {
+        (print "Hello World1")
+        (sleep 2)
+})
+
+; No name and stack size 100
+(loopwhile-thd 100 t {
+        (print "Hello Worl2")
+        (sleep 2)
+})
+
+; Name ThdTest and default stack size
+(loopwhile-thd "ThdTest" t {
+        (print "Hello World3")
+        (sleep 2)
+})
+
+; Name ThdTest2 and stack size 100
+(loopwhile-thd ("ThdTest2" 100) t {
+        (print "Hello World4")
+        (sleep 2)
+})
+```
+
 ---
 
 #### break
