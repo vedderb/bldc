@@ -22,8 +22,9 @@
 
 #include "conf_general.h"
 
-#define CODE_IND_QML	0
-#define CODE_IND_LISP	1
+#define CODE_IND_QML		0
+#define CODE_IND_LISP		1
+#define CODE_IND_LISP_CONST 2
 
 // Functions
 uint16_t flash_helper_erase_new_app(uint32_t new_app_size);

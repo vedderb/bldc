@@ -47,6 +47,7 @@
 #define APP_MAX_SIZE							(1024 * 128 * 4 - 8) // Note that the bootloader needs 8 extra bytes
 #define QMLUI_BASE								9
 #define LISP_BASE								10
+#define LISP_CONST_BASE							8
 #define QMLUI_MAX_SIZE							(1024 * 128 - 8)
 #define LISP_MAX_SIZE							(1024 * 128 - 8)
 
@@ -96,8 +97,8 @@ typedef struct {
 	bool ok;
 } _code_checks;
 
-static _code_checks code_checks[2] = {0};
-static int code_sectors[2] = {QMLUI_BASE, LISP_BASE};
+static _code_checks code_checks[3] = {0};
+static int code_sectors[3] = {QMLUI_BASE, LISP_BASE, LISP_CONST_BASE};
 
 // Private constants
 static const uint32_t flash_addr[FLASH_SECTORS] = {
@@ -183,10 +184,24 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 
 uint16_t flash_helper_erase_code(int ind) {
 #ifdef USE_LISPBM
-	if (ind == CODE_IND_LISP) {
+	if (ind == CODE_IND_LISP || ind == CODE_IND_LISP_CONST) {
 		lispif_stop_lib();
 	}
 #endif
+
+	uint8_t *ptr = flash_helper_code_data_raw(ind);
+
+	bool has_data = false;
+	for (int i = 0;i < (1024 * 128); i++) {
+		if (*ptr != 0xFF) {
+			has_data = true;
+			break;
+		}
+	}
+
+	if (!has_data) {
+		return FLASH_COMPLETE;
+	}
 
 	code_checks[ind].check_done = false;
 	code_checks[ind].ok = false;

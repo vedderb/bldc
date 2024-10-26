@@ -2,6 +2,9 @@
 #### TBD
 * LispBM:
 	* New core extansions, optimization and much more unit testing.
+	* Many bug fixes in the reader.
+	* Moved const memory into its own flash sector.
+	* Added const-heap-erase extension.
 * New offset calibration modes and options.
 * Automatic offset calibration support.
 * Added HFI ambiguity resolution modes using id injection.
