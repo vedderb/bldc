@@ -132,6 +132,7 @@ CSRC = $(STARTUPSRC) \
        main.c \
        irq_handlers.c \
        terminal.c \
+       password.c \
        conf_general.c \
        timeout.c \
        flash_helper.c \

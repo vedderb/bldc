@@ -39,6 +39,7 @@
 #include "mempools.h"
 #include "crc.h"
 #include "firmware_metadata.h"
+#include "password.h"
 
 #include <string.h>
 #include <ctype.h>
