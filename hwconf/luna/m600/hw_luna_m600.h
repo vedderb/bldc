@@ -183,7 +183,7 @@
 #define NTC_RES_MOTOR(adc_val)	(1000.0 / ((4095.0 / (float)adc_val) - 1.0))
 
 // Voltage on ADC channel
-#define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
+#define ADC_VOLTS(ch)			hw_get_ADC_value(ch)
                                 
 // Use these temperature channels for extra logging insight
 //log torque sensor data
@@ -364,5 +364,6 @@ float hw_get_PAS_torque(void);
 bool hw_m600_has_fixed_throttle_level(void);
 void hw_recover_encoder_offset(void);
 float hw_get_encoder_error(void);
+float hw_get_ADC_value(uint8_t);
 
 #endif /* HW_LUNA_M600_H_ */

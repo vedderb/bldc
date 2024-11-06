@@ -119,7 +119,7 @@
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0))
 
 // Voltage on ADC channel
-#define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
+#define ADC_VOLTS(ch)			hw_get_ADC_value(ch)
 
 //log throttle data
 #define NTC_TEMP_MOS2()         ((float)ADC_VOLTS(ADC_IND_EXT))
@@ -266,5 +266,5 @@ float hw_get_distance_abs(void);
 void hw_brake_override(float *brake);
 float hw_read_motor_temp(float beta);
 bool hw_bbshd_has_fixed_throttle_level(void);
-
+float hw_get_ADC_value(uint8_t);
 #endif /* HW_LUNA_BBSHD_H_ */
