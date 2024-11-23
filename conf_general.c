@@ -121,6 +121,10 @@ void conf_general_init(void) {
 			backup_tmp.odometer = g_backup.odometer;
 		}
 
+		if (g_backup.odometer_init_flag == BACKUP_VAR_INIT_CODE) {
+			backup_tmp.tripmeter_offset = g_backup.tripmeter_offset;
+		}
+
 		if (g_backup.runtime_init_flag == BACKUP_VAR_INIT_CODE) {
 			backup_tmp.runtime = g_backup.runtime;
 		}

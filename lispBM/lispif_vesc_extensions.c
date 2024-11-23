@@ -225,6 +225,7 @@ typedef struct {
 	lbm_uint uuid;
 	lbm_uint runtime;
 	lbm_uint odometer;
+	lbm_uint tripmeter;
 	lbm_uint git_branch;
 	lbm_uint git_hash;
 	lbm_uint compiler;
@@ -573,6 +574,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("runtime", comp);
 		} else if (comp == &syms_vesc.odometer) {
 			lbm_add_symbol_const("odometer", comp);
+		} else if (comp == &syms_vesc.tripmeter) {
+			lbm_add_symbol_const("tripmeter", comp);
 		} else if (comp == &syms_vesc.git_branch) {
 			lbm_add_symbol_const("git-branch", comp);
 		} else if (comp == &syms_vesc.git_hash) {
@@ -1379,6 +1382,8 @@ static lbm_value ext_sysinfo(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_u64(g_backup.runtime);
 	} else if (compare_symbol(name, &syms_vesc.odometer)) {
 		res = lbm_enc_u64(g_backup.odometer);
+	} else if (compare_symbol(name, &syms_vesc.tripmeter)) {
+		res = lbm_enc_u64(g_backup.odometer - g_backup.tripmeter_offset);
 	} else if (compare_symbol(name, &syms_vesc.git_branch)) {
 		lbm_value lbm_res;
 		if (lbm_create_array(&lbm_res, strlen(GIT_BRANCH_NAME) + 1)) {
@@ -1416,6 +1421,12 @@ static lbm_value ext_sysinfo(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_set_odometer(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(1);
 	mc_interface_set_odometer(lbm_dec_as_u64(args[0]));
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_reset_trip(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	mc_interface_reset_tripmeter();
 	return ENC_SYM_TRUE;
 }
 
@@ -5398,6 +5409,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("eeprom-read-i", ext_eeprom_read_i);
 	lbm_add_extension("sysinfo", ext_sysinfo);
 	lbm_add_extension("set-odometer", ext_set_odometer);
+	lbm_add_extension("reset-trip", ext_reset_trip);
 	lbm_add_extension("stats", ext_stats);
 	lbm_add_extension("stats-reset", ext_stats_reset);
 	lbm_add_extension("import", ext_empty);

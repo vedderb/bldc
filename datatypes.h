@@ -1408,6 +1408,7 @@ typedef struct {
 typedef struct __attribute__((packed)) {
 	uint32_t odometer_init_flag;
 	uint64_t odometer; // Meters
+	uint64_t tripmeter_offset; // Meters
 
 	uint32_t runtime_init_flag;
 	uint64_t runtime; // Seconds

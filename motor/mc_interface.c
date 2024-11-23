@@ -1699,6 +1699,23 @@ uint64_t mc_interface_get_odometer(void) {
 }
 
 /**
+ * Set trip meter offset to current odometer value in meters.
+ */
+void mc_interface_reset_tripmeter(void) {
+	g_backup.tripmeter_offset = g_backup.odometer;
+}
+
+/**
+ * Return current trip meter value in meters.
+ *
+ * @return
+ * Trip meter value in meters
+ */
+uint64_t mc_interface_get_tripmeter(void) {
+	return g_backup.odometer - g_backup.tripmeter_offset;
+}
+
+/**
  * Ignore motor control commands for this amount of time.
  */
 void mc_interface_ignore_input(int time_ms) {

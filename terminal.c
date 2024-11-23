@@ -598,6 +598,7 @@ void terminal_process_string(char *str) {
 #endif
 
 		commands_printf("Odometer : %llu m", mc_interface_get_odometer());
+		commands_printf("Tripmeter : %llu m", mc_interface_get_tripmeter());
 		commands_printf("Runtime  : %llu s", g_backup.runtime);
 
 		float curr0_offset;

@@ -104,6 +104,10 @@ volatile gnss_data *mc_interface_gnss(void);
 uint64_t mc_interface_get_odometer(void);
 void mc_interface_set_odometer(uint64_t new_odometer_meters);
 
+// tripmeter
+uint64_t mc_interface_get_tripmeter(void);
+void mc_interface_reset_tripmeter(void);
+
 void mc_interface_ignore_input(int time_ms);
 
 void mc_interface_set_current_off_delay(float delay_sec);

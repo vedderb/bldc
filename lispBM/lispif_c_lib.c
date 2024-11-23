@@ -851,6 +851,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.mc_get_distance_abs = mc_interface_get_distance_abs;
 		cif.cif.mc_get_odometer = mc_interface_get_odometer;
 		cif.cif.mc_set_odometer = mc_interface_set_odometer;
+		cif.cif.mc_get_tripmeter = mc_interface_get_tripmeter;
 		cif.cif.mc_set_current_off_delay = mc_interface_set_current_off_delay;
 		cif.cif.mc_stat_speed_avg = mc_interface_stat_speed_avg;
 		cif.cif.mc_stat_speed_max = mc_interface_stat_speed_max;

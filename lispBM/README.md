@@ -677,6 +677,7 @@ Read system info parameter param. Example:
 (sysinfo 'uuid) ; STM32 UUID. ESC only.
 (sysinfo 'runtime) ; Total runtime in seconds. ESC only.
 (sysinfo 'odometer) ; Total odometer in meters. ESC only. Added in 6.06.
+(sysinfo 'tripmeter) ; Total odometer in meters. ESC only. Added in 6.06.
 (sysinfo 'git-branch) ; Git branch name. ESC only.
 (sysinfo 'git-hash) ; Git hash of current commit. ESC only.
 (sysinfo 'compiler) ; GCC version, e.g. 7.3.1. ESC only.
@@ -724,6 +725,20 @@ Get statistics about the selected motor since boot (or since stats-reset). The f
 ```
 
 Set persistent odometer counter to meters.
+
+---
+
+#### reset-trip
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06+ |
+
+```clj
+(reset-trip)
+```
+
+Reset persistent tripmeter.
 
 ---
 

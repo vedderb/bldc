@@ -468,6 +468,8 @@ typedef struct {
 	float (*mc_get_distance_abs)(void);
 	uint64_t (*mc_get_odometer)(void);
 	void (*mc_set_odometer)(uint64_t new_odometer_meters);
+	uint64_t (*mc_get_tripmeter)(void);
+	void (*mc_reset_tripmeter)();
 	void (*mc_set_current_off_delay)(float delay_sec);
 	float (*mc_stat_speed_avg)(void);
 	float (*mc_stat_speed_max)(void);
