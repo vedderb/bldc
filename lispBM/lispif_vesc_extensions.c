@@ -196,6 +196,7 @@ typedef struct {
 	lbm_uint min_speed;
 	lbm_uint max_speed;
 	lbm_uint controller_id;
+	lbm_uint timeout_msec;
 	lbm_uint can_baud_rate;
 	lbm_uint can_status_rate_1;
 	lbm_uint can_status_msgs_r1;
@@ -517,6 +518,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("max-speed", comp);
 		} else if (comp == &syms_vesc.controller_id) {
 			lbm_add_symbol_const("controller-id", comp);
+		} else if (comp == &syms_vesc.timeout_msec) {
+			lbm_add_symbol_const("timeout-msec", comp);
 		} else if (comp == &syms_vesc.can_baud_rate) {
 			lbm_add_symbol_const("can-baud-rate", comp);
 		} else if (comp == &syms_vesc.can_status_rate_1) {
@@ -3461,6 +3464,10 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.controller_id)) {
 		appconf->controller_id = lbm_dec_as_i32(args[1]);
 		changed_app = 1;
+	} else if (compare_symbol(name, &syms_vesc.timeout_msec)) {
+		appconf->timeout_msec = lbm_dec_as_i32(args[1]);
+		timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current, appconf->kill_sw_mode);
+		changed_app = 1;
 	} else if (compare_symbol(name, &syms_vesc.can_status_rate_1)) {
 		appconf->can_status_rate_1 = lbm_dec_as_u32(args[1]);
 		changed_app = 1;
@@ -3921,6 +3928,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->l_max_erpm / speed_fact);
 	} else if (compare_symbol(name, &syms_vesc.controller_id)) {
 		res = lbm_enc_i(appconf->controller_id);
+	} else if (compare_symbol(name, &syms_vesc.timeout_msec)) {
+		res = lbm_enc_i(appconf->timeout_msec);
 	} else if (compare_symbol(name, &syms_vesc.can_baud_rate)) {
 		res = lbm_enc_i(appconf->can_baud_rate);
 	} else if (compare_symbol(name, &syms_vesc.can_status_rate_1)) {

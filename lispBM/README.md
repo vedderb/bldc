@@ -3581,6 +3581,7 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    9: APP_PAS
                         ;    10: APP_ADC_PAS
 'controller-id          ; VESC CAN ID
+'timeout-msec           ; Motor timeout in milliseconds (Added in FW 6.06)
 'can-baud-rate          ; CAN-bus baud rate (Added in FW 6.05)
                         ; 0: 125K
                         ; 1: 250K
