@@ -61,13 +61,6 @@ bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env);
  * \return True on success or false otherwise.
  */
 bool lbm_global_env_lookup(lbm_value *res, lbm_value sym);
-/** Lookup a value in from the global environment.
- *
- * \param sym The key to look for in the environment
- * \param env The environment to search for the key.
- * \return The value bound to key or lbm_enc_sym(SYM_NOT_FOUND).
- */
-lbm_value lbm_env_lookup(lbm_value sym, lbm_value env);
 /** Create a new binding on the environment or replace an old binding.
  *
  * \param env Environment to modify.

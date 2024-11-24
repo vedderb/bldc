@@ -142,6 +142,14 @@ lbm_uint lbm_memory_num_words(void);
  * \return The number of free words in the symbols and arrays memory.
  */
 lbm_uint lbm_memory_num_free(void);
+/** Get the maximum of memory usage. Divide this value
+ *
+ * \return Maximal memory usage.
+ */
+lbm_uint lbm_memory_maximum_used(void);
+/** Update memory usage statistics. called by GC automatically
+  */
+void lbm_memory_update_min_free(void);
 /** Find the length of the longest run of consecutire free indices
  *  in the LBM memory.
  */

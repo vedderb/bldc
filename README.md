@@ -17,28 +17,8 @@ The LispBM mascot, Lispy the llama, was created by
 
 ## Want to get involved and help out?
 
-There are lots of interesting things to code on in and around the
-LispBM runtime system. I would love to interact with people who are interested
-in high-level programming languages on microcontrollers (or elsewhere) so please
-do not be shy to make contact. Together we can make great stuff happen ;)
-
-1. Are you interested in microcontrollers and programming languages?
-2. You find it fun to mess around in C code with close to zero comments?
-3. Then join in the fun. Lots to do, so little time!
-4. Poke me by mail bo(dot)joel(dot)svensson(whirly-a)gmail(dot)com.
-
-There are areas where insights and help would matter greatly. Some I can
-think of are:
-
-1. Running LispBM on system simulators.
-2. LispBM efficiency, compilation, byte-code and real time garbage collection.
-3. Code size optimisation. Do more with less, while maintaining performance.
-4. Documentation and testing.
-5. Useful extension libraries.
-6. Lisp scriptable home automation.
-7. Lisp scriptable MIDI sequencers.
-8. Lisp scriptable Audio synthesizers.
-9. ...
+ - Check out the [lispbm.com](http://www.lispbm.com) website.
+ - Join the [discord server](https://discord.gg/urtJUUMnwQ).
 
 ## Getting started 
 

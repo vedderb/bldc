@@ -1,5 +1,5 @@
 /*
-    Copyright 2022, 2023 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2022 - 2024 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -25,16 +25,21 @@ extern "C" {
 #endif
 
 /** LBM major version */
-#define LBM_MAJOR_VERSION 0
+#define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 26
+#define LBM_MINOR_VERSION 27u
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 0
+#define LBM_PATCH_VERSION 1u
 
-#define LBM_VERSION_STRING "0.26.0"
-
+#define LBM_VERSION_STRING "0.27.1"
 
 /*! \page changelog Changelog
+NOV 5 2024: Version 0.27.0
+  - A number of important bugfixes. A write out of bounds among the most important.
+  - Addition of integer division operation (By Rasmus S)
+  - A lot of refactoring for readability of code and reduce code complexity.
+  - A defragmentable memory (compactible memory area).
+  - Vesc interfacing in the LBM REPL.
 AUG 6 2024: Version 0.26.0
   - Bugfix related to restargs.
   - coverage report in relation to the unit tests.

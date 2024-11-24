@@ -2,8 +2,9 @@
 
 echo "BUILDING"
 
-# make clean
-make
+rm -f test_lisp_code_cps
+make test_lisp_code_cps
+
 
 date=$(date +"%Y-%m-%d_%H-%M")
 logfile="log_${date}.log"
@@ -12,7 +13,7 @@ if [ -n "$1" ]; then
    logfile=$1
 fi
 
-echo "PERFORMING TESTS: " $date
+echo "PERFORMING 32BIT TESTS: " $date
 
 expected_fails=("test_lisp_code_cps -h 1024 tests/test_take_iota_0.lisp"
                 "test_lisp_code_cps -s -h 1024 tests/test_take_iota_0.lisp"
@@ -29,29 +30,6 @@ success_count=0
 fail_count=0
 failing_tests=()
 result=0
-
-for exe in *.exe; do
-
-    if [ "$exe" = "test_gensym.exe" ]; then
-        continue
-    fi
-
-    ./$exe
-
-    result=$?
-
-    echo "------------------------------------------------------------"
-    if [ $result -eq 1 ]
-    then
-        success_count=$((success_count+1))
-        echo $exe SUCCESS
-    else
-
-        fail_count=$((fail_count+1))
-        echo $exe FAILED
-    fi
-    echo "------------------------------------------------------------"
-done
 
 test_config=("-h 32768"
              "-i -h 32768"
@@ -82,6 +60,10 @@ test_config=("-h 32768"
               "-s -h 512"
               "-i -s -h 512")
 
+for conf in "${test_config[@]}" ; do
+    expected_fails+=("test_lisp_code_cps $conf tests/test_is_64bit.lisp")
+done
+
 for prg in "test_lisp_code_cps" ; do
     for arg in "${test_config[@]}"; do
         echo "Configuration: " $arg
@@ -104,8 +86,6 @@ for prg in "test_lisp_code_cps" ; do
     done
 done
 
-# echo -e $failing_tests
-
 expected_count=0
 
 for (( i = 0; i < ${#failing_tests[@]}; i++ ))
@@ -113,7 +93,6 @@ do
   expected=false
   for (( j = 0; j < ${#expected_fails[@]}; j++))
   do
-
       if [[ "${failing_tests[$i]}" == "${expected_fails[$j]}" ]] ;
       then
           expected=true

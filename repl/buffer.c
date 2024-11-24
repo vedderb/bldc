@@ -137,7 +137,7 @@ void buffer_append_float32_auto(uint8_t* buffer, float number, int32_t *index) {
 		e += 126;
 	}
 
-	uint32_t res = ((e & 0xFF) << 23) | (sig_i & 0x7FFFFF);
+	uint32_t res = ((uint32_t)((e & 0xFF) << 23)) | (sig_i & 0x7FFFFF);
 	if (sig < 0) {
 		res |= 1U << 31;
 	}
@@ -153,26 +153,26 @@ void buffer_append_float64_auto(uint8_t* buffer, double number, int32_t *index) 
 }
 
 int16_t buffer_get_int16(const uint8_t *buffer, int32_t *index) {
-	int16_t res =	((uint16_t) buffer[*index]) << 8 |
-					((uint16_t) buffer[*index + 1]);
-	*index += 2;
-	return res;
+  int16_t res =	(int16_t)((buffer[*index] << 8) |
+                          buffer[*index + 1]);
+  *index += 2;
+  return res;
 }
 
 uint16_t buffer_get_uint16(const uint8_t *buffer, int32_t *index) {
-	uint16_t res = 	((uint16_t) buffer[*index]) << 8 |
-					((uint16_t) buffer[*index + 1]);
-	*index += 2;
-	return res;
+  uint16_t res = 	(uint16_t)((buffer[*index] << 8) |
+                                   buffer[*index + 1]);
+  *index += 2;
+  return res;
 }
 
 int32_t buffer_get_int32(const uint8_t *buffer, int32_t *index) {
-	int32_t res =	((uint32_t) buffer[*index]) << 24 |
-					((uint32_t) buffer[*index + 1]) << 16 |
-					((uint32_t) buffer[*index + 2]) << 8 |
-					((uint32_t) buffer[*index + 3]);
-	*index += 4;
-	return res;
+  int32_t res =	(int32_t)((buffer[*index] << 24) |
+                          (buffer[*index + 1] << 16) |
+                          (buffer[*index + 2] << 8) |
+                          buffer[*index + 3]);
+  *index += 4;
+  return res;
 }
 
 uint32_t buffer_get_uint32(const uint8_t *buffer, int32_t *index) {
@@ -185,16 +185,16 @@ uint32_t buffer_get_uint32(const uint8_t *buffer, int32_t *index) {
 }
 
 int64_t buffer_get_int64(const uint8_t *buffer, int32_t *index) {
-	int64_t res =	((uint64_t) buffer[*index]) << 56 |
-					((uint64_t) buffer[*index + 1]) << 48 |
-					((uint64_t) buffer[*index + 2]) << 40 |
-					((uint64_t) buffer[*index + 3]) << 32 |
-					((uint64_t) buffer[*index + 4]) << 24 |
-					((uint64_t) buffer[*index + 5]) << 16 |
-					((uint64_t) buffer[*index + 6]) << 8 |
-					((uint64_t) buffer[*index + 7]);
-	*index += 8;
-	return res;
+  int64_t res =	(int64_t)(((uint64_t)buffer[*index] << 56) |
+                          ((uint64_t)buffer[*index + 1] << 48) |
+                          ((uint64_t)buffer[*index + 2] << 40) |
+                          ((uint64_t)buffer[*index + 3] << 32) |
+                          ((uint64_t)buffer[*index + 4] << 24) |
+                          ((uint64_t)buffer[*index + 5] << 16) |
+                          ((uint64_t)buffer[*index + 6] << 8) |
+                          ((uint64_t)buffer[*index + 7]));
+  *index += 8;
+  return res;
 }
 
 uint64_t buffer_get_uint64(const uint8_t *buffer, int32_t *index) {

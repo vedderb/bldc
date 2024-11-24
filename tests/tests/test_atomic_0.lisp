@@ -1,1 +1,1 @@
-(check ( = (atomic (+ 1 2) (+ 1 2))))
+(check ( = (atomic (+ 1 2)) (+ 1 2)))

@@ -68,36 +68,34 @@ static jmp_buf critical_error_jmp_buf;
 #define READ_EXPECT_CLOSEPAR  CONTINUATION(18)
 #define READ_DOT_TERMINATE    CONTINUATION(19)
 #define READ_DONE             CONTINUATION(20)
-#define READ_QUOTE_RESULT     CONTINUATION(21)
-#define READ_COMMAAT_RESULT   CONTINUATION(22)
-#define READ_COMMA_RESULT     CONTINUATION(23)
-#define READ_START_ARRAY      CONTINUATION(24)
-#define READ_APPEND_ARRAY     CONTINUATION(25)
-#define MAP                   CONTINUATION(26)
-#define MATCH_GUARD           CONTINUATION(27)
-#define TERMINATE             CONTINUATION(28)
-#define PROGN_VAR             CONTINUATION(29)
-#define SETQ                  CONTINUATION(30)
-#define MOVE_TO_FLASH         CONTINUATION(31)
-#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(32)
-#define MOVE_LIST_TO_FLASH    CONTINUATION(33)
-#define CLOSE_LIST_IN_FLASH   CONTINUATION(34)
-#define QQ_EXPAND_START       CONTINUATION(35)
-#define QQ_EXPAND             CONTINUATION(36)
-#define QQ_APPEND             CONTINUATION(37)
-#define QQ_EXPAND_LIST        CONTINUATION(38)
-#define QQ_LIST               CONTINUATION(39)
-#define KILL                  CONTINUATION(40)
-#define LOOP                  CONTINUATION(41)
-#define LOOP_CONDITION        CONTINUATION(42)
-#define MERGE_REST            CONTINUATION(43)
-#define MERGE_LAYER           CONTINUATION(44)
-#define CLOSURE_ARGS_REST     CONTINUATION(45)
-#define MOVE_ARRAY_ELTS_TO_FLASH CONTINUATION(46)
-#define POP_READER_FLAGS      CONTINUATION(47)
-#define EXCEPTION_HANDLER     CONTINUATION(48)
-#define RECV_TO               CONTINUATION(49)
-#define NUM_CONTINUATIONS     50
+#define READ_START_ARRAY      CONTINUATION(21)
+#define READ_APPEND_ARRAY     CONTINUATION(22)
+#define MAP                   CONTINUATION(23)
+#define MATCH_GUARD           CONTINUATION(24)
+#define TERMINATE             CONTINUATION(25)
+#define PROGN_VAR             CONTINUATION(26)
+#define SETQ                  CONTINUATION(27)
+#define MOVE_TO_FLASH         CONTINUATION(28)
+#define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(29)
+#define MOVE_LIST_TO_FLASH    CONTINUATION(30)
+#define CLOSE_LIST_IN_FLASH   CONTINUATION(31)
+#define QQ_EXPAND_START       CONTINUATION(32)
+#define QQ_EXPAND             CONTINUATION(33)
+#define QQ_APPEND             CONTINUATION(34)
+#define QQ_EXPAND_LIST        CONTINUATION(35)
+#define QQ_LIST               CONTINUATION(36)
+#define KILL                  CONTINUATION(37)
+#define LOOP                  CONTINUATION(38)
+#define LOOP_CONDITION        CONTINUATION(39)
+#define MERGE_REST            CONTINUATION(40)
+#define MERGE_LAYER           CONTINUATION(41)
+#define CLOSURE_ARGS_REST     CONTINUATION(42)
+#define MOVE_ARRAY_ELTS_TO_FLASH CONTINUATION(43)
+#define POP_READER_FLAGS      CONTINUATION(44)
+#define EXCEPTION_HANDLER     CONTINUATION(45)
+#define RECV_TO               CONTINUATION(46)
+#define WRAP_RESULT           CONTINUATION(47)
+#define NUM_CONTINUATIONS     48
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -759,6 +757,26 @@ void print_environments(char *buf, unsigned int size) {
   }
 }
 
+void print_error_value(char *buf, lbm_uint bufsize, char *pre, lbm_value v, bool lookup) {
+
+  lbm_print_value(buf, bufsize, v);
+  printf_callback("%s %s\n",pre, buf);
+  if (lookup) {
+    if (lbm_is_symbol(v)) {
+      if (lbm_dec_sym(v) >= RUNTIME_SYMBOLS_START) {
+	lbm_value res = ENC_SYM_NIL;
+	if (lbm_env_lookup_b(&res, v, ctx_running->curr_env) ||
+	    lbm_global_env_lookup(&res, v)) {
+	  lbm_print_value(buf, bufsize, res);
+	  printf_callback("      bound to: %s\n", buf);
+	} else {
+	  printf_callback("      UNDEFINED\n");
+	}
+      }
+    }
+  }
+}
+
 void print_error_message(lbm_value error,
                          bool has_at,
                          lbm_value at,
@@ -777,27 +795,22 @@ void print_error_message(lbm_value error,
     return;
   }
 
-  lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, error);
-  printf_callback(  "***   Error: %s\n", buf);
+  print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   Error:", error, false);
   if (name) {
     printf_callback(  "***   ctx: %d \"%s\"\n", cid, name);
   } else {
     printf_callback(  "***   ctx: %d\n", cid);
   }
   if (has_at) {
-    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, at);
-    printf_callback("***   In:    %s\n",buf);
+    print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   In:", at, true);
     if (lbm_error_has_suspect) {
-      lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, lbm_error_suspect);
+      print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   At:", lbm_error_suspect, true);
       lbm_error_has_suspect = false;
-      printf_callback("***   At:    %s\n", buf);
     } else {
-      lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-      printf_callback("***   After: %s\n",buf);
+      print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   After:", ctx_running->curr_exp, true);
     }
   } else {
-    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
-    printf_callback("***   Near:  %s\n",buf);
+    print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   Near:",ctx_running->curr_exp, true);
   }
 
   printf_callback("\n");
@@ -885,6 +898,14 @@ static void queue_iterator_nm(eval_context_queue_t *q, ctx_fun f, void *arg1, vo
     f(curr, arg1, arg2);
     curr = curr->next;
   }
+}
+
+void lbm_all_ctxs_iterator(ctx_fun f, void *arg1, void *arg2) {
+  mutex_lock(&qmutex);
+  queue_iterator_nm(&blocked, f, arg1, arg2);
+  queue_iterator_nm(&queue, f, arg1, arg2);
+  if (ctx_running) f(ctx_running, arg1, arg2);
+  mutex_unlock(&qmutex);
 }
 
 void lbm_running_iterator(ctx_fun f, void *arg1, void *arg2){
@@ -1621,6 +1642,7 @@ static int gc(void) {
 
   int r = lbm_gc_sweep_phase();
   lbm_heap_new_freelist_length();
+  lbm_memory_update_min_free();
 
   if (ctx_running) {
     ctx_running->state = ctx_running->state & ~LBM_THREAD_STATE_GC_BIT;
@@ -2653,10 +2675,9 @@ static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     rptr[3] = MAP;
     ctx->curr_exp = appli;
   } else if (nargs == 2 && lbm_is_symbol_nil(args[1])) {
-      lbm_stack_drop(&ctx->K, 3);
-      ctx->r = ENC_SYM_NIL;
-      ctx->app_cont = true;
-      return;
+    lbm_stack_drop(&ctx->K, 3);
+    ctx->r = ENC_SYM_NIL;
+    ctx->app_cont = true;
   } else {
     lbm_set_error_reason((char*)lbm_error_str_num_args);
     error_at_ctx(ENC_SYM_EERROR, ENC_SYM_MAP);
@@ -3779,7 +3800,6 @@ static void cont_read_next_token(eval_context_t *ctx) {
       error_ctx(ENC_SYM_FATAL_ERROR);
     }
     ctx->app_cont = true;
-    lbm_uint do_next = 0;
     switch(match) {
     case TOKOPENPAR: {
       sptr[0] = ENC_SYM_NIL;
@@ -3818,7 +3838,8 @@ static void cont_read_next_token(eval_context_t *ctx) {
       ctx->r = ENC_SYM_DONTCARE;
       return;
     case TOKQUOTE:
-      do_next = READ_QUOTE_RESULT;
+      sptr[0] = ENC_SYM_QUOTE;
+      sptr[1] = WRAP_RESULT;
       break;
     case TOKBACKQUOTE: {
       sptr[0] = QQ_EXPAND_START;
@@ -3829,10 +3850,12 @@ static void cont_read_next_token(eval_context_t *ctx) {
       ctx->app_cont = true;
     } return;
     case TOKCOMMAAT:
-      do_next = READ_COMMAAT_RESULT;
+      sptr[0] = ENC_SYM_COMMAAT;
+      sptr[1] = WRAP_RESULT;
       break;
     case TOKCOMMA:
-      do_next = READ_COMMA_RESULT;
+      sptr[0] = ENC_SYM_COMMA;
+      sptr[1] = WRAP_RESULT;
       break;
     case TOKMATCHANY:
       lbm_stack_drop(&ctx->K, 2);
@@ -3850,10 +3873,8 @@ static void cont_read_next_token(eval_context_t *ctx) {
       lbm_stack_drop(&ctx->K, 2);
       ctx->r = ENC_SYM_CLOSEPAR;
       return;
-    case TOKCONSTSYMSTR: /* fall through */
     case TOKCONSTSTART: /* fall through */
     case TOKCONSTEND: {
-      if (match == TOKCONSTSYMSTR)  printf_callback("WARNING: @const-symbol-string does nothing!");
       if (match == TOKCONSTSTART)  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
       if (match == TOKCONSTEND)    ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
       sptr[0] = stream;
@@ -3864,11 +3885,11 @@ static void cont_read_next_token(eval_context_t *ctx) {
     default:
       read_error_ctx(lbm_channel_row(chan), lbm_channel_column(chan));
     }
-    sptr[0] = do_next;
-    sptr[1] = stream;
-    lbm_value *rptr = stack_reserve(ctx, 2);
-    rptr[0] = lbm_enc_u(0);
-    rptr[1] = READ_NEXT_TOKEN;
+    // read next token
+    lbm_value *rptr = stack_reserve(ctx, 3);
+    rptr[0] = stream;
+    rptr[1] = lbm_enc_u(0);
+    rptr[2] = READ_NEXT_TOKEN;
     ctx->app_cont = true;
     return;
   } else if (n < 0) goto retry_token;
@@ -4282,7 +4303,6 @@ static void cont_read_expect_closepar(eval_context_t *ctx) {
 static void cont_read_dot_terminate(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 3);
 
-  lbm_value first_cell = sptr[0];
   lbm_value last_cell  = sptr[1];
   lbm_value stream = sptr[2];
 
@@ -4302,7 +4322,7 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
   } else {
     if (lbm_is_cons(last_cell)) {
       lbm_set_cdr(last_cell, ctx->r);
-      ctx->r = first_cell;
+      ctx->r = sptr[0]; // first cell
       lbm_value *rptr = stack_reserve(ctx, 6);
       rptr[0] = stream;
       rptr[1] = ctx->r;
@@ -4347,26 +4367,14 @@ static void cont_read_done(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-static void cont_read_quote_result(eval_context_t *ctx) {
+static void cont_wrap_result(eval_context_t *ctx) {
   lbm_value cell;
+  lbm_value wrapper;
+  lbm_pop(&ctx->K, &wrapper);
   WITH_GC(cell, lbm_heap_allocate_list_init(2,
-                                            ENC_SYM_QUOTE,
+                                            wrapper,
                                             ctx->r));
   ctx->r = cell;
-  ctx->app_cont = true;
-}
-
-static void cont_read_commaat_result(eval_context_t *ctx) {
-  lbm_value cell2 = cons_with_gc(ctx->r,ENC_SYM_NIL, ENC_SYM_NIL);
-  lbm_value cell1 = cons_with_gc(ENC_SYM_COMMAAT, cell2, ENC_SYM_NIL);
-  ctx->r = cell1;
-  ctx->app_cont = true;
-}
-
-static void cont_read_comma_result(eval_context_t *ctx) {
-  lbm_value cell2 = cons_with_gc(ctx->r,ENC_SYM_NIL,ENC_SYM_NIL);
-  lbm_value cell1 = cons_with_gc(ENC_SYM_COMMA, cell2, ENC_SYM_NIL);
-  ctx->r = cell1;
   ctx->app_cont = true;
 }
 
@@ -4599,7 +4607,7 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
   }
 
   if (lbm_is_ptr(val) && (val & LBM_PTR_TO_CONSTANT_BIT)) {
-    ctx->r = val;
+    //ctx->r unchanged
     ctx->app_cont = true;
     return;
   }
@@ -4975,12 +4983,10 @@ static void cont_exception_handler(eval_context_t *ctx) {
 }
 
 static void cont_recv_to(eval_context_t *ctx) {
-  lbm_value *sptr = pop_stack_ptr(ctx, 1);
-  lbm_value pats = sptr[0];
-
   if (lbm_is_number(ctx->r)) {
+    lbm_value *sptr = pop_stack_ptr(ctx, 1);
     float timeout_time = lbm_dec_as_float(ctx->r);
-    receive_base(ctx, pats, timeout_time, true);
+    receive_base(ctx, sptr[0], timeout_time, true);
   } else {
     error_ctx(ENC_SYM_TERROR);
   }
@@ -5012,9 +5018,6 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_read_expect_closepar,
     cont_read_dot_terminate,
     cont_read_done,
-    cont_read_quote_result,
-    cont_read_commaat_result,
-    cont_read_comma_result,
     cont_read_start_array,
     cont_read_append_array,
     cont_map,
@@ -5041,6 +5044,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_pop_reader_flags,
     cont_exception_handler,
     cont_recv_to,
+    cont_wrap_result,
   };
 
 /*********************************************************/

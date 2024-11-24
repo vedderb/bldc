@@ -2,8 +2,8 @@
 
 echo "BUILDING"
 
-make clean
-make gc
+rm -f test_lisp_code_cps_gc
+make test_lisp_code_cps_gc
 
 timeout="50"
 date=$(date +"%Y-%m-%d_%H-%M")
@@ -16,14 +16,14 @@ fi
 
 echo "PERFORMING TESTS: " $date
 
-expected_fails=("test_lisp_code_cps -t $timeout -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -t $timeout -s -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -t $timeout -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -t $timeout -s -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -t $timeout -i -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -t $timeout -i -s -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -t $timeout -i -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -t $timeout -i -s -h 512 tests/test_take_iota_0.lisp"
+expected_fails=("test_lisp_code_cps_gc -t $timeout -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_gc -t $timeout -s -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_gc -t $timeout -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_gc -t $timeout -s -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_gc -t $timeout -i -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_gc -t $timeout -i -s -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_gc -t $timeout -i -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_gc -t $timeout -i -s -h 512 tests/test_take_iota_0.lisp"
                )
 
 
@@ -31,29 +31,6 @@ success_count=0
 fail_count=0
 failing_tests=()
 result=0
-
-for exe in *.exe; do
-
-    if [ "$exe" = "test_gensym.exe" ]; then
-        continue
-    fi
-
-    ./$exe
-
-    result=$?
-
-    echo "------------------------------------------------------------"
-    if [ $result -eq 1 ]
-    then
-        success_count=$((success_count+1))
-        echo $exe SUCCESS
-    else
-
-        fail_count=$((fail_count+1))
-        echo $exe FAILED
-    fi
-    echo "------------------------------------------------------------"
-done
 
 test_config=("-t $timeout -h 32768"
              "-t $timeout -i -h 32768"
@@ -84,7 +61,13 @@ test_config=("-t $timeout -h 32768"
               "-t $timeout -s -h 512"
               "-t $timeout -i -s -h 512")
 
-for prg in "test_lisp_code_cps" ; do
+
+for conf in "${test_config[@]}" ; do
+    expected_fails+=("test_lisp_code_cps_gc $conf tests/test_is_64bit.lisp")
+done
+
+
+for prg in "test_lisp_code_cps_gc" ; do
     for arg in "${test_config[@]}"; do
         echo "Configuration: " $arg
         for lisp in tests/*.lisp; do

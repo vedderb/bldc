@@ -45,6 +45,7 @@ static lbm_uint memory_size;  // in 4 or 8 byte words depending on 32 or 64 bit 
 static lbm_uint bitmap_size;  // in 4 or 8 byte words
 static lbm_uint memory_base_address = 0;
 static lbm_uint memory_num_free = 0;
+static lbm_uint memory_min_free = 0;
 static volatile lbm_uint memory_reserve_level = 0;
 static mutex_t lbm_mem_mutex;
 static bool    lbm_mem_mutex_initialized;
@@ -85,6 +86,7 @@ int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
     memory = data;
     memory_base_address = (lbm_uint)data;
     memory_size = data_size;
+    memory_min_free = data_size;
     memory_num_free = data_size;
     memory_reserve_level = (lbm_uint)(0.1 * (lbm_float)data_size);
     res = 1;
@@ -161,47 +163,16 @@ lbm_uint lbm_memory_num_words(void) {
 }
 
 lbm_uint lbm_memory_num_free(void) {
-  if (memory == NULL || bitmap == NULL) {
-    return 0;
-  }
-  mutex_lock(&lbm_mem_mutex);
-  unsigned int state = INIT;
-  lbm_uint sum_length = 0;
+  return memory_num_free;
+}
 
-  for (unsigned int i = 0; i < (bitmap_size << BITMAP_SIZE_SHIFT); i ++) {
+lbm_uint lbm_memory_maximum_used(void) {
+  return (memory_size - memory_min_free);
+}
 
-    switch(status(i)) {
-    case FREE_OR_USED:
-      switch (state) {
-      case INIT:
-          state = FREE_LENGTH_CHECK;
-          sum_length ++;
-        break;
-      case FREE_LENGTH_CHECK:
-        sum_length ++;
-        state = FREE_LENGTH_CHECK;
-        break;
-      case SKIP:
-        break;
-      }
-      break;
-    case END:
-      state = INIT;
-      break;
-    case START:
-      state = SKIP;
-      break;
-    case START_END:
-      state = INIT;
-      break;
-    default:
-      mutex_unlock(&lbm_mem_mutex);
-      return 0;
-      break;
-    }
-  }
-  mutex_unlock(&lbm_mem_mutex);
-  return sum_length;
+void lbm_memory_update_min_free(void) {
+  if (memory_num_free < memory_min_free)
+    memory_min_free = memory_num_free;
 }
 
 lbm_uint lbm_memory_longest_free(void) {
@@ -345,12 +316,11 @@ lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
 
 int lbm_memory_free(lbm_uint *ptr) {
   int r = 0;
-  lbm_uint count_freed = 0;
   if (lbm_memory_ptr_inside(ptr)) {
     mutex_lock(&lbm_mem_mutex);
     lbm_uint ix = address_to_bitmap_ix(ptr);
+    lbm_uint count_freed = 0;
     alloc_offset = ix;
-
     switch(status(ix)) {
     case START:
       set_status(ix, FREE_OR_USED);

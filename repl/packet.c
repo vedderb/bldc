@@ -231,8 +231,8 @@ static int try_decode_packet(unsigned char *buffer, unsigned int in_len,
 	}
 
 	unsigned short crc_calc = crc16(buffer + data_start, len);
-	unsigned short crc_rx = (unsigned short)buffer[data_start + len] << 8
-							| (unsigned short)buffer[data_start + len + 1];
+	unsigned short crc_rx = (unsigned short)(buffer[data_start + len] << 8
+                                                 | buffer[data_start + len + 1]);
 
 	if (crc_calc == crc_rx) {
 		if (process_func) {

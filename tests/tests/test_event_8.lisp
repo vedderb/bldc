@@ -5,6 +5,7 @@
 (defun event-sender (n)
   (if (= 0 n) ()
     (progn
+      (sleep 0.01)
       (event-list-of-float 3.14 3.14 3.14)
       (iota 250) ; Trigger GC eventually
       (event-sender (- n 1)))))

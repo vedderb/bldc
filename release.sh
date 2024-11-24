@@ -15,6 +15,16 @@ echo $reportdir
 
 mkdir -p $reportdir
 mkdir -p $reportdir/scan-build
+mkdir -p $reportdir/cppcheck
+
+cd repl
+
+cppcheck32log="../${reportdir}/cppcheck/cppcheck_32bit_${release}.txt"
+cppcheck64log="../${reportdir}/cppcheck/cppcheck_64bit_${release}.txt"
+
+./run_cppcheck.sh $cppcheck32log $cppcheck64log
+
+cd ..
 
 cd tests
 
