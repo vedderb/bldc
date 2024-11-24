@@ -7051,7 +7051,21 @@ Returns a 4k byte array from RTC memory that can be used as a general purpose ar
 Check if any client (e.g. VESC Tool) is connected over wifi. Returns true when connected, nil otherwise.
 
 ---
-´
+
+#### connected-hub
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(connected-hub)
+```
+
+Check if we are connected to the TCP hub. Returns true when connected, nil otherwise. Notice that this does not tell if someone is connected to us using the hub, it only tells that we are connected to the hub and that others can connect to us.
+
+---
+
 #### connected-ble
 
 | Platforms | Firmware |
