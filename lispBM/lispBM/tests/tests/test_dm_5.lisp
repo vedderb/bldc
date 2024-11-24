@@ -1,5 +1,7 @@
 ;; 100 bytes becomes 25 words
-(define dm (dm-create 100))
+(define dm (if (= (word-size) 8)
+               (dm-create 200)
+             (dm-create 100)))
 
 (define a1 (dm-alloc dm 10))
 (bufclear a1 0xFF)

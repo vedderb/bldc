@@ -89,20 +89,28 @@ static lbm_char_channel_t buffered_string_tok;
 #define EXTENSION_STORAGE_SIZE 1024
 #define WAIT_TIMEOUT 2500
 #define STR_SIZE 1024
-#define CONSTANT_MEMORY_SIZE 32*1024
 #define PROF_DATA_NUM 100
 
 lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
-lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 lbm_prof_t prof_data[100];
 
-char *env_input_file = NULL;
-char *env_output_file = NULL;
-volatile char *res_output_file = NULL;
-bool terminate_after_startup = false;
-volatile lbm_cid startup_cid = -1;
-volatile lbm_cid store_result_cid = -1;
-volatile bool silent_mode = false;
+static char *env_input_file = NULL;
+static char *env_output_file = NULL;
+static volatile char *res_output_file = NULL;
+static bool terminate_after_startup = false;
+static volatile lbm_cid startup_cid = -1;
+static volatile lbm_cid store_result_cid = -1;
+static volatile bool silent_mode = false;
+
+static size_t lbm_memory_size = LBM_MEMORY_SIZE_10K;
+static size_t lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
+static size_t constants_memory_size = 4096;
+
+static lbm_uint *constants_memory = NULL;
+static lbm_uint *memory=NULL;
+static lbm_uint *bitmap=NULL;
+
+static pthread_t prof_thread;
 
 struct read_state_s {
   char *str;   // String being read.
@@ -169,7 +177,7 @@ void terminate_repl(int exit_code) {
 }
 
 bool const_heap_write(lbm_uint ix, lbm_uint w) {
-  if (ix >= CONSTANT_MEMORY_SIZE) return false;
+  if (ix >= constants_memory_size) return false;
   if (constants_memory[ix] == 0xffffffff) {
     constants_memory[ix] = w;
     return true;
@@ -390,9 +398,6 @@ void sym_it(const char *str) {
          str);
 }
 
-static lbm_uint memory[LBM_MEMORY_SIZE_1M];
-static lbm_uint bitmap[LBM_MEMORY_BITMAP_SIZE_1M];
-
 pthread_t lispbm_thd = 0;
 unsigned int heap_size = 2048; // default
 lbm_cons_t *heap_storage = NULL;
@@ -415,6 +420,8 @@ lbm_const_heap_t const_heap;
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
   {"heap_size", required_argument, NULL, 'H'},
+  {"memory_size", required_argument, NULL, 'M'},
+  {"const_memory_size", required_argument, NULL, 'C'},
   {"src", required_argument, NULL, 's'},
   {"eval", required_argument, NULL, 'e'},
   {"load_env", required_argument, NULL, LOAD_ENVIRONMENT},
@@ -496,33 +503,121 @@ void parse_opts(int argc, char **argv) {
   int c;
   opterr = 1;
   int opt_index = 0;
-  while ((c = getopt_long(argc, argv, "H:hse:",options, &opt_index)) != -1) {
+  while ((c = getopt_long(argc, argv, "H:M:C:hse:",options, &opt_index)) != -1) {
     switch (c) {
     case 'H':
-      heap_size = (unsigned int)atoi((char*)optarg);
+      heap_size = (size_t)atoi((char*)optarg);
       break;
+    case 'C':
+      constants_memory_size = (size_t)atoi((char*)optarg);
+      break;
+    case 'M': {
+      size_t ix = (size_t)atoi((char*)optarg);
+      switch(ix) {
+      case 1:
+        lbm_memory_size = LBM_MEMORY_SIZE_512;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_512;
+        break;
+      case 2:
+        lbm_memory_size = LBM_MEMORY_SIZE_1K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_1K;
+        break;
+      case 3:
+        lbm_memory_size = LBM_MEMORY_SIZE_2K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_2K;
+        break;
+      case 4:
+        lbm_memory_size = LBM_MEMORY_SIZE_4K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_4K;
+        break;
+      case 5:
+        lbm_memory_size = LBM_MEMORY_SIZE_8K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_8K;
+        break;
+      case 6:
+        lbm_memory_size = LBM_MEMORY_SIZE_10K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
+        break;
+      case 7:
+        lbm_memory_size = LBM_MEMORY_SIZE_12K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_12K;
+        break;
+      case 8:
+        lbm_memory_size = LBM_MEMORY_SIZE_14K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_14K;
+        break;
+      case 9:
+        lbm_memory_size = LBM_MEMORY_SIZE_16K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_16K;
+        break;
+      case 10:
+        lbm_memory_size = LBM_MEMORY_SIZE_32K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_32K;
+        break;
+      case 11:
+        lbm_memory_size = LBM_MEMORY_SIZE_1M;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_1M;
+        break;
+      default:
+        printf("WARNING: Incorrect lbm_memory_size index! Using default\n");
+        lbm_memory_size = LBM_MEMORY_SIZE_10K;
+        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
+        break;
+      }
+    } break;
     case 'h':
       printf("Usage: %s [OPTION...]\n\n", argv[0]);
       printf("    -h, --help                        Prints help\n");
       printf("    -H SIZE, --heap_size=SIZE         Set heap_size to be SIZE number of\n"\
              "                                      cells.\n");
+      printf("    -M SIZE, --memory_size=SIZE       Set the arrays and symbols memory\n"\
+             "                                      size to one memory-size-indices\n"\
+             "                                      listed below.\n");
+      printf("    -C SIZE, --const_memory_size=SIZE Set the size of the constants memory.\n"\
+             "                                      This memory emulates a flash memory\n"\
+             "                                      that can be written to once per location.\n");
       printf("    -s FILEPATH, --src=FILEPATH       Load and evaluate lisp src\n");
       printf("    -e EXPRESSION, --eval=EXPRESSION  Load and evaluate lisp src\n");
       printf("\n");
       printf("    --load_env=FILEPATH               Load the global environment from a file at\n"\
              "                                      startup.\n");
       printf("    --silent                          The REPL will print as little as possible\n");
-      printf("    --store_env=FILEPATH              Store the global environment to a file upon\n"\
-             "                                      exit.\n");
+      printf("    --store_env=FILEPATH              Store the global environment to a file\n"\
+             "                                      upon exit.\n");
       printf("    --store_res=FILEPATH              Store the result of the last program\n"\
              "                                      specified with the --src/-s options.\n");
-      printf("    --vesctcp                         Open a TCP server talking the VESC protocol\n"\
-             "                                      on port %d\n", DEFAULT_VESCIF_TCP_PORT);
+      printf("    --vesctcp                         Open a TCP server talking the VESC\n"\
+             "                                      protocol on port %d\n", DEFAULT_VESCIF_TCP_PORT);
       printf("    --vesctcp_port=PORT               open the TCP server on this port instead.\n");
       printf("    --vesctcp_program_flash_size=SIZE Size of memory for program storage.\n");
       printf("    --terminate                       Terminate the REPL after evaluating the\n"\
              "                                      source files specified with --src/-s\n");
-
+      printf("Memory-size-indices: \n"          \
+             "Index | Words\n"                  \
+             "  1   - %d\n"                     \
+             "  2   - %d\n"                     \
+             "  3   - %d\n"                     \
+             "  4   - %d\n"                     \
+             "  5   - %d\n"                     \
+             "* 6   - %d\n"                     \
+             "  7   - %d\n"                     \
+             "  8   - %d\n"                     \
+             "  9   - %d\n"                     \
+             " 10   - %d\n"                     \
+             " 11   - %d\n",
+             LBM_MEMORY_SIZE_512,
+             LBM_MEMORY_SIZE_1K,
+             LBM_MEMORY_SIZE_2K,
+             LBM_MEMORY_SIZE_4K,
+             LBM_MEMORY_SIZE_8K,
+             LBM_MEMORY_SIZE_10K,
+             LBM_MEMORY_SIZE_12K,
+             LBM_MEMORY_SIZE_14K,
+             LBM_MEMORY_SIZE_16K,
+             LBM_MEMORY_SIZE_32K,
+             LBM_MEMORY_SIZE_1M
+             );
+      printf("Default is marked with a *.\n");
       printf("\n");
       printf("Multiple sourcefiles and expressions can be added with multiple uses\n" \
              "of the --src/-s and --eval/-e flags.\n" \
@@ -654,9 +749,14 @@ int init_repl() {
     return 0;
   }
 
+  memory = (lbm_uint*)malloc(lbm_memory_size * sizeof(lbm_uint));
+  bitmap = (lbm_uint*)malloc(lbm_memory_bitmap_size * sizeof(lbm_uint));
+
+  if (memory == NULL || bitmap == NULL) return 0;
+
   if (!lbm_init(heap_storage, heap_size,
-                memory, LBM_MEMORY_SIZE_1M,
-                bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
+                memory, lbm_memory_size,
+                bitmap, lbm_memory_bitmap_size,
                 GC_STACK_SIZE,
                 PRINT_STACK_SIZE,
                 extensions,
@@ -668,10 +768,11 @@ int init_repl() {
     return 0;
   }
 
-  memset(constants_memory, 0xFF, CONSTANT_MEMORY_SIZE * sizeof(lbm_uint));
+  constants_memory = (lbm_uint*)malloc(constants_memory_size * sizeof(lbm_uint));
+  memset(constants_memory, 0xFF, constants_memory_size * sizeof(lbm_uint));
   if (!lbm_const_heap_init(const_heap_write,
                            &const_heap,constants_memory,
-                           CONSTANT_MEMORY_SIZE)) {
+                           constants_memory_size)) {
     return 0;
   }
 
@@ -997,19 +1098,23 @@ void commands_send_packet(unsigned char *data, unsigned int len) {
 
 
 int commands_printf_lisp(const char* format, ...) {
-  va_list arg;
-  va_start(arg, format);
   int len;
 
   char *print_buffer = malloc(PRINT_BUFFER_SIZE);
-
+  if (!print_buffer) return 0;
 
   print_buffer[0] = (char)COMM_LISP_PRINT;
   int offset = 1;
   int prefix_len = sprintf(print_buffer + offset, lispif_print_prefix(), "%s");
-  if (prefix_len < 0) return prefix_len; // error.
+  if (prefix_len < 0) {
+    free(print_buffer);
+    return prefix_len; // error.
+  }
   offset += prefix_len;
 
+  va_list arg;
+  va_start(arg, format);
+  
   len = vsnprintf(
                   print_buffer + offset, (size_t)(PRINT_BUFFER_SIZE - offset), format, arg
                   );
@@ -1069,19 +1174,77 @@ static void vesc_lbm_done_callback(eval_context_t *ctx) {
   }
 }
 
+static lbm_value ext_vescif_print(lbm_value *args, lbm_uint argn) {
+  const int str_len = 256;
+  char *print_val_buffer = malloc(str_len);
+  if (!print_val_buffer) {
+    return ENC_SYM_MERROR;
+  }
+
+  for (lbm_uint i = 0; i < argn; i ++) {
+    lbm_print_value(print_val_buffer, str_len, args[i]);
+    commands_printf_lisp("%s", print_val_buffer);
+  }
+
+  lbm_free(print_val_buffer);
+
+  return ENC_SYM_TRUE;
+}
+
+// a dummy to make imports do noting upon eval
+static lbm_value ext_vescif_import(lbm_value *args, lbm_uint argn) {
+  (void)args;
+  (void)argn;
+  return ENC_SYM_NIL;
+}
+
+static void vescif_print_ctx_info(eval_context_t *ctx, void *arg1, void *arg2) {
+  (void) arg1;
+  (void) arg2;
+
+  const char *state_string = "UNKNOWN (CONTACT JOEL)";
+
+  switch (ctx->state & 0xFFFF) {
+  case LBM_THREAD_STATE_READY: state_string = "READY"; break;
+  case LBM_THREAD_STATE_BLOCKED: state_string = "BLOCKED"; break;
+  case LBM_THREAD_STATE_TIMEOUT: state_string = "TIMEOUT"; break;
+  case LBM_THREAD_STATE_SLEEPING: state_string = "SLEEPING"; break;
+  case LBM_THREAD_STATE_RECV_BL: state_string = "RECV BLOCKING"; break;
+  case LBM_THREAD_STATE_RECV_TO: state_string = "RECV TIMEOUT"; break;
+  }
+
+  char output[1024];
+  int print_ret = lbm_print_value(output, 1024, ctx->r);
+  commands_printf_lisp("--------------------------------");
+  commands_printf_lisp("ContextID: %"PRI_UINT, ctx->id);
+  commands_printf_lisp("State: %s\n", state_string);
+  commands_printf_lisp("Stack SP: %"PRI_UINT,  ctx->K.sp);
+  commands_printf_lisp("Stack SP max: %"PRI_UINT, lbm_get_max_stack(&ctx->K));
+  if (print_ret) {
+    commands_printf_lisp("Value: %s\n", output);
+  } else {
+    commands_printf_lisp("Error: %s\n", output);
+  }
+}
+
+
+static void vescif_sym_it(const char *str) {
+  bool sym_name_flash = lbm_symbol_in_flash((char *)str);
+  bool sym_entry_flash = lbm_symbol_list_entry_in_flash((char *)str);
+  commands_printf_lisp("[%s, %s]: %s\n",
+         sym_name_flash ? "FLASH" : "LBM_MEM",
+         sym_entry_flash ? "FLASH" : "LBM_MEM",
+         str);
+}
+
+
 bool vescif_restart(bool print, bool load_code, bool load_imports) {
   bool res = false;
-  //if (prof_running) {
-  //  prof_running = false;
-  //  esp_timer_stop(prof_timer);
-  //}
-
-  //
-  //char *code_data = (char*)flash_helper_code_data_ptr(CODE_IND_LISP);
-  //int32_t code_len = flash_helper_code_size(CODE_IND_LISP);
-
-  //if (!load_code || (code_data != 0 && code_len > 0)) {
-  //  lispif_disable_all_events();
+  if (prof_running) {
+    prof_running = false;
+    void *a;
+    pthread_join(prof_thread, &a);
+  }
 
   if (lispbm_thd) {
     int thread_r = 0;
@@ -1099,8 +1262,8 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   if (heap_storage == NULL) return 0;
 
   if (!lbm_init(heap_storage, heap_size,
-                memory, LBM_MEMORY_SIZE_1M,
-                bitmap, LBM_MEMORY_BITMAP_SIZE_1M,
+                memory, lbm_memory_size,
+                bitmap, lbm_memory_bitmap_size,
                 GC_STACK_SIZE,
                 PRINT_STACK_SIZE,
                 extensions,
@@ -1113,10 +1276,11 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
     return 0;
   }
 
-  memset(constants_memory, 0xFF, CONSTANT_MEMORY_SIZE * sizeof(lbm_uint));
+  constants_memory = (lbm_uint*)malloc(constants_memory_size * sizeof(lbm_uint));
+  memset(constants_memory, 0xFF, constants_memory_size * sizeof(lbm_uint));
   if (!lbm_const_heap_init(const_heap_write,
                            &const_heap,constants_memory,
-                           CONSTANT_MEMORY_SIZE)) {
+                           constants_memory_size)) {
     return 0;
   }
 
@@ -1127,7 +1291,9 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   lbm_set_dynamic_load_callback(dynamic_loader);
   lbm_set_printf_callback(commands_printf_lisp);
 
-  init_exts(); // another print extension should be used (commands_printf_lisp)
+  init_exts();
+  lbm_add_extension("print", ext_vescif_print); // replace print
+  lbm_add_extension("import", ext_vescif_import); // dummy import
 
 #ifdef WITH_SDL
   if (!lbm_sdl_init()) {
@@ -1165,33 +1331,40 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
 
   /* lbm_set_dynamic_load_callback(lispif_vesc_dynamic_loader); */
 
-  /* int code_chars = 0; */
-  /* if (code_data) { */
-  /*   code_chars = strnlen(code_data, code_len); */
+  char *code_data = (char*)vescif_program_flash+8;
+  size_t code_len = vescif_program_flash_code_len;
+
+  size_t code_chars = 0;
+  if (code_data) {
+    code_chars = strnlen(code_data, code_len);
+  }
+
+  /* for (size_t i = 0; i < code_len; i ++)  { */
+  /*   printf("%i %c\n",i, code_data[i]); */
+
   /* } */
+  /* printf("\n"); */
 
   // Load imports
+  if (load_imports) {
+    if (code_len > code_chars + 3) {
+      int32_t ind = (int32_t)code_chars + 1;
+      uint16_t num_imports = buffer_get_uint16((uint8_t*)code_data, &ind);
+      if (num_imports > 0 && num_imports < 500) {
+        for (int i = 0;i < num_imports;i++) {
+          char *name = code_data + ind;
+          ind += (int32_t)(strlen(name) + 1);
+          int32_t offset = buffer_get_int32((uint8_t*)code_data, &ind);
+          int32_t len = buffer_get_int32((uint8_t*)code_data, &ind);
 
-  /* if (load_imports) { */
-  /*   if (code_len > code_chars + 3) { */
-  /*     int32_t ind = code_chars + 1; */
-  /*     uint16_t num_imports = buffer_get_uint16((uint8_t*)code_data, &ind); */
-
-  /*     if (num_imports > 0 && num_imports < 500) { */
-  /*       for (int i = 0;i < num_imports;i++) { */
-  /*         char *name = code_data + ind; */
-  /*         ind += strlen(name) + 1; */
-  /*         int32_t offset = buffer_get_int32((uint8_t*)code_data, &ind); */
-  /*         int32_t len = buffer_get_int32((uint8_t*)code_data, &ind); */
-
-  /*         lbm_value val; */
-  /*         if (lbm_share_array(&val, code_data + offset, len)) { */
-  /*           lbm_define(name, val); */
-  /*         } */
-  /*       } */
-  /*     } */
-  /*   } */
-  /* } */
+          lbm_value val;
+          if (lbm_share_array(&val, code_data + offset, (lbm_uint)len)) {
+            lbm_define(name, val);
+          }
+        }
+      }
+    }
+  }
 
   /* if (code_data == 0) { */
   /*   code_data = (char*)flash_helper_code_data_raw(CODE_IND_LISP); */
@@ -1203,14 +1376,16 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   /* uint32_t const_heap_len = ((uint32_t)code_data + flash_helper_code_size_raw(CODE_IND_LISP)) - (uint32_t)const_heap_ptr; */
   /* lbm_const_heap_init(const_heap_write, &const_heap, (lbm_uint*)const_heap_ptr, const_heap_len); */
 
-  /* if (load_code) { */
-  /*   if (print) { */
-  /*     commands_printf_lisp("Parsing %d characters", code_chars); */
-  /*   } */
+  code_data = (char*)vescif_program_flash+8;
 
-  /*   lbm_create_string_char_channel(&string_tok_state, &string_tok, code_data); */
-  /*   lbm_load_and_eval_program_incremental(&string_tok, "main-u"); */
-  /* } */
+  if (load_code) {
+    if (print) {
+      commands_printf_lisp("Parsing %d characters", code_chars);
+    }
+
+    lbm_create_string_char_channel(&string_tok_state, &string_tok, (char*)code_data);
+    lbm_load_and_eval_program_incremental(&string_tok, "main-u");
+  }
 
   lbm_continue_eval();
 
@@ -1233,7 +1408,7 @@ float get_cpu_usage(void) {
   if ( fp ) {
     long unsigned int ucpu = 0, scpu=0, tot_cpu = 0 ;
     if ( fscanf(fp, "%*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s %*s  %lu %lu",
-		&ucpu, &scpu) == 2 ) {
+                &ucpu, &scpu) == 2 ) {
       tot_cpu = ucpu + scpu ;
 
       long unsigned int ticks = tot_cpu - get_cpu_last_ticks;
@@ -1310,7 +1485,6 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     // request to change the "running" state of the LBM evaluator.
     bool ok = false;
     bool running = data[0];
-    printf("COMM_LISP_SET_RUNNING %d\n", data[0]);
     if (!running) {
       if (lispbm_thd) {
         int timeout_cnt = 2000;
@@ -1466,6 +1640,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         commands_printf_lisp("Memory size: %u bytes\n", lbm_memory_num_words() * 4);
         commands_printf_lisp("Memory free: %u bytes\n", lbm_memory_num_free() * 4);
         commands_printf_lisp("Longest block free: %u bytes\n", lbm_memory_longest_free() * 4);
+	commands_printf_lisp("Maximum usage %f%%\n", 100.0  * ((float)lbm_memory_maximum_used() / (float)lbm_memory_num_words()));
         commands_printf_lisp("Allocated arrays: %u\n", lbm_heap_state.num_alloc_arrays);
         commands_printf_lisp("Symbol table size: %u Bytes\n", lbm_get_symbol_table_size());
         commands_printf_lisp("Symbol table size flash: %u Bytes\n", lbm_get_symbol_table_size_flash());
@@ -1473,55 +1648,55 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         commands_printf_lisp("Symbol name size flash: %u Bytes\n", lbm_get_symbol_table_size_names_flash());
         commands_printf_lisp("Extensions: %u, max %u\n", lbm_get_num_extensions(), lbm_get_max_extensions());
         commands_printf_lisp("--(Flash)--\n");
-        commands_printf_lisp("Size: %u Bytes\n", const_heap.size);
-        commands_printf_lisp("Used cells: %d\n", const_heap.next);
-        commands_printf_lisp("Free cells: %d\n", const_heap.size / 4 - const_heap.next);
+        commands_printf_lisp("Size: %u words", const_heap.size);
+        commands_printf_lisp("Used words: %d\n", const_heap.next);
+        commands_printf_lisp("Free words: %d\n", const_heap.size - const_heap.next);
         //flast_stats stats = flash_helper_stats();
         //commands_printf_lisp("Erase Cnt Tot: %d\n", stats.erase_cnt_tot);
         //commands_printf_lisp("Erase Cnt Max Sector: %d\n", stats.erase_cnt_max);
         //commands_printf_lisp("Num sectors erased: %d\n", stats.erased_sector_num);
       } else if (strncmp(str, ":prof start", 11) == 0) {
-        commands_printf_lisp("TODO: :prof start\n");
-        //if (prof_running) {
-        //  lbm_prof_init(prof_data, PROF_DATA_NUM);
-        //  commands_printf_lisp("Profiler restarted\n");
-        //} else {
-        //  lbm_prof_init(prof_data, PROF_DATA_NUM);
-        //  prof_running = true;
-        //  esp_timer_create(&periodic_timer_args, &prof_timer);
-        //  // Use a period that isn't a multiple if the eval thread periods
-        //  esp_timer_start_periodic(prof_timer, 571);
-        //  commands_printf_lisp("Profiler started\n");
-        //}
+        if (prof_running) {
+          prof_running = false;
+          void *a;
+          pthread_join(prof_thread,&a);
+        }
+        lbm_prof_init(prof_data, PROF_DATA_NUM);
+        prof_running = true;
+        if (pthread_create(&prof_thread, NULL, prof_thd, NULL)) {
+          commands_printf_lisp("Error creating profiler thread\n");
+        } else {
+          commands_printf_lisp("Profiler started\n");
+        }
       } else if (strncmp(str, ":prof stop", 10) == 0) {
+        void *a;
         commands_printf_lisp("TODO :prof stop\n");
-        //if (prof_running) {
-        //  prof_running = false;
-        //  esp_timer_stop(prof_timer);
-        //}
-        //commands_printf_lisp("Profiler stopped. Issue command ':prof report' for statistics\n");
+        if (prof_running) {
+          prof_running = false;
+          pthread_join(prof_thread,&a);
+        }
+        commands_printf_lisp("Profiler stopped. Issue command ':prof report' for statistics\n");
       } else if (strncmp(str, ":prof report", 12) == 0) {
-        commands_printf_lisp("TODO: :prof report\n");
-        //lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
-        //lbm_uint num_system = lbm_prof_get_num_system_samples();
-        //lbm_uint tot_samples = lbm_prof_get_num_samples();
-        //lbm_uint tot_gc = 0;
-        //commands_printf_lisp("CID\tName\tSamples\t%%Load\t%%GC");
-        //for (int i = 0; i < PROF_DATA_NUM; i ++) {
-        //  if (prof_data[i].cid == -1) break;
-        //  tot_gc += prof_data[i].gc_count;
-        //  commands_printf_lisp("%d\t%s\t%u\t%.3f\t%.3f",
-        //                       prof_data[i].cid,
-        //                       prof_data[i].name,
-        //                       prof_data[i].count,
-        //                       (double)(100.0 * ((float)prof_data[i].count) / (float) tot_samples),
-        //                       (double)(100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count));
-        //}
-        //commands_printf_lisp(" ");
-        //commands_printf_lisp("GC:\t%u\t%f%%\n", tot_gc, (double)(100.0 * ((float)tot_gc / (float)tot_samples)));
-        //commands_printf_lisp("System:\t%u\t%f%%\n", num_system, (double)(100.0 * ((float)num_system / (float)tot_samples)));
-        //commands_printf_lisp("Sleep:\t%u\t%f%%\n", num_sleep, (double)(100.0 * ((float)num_sleep / (float)tot_samples)));
-        //commands_printf_lisp("Total:\t%u samples\n", tot_samples);
+        lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
+        lbm_uint num_system = lbm_prof_get_num_system_samples();
+        lbm_uint tot_samples = lbm_prof_get_num_samples();
+        lbm_uint tot_gc = 0;
+        commands_printf_lisp("CID\tName\tSamples\t%%Load\t%%GC");
+        for (int i = 0; i < PROF_DATA_NUM; i ++) {
+         if (prof_data[i].cid == -1) break;
+         tot_gc += prof_data[i].gc_count;
+         commands_printf_lisp("%d\t%s\t%u\t%.3f\t%.3f",
+                              prof_data[i].cid,
+                              prof_data[i].name,
+                              prof_data[i].count,
+                              (double)(100.0 * ((float)prof_data[i].count) / (float) tot_samples),
+                              (double)(100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count));
+        }
+        commands_printf_lisp(" ");
+        commands_printf_lisp("GC:\t%u\t%f%%\n", tot_gc, (double)(100.0 * ((float)tot_gc / (float)tot_samples)));
+        commands_printf_lisp("System:\t%u\t%f%%\n", num_system, (double)(100.0 * ((float)num_system / (float)tot_samples)));
+        commands_printf_lisp("Sleep:\t%u\t%f%%\n", num_sleep, (double)(100.0 * ((float)num_sleep / (float)tot_samples)));
+        commands_printf_lisp("Total:\t%u samples\n", tot_samples);
       } else if (strncmp(str, ":env", 4) == 0) {
         lbm_value *glob_env = lbm_get_global_env();
         char output[128];
@@ -1535,17 +1710,19 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
           }
         }
       } else if (strncmp(str, ":ctxs", 5) == 0) {
-        commands_printf_lisp("****** Running contexts ******");
-        lbm_running_iterator(print_ctx_info, NULL, NULL);
-        commands_printf_lisp("****** Blocked contexts ******");
-        lbm_blocked_iterator(print_ctx_info, NULL, NULL);
+        commands_printf_lisp("****** Contexts ******");
+        lbm_all_ctxs_iterator(vescif_print_ctx_info, NULL,NULL);
       } else if (strncmp(str, ":symbols", 8) == 0) {
-        lbm_symrepr_name_iterator(sym_it);
+        lbm_symrepr_name_iterator(vescif_sym_it);
         commands_printf_lisp(" ");
       } else if (strncmp(str, ":reset", 6) == 0) {
-        commands_printf_lisp("TODO: :reset\n");
-        //commands_printf_lisp(vesc_lbm_restart(true, flash_helper_code_size(CODE_IND_LISP) > 0, true) ?
-        //                     "Reset OK\n\n" : "Reset Failed\n\n");
+        bool r = false;
+        if (vescif_program_flash_code_len) {
+          r = vescif_restart(true, true, true);
+        } else {
+          r = vescif_restart(true, false, true);
+        }
+        commands_printf_lisp(r ? "Reset OK\n\n" : "Reset Failed\n\n");
       } else if (strncmp(str, ":pause", 6) == 0) {
         lbm_pause_eval_with_gc(30);
         while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
@@ -1586,7 +1763,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
             memcpy(buffer, data, len);
             lbm_create_string_char_channel(&string_tok_state, &string_tok, buffer);
             lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
-            if (cid >= 0) { 
+            if (cid >= 0) {
               add_reader(buffer, cid);
             } else {
               free(buffer);
@@ -1753,18 +1930,38 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     reply_func(send_buffer, (unsigned int)send_ind);
   } break;
   case COMM_LISP_WRITE_CODE: {
+    int32_t ind = 0;
+    int result = 0;
+    uint32_t offset = buffer_get_uint32(data, &ind);
+
+    size_t num = len - (size_t)ind; // length of data;
+    if (num + offset < vescif_program_flash_size) {
+      memcpy((uint8_t*)vescif_program_flash+offset, data+ind, num);
+      vescif_program_flash_code_len = num;
+      result = 1;
+    }
+    ind = 0;
+    uint8_t send_buffer[50];
+    send_buffer[ind++] = packet_id;
+    send_buffer[ind++] = (uint8_t)result;
+    buffer_append_uint32(send_buffer, offset, &ind);
+    reply_func(send_buffer, (unsigned int)ind);
   } break;
+
   case COMM_LISP_READ_CODE: {
-
-  } break;
+  }break;
   case COMM_LISP_ERASE_CODE: {
-
+    memset(vescif_program_flash, 0, vescif_program_flash_size);
+    vescif_program_flash_code_len = 0;
+    int32_t ind = 0;
+    uint8_t send_buffer[50];
+    send_buffer[ind++] = packet_id;
+    send_buffer[ind++] = 1;
+    reply_func(send_buffer, (unsigned int)ind);
     break;
   }
 
-  case COMM_LISP_RMSG: {
-  } break;
-
+  case COMM_LISP_RMSG: /* fall through */
   default:
     printf("Command %d is not supported by the LBM REPL VESC interface\n",packet_id);
     break;
@@ -1927,9 +2124,9 @@ int main(int argc, char **argv) {
         strncpy(ip, inet_ntoa(client_sockaddr_in.sin_addr), 255);
         printf("Refusing connection from %s\n", ip);
         ssize_t r = write(client_socket, vesctcp_in_use, strlen(vesctcp_in_use));
-	if (r < 0) {
-	  printf("Unable to write to refused client\n");
-	}
+        if (r < 0) {
+          printf("Unable to write to refused client\n");
+        }
       }
     }
   } else {
@@ -1963,11 +2160,16 @@ int main(int argc, char **argv) {
         printf("--(Symbol and Array memory)---------------------------------\n");
         printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());
         printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
+	printf("Maximum usage %f%%\n", 100.0  * ((float)lbm_memory_maximum_used() / (float)lbm_memory_num_words()));
         printf("Allocated arrays: %"PRI_UINT"\n", heap_state.num_alloc_arrays);
         printf("Symbol table size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
         printf("Symbol names size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names());
         printf("Symbol table size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_flash());
         printf("Symbol names size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names_flash());
+        printf("--(Flash)--\n");
+        printf("Size: %u words\n", const_heap.size);
+        printf("Used words: %d\n", const_heap.next);
+        printf("Free words: %d\n", const_heap.size - const_heap.next);
         free(str);
       } else if (strncmp(str, ":prof start", 11) == 0) {
         lbm_prof_init(prof_data,

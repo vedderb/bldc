@@ -46,7 +46,7 @@
 #define REPL_EXIT_ENV_POPULATION_TIMEOUT 23
 #define REPL_EXIT_INVALID_EXPRESSION 24
 
-const char *repl_exit_message[24] =
+const char *repl_exit_message[25] =
   {"Goodbye.",
    "ERROR: Out of memory while flattening a value.",
    "ERROR: Maximum cons depth reached while flattening value.",

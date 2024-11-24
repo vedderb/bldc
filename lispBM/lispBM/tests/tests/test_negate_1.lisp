@@ -9,5 +9,4 @@
 (define r8 (eq (- 1.0f32) -1.0f32))
 (define r9 (eq (- 1.0f64) -1.0f64))
 
-
 (check (and r1 r2 r3 r4 r5 r6 r7 r8 r9))

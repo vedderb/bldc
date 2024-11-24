@@ -1,5 +1,9 @@
 ;; 100 bytes becomes 25 words
-(define dm (dm-create 100))
+
+(if (= (word-size) 8)
+    (define dm (dm-create 200))
+  (define dm (dm-create 100))
+  )
 
 (define a1 (dm-alloc dm 10))
 (bufclear a1 0xFF)
@@ -25,6 +29,6 @@
 (bufclear a3 99)
 
 (check (and (eq a2 [170 170 170 170 170 170 170 170 170 170])
-	    (eq a1 [255 255 255 255 255 255 255 255 255 255])
-	    (eq a3 [99 99 99 99 99 99 99 99 99 99])))
+            (eq a1 [255 255 255 255 255 255 255 255 255 255])
+            (eq a3 [99 99 99 99 99 99 99 99 99 99])))
 

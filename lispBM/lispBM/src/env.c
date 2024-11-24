@@ -89,19 +89,6 @@ bool lbm_global_env_lookup(lbm_value *res, lbm_value sym) {
   return false;
 }
 
-lbm_value lbm_env_lookup(lbm_value sym, lbm_value env) {
-  lbm_value curr = env;
-
-  while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-    lbm_value car_val = lbm_car(curr);
-    if (lbm_car(car_val) == sym) {
-      return lbm_cdr(car_val);
-    }
-    curr = lbm_cdr(curr);
-  }
-  return ENC_SYM_NOT_FOUND;
-}
-
 // TODO: env set should ideally copy environment if it has to update
 // in place. This has never come up as an issue, the rest of the code
 // must be very well behaved.

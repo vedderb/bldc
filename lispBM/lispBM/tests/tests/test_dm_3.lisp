@@ -1,5 +1,7 @@
 ;; odd sizes tests
-(define dm (dm-create 100))
+(if (= (word-size) 8)
+    (define dm (dm-create 200))
+  (define dm (dm-create 100)))
 
 (define a1 (dm-alloc dm 11))
 (bufclear a1 0xFF)

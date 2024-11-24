@@ -2,15 +2,16 @@
 
 echo "BUILDING"
 
+rm -f test_lisp_code_cps_cov
 rm -rf coverage
 mkdir coverage 
 rm *.gcno
 rm *.gcda
-make clean
-make coverage
+make test_lisp_code_cps_cov
 
+timeout="50"
 date=$(date +"%Y-%m-%d_%H-%M")
-logfile="log_${date}.log"
+logfile="log_cov_${date}.log"
 
 if [ -n "$1" ]; then
    logfile=$1
@@ -18,14 +19,14 @@ fi
 
 echo "PERFORMING TESTS: " $date
 
-expected_fails=("test_lisp_code_cps -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -s -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -s -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -i -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -i -s -h 1024 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -i -h 512 tests/test_take_iota_0.lisp"
-                "test_lisp_code_cps -i -s -h 512 tests/test_take_iota_0.lisp"
+expected_fails=("test_lisp_code_cps_cov -t $timeout -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_cov -t $timeout -s -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_cov -t $timeout -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_cov -t $timeout -s -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_cov -t $timeout -i -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_cov -t $timeout -i -s -h 1024 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_cov -t $timeout -i -h 512 tests/test_take_iota_0.lisp"
+                "test_lisp_code_cps_cov -t $timeout -i -s -h 512 tests/test_take_iota_0.lisp"
               )
 
 
@@ -34,36 +35,42 @@ fail_count=0
 failing_tests=()
 result=0
 
-test_config=("-h 32768"
-             "-i -h 32768"
-              "-s -h 32768"
-              "-i -s -h 32768"
-              "-h 16384"
-              "-i -h 16384"
-              "-s -h 16384"
-              "-i -s -h 16384"
-              "-h 8192"
-              "-i -h 8192"
-              "-s -h 8192"
-              "-i -s -h 8192"
-              "-h 4096"
-              "-i -h 4096"
-              "-s -h 4096"
-              "-i -s -h 4096"
-              "-h 2048"
-              "-i -h 2048"
-              "-s -h 2048"
-              "-i -s -h 2048"
-              "-h 1024"
-              "-i -h 1024"
-              "-s -h 1024"
-              "-i -s -h 1024"
-              "-h 512"
-              "-i -h 512"
-              "-s -h 512"
-              "-i -s -h 512")
+test_config=("-t $timeout -h 32768"
+             "-t $timeout -i -h 32768"
+             "-t $timeout -s -h 32768"
+             "-t $timeout -i -s -h 32768"
+             "-t $timeout -h 16384"
+             "-t $timeout -i -h 16384"
+             "-t $timeout -s -h 16384"
+             "-t $timeout -i -s -h 16384"
+             "-t $timeout -h 8192"
+             "-t $timeout -i -h 8192"
+             "-t $timeout -s -h 8192"
+             "-t $timeout -i -s -h 8192"
+             "-t $timeout -h 4096"
+             "-t $timeout -i -h 4096"
+             "-t $timeout -s -h 4096"
+             "-t $timeout -i -s -h 4096"
+             "-t $timeout -h 2048"
+             "-t $timeout -i -h 2048"
+             "-t $timeout -s -h 2048"
+             "-t $timeout -i -s -h 2048"
+             "-t $timeout -h 1024"
+             "-t $timeout -i -h 1024"
+             "-t $timeout -s -h 1024"
+             "-t $timeout -i -s -h 1024"
+             "-t $timeout -h 512"
+             "-t $timeout -i -h 512"
+             "-t $timeout -s -h 512"
+             "-t $timeout -i -s -h 512")
 
-for prg in "test_lisp_code_cps" ; do
+
+for conf in "${test_config[@]}" ; do
+    expected_fails+=("test_lisp_code_cps_cov $conf tests/test_is_64bit.lisp")
+done
+
+
+for prg in "test_lisp_code_cps_cov" ; do
     for arg in "${test_config[@]}"; do
         echo "Configuration: " $arg
         for lisp in tests/*.lisp; do
@@ -115,8 +122,6 @@ echo Expected fails: $expected_count
 echo Actual fails: $((fail_count - expected_count))
 
 gcovr --gcov-ignore-parse-errors
-
-make clean
 
 if [ $((fail_count - expected_count)) -gt 0 ]
 then

@@ -2725,16 +2725,16 @@
 
 ;; Flash memory
 
-(define const-symbol-strings
-  (ref-entry "@const-symbol-strings"
-             (list
-              (para (list "`@const-symbol-strings` functionality have been combined with `@const-start` and `@const-end`."
-                          "Now symbols created while in a const block, end up in flash storage."
-                          ))
-              (para (list "~~if `@const-symbol-strings` directive is placed in a file, symbols will be created"
-                          "in flash memory instead of the arrays memory.~~"
-                          ))
-              end)))
+;; (define const-symbol-strings
+;;   (ref-entry "@const-symbol-strings"
+;;              (list
+;;               (para (list "`@const-symbol-strings` functionality have been combined with `@const-start` and `@const-end`."
+;;                           "Now symbols created while in a const block, end up in flash storage."
+;;                           ))
+;;               (para (list "~~if `@const-symbol-strings` directive is placed in a file, symbols will be created"
+;;                           "in flash memory instead of the arrays memory.~~"
+;;                           ))
+;;               end)))
 
 (define const-start
   (ref-entry "@const-start"
@@ -2800,7 +2800,7 @@
                         "reading, there are `@`directives."
                         ))
             'hline
-            const-symbol-strings
+            ;const-symbol-strings
             const-start
             const-end
             flash-move

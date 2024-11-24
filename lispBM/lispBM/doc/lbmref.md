@@ -7710,7 +7710,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-3131
+3155
 ```
 
 
@@ -7915,7 +7915,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 186695 kurt-russel)
+(exit-ok 178054 kurt-russel)
 ```
 
 
@@ -8563,18 +8563,6 @@ The `variable_not_bound` symbol is returned when evaluating a variable (symbol) 
 ## Flash memory
 
 Flash memory can be used to store data and functions that are constant. Things can be moved to flash explicitly using the `move-to-flash` function or as part of the reading procedure. To move things automatically to flash during reading, there are `@`directives. 
-
-
----
-
-
-### @const-symbol-strings
-
-`@const-symbol-strings` functionality have been combined with `@const-start` and `@const-end`. Now symbols created while in a const block, end up in flash storage. 
-
-~~if `@const-symbol-strings` directive is placed in a file, symbols will be created in flash memory instead of the arrays memory.~~ 
-
-
 
 
 ---

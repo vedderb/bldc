@@ -1,0 +1,3 @@
+   text	   data	    bss	    dec	    hex	filename             date
+ 132044	   2520	 128552	 263116	  403cc	build/lisp_test.elf  oct 26 2024
+ 131916	   2520	 128552	 262988	  4034c	build/lisp_test.elf  oct 27 2024

@@ -1,6 +1,7 @@
 # LispBM Runtime Extensions Reference Manual
 
 The runtime extensions, if present, can be either compiled in a minimal or a full mode. In the minimal mode only `set-eval-quota` is present. Minimal mode is the default when compiling LBM. To get the full mode the `-DFULL_RTS_LIB` flag must be used when compiling. 
+
 ## Environments
 
 

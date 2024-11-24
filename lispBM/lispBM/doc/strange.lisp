@@ -15,6 +15,7 @@
 
 
 (def ch-constant
+    (list 
      (section 2 "Constant code and data"
               (list
                (para (list "As LBM is targeting microcontrollers RAM is a limited resource while FLASH can be quite abundant!"
@@ -28,17 +29,20 @@
      (section 3 "Literals are constant in constant blocks"
               (list
                
+	       )
+	      )
      )
-
+  )
+	   
 
 (define manual
     (list
      (section 1 "The LBM guide to the strange and unexpected"
-              (list ch-intro
-                    ch-constant
+	      (list ch-intro
+		    ch-constant
 		    info
-                    )
-              )
+		    )
+	      )
      )
   )
 

@@ -144,11 +144,10 @@ bool f_sym_string(lbm_flat_value_t *v, char *str) {
 // Potentially a difference between 32/64 bit version.
 // strlen returns size_t which is different on 32/64 bit platforms.
 int f_sym_string_bytes(lbm_value sym) {
-  char *sym_str;
   int res = FLATTEN_VALUE_ERROR_FATAL;
   if (lbm_is_symbol(sym)) {
     lbm_uint s = lbm_dec_sym(sym);
-    sym_str = (char*)lbm_get_name_by_symbol(s);
+    char *sym_str = (char*)lbm_get_name_by_symbol(s);
     if (sym_str) {
       lbm_uint sym_bytes = strlen(sym_str) + 1;
       res = (int)sym_bytes;
@@ -266,10 +265,9 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
   switch (t) {
   case LBM_TYPE_CONS: {
     int res = 0;
-    int s2 = 0;
     int s1 = flatten_value_size_internal(jb,lbm_car(v), depth + 1);
     if (s1 > 0) {
-      s2 = flatten_value_size_internal(jb,lbm_cdr(v), depth + 1);
+      int s2 = flatten_value_size_internal(jb,lbm_cdr(v), depth + 1);
       if (s2 > 0) {
         res = (1 + s1 + s2);
       }

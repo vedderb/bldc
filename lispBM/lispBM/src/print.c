@@ -292,15 +292,14 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
       int res = 1;
       r = print_emit_char(chan, '[');
       lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(curr);
-      lbm_uint ix = 0;
       lbm_uint size = arr->size / sizeof(lbm_value);
       lbm_value *arrdata = (lbm_value*)arr->data;
       if (size >= 1) {
         lbm_value continuation[5] =
-          {ix + 1,
+          {1,  // next index
            (lbm_uint) arr,
            CONTINUE_ARRAY,
-           arrdata[ix],
+           arrdata[0], // first elt
            PRINT};
         res = res && push_n(&print_stack, continuation, 5);
       } else {
