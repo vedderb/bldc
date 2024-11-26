@@ -182,6 +182,13 @@
 #define HW_ADC_EXT2_GPIO		GPIOA
 #define HW_ADC_EXT2_PIN			6
 
+// Hardcoded adc app pins that won't override uart port or ppm inputs. On swd pins for example
+// #define HW_HARDWARE_ADC_APP_PINS
+// #define HW_REVERSE_SWITCH_PORT	 		GPIOA
+// #define HW_REVERSE_SWITCH_PIN 			13
+// #define HW_CRUISE_SWITCH_PORT 			GPIOA
+// #define HW_CRUISE_SWITCH_PIN 			  14
+
 // UART Peripheral
 #define HW_UART_DEV				SD3
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
