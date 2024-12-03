@@ -6567,6 +6567,7 @@ Creates an LED-buffer for num-leds leds. The optional argument optLedType specif
 | 1 | RGB |
 | 2 | GRBW |
 | 3 | RGBW |
+| 4 | WRGB |
 
 The optional argument optGammaCorr can be set to enable gamma correction for this LED-buffer. Gamma correction makes the brightness non-linear matching the response of human eyes. Generally that makes colors look better and it is something that all monitors do. The downside is that fewer distinct colors are available as not all bits can be used.
 
