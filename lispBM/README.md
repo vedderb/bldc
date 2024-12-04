@@ -677,10 +677,11 @@ Read system info parameter param. Example:
 (sysinfo 'uuid) ; STM32 UUID. ESC only.
 (sysinfo 'runtime) ; Total runtime in seconds. ESC only.
 (sysinfo 'odometer) ; Total odometer in meters. ESC only. Added in 6.06.
-(sysinfo 'git-branch) ; Git branch name. ESC only.
-(sysinfo 'git-hash) ; Git hash of current commit. ESC only.
+(sysinfo 'git-branch) ; Git branch name.
+(sysinfo 'git-hash) ; Git hash of current commit.
 (sysinfo 'compiler) ; GCC version, e.g. 7.3.1. ESC only.
 (sysinfo 'hw-type) ; Hardware type, e.g. hw-express. Added in 6.02.
+(sysinfo 'part-running) ; Running partition name. Express only.
 ```
 
 ---
