@@ -169,14 +169,22 @@ package_dict["FSESC_75_200_ALU"] = [['fsesc_75_200_alu', default_name],
                     ['fsesc_75_200_alu_no_limits', no_limits_name]]
 package_dict["MKSESC_75_100"] = [['mksesc_75_100', default_name],
                     ['mksesc_75_100_no_limits', no_limits_name]]
+package_dict["MKSESC_75_100_OLD"] = [['mksesc_75_100_old', default_name],
+                    ['mksesc_75_100_old_no_limits', no_limits_name]]
 package_dict["MKSESC_75_100_V2"] = [['mksesc_75_100_v2', default_name],
-                    ['mksesc_75_100_v2_no_limits', no_limits_name]]                    
+                    ['mksesc_75_100_v2_no_limits', no_limits_name]]      
+package_dict["MKSESC_75_100_V2_OLD"] = [['mksesc_75_100_v2_old', default_name],
+                    ['mksesc_75_100_v2_old_no_limits', no_limits_name]]                
 package_dict["MKSESC_75_200_V2"] = [['mksesc_75_200_v2', default_name],
                     ['mksesc_75_200_v2_no_limits', no_limits_name]]
+package_dict["MKSESC_75_200_V2_OLD"] = [['mksesc_75_200_v2_old', default_name],
+                    ['mksesc_75_200_v2_old_no_limits', no_limits_name]]
 package_dict["MKSESC_84_100_HP"] = [['mksesc_84_100_hp', default_name],
                     ['mksesc_84_100_hp_no_limits', no_limits_name]]                    
 package_dict["MKSESC_84_200_HP"] = [['mksesc_84_200_hp', default_name],
-                    ['mksesc_84_200_hp_no_limits', no_limits_name]]
+                    ['mksesc_84_200_hp_no_limits', no_limits_name]] 
+package_dict["MKSESC_100_300_HP"] = [['mksesc_100_300_hp', default_name],
+                    ['mksesc_100_300_hp_no_limits', no_limits_name]] 
 package_dict["STR500"] = [['str500', default_name],
                     ['str500_no_limits', no_limits_name]]
 package_dict["STR500_01"] = [['str500_01', default_name]]
