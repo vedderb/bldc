@@ -62,10 +62,10 @@ typedef struct {
 } rx_state;
 
 // Threads
-static THD_WORKING_AREA(cancom_read_thread_wa, 256);
-static THD_WORKING_AREA(cancom_process_thread_wa, 2048);
-static THD_WORKING_AREA(cancom_status_thread_wa, 512);
-static THD_WORKING_AREA(cancom_status_thread_2_wa, 512);
+__attribute__((section(".ram4"))) static THD_WORKING_AREA(cancom_read_thread_wa, 256);
+__attribute__((section(".ram4"))) static THD_WORKING_AREA(cancom_process_thread_wa, 2048);
+__attribute__((section(".ram4"))) static THD_WORKING_AREA(cancom_status_thread_wa, 512);
+__attribute__((section(".ram4"))) static THD_WORKING_AREA(cancom_status_thread_2_wa, 512);
 static THD_FUNCTION(cancom_read_thread, arg);
 static THD_FUNCTION(cancom_status_thread, arg);
 static THD_FUNCTION(cancom_status_thread_2, arg);

@@ -43,9 +43,9 @@
 
 // Threads
 static THD_FUNCTION(chuk_thread, arg);
-static THD_WORKING_AREA(chuk_thread_wa, 512);
+__attribute__((section(".ram4"))) static THD_WORKING_AREA(chuk_thread_wa, 512);
 static THD_FUNCTION(output_thread, arg);
-static THD_WORKING_AREA(output_thread_wa, 512);
+__attribute__((section(".ram4"))) static THD_WORKING_AREA(output_thread_wa, 512);
 
 // Private variables
 static volatile bool stop_now = true;

@@ -43,7 +43,7 @@
 
 // Threads
 static THD_FUNCTION(pas_thread, arg);
-static THD_WORKING_AREA(pas_thread_wa, 512);
+__attribute__((section(".ram4"))) static THD_WORKING_AREA(pas_thread_wa, 512);
 
 // Private variables
 static volatile pas_config config;

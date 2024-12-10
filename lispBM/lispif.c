@@ -33,12 +33,12 @@
 #include "lbm_prof.h"
 #include "utils.h"
 
-#define LBM_MEMORY_SIZE_18K LBM_MEMORY_SIZE_64BYTES_TIMES_X(256 + 32)
-#define LBM_MEMORY_BITMAP_SIZE_18K LBM_MEMORY_BITMAP_SIZE(256 + 32)
+#define LBM_MEMORY_SIZE_28K LBM_MEMORY_SIZE_64BYTES_TIMES_X(448)
+#define LBM_MEMORY_BITMAP_SIZE_28K LBM_MEMORY_BITMAP_SIZE(448)
 
 #define HEAP_SIZE					(2048 + 256 + 160)
-#define LISP_MEM_SIZE				LBM_MEMORY_SIZE_18K
-#define LISP_MEM_BITMAP_SIZE		LBM_MEMORY_BITMAP_SIZE_18K
+#define LISP_MEM_SIZE				LBM_MEMORY_SIZE_28K
+#define LISP_MEM_BITMAP_SIZE		LBM_MEMORY_BITMAP_SIZE_28K
 #define GC_STACK_SIZE				160
 #define PRINT_STACK_SIZE			128
 #ifndef EXTENSION_STORAGE_SIZE
@@ -66,7 +66,7 @@ static lbm_uint const_heap_max_ind = 0;
 
 static thread_t *eval_tp = 0;
 static THD_FUNCTION(eval_thread, arg);
-static THD_WORKING_AREA(eval_thread_wa, 2048);
+__attribute__((section(".ram4"))) static THD_WORKING_AREA(eval_thread_wa, 2048);
 static volatile bool lisp_thd_running = false;
 static mutex_t lbm_mutex;
 
