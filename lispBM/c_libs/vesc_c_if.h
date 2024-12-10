@@ -650,12 +650,16 @@ typedef struct {
 	const float* (*foc_get_audio_sample_table)(int channel);
 	bool (*foc_play_audio_samples)(const int8_t *samples, int num_samp, float f_samp, float voltage);
 
-	// Semaphore
+	// Semaphores
 	lib_semaphore (*sem_create)(void); // Use VESC_IF->free on the semaphore when done with it
 	void (*sem_wait)(lib_semaphore);
 	void (*sem_signal)(lib_semaphore);
 	bool (*sem_wait_to)(lib_semaphore, systime_t); // Returns false on timeout
 	void (*sem_reset)(lib_semaphore);
+	int32_t (*sem_drain_and_wait_timeout)(lib_semaphore, systime_t);
+
+	// Os continued
+	systime_t (*time_to_ticks)(uint32_t seconds, uint32_t millis, uint32_t micros);
 } vesc_c_if;
 
 typedef struct {
