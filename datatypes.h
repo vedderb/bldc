@@ -1108,6 +1108,8 @@ typedef enum {
 	//COMM_PINLOCK3							= 155,
 
 	COMM_SHUTDOWN							= 156,
+	
+	COMM_FW_INFO							= 157,
 } COMM_PACKET_ID;
 
 // CAN commands
