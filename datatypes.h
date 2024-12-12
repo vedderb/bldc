@@ -311,6 +311,8 @@ typedef struct {
 	float pressure;
 	float hum;
 	float temp_max_cell;
+	float v_cell_min;
+	float v_cell_max;
 	float soc;
 	float soh;
 	int can_id;
