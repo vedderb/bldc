@@ -136,6 +136,8 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 					m_values.soc = msg.soc;
 					m_values.soh = msg.soh;
 					m_values.temp_max_cell = msg.t_cell_max;
+					m_values.v_cell_min = msg.v_cell_min;
+					m_values.v_cell_max = msg.v_cell_max;
 				}
 
 				// In case there is more than one BMS, keep track of the limiting
@@ -640,8 +642,8 @@ void bms_send_status_can(void) {
 	 * [RSV     RSV     RSV     RSV     RSV     CHG_OK  IS_BAL  IS_CHG  ]
 	 */
 	send_index = 0;
-	buffer_append_float16(buffer, -1.0, 1e3, &send_index);
-	buffer_append_float16(buffer, -1.0, 1e3, &send_index);
+	buffer_append_float16(buffer, (float_t)m_values.v_cell_min, 1e3, &send_index);
+	buffer_append_float16(buffer, (float_t)m_values.v_cell_max, 1e3, &send_index);
 	buffer[send_index++] = (uint8_t)(m_values.soc * 255.0);
 	buffer[send_index++] = (uint8_t)(m_values.soh * 255.0);
 	buffer[send_index++] = (int8_t)m_values.temp_max_cell;

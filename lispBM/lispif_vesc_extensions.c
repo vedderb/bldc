@@ -81,6 +81,8 @@ typedef struct {
 	lbm_uint hum;
 	lbm_uint pres;
 	lbm_uint temp_max_cell;
+	lbm_uint v_cell_min;
+	lbm_uint v_cell_max;
 	lbm_uint soc;
 	lbm_uint soh;
 	lbm_uint can_id;
@@ -294,6 +296,10 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("bms-pres", comp);
 		} else if (comp == &syms_vesc.temp_max_cell) {
 			lbm_add_symbol_const("bms-temp-cell-max", comp);
+		} else if (comp == &syms_vesc.v_cell_min) {
+			lbm_add_symbol_const("bms-v-cell-min", comp);
+		} else if (comp == &syms_vesc.v_cell_max) {
+			lbm_add_symbol_const("bms-v-cell-max", comp);
 		} else if (comp == &syms_vesc.soc) {
 			lbm_add_symbol_const("bms-soc", comp);
 		} else if (comp == &syms_vesc.soh) {
@@ -854,6 +860,10 @@ static lbm_value get_set_bms_val(bool set, lbm_value *args, lbm_uint argn) {
 		res = get_or_set_float(set, &val->pressure, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.temp_max_cell)) {
 		res = get_or_set_float(set, &val->temp_max_cell, &set_arg);
+	} else if (compare_symbol(name, &syms_vesc.v_cell_min)) {
+		res = get_or_set_float(set, &val->v_cell_min, &set_arg);
+	} else if (compare_symbol(name, &syms_vesc.v_cell_max)) {
+		res = get_or_set_float(set, &val->v_cell_max, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.soc)) {
 		res = get_or_set_float(set, &val->soc, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.soh)) {

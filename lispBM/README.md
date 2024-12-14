@@ -271,7 +271,10 @@ Get value from BMS. Examples:
 (get-bms-val 'bms-hum) ; Humidity
 (get-bms-val 'bms-pres) ; Pressure in PA (Added in 6.05)
 (get-bms-val 'bms-temp-cell-max) ; Maximum cell temperature
+(get-bms-val 'bms-v-cell-min) ; Minimum cell voltage (added in 6.06)
+(get-bms-val 'bms-v-cell-max) ; Maximum cell voltage (added in 6.06)
 (get-bms-val 'bms-soc) ; State of charge (0.0 to 1.0)
+(get-bms-val 'bms-soh) ; State of health (0.0 to 1.0)
 (get-bms-val 'bms-can-id) ; CAN ID of BMS
 (get-bms-val 'bms-ah-cnt-chg-total) ; Total ah charged
 (get-bms-val 'bms-wh-cnt-chg-total) ; Total wh charged
