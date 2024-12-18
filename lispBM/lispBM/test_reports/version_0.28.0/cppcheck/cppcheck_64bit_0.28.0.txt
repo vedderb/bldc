@@ -1,0 +1,150 @@
+Cppcheck 2.16.0
+/home/joels/Current/lispbm/src/eval_cps.c:1572:8: style: Local variable 'gc' shadows outer function [shadowFunction]
+  bool gc = false;
+       ^
+/home/joels/Current/lispbm/src/eval_cps.c:185:12: note: Shadowed declaration
+static int gc(void);
+           ^
+/home/joels/Current/lispbm/src/eval_cps.c:1572:8: note: Shadow variable
+  bool gc = false;
+       ^
+/home/joels/Current/lispbm/src/eval_cps.c:3790:12: style: Local variable 'match' shadows outer function [shadowFunction]
+  uint32_t match;
+           ^
+/home/joels/Current/lispbm/src/eval_cps.c:1532:13: note: Shadowed declaration
+static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
+            ^
+/home/joels/Current/lispbm/src/eval_cps.c:3790:12: note: Shadow variable
+  uint32_t match;
+           ^
+/home/joels/Current/lispbm/src/extensions/string_extensions.c:279:7: style: The scope of the variable 'step' can be reduced. [variableScope]
+  int step = 0;
+      ^
+/home/joels/Current/lispbm/src/extensions/string_extensions.c:364:10: style: The scope of the variable 'len_front' can be reduced. [variableScope]
+  size_t len_front; // distance between rep and end of last rep
+         ^
+/home/joels/Current/lispbm/src/extensions/string_extensions.c:279:12: style: Variable 'step' is assigned a value that is never used. [unreadVariable]
+  int step = 0;
+           ^
+/home/joels/Current/lispbm/src/extensions/matvec_extensions.c:283:16: style: The scope of the variable 'rows' can be reduced. [variableScope]
+      uint32_t rows = len / cols;
+               ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1254:47: style: Condition 'end_is_past0!=0' is always true [knownConditionTrueFalse]
+      && (start_is_past0 != 0 || end_is_past0 != 0);
+                                              ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1256:47: style: Condition 'end_is_past1!=0' is always true [knownConditionTrueFalse]
+      && (start_is_past1 != 0 || end_is_past1 != 0);
+                                              ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1392:45: style: Condition 'end_is_past!=0' is always true [knownConditionTrueFalse]
+      && (start_is_past != 0 || end_is_past != 0);
+                                            ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1740:17: style: Condition 'des_x_end>des_w' is always false [knownConditionTrueFalse]
+  if (des_x_end > des_w) des_x_end = des_w;
+                ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1736:17: note: des_x_end is assigned 'des_x_start+des_w' here.
+  int des_x_end = (des_x_start + des_w);
+                ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1740:17: note: Condition 'des_x_end>des_w' is always false
+  if (des_x_end > des_w) des_x_end = des_w;
+                ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1742:17: style: Condition 'des_y_end>des_h' is always false [knownConditionTrueFalse]
+  if (des_y_end > des_h) des_y_end = des_h;
+                ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1737:17: note: des_y_end is assigned 'des_y_start+des_h' here.
+  int des_y_end = (des_y_start + des_h);
+                ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1742:17: note: Condition 'des_y_end>des_h' is always false
+  if (des_y_end > des_h) des_y_end = des_h;
+                ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1739:19: style: The comparison 'des_x_start < 0' is always false. [knownConditionTrueFalse]
+  if (des_x_start < 0) des_x_start = 0;
+                  ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1734:21: note: 'des_x_start' is assigned value '0' here.
+  int des_x_start = 0;
+                    ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1739:19: note: The comparison 'des_x_start < 0' is always false.
+  if (des_x_start < 0) des_x_start = 0;
+                  ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1741:19: style: The comparison 'des_y_start < 0' is always false. [knownConditionTrueFalse]
+  if (des_y_start < 0) des_y_start = 0;
+                  ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1735:21: note: 'des_y_start' is assigned value '0' here.
+  int des_y_start = 0;
+                    ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1741:19: note: The comparison 'des_y_start < 0' is always false.
+  if (des_y_start < 0) des_y_start = 0;
+                  ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:469:18: style: The scope of the variable 'fmt' can be reduced. [variableScope]
+  color_format_t fmt = img->fmt;
+                 ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:529:18: style: The scope of the variable 'fmt' can be reduced. [variableScope]
+  color_format_t fmt = img->fmt;
+                 ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1235:9: style: The scope of the variable 'x_start1' can be reduced. [variableScope]
+    int x_start1;
+        ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1236:9: style: The scope of the variable 'x_end1' can be reduced. [variableScope]
+    int x_end1;
+        ^
+/home/joels/Current/lispbm/src/extensions/tjpgd.c:164:15: style: The scope of the variable 'i' can be reduced. [variableScope]
+ unsigned int i, zi;
+              ^
+/home/joels/Current/lispbm/src/extensions/tjpgd.c:165:10: style: The scope of the variable 'd' can be reduced. [variableScope]
+ uint8_t d;
+         ^
+/home/joels/Current/lispbm/src/extensions/tjpgd.c:708:39: style: The scope of the variable 'cmp' can be reduced. [variableScope]
+ unsigned int blk, nby, i, bc, z, id, cmp;
+                                      ^
+/home/joels/Current/lispbm/src/extensions/tjpgd.c:937:12: style: The scope of the variable 'w' can be reduced. [variableScope]
+  uint16_t w, *d = (uint16_t*)s;
+           ^
+/home/joels/Current/lispbm/src/extensions/tjpgd.c:973:9: style: The scope of the variable 'len' can be reduced. [variableScope]
+ size_t len;
+        ^
+repl.c:309:29: style: Redundant condition: The condition 'filename[i] != 0' is redundant since 'filename[i] == ' '' is sufficient. [redundantCondition]
+  while (filename[i] == ' ' && filename[i] != 0) {
+                            ^
+repl.c:2170:9: portability: %u in format string (no. 1) requires 'unsigned int' but the argument type is 'lbm_uint {aka unsigned long}'. [invalidPrintfArgType_uint]
+        printf("Size: %u words\n", const_heap.size);
+        ^
+repl.c:2171:9: portability: %d in format string (no. 1) requires 'int' but the argument type is 'lbm_uint {aka unsigned long}'. [invalidPrintfArgType_sint]
+        printf("Used words: %d\n", const_heap.next);
+        ^
+repl.c:2172:9: portability: %d in format string (no. 1) requires 'int' but the argument type is 'lbm_uint {aka unsigned long}'. [invalidPrintfArgType_sint]
+        printf("Free words: %d\n", const_heap.size - const_heap.next);
+        ^
+repl.c:320:9: style: The scope of the variable 'fp' can be reduced. [variableScope]
+  FILE *fp;
+        ^
+repl.c:379:8: style: The scope of the variable 'output' can be reduced. [variableScope]
+  char output[1024];
+       ^
+repl.c:874:8: style: The scope of the variable 'name_buf' can be reduced. [variableScope]
+  char name_buf[NAME_BUF_SIZE];
+       ^
+repl.c:1168:13: style: The scope of the variable 't' can be reduced. [variableScope]
+  lbm_value t = ctx->r;
+            ^
+repl.c:1409:41: style: The scope of the variable 'tot_cpu' can be reduced. [variableScope]
+    long unsigned int ucpu = 0, scpu=0, tot_cpu = 0 ;
+                                        ^
+repl.c:1409:49: style: Variable 'tot_cpu' is assigned a value that is never used. [unreadVariable]
+    long unsigned int ucpu = 0, scpu=0, tot_cpu = 0 ;
+                                                ^
+repl_exts.c:551:7: style: The scope of the variable 'pid' can be reduced. [variableScope]
+  int pid;
+      ^
+repl_exts.c:804:14: style: The scope of the variable 'bpp' can be reduced. [variableScope]
+    uint8_t  bpp = img->fmt;
+             ^
+packet.c:51:17: style: Condition 'len<=65535' is always true [knownConditionTrueFalse]
+ } else if (len <= 65535) {
+                ^
+packet.c:42:22: note: Assuming that condition 'len>512' is not redundant
+ if (len == 0 || len > PACKET_MAX_PL_LEN) {
+                     ^
+packet.c:51:17: note: Condition 'len<=65535' is always true
+ } else if (len <= 65535) {
+                ^
+nofile:0:0: information: Active checkers: 108/836 (use --checkers-report=<filename> to see details) [checkersReport]
+

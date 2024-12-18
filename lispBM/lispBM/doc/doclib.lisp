@@ -1,10 +1,28 @@
 
 (define png-count 0)
+(define gif-count 0)
+
+(defun leading-zeroes (n)
+  (if (< n 10) (str-merge "000" (to-str n))
+    (if (< n 100) (str-merge "00" (to-str n))
+      (if < n 1000) (str-merge "0" (to-str n))
+      ( to-str n))))
+
+
+(defun gif-frame (n) 
+       (str-merge "./images/frame_" (leading-zeroes n) ".png"))
+        
 
 (defun png-file () {
        (var n png-count)
        (setq png-count (+ png-count 1))
        (str-merge "./images/img" (to-str png-count) ".png")
+       })
+
+(defun gif-file () {
+       (var n gif-count)
+       (setq gif-count (+ gif-count 1))
+       (str-merge "./images/anm" (to-str gif-count) ".gif")
        })
 
 (defun is-read-eval-txt (x)
@@ -23,6 +41,14 @@
 
 (defun pretty-ind (n c)
   (match c
+         ( (loopfor (? v) (? init) (? cond) (? upd) (? body) )
+           (str-merge (ind-spaces n) "(loopfor " (pretty nil v) " " (pretty nil init) " " (pretty nil cond) " " (pretty nil upd) "\n" (pretty-ind (+ n 6) body) ")"))
+         ( (disp-render-mac (? i) (? x) (? y) (? color))
+           (str-merge (ind-spaces n) "(disp-render " (pretty nil i) " " (pretty nil x) " " (pretty nil y) " " (pretty nil color) ")"))
+         ( (fopen (? f) (? m))
+           (str-merge (ind-spaces n) "(fopen \"" f "\" \"" m "\")"))
+         ( (import (? txt) (? sym))
+           (str-merge (ind-spaces n) "(import \"" txt "\" '" (to-str (eval sym)) ")"))
          ( (loop (? e) . (? es))
            (str-merge (ind-spaces n) "(loop " (pretty nil e) (pretty-aligned-ontop (+ n 6) es) ")" ))
          ( (atomic (? e) . (? es))
@@ -313,18 +339,94 @@
              (rend "\n```\n")
              (rend "\n\n</td>\n")
              (rend "</tr>\n")
-             (render-program-res-pairs rend xs)
+             (render-program-disp-res-pairs rend xs)
              }))))
 
 (defun render-program-disp-table (rend c)
   {
-    (rend "<table>\n")
-    (rend "<tr>\n")
-    (rend "<td> Example </td> <td> Image </td> <td> Result </td>\n")
-    (rend "</tr>\n")
-    (render-program-disp-res-pairs rend c)
-    (rend "</table>\n\n")
-    })
+  (rend "<table>\n")
+  (rend "<tr>\n")
+  (rend "<td> Example </td> <td> Image </td> <td> Result </td>\n")
+  (rend "</tr>\n")
+  (render-program-disp-res-pairs rend c)
+  (rend "</table>\n\n")
+  })
+
+
+;; assumes existance of frame-i value
+;; assumes existance of frame-max value
+;; assumes existance of yeet continuation 
+(define disp-render-mac (macro (img x y color)
+  `(if (= frame-i frame-max)
+       (glob-yeet nil)
+     (progn (var png (gif-frame frame-i))
+            (setq frame-i (+ frame-i 1))
+            (disp-render ,img ,x ,y ,color)
+            (save-active-image png)))))
+
+(define frame-i 0)
+(define frame-max 0)
+(define glob-yeet nil)
+
+(defun eval-animation (gif c frames)
+  {
+  (setq frame-i 0)
+  (setq frame-max frames)
+  (call-cc (lambda (yeet)
+             {
+             (setq glob-yeet yeet)
+             (eval-program c)
+             }))
+  ;; done, convert to gif.
+  ;; convert -delay 10 -loop 0 frame*.png animation.gif
+  (var cmd (str-merge "convert -delay 10 -loop 0 images/frame*.png " gif))
+  (unsafe-call-system cmd)
+  (unsafe-call-system "rm images/frame*")
+  }
+  )
+
+     
+(defun render-program-disp-gif-pairs (rend cs)
+  (match cs
+         (nil t)
+         ( ((? x) . (? xs))
+           (let ((x-str (pretty 't (car (cdr x))))
+                 (x-code (car (cdr x)))
+                 (gif (gif-file))
+                 (res (eval-animation gif x-code (car x)))
+                 (rstr (to-str res)))
+             {
+             (rend "<tr>\n")
+             (rend "<td>\n\n")
+             (rend "\n```clj\n")
+                                        ;(map rend cstrs)
+             (rend x-str)
+             (rend "\n```\n")
+             (rend "\n\n</td>\n")
+              ;; image
+	     (rend "<td>\n\n")
+	     (rend (str-merge "<img src=" gif " >"))
+             (rend "\n\n</td>\n")	     
+             ;;(rend "<td>\n\n")
+             ;;(rend "\n```clj\n")
+             ;;(rend rstr)
+             ;;(rend "\n```\n")
+             ;;(rend "\n\n</td>\n")
+             (rend "</tr>\n")
+             (render-program-disp-gif-pairs rend xs)
+             }))))
+
+(defun render-program-disp-gif-table (rend c)
+  {
+  (rend "<table>\n")
+  (rend "<tr>\n")
+  (rend "<td> Example </td> <td> Animation </td>\n")
+  (rend "</tr>\n")
+  (render-program-disp-gif-pairs rend c)
+  (rend "</table>\n\n")
+  })
+
+
 
 (defun str-merge-list (strs)
   (match strs
@@ -358,6 +460,8 @@
 	   (render-code-disp-table rend  c))
          ( (program-disp (? c))
            (render-program-disp-table rend c))
+         ( (program-gif (? c))
+           (render-program-disp-gif-table rend c))
          ( (image (? alt) (? url))
            (rend (str-merge "![" alt "](" url " \"" alt "\")\n\n")))
          ( (image-pair (? cap0) (? txt0) (? fig0) (? cap1) (? txt1) (? fig1))
@@ -429,6 +533,9 @@
 
 (defun program-disp (c)
   (list 'program-disp c))
+
+(defun program-gif (c)
+  (list 'program-gif c))
 
 (defun newline ()
   'newline)

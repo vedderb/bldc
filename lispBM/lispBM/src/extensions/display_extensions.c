@@ -466,13 +466,13 @@ static const uint8_t indexed16_shift[4] = {0, 4};
 
 
 static void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
-  color_format_t fmt = img->fmt;
   uint16_t w = img->width;
   uint16_t h = img->height;
   uint16_t x = (uint16_t)x_i; // negative numbers become really large.
   uint16_t y = (uint16_t)y_i;
 
   if (x < w && y < h) {
+    color_format_t fmt = img->fmt;
     uint8_t *data = img->data;
     switch(fmt) {
     case indexed2: {
@@ -526,13 +526,13 @@ static void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
 }
 
 static uint32_t getpixel(image_buffer_t* img, int x_i, int y_i) {
-  color_format_t fmt = img->fmt;
   uint16_t w = img->width;
   uint16_t h = img->height;
   uint16_t x = (uint16_t)x_i;
   uint16_t y = (uint16_t)y_i;
 
   if (x < w && y < h) {
+    color_format_t fmt = img->fmt;
     uint8_t *data = img->data;
     switch(fmt) {
     case indexed2: {
@@ -1232,9 +1232,6 @@ static void handle_arc_slice(image_buffer_t *img, int outer_x, int outer_y, int 
     int x_start = x;
     int x_end = x_start + width - 1;
 
-    int x_start1;
-    int x_end1;
-
     // when a point is "past" a line, it is on the wrong cleared side of it
     int start_is_past0 = point_past_line(x_start, outer_y,
                                          0, 0,
@@ -1250,6 +1247,9 @@ static void handle_arc_slice(image_buffer_t *img, int outer_x, int outer_y, int 
                                         0, 0,
                                         outer_x1, outer_y1);
 
+    // TODO: look into this:
+    // end_is_past0!=0 is always true.
+    // end_is_part1!=0 is always true.
     bool slice_overlaps0 = start_is_past0 != end_is_past0
       && (start_is_past0 != 0 || end_is_past0 != 0);
     bool slice_overlaps1 = start_is_past1 != end_is_past1
@@ -1340,8 +1340,8 @@ static void handle_arc_slice(image_buffer_t *img, int outer_x, int outer_y, int 
 
         slice_is_split = true;
 
-        x_start1 = x_start;
-        x_end1 = x_end;
+        int x_start1 = x_start;
+        int x_end1 = x_end;
 
         if (angle0 < M_PI) {
           while (end_is_past0 == 1) {
@@ -1731,13 +1731,13 @@ static void blit_rot_scale(
   int des_w = img_dest->width;
   int des_h = img_dest->height;
 
-  int des_x_start = 0;
+  int des_x_start = 0; // TODO: strange code. Vars hold known values..
   int des_y_start = 0;
   int des_x_end = (des_x_start + des_w);
   int des_y_end = (des_y_start + des_h);
 
-  if (des_x_start < 0) des_x_start = 0;
-  if (des_x_end > des_w) des_x_end = des_w;
+  if (des_x_start < 0) des_x_start = 0; // but here we check what they are and change.
+  if (des_x_end > des_w) des_x_end = des_w; //TODO: This condition is always false.
   if (des_y_start < 0) des_y_start = 0;
   if (des_y_end > des_h) des_y_end = des_h;
 
@@ -2605,8 +2605,15 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
 
   int ind = 0;
   while (txt[ind] != 0) {
-    img_putc(&img_buf, x + ind * w * incx, y + ind * h * incy,
-      (uint32_t *)colors, 4, font_data, (uint8_t)txt[ind], up, down);
+    img_putc(&img_buf,
+      x + ind * ((up || down) ? h : w) * incx,
+      y + ind * ((up || down) ? w : h) * incy,
+      (uint32_t *)colors,
+      4,
+      font_data,
+      (uint8_t)txt[ind],
+      up,
+      down);
     ind++;
   }
 
