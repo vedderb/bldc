@@ -2405,9 +2405,8 @@
                           ))
               (program '(((send (self) 28)
                           (recv-to 0.1
-                                   ((? n) (+ n 1))
-                                   (timeout 'no-message))
-
+                                   (timeout 'no-message)
+                                   ((? n) (+ n 1)))
                           )
                          ))
               (program '(((send (self) 'not-foo)

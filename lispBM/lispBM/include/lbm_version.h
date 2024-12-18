@@ -27,13 +27,21 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 27u
+#define LBM_MINOR_VERSION 28u
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 1u
 
-#define LBM_VERSION_STRING "0.27.1"
+#define LBM_VERSION_STRING "0.28.1"
 
 /*! \page changelog Changelog
+DEC 5 2024: Version 0.28.0
+  - Fixes bugs in recv-to (receive with timeout).
+  - Fixes crash when trying to read an empty buffer.
+  - Error message improvements.
+  - Display library character spacing when rendering upwards or downwards text (thanks r3n33).
+  - Changes to how memory usage statistics is collected.
+  - Pointer reversal GC now compatible with recent language additions.
+
 NOV 5 2024: Version 0.27.0
   - A number of important bugfixes. A write out of bounds among the most important.
   - Addition of integer division operation (By Rasmus S)

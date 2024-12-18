@@ -1607,6 +1607,44 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 	} break;
 
+	case COMM_FW_INFO: {
+		// Write at most the first max_len characters of str into buffer,
+		// followed by a null byte.
+		void buffer_append_str_max_len(uint8_t *buffer, char *str, size_t max_len, int32_t *index) {
+			size_t str_len = strlen(str);
+			if (str_len > max_len) {
+				str_len = max_len;
+				return;
+			}
+			
+			memcpy(&buffer[*index], str, str_len);
+			*index += str_len;
+			buffer[(*index)++] = '\0';
+		}
+		
+		int32_t ind = 0;
+		uint8_t send_buffer[98];
+		
+		send_buffer[ind++] = COMM_FW_INFO;
+		
+		// This information is technically duplicated with COMM_FW_VERSION, but
+		// I don't care.
+		send_buffer[ind++] = FW_VERSION_MAJOR;
+		send_buffer[ind++] = FW_VERSION_MINOR;
+		send_buffer[ind++] = FW_TEST_VERSION_NUMBER;
+		
+		// We don't include the branch name unfortunately
+		buffer_append_str_max_len(send_buffer, GIT_COMMIT_HASH, 46, &ind);
+#ifdef USER_GIT_COMMIT_HASH
+		char *user_commit_hash = USER_GIT_COMMIT_HASH;
+#else
+		char *user_commit_hash = "";
+#endif
+		buffer_append_str_max_len(send_buffer, user_commit_hash, 46, &ind);
+
+		reply_func(send_buffer, ind);
+	} break;
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.

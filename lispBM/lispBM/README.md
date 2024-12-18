@@ -58,7 +58,7 @@ The REPL depends on libreadline.
 * gcc-multilib
 * libpng
 
-On Ubunty you can obtain the depencies by:
+On Ubuntu you can obtain the depencies by:
 ```shell
 sudo apt-get install gcc-multilib libreadline-dev lib32readline-dev libpng-dev libpng-dev:i386
 ```

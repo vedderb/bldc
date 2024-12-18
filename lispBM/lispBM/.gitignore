@@ -1,3 +1,6 @@
+*.gcda
+*.gcno
+
 # Prerequisites
 *.d
 
