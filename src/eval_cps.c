@@ -95,7 +95,8 @@ static jmp_buf critical_error_jmp_buf;
 #define EXCEPTION_HANDLER     CONTINUATION(45)
 #define RECV_TO               CONTINUATION(46)
 #define WRAP_RESULT           CONTINUATION(47)
-#define NUM_CONTINUATIONS     48
+#define RECV_TO_RETRY         CONTINUATION(48)
+#define NUM_CONTINUATIONS     49
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -572,43 +573,6 @@ static lbm_value get_cadr(lbm_value a) {
   return(ENC_SYM_TERROR);
 }
 
-static lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value env) {
-
-#ifdef LBM_ALWAYS_GC
-  gc();
-  if (lbm_heap_num_free() < 4) {
-    error_ctx(ENC_SYM_MERROR);
-  }
-#else
-  if (lbm_heap_num_free() < 4) {
-    gc();
-    if (lbm_heap_num_free() < 4) {
-      error_ctx(ENC_SYM_MERROR);
-    }
-  }
-#endif
-  // The freelist will always contain just plain heap-cells.
-  // So dec_ptr is sufficient.
-  lbm_value res = lbm_heap_state.freelist;
-  if (lbm_type_of(res) == LBM_TYPE_CONS) {
-    lbm_cons_t *heap = lbm_heap_state.heap;
-    lbm_uint ix = lbm_dec_ptr(res);
-    heap[ix].car = ENC_SYM_CLOSURE;
-    ix = lbm_dec_ptr(heap[ix].cdr);
-    heap[ix].car = params;
-    ix = lbm_dec_ptr(heap[ix].cdr);
-    heap[ix].car = body;
-    ix = lbm_dec_ptr(heap[ix].cdr);
-    heap[ix].car = env;
-    lbm_heap_state.freelist = heap[ix].cdr;
-    heap[ix].cdr = ENC_SYM_NIL;
-    lbm_heap_state.num_alloc+=4;
-  } else {
-    error_ctx(ENC_SYM_FATAL_ERROR);
-  }
-  return res;
-}
-
 // Allocate a binding and attach it to a list (if so desired)
 static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cdr) {
 #ifdef LBM_ALWAYS_GC
@@ -630,6 +594,7 @@ static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cd
     }
   }
 #endif
+  // If num_free is calculated correctly, freelist is definitely a cons-cell.
   lbm_cons_t* heap = lbm_heap_state.heap;
   lbm_value binding_cell = lbm_heap_state.freelist;
   lbm_uint binding_cell_ix = lbm_dec_ptr(binding_cell);
@@ -703,6 +668,17 @@ static void block_current_ctx(uint32_t state, lbm_uint sleep_us,  bool do_cont) 
   enqueue_ctx(&blocked, ctx_running);
   ctx_running = NULL;
 }
+
+// reblock an essentially already blocked context.
+// Same as block but sets no new timestamp or sleep_us.
+static void reblock_current_ctx(uint32_t state, bool do_cont) {
+  if (is_atomic) atomic_error();
+  ctx_running->state  = state;
+  ctx_running->app_cont = do_cont;
+  enqueue_ctx(&blocked, ctx_running);
+  ctx_running = NULL;
+}
+
 
 lbm_flash_status lbm_write_const_array_padded(uint8_t *data, lbm_uint n, lbm_uint *res) {
   lbm_uint full_words = n / sizeof(lbm_uint);
@@ -786,8 +762,6 @@ void print_error_message(lbm_value error,
                          lbm_int row1,
                          lbm_int cid,
                          char *name) {
-  if (!printf_callback) return;
-
   /* try to allocate a lbm_print_value buffer on the lbm_memory */
   char *buf = lbm_malloc_reserve(ERROR_MESSAGE_BUFFER_SIZE_BYTES);
   if (!buf) {
@@ -795,42 +769,38 @@ void print_error_message(lbm_value error,
     return;
   }
 
-  print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   Error:", error, false);
+  print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   Error:", error, false);
   if (name) {
-    printf_callback(  "***   ctx: %d \"%s\"\n", cid, name);
+    printf_callback(  "   CTX: %d \"%s\"\n", cid, name);
   } else {
-    printf_callback(  "***   ctx: %d\n", cid);
+    printf_callback(  "   CTX: %d\n", cid);
   }
-  if (has_at) {
-    print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   In:", at, true);
-    if (lbm_error_has_suspect) {
-      print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   At:", lbm_error_suspect, true);
+  print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   Current:", ctx_running->curr_exp, true);
+  if (lbm_error_has_suspect) {
+      print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   At:", lbm_error_suspect, true);
       lbm_error_has_suspect = false;
-    } else {
-      print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   After:", ctx_running->curr_exp, true);
-    }
-  } else {
-    print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"***   Near:",ctx_running->curr_exp, true);
+  } else if (has_at) {
+    print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   In:", at, true);
   }
 
   printf_callback("\n");
 
   if (lbm_is_symbol(error) &&
       error == ENC_SYM_RERROR) {
-    printf_callback("***   Line:   %u\n", row);
-    printf_callback("***   Column: %u\n", col);
+    printf_callback("   Line:   %u\n", row);
+    printf_callback("   Column: %u\n", col);
   } else if (row0 >= 0) {
-    if (row1 < 0) printf_callback("***   Starting at row: %d\n", row0);
-    else printf_callback("***   Between row %d and %d\n", row0, row1);
+    if (row1 < 0) printf_callback("   Starting at row: %d\n", row0);
+    else printf_callback("   Between row %d and %d\n", row0, row1);
   }
 
   printf_callback("\n");
 
   if (ctx_running->error_reason) {
-    printf_callback("Reason:\n   %s\n\n", ctx_running->error_reason);
+    printf_callback("   Reason: %s\n\n", ctx_running->error_reason);
   }
   if (lbm_verbose) {
-    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->curr_exp);
+    lbm_print_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES, ctx_running->r);
     printf_callback("   Current intermediate result: %s\n\n", buf);
 
     print_environments(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES);
@@ -1574,13 +1544,13 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
   // ( (p1 e1) (p2 e2) ... (pn en))
   lbm_value curr_p = plist;
   int n = 0;
-  bool gc = false;
+  bool need_gc = false;
   for (int i = 0; i < (int)num; i ++ ) {
     lbm_value curr_e = earr[i];
     while (!lbm_is_symbol_nil(curr_p)) {
       lbm_value me = get_car(curr_p);
-      if (match(get_car(me), curr_e, env, &gc)) {
-        if (gc) return FM_NEED_GC;
+      if (match(get_car(me), curr_e, env, &need_gc)) {
+        if (need_gc) return FM_NEED_GC;
         *e = get_cadr(me);
 
         if (!lbm_is_symbol_nil(get_cadr(get_cdr(me)))) {
@@ -1806,6 +1776,42 @@ static void eval_define(eval_context_t *ctx) {
   error_at_ctx(ENC_SYM_EERROR, ctx->curr_exp);
 }
 
+/* Allocate closure is only used in eval_lambda currently.
+   Inlining it should use no extra storage.
+ */
+static inline lbm_value allocate_closure(lbm_value params, lbm_value body, lbm_value env) {
+
+#ifdef LBM_ALWAYS_GC
+  gc();
+  if (lbm_heap_num_free() < 4) {
+    error_ctx(ENC_SYM_MERROR);
+  }
+#else
+  if (lbm_heap_num_free() < 4) {
+    gc();
+    if (lbm_heap_num_free() < 4) {
+      error_ctx(ENC_SYM_MERROR);
+    }
+  }
+#endif
+  // The freelist will always contain just plain heap-cells.
+  // So dec_ptr is sufficient.
+  lbm_value res = lbm_heap_state.freelist;
+  // CONS check is not needed. If num_free is correct, then freelist is a cons-cell.
+  lbm_cons_t *heap = lbm_heap_state.heap;
+  lbm_uint ix = lbm_dec_ptr(res);
+  heap[ix].car = ENC_SYM_CLOSURE;
+  ix = lbm_dec_ptr(heap[ix].cdr);
+  heap[ix].car = params;
+  ix = lbm_dec_ptr(heap[ix].cdr);
+  heap[ix].car = body;
+  ix = lbm_dec_ptr(heap[ix].cdr);
+  heap[ix].car = env;
+  lbm_heap_state.freelist = heap[ix].cdr;
+  heap[ix].cdr = ENC_SYM_NIL;
+  lbm_heap_state.num_alloc+=4;
+  return res;
+}
 
 /* Eval lambda is cheating, a lot! It does this
    for performance reasons. The cheats are that
@@ -1815,11 +1821,6 @@ static void eval_define(eval_context_t *ctx) {
    and then looked up the values of these creating a new environment.
    2. The global env is considered global constant. As there is no copying
    of environment bindings into the closure, undefine may break closures.
-
-   Correct closure creation is a lot more expensive than what happens here.
-   However, one can try to write programs in such a way that closures are created
-   seldomly. If one does that the space-usage benefits of "correct" closures
-   may outweigh the performance gain of "incorrect" ones.
 
    some obscure programs such as test_setq_local_closure.lisp does not
    work properly due to this cheating.
@@ -2154,54 +2155,37 @@ static void eval_match(eval_context_t *ctx) {
   }
 }
 
-static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time, bool timeout) {
+static void receive_base(eval_context_t *ctx, lbm_value pats) {
   if (ctx->num_mail == 0) {
-    if (timeout) {
-      block_current_ctx(LBM_THREAD_STATE_RECV_TO, S_TO_US(timeout_time), false);
-    } else {
       block_current_ctx(LBM_THREAD_STATE_RECV_BL,0,false);
-    }
   } else {
     lbm_value *msgs = ctx->mailbox;
     lbm_uint  num   = ctx->num_mail;
 
-    if (lbm_is_symbol_nil(pats)) {
-      /* A receive statement without any patterns */
-      ctx->app_cont = true;
-      ctx->r = ENC_SYM_NIL;
-    } else {
-      /* The common case */
-      lbm_value e;
-      lbm_value new_env = ctx->curr_env;
+    lbm_value e;
+    lbm_value new_env = ctx->curr_env;
 #ifdef LBM_ALWAYS_GC
-      lbm_gc_mark_phase(pats); // Needed in recv-to case
-      gc();
+    gc();
 #endif
-      int n = find_match(pats, msgs, num, &e, &new_env);
+    int n = find_match(pats, msgs, num, &e, &new_env);
+    if (n == FM_NEED_GC) {
+      gc();
+      new_env = ctx->curr_env;
+      n = find_match(pats, msgs, num, &e, &new_env);
       if (n == FM_NEED_GC) {
-	lbm_gc_mark_phase(pats); // Needed in recv-to case
-        gc();
-        new_env = ctx->curr_env;
-        n = find_match(pats, msgs, num, &e, &new_env);
-        if (n == FM_NEED_GC) {
-          error_ctx(ENC_SYM_MERROR);
-        }
+        error_ctx(ENC_SYM_MERROR);
       }
-      if (n == FM_PATTERN_ERROR) {
-        lbm_set_error_reason("Incorrect pattern format for recv");
-        error_at_ctx(ENC_SYM_EERROR,pats);
-      } else if (n >= 0 ) { /* Match */
-        mailbox_remove_mail(ctx, (lbm_uint)n);
-        ctx->curr_env = new_env;
-        ctx->curr_exp = e;
-      } else { /* No match  go back to sleep */
-        ctx->r = ENC_SYM_NO_MATCH;
-        if (timeout) {
-          block_current_ctx(LBM_THREAD_STATE_RECV_TO,S_TO_US(timeout_time),false);
-        } else {
-          block_current_ctx(LBM_THREAD_STATE_RECV_BL, 0,false);
-        }
-      }
+    }
+    if (n == FM_PATTERN_ERROR) {
+      lbm_set_error_reason("Incorrect pattern format for recv");
+      error_at_ctx(ENC_SYM_EERROR,pats);
+    } else if (n >= 0 ) { /* Match */
+      mailbox_remove_mail(ctx, (lbm_uint)n);
+      ctx->curr_env = new_env;
+      ctx->curr_exp = e;
+    } else { /* No match  go back to sleep */
+      ctx->r = ENC_SYM_NO_MATCH;
+      block_current_ctx(LBM_THREAD_STATE_RECV_BL, 0,false);
     }
   }
   return;
@@ -2213,10 +2197,16 @@ static void receive_base(eval_context_t *ctx, lbm_value pats, float timeout_time
 static void eval_receive_timeout(eval_context_t *ctx) {
   if (is_atomic) atomic_error();
   lbm_value timeout_val = get_cadr(ctx->curr_exp);
-  lbm_value *sptr = stack_reserve(ctx, 2);
-  sptr[0] = get_cdr(get_cdr(ctx->curr_exp));
-  sptr[1] = RECV_TO;
-  ctx->curr_exp = timeout_val;
+  lbm_value pats = get_cdr(get_cdr(ctx->curr_exp));
+  if (lbm_is_symbol_nil(pats)) {
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
+    error_at_ctx(ENC_SYM_EERROR, ctx->curr_exp);
+  } else {
+    lbm_value *sptr = stack_reserve(ctx, 2);
+    sptr[0] = pats;
+    sptr[1] = RECV_TO;
+    ctx->curr_exp = timeout_val;
+  }
 }
 
 // Receive
@@ -2225,7 +2215,12 @@ static void eval_receive_timeout(eval_context_t *ctx) {
 static void eval_receive(eval_context_t *ctx) {
   if (is_atomic) atomic_error();
   lbm_value pats = get_cdr(ctx->curr_exp);
-  receive_base(ctx, pats, 0, false);
+  if (lbm_is_symbol_nil(pats)) {
+    lbm_set_error_reason((char*)lbm_error_str_num_args);
+    error_at_ctx(ENC_SYM_EERROR,ctx->curr_exp);
+  } else {
+    receive_base(ctx, pats);
+  }
 }
 
 /*********************************************************/
@@ -2367,14 +2362,19 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
   if (nargs == 1) {
     lbm_value chan = ENC_SYM_NIL;
     if (lbm_type_of_functional(args[0]) == LBM_TYPE_ARRAY) {
+      char *str = lbm_dec_str(args[0]);
+      if (str) { 
 #ifdef LBM_ALWAYS_GC
-      gc();
-#endif
-      if (!create_string_channel(lbm_dec_str(args[0]), &chan, args[0])) {
         gc();
+#endif
         if (!create_string_channel(lbm_dec_str(args[0]), &chan, args[0])) {
-          error_ctx(ENC_SYM_MERROR);
+          gc();
+          if (!create_string_channel(lbm_dec_str(args[0]), &chan, args[0])) {
+            error_ctx(ENC_SYM_MERROR);
+          }
         }
+      } else {
+        error_ctx(ENC_SYM_EERROR);
       }
     } else if (lbm_type_of(args[0]) == LBM_TYPE_CHANNEL) {
       chan = args[0];
@@ -2640,6 +2640,41 @@ static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   }
   error_at_ctx(err_val, ENC_SYM_EXIT_ERROR);
 }
+
+// ////////////////////////////////////////////////////////////
+// Map takes a function f and a list ls as arguments.
+// The function f is applied to each element of ls.
+//
+// Normally when applying a function to an argument this happens:
+//   1. the function is evaluated
+//   2. the argument is evaluated
+//   3. the result of evaluating the function is applied to the result of evaluating
+//      the argument.
+//
+// When doing (map f arg-list) I assume one means to apply f to each element of arg-list
+// exactly as those elements are. That is, no evaluation of the argument.
+// The implementation of map below makes sure that the elements of the arg-list are not
+// evaluated by wrapping them each in a `quote`.
+//
+// Map creates a structure in memory that looks like this (f (quote dummy . nil) . nil).
+// Then, for each element from arg-list (example a1 ... aN) the object
+// (f (quote aM . nil) . nil) is created by substituting dummy for an element of the list.
+// after this substitution the evaluator is fired up to evaluate the entire (f (quote aM . nil) . nil)
+// structure resulting in an element for the result list.
+//
+// Here comes the fun part, if you (map quote arg-list), then the object
+// (quote (quote aM . nil) . nil) is created and evaluated. Now note that quote just gives back
+// exactly what you give to it when evaluated.
+// So (quote (quote aM . nil) . nil) gives you as result (quote aM . nil) and now also note that
+// this is a list, and a list is really just an address on the heap!
+// This leads to the very fun behavior that:
+//
+// # (map quote '(1 2 3 4))
+// > ((quote 4) (quote 4) (quote 4) (quote 4))
+//
+// A potential fix is to instead of creating the object (f (quote aM . nil) . nil)
+// we create the object (f var) for some unique var and then extend the environment
+// for each round of evaluation with a binding var => aM.
 
 // (map f arg-list)
 static void apply_map(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
@@ -3409,7 +3444,6 @@ static void cont_exit_atomic(eval_context_t *ctx) {
 // ctx->r  = eval result of previous application.
 static void cont_map(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 6);
-
   lbm_value ls  = sptr[0];
   lbm_value env = sptr[1];
   lbm_value t   = sptr[3];
@@ -3793,14 +3827,14 @@ static void cont_read_next_token(eval_context_t *ctx) {
   /*
    * SYNTAX
    */
-  uint32_t match;
-  n = tok_syntax(chan, &match);
+  uint32_t tok_match;
+  n = tok_syntax(chan, &tok_match);
   if (n > 0) {
     if (!lbm_channel_drop(chan, (unsigned int)n)) {
       error_ctx(ENC_SYM_FATAL_ERROR);
     }
     ctx->app_cont = true;
-    switch(match) {
+    switch(tok_match) {
     case TOKOPENPAR: {
       sptr[0] = ENC_SYM_NIL;
       sptr[1] = ENC_SYM_NIL;
@@ -3875,8 +3909,8 @@ static void cont_read_next_token(eval_context_t *ctx) {
       return;
     case TOKCONSTSTART: /* fall through */
     case TOKCONSTEND: {
-      if (match == TOKCONSTSTART)  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
-      if (match == TOKCONSTEND)    ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
+      if (tok_match == TOKCONSTSTART)  ctx->flags |= EVAL_CPS_CONTEXT_FLAG_CONST;
+      if (tok_match == TOKCONSTEND)    ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_CONST;
       sptr[0] = stream;
       sptr[1] = lbm_enc_u(0);
       stack_reserve(ctx,1)[0] = READ_NEXT_TOKEN;
@@ -4982,14 +5016,95 @@ static void cont_exception_handler(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
+// cont_recv_to:
+//
+// s[sp-1] = patterns
+//
+// ctx->r = timeout value
 static void cont_recv_to(eval_context_t *ctx) {
   if (lbm_is_number(ctx->r)) {
-    lbm_value *sptr = pop_stack_ptr(ctx, 1);
+    lbm_value *sptr = get_stack_ptr(ctx, 1); // patterns at sptr[0]
     float timeout_time = lbm_dec_as_float(ctx->r);
-    receive_base(ctx, sptr[0], timeout_time, true);
+    if (timeout_time < 0.0) timeout_time = 0.0; // clamp.
+    if (ctx->num_mail > 0) {
+      lbm_value e;
+      lbm_value new_env = ctx->curr_env;
+#ifdef LBM_ALWAYS_GC
+      gc();
+#endif
+      int n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
+      if (n == FM_NEED_GC) {
+        gc();
+        new_env = ctx->curr_env;
+        n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
+        if (n == FM_NEED_GC) error_ctx(ENC_SYM_MERROR);
+      }
+      if (n == FM_PATTERN_ERROR) {
+        lbm_set_error_reason("Incorrect pattern format for recv");
+        error_at_ctx(ENC_SYM_EERROR, sptr[0]);
+      } else if (n >= 0) { // match
+        mailbox_remove_mail(ctx, (lbm_uint)n);
+        ctx->curr_env = new_env;
+        ctx->curr_exp = e;
+        lbm_stack_drop(&ctx->K, 1);
+        return;
+      }
+    }
+    // If no mail or no match, go to sleep
+    lbm_uint *rptr = stack_reserve(ctx,2);
+    rptr[0] = ctx->r;
+    rptr[1] = RECV_TO_RETRY;
+    block_current_ctx(LBM_THREAD_STATE_RECV_TO,S_TO_US(timeout_time),true);
   } else {
     error_ctx(ENC_SYM_TERROR);
   }
+}
+
+// cont_recv_to_retry
+//
+// s[sp-2] = patterns
+// s[sp-1] = timeout value
+//
+// ctx->r = nonsense | timeout symbol
+static void cont_recv_to_retry(eval_context_t *ctx) {
+  lbm_value *sptr = get_stack_ptr(ctx, 2); //sptr[0] = patterns, sptr[1] = timeout
+
+  if (ctx->num_mail > 0) {
+    lbm_value e;
+    lbm_value new_env = ctx->curr_env;
+#ifdef LBM_ALWAYS_GC
+    gc();
+#endif
+    int n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
+    if (n == FM_NEED_GC) {
+      gc();
+      new_env = ctx->curr_env;
+      n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
+      if (n == FM_NEED_GC) error_ctx(ENC_SYM_MERROR);
+    }
+    if (n == FM_PATTERN_ERROR) {
+      lbm_set_error_reason("Incorrect pattern format for recv");
+      error_at_ctx(ENC_SYM_EERROR, sptr[0]);
+    } else if (n >= 0) { // match
+      mailbox_remove_mail(ctx, (lbm_uint)n);
+      ctx->curr_env = new_env;
+      ctx->curr_exp = e;
+      lbm_stack_drop(&ctx->K, 2);
+      return;
+    }
+  }
+
+  // No message matched but the timeout was reached.
+  // This is like having a recv-to with no case that matches
+  // the timeout symbol.
+  if (ctx->r == ENC_SYM_TIMEOUT) {
+    lbm_stack_drop(&ctx->K, 2);
+    ctx->app_cont = true;
+    return;
+  }
+
+  stack_reserve(ctx,1)[0] = RECV_TO_RETRY;
+  reblock_current_ctx(LBM_THREAD_STATE_RECV_TO,true);
 }
 
 /*********************************************************/
@@ -5045,6 +5160,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_exception_handler,
     cont_recv_to,
     cont_wrap_result,
+    cont_recv_to_retry
   };
 
 /*********************************************************/
@@ -5094,7 +5210,7 @@ static void evaluation_step(void){
     ctx->app_cont = false;
 
     lbm_uint decoded_k = DEC_CONTINUATION(k);
-
+    // If app_cont is true, then top of stack must be a valid continuation!
     if (decoded_k < NUM_CONTINUATIONS) {
       continuations[decoded_k](ctx);
     } else {
