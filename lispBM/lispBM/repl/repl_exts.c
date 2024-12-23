@@ -390,8 +390,25 @@ static bool file_handle_destructor(lbm_uint value) {
   return true;
 }
 
-static bool is_file_handle(lbm_value h) {
-  return ((lbm_uint)lbm_get_custom_descriptor(h) == (lbm_uint)lbm_file_handle_desc);
+// A filehandle is only a filehandle unless it has been explicitly closed.
+static bool is_file_handle(lbm_value arg) {
+  if ((lbm_uint)lbm_get_custom_descriptor(arg) == (lbm_uint)lbm_file_handle_desc) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(arg);
+    if (h->fp) return true;
+  }
+  return false;
+}
+
+static lbm_value ext_fclose(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      is_file_handle(args[0])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    fclose(h->fp);
+    h->fp = NULL;
+    res = ENC_SYM_TRUE;
+  }
+  return res;
 }
 
 static lbm_value ext_fopen(lbm_value *args, lbm_uint argn) {
@@ -895,6 +912,7 @@ int init_exts(void) {
 
   lbm_add_extension("unsafe-call-system", ext_unsafe_call_system);
   lbm_add_extension("exec", ext_exec);
+  lbm_add_extension("fclose", ext_fclose);
   lbm_add_extension("fopen", ext_fopen);
   lbm_add_extension("load-file", ext_load_file);
   lbm_add_extension("fwrite", ext_fwrite);

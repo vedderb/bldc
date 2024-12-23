@@ -241,5 +241,5 @@ endif
 
 # Get the git branch name, commit hash, and clean/dirty state
 GIT_BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD)
-GIT_COMMIT_HASH := $(shell git rev-parse --short HEAD)
+GIT_COMMIT_HASH := $(shell git rev-parse HEAD)
 GIT_DIRTY_LABEL := $(shell git diff --quiet || echo -dirty)

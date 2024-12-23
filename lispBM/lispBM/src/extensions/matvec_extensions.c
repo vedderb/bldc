@@ -280,9 +280,8 @@ static lbm_value ext_list_to_matrix(lbm_value *args, lbm_uint argn) {
 
     if (len > 0 && nums) {
       uint32_t cols = lbm_dec_as_u32(args[0]);
-      uint32_t rows = len / cols;
-
       if (len % cols == 0) {
+        uint32_t rows = len / cols;
         lbm_value mat = matrix_float_allocate(rows, cols);
         if (lbm_is_error(mat)) return mat;
         matrix_float_t *lmat = (matrix_float_t*)lbm_get_custom_value(mat);
