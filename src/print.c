@@ -64,7 +64,7 @@ bool lbm_value_is_printable_string(lbm_value v, char **str) {
     //       If it is incorrect, it is most likely arbitrary.
     char *c_data = (char *)array->data;
     unsigned int i = 0;
-    if (array->size >= 1 && c_data[0] != 0) { // nonzero length and ix 0 is not 0
+    if (array->size >= 1) { // nonzero length
       is_a_string = true;
       for (i = 0; i < array->size; i ++) {
 	if (c_data[i] == 0) break;
@@ -73,10 +73,10 @@ bool lbm_value_is_printable_string(lbm_value v, char **str) {
 	  break;
 	}
       }
-    }
-    if (i != array->size-1 && c_data[i-1] != 0) is_a_string = false;
-    if (is_a_string) {
-      *str = (char*)array->data;
+      if (i != array->size-1 && c_data[i-1] != 0) is_a_string = false;
+      if (is_a_string) {
+        *str = (char*)array->data;
+      }
     }
   }
   return is_a_string;

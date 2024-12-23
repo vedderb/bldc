@@ -3248,6 +3248,112 @@ The comma-at operation is used to splice in the result of a computation (that re
 ---
 
 
+### identity
+
+The identity function takes one argument which it directly returns. The form of an `identity` expression is `(identity expr)`, where expr is an arbitrary lisp expression. `(identity expr)` is a function application so all normal function application rules apply. The most important property of function applications in this case is that the argument is evaluated which differentiates `identity` from `quote` which returns the argument unevaluated. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(identity 1)
+```
+
+
+</td>
+<td>
+
+```clj
+1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(identity (+ 1 2))
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(identity 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+apa
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(identity 'kurt-russel)
+```
+
+
+</td>
+<td>
+
+```clj
+kurt-russel
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(identity '(+ 1 2))
+```
+
+
+</td>
+<td>
+
+```clj
+(+ 1 2)
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
 ### rest-args
 
 `rest-args` are related to user defined functions. As such `rest-args` is also given a brief explanation in the section about the  <a href="#lambda">lambda</a>. 
@@ -7915,7 +8021,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 178999 kurt-russel)
+(exit-ok 180692 kurt-russel)
 ```
 
 

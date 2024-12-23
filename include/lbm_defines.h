@@ -335,6 +335,7 @@
 #define SYM_IS_LIST             0x2003F
 #define SYM_IS_NUMBER           0x20040
 #define SYM_INT_DIV             0x20041
+#define SYM_IDENTITY            0x20042
 
 
 // Apply funs:

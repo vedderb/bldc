@@ -245,6 +245,7 @@ special_sym const special_symbols[] =  {
   {"type-f32"       , SYM_TYPE_FLOAT},
   {"type-f64"       , SYM_TYPE_DOUBLE},
   {"array-create"   , SYM_BYTEARRAY_CREATE},
+  {"identity"       , SYM_IDENTITY},
 };
 
 static lbm_uint *symlist = NULL;

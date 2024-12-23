@@ -1001,6 +1001,16 @@ void lbm_set_error_reason(char *error_str) {
 // Not possible to CONS_WITH_GC in error_ctx_base (potential loop)
 static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigned int row, unsigned int column) {
 
+  print_error_message(err_val,
+                      has_at,
+                      at,
+                      row,
+                      column,
+                      ctx_running->row0,
+                      ctx_running->row1,
+                      ctx_running->id,
+                      ctx_running->name);
+
   if (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP) {
     if (lbm_heap_num_free() < 3) {
       gc();
@@ -1012,16 +1022,15 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
       msg = lbm_cons(ENC_SYM_EXIT_ERROR, msg);
       if (!lbm_is_symbol_merror(msg)) {
         lbm_find_receiver_and_send(ctx_running->parent, msg);
-        goto error_ctx_base_done;
       }
     }
-  }
-  if ((ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN) &&
+    // context dies.
+  } else if ((ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN) &&
       (err_val != ENC_SYM_FATAL_ERROR)) {
     lbm_uint v;
     while (ctx_running->K.sp > 0) {
       lbm_pop(&ctx_running->K, &v);
-      if (v == EXCEPTION_HANDLER) {
+      if (v == EXCEPTION_HANDLER) { // context continues executing.
         lbm_value *sptr = get_stack_ptr(ctx_running, 2);
         lbm_set_car(sptr[0], ENC_SYM_EXIT_ERROR);
         stack_reserve(ctx_running, 1)[0] = EXCEPTION_HANDLER;
@@ -1032,16 +1041,6 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
     }
     err_val = ENC_SYM_FATAL_ERROR;
   }
-  print_error_message(err_val,
-                      has_at,
-                      at,
-                      row,
-                      column,
-                      ctx_running->row0,
-                      ctx_running->row1,
-                      ctx_running->id,
-                      ctx_running->name);
- error_ctx_base_done:
   ctx_running->r = err_val;
   finish_ctx();
   longjmp(error_jmp_buf, 1);
