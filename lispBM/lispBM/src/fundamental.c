@@ -1437,6 +1437,15 @@ static lbm_value fundamental_int_div(lbm_value *args, lbm_uint argn, eval_contex
   return res;
 }
 
+static lbm_value fundamental_identity(lbm_value *args, lbm_uint argn, eval_context_t *ctx) {
+  (void) ctx;
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1) {
+    res = args[0];
+  }
+  return res;
+}
+
 const fundamental_fun fundamental_table[] =
   {fundamental_add,
    fundamental_sub,
@@ -1504,4 +1513,5 @@ const fundamental_fun fundamental_table[] =
    fundamental_is_list,
    fundamental_is_number,
    fundamental_int_div,
+   fundamental_identity,
   };
