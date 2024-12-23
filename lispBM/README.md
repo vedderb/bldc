@@ -4656,6 +4656,24 @@ Replace every occurrence of rep in str with optWith. If optWith is omitted every
 
 ---
 
+### str-replicate
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.00+ |
+
+```clj
+(str-replicate n char)
+```
+
+Build a string by replicating char n times.
+
+Example:
+```clj
+(str-replicate 8 \#x)
+> "xxxxxxxx"
+```
+---
+
 #### str-to-upper
 
 | Platforms | Firmware |
