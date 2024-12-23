@@ -284,6 +284,17 @@ Get value from BMS. Examples:
 (get-bms-val 'bms-chg-allowed) ; Charging allowed (Added in 6.05, Express only)
 ```
 
+**Note**  
+In firmware 6.06 the following temperature sensor convention was introduced for bms-temps-adc. So when using (get-bms-val 'bms-temps-adc 2) the maximum cell temperature should be returned. Keep in mind that it will take some time before all BMSes follow this convention after the 6.06 release.
+
+| Sensor Index | Function |
+|---|---|
+| 0 | Balance IC |
+| 1 | Cell Min |
+| 2 | Cell Max |
+| 3 | Mosfet Switch |
+| 4+ | Optional sensors |
+
 ---
 
 #### set-bms-val
