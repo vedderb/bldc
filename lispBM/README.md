@@ -285,7 +285,7 @@ Get value from BMS. Examples:
 ```
 
 **Note**  
-In firmware 6.06 the following temperature sensor convention was introduced for bms-temps-adc. So when using (get-bms-val 'bms-temps-adc 2) the maximum cell temperature should be returned. Keep in mind that it will take some time before all BMSes follow this convention after the 6.06 release.
+In firmware 6.06 the following temperature sensor convention was introduced for bms-temps-adc. So when using (get-bms-val 'bms-temps-adc 2) the maximum cell temperature should be returned. If a temperature returns less than -280 degC that reading is not applicable on that BMS. Keep in mind that it will take some time before all BMSes follow this convention after the 6.06 release.
 
 | Sensor Index | Function |
 |---|---|
