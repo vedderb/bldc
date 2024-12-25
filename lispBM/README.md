@@ -294,7 +294,8 @@ In firmware 6.06 the following temperature sensor convention was introduced for 
 | 1 | Cell Min |
 | 2 | Cell Max |
 | 3 | Mosfet Switch |
-| 4+ | Optional sensors |
+| 4 | Ambient Temperature |
+| 5+ | Optional sensors |
 
 ---
 
