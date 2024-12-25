@@ -320,6 +320,10 @@ typedef struct {
 	float wh_cnt_chg_total;
 	float ah_cnt_dis_total;
 	float wh_cnt_dis_total;
+	int is_charging;
+	int is_balancing;
+	int is_charge_allowed;
+	int data_version;
 	systime_t update_time;
 } bms_values;
 
@@ -334,6 +338,7 @@ typedef struct {
 	bool is_charging;
 	bool is_balancing;
 	bool is_charge_allowed;
+	int data_version;
 } bms_soc_soh_temp_stat;
 
 typedef enum {

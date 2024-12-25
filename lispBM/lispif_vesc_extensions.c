@@ -91,6 +91,8 @@ typedef struct {
 	lbm_uint ah_cnt_dis_total;
 	lbm_uint wh_cnt_dis_total;
 	lbm_uint msg_age;
+	lbm_uint chg_allowed;
+	lbm_uint data_version;
 
 	// GPIO
 	lbm_uint pin_mode_out;
@@ -316,6 +318,12 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("bms-wh-cnt-dis-total", comp);
 		} else if (comp == &syms_vesc.msg_age) {
 			lbm_add_symbol_const("bms-msg-age", comp);
+		} else if (comp == &syms_vesc.msg_age) {
+			lbm_add_symbol_const("bms-msg-age", comp);
+		} else if (comp == &syms_vesc.chg_allowed) {
+			lbm_add_symbol_const("bms-chg-allowed", comp);
+		} else if (comp == &syms_vesc.data_version) {
+			lbm_add_symbol_const("bms-data-version", comp);
 		}
 
 		else if (comp == &syms_vesc.pin_mode_out) {
@@ -878,6 +886,10 @@ static lbm_value get_set_bms_val(bool set, lbm_value *args, lbm_uint argn) {
 		res = get_or_set_float(set, &val->ah_cnt_dis_total, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.wh_cnt_dis_total)) {
 		res = get_or_set_float(set, &val->wh_cnt_dis_total, &set_arg);
+	} else if (compare_symbol(name, &syms_vesc.chg_allowed)) {
+		res = get_or_set_i(set, &val->is_charge_allowed, &set_arg);
+	} else if (compare_symbol(name, &syms_vesc.data_version)) {
+		res = get_or_set_i(set, &val->data_version, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.msg_age)) {
 		res = lbm_enc_float(UTILS_AGE_S(val->update_time));
 	}

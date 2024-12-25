@@ -282,10 +282,11 @@ Get value from BMS. Examples:
 (get-bms-val 'bms-wh-cnt-dis-total) ; Total wh discharged
 (get-bms-val 'bms-msg-age) ; Age of last message from BMS in seconds
 (get-bms-val 'bms-chg-allowed) ; Charging allowed (Added in 6.05, Express only)
+(get-bms-val 'bms-data-version) ; Data version (added in 6.06)
 ```
 
 **Note**  
-In firmware 6.06 the following temperature sensor convention was introduced for bms-temps-adc. So when using (get-bms-val 'bms-temps-adc 2) the maximum cell temperature should be returned. If a temperature returns less than -280 degC that reading is not applicable on that BMS. Keep in mind that it will take some time before all BMSes follow this convention after the 6.06 release.
+In firmware 6.06 the following temperature sensor convention was introduced for bms-temps-adc. So when using (get-bms-val 'bms-temps-adc 2) the maximum cell temperature should be returned. If a temperature returns less than -280 degC that reading is not applicable on that BMS. Keep in mind that it will take some time before all BMSes follow this convention after the 6.06 release. (get-bms-val 'bms-data-version) should return 1 if this convention is used.
 
 | Sensor Index | Function |
 |---|---|

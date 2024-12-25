@@ -129,6 +129,7 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 				msg.is_charging = (stat >> 0) & 1;
 				msg.is_balancing = (stat >> 1) & 1;
 				msg.is_charge_allowed = (stat >> 2) & 1;
+				msg.data_version = (stat >> 4) & 0x0f;
 
 				if (id == m_values.can_id || UTILS_AGE_S(m_values.update_time) > MAX_CAN_AGE_SEC) {
 					m_values.can_id = id;
@@ -138,6 +139,10 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 					m_values.temp_max_cell = msg.t_cell_max;
 					m_values.v_cell_min = msg.v_cell_min;
 					m_values.v_cell_max = msg.v_cell_max;
+					m_values.is_charging = msg.is_charging ? 1 : 0;
+					m_values.is_balancing = msg.is_balancing ? 1 : 0;
+					m_values.is_charge_allowed = msg.is_charge_allowed ? 1 : 0;
+					m_values.data_version = msg.data_version;
 				}
 
 				// In case there is more than one BMS, keep track of the limiting
@@ -639,7 +644,7 @@ void bms_send_status_can(void) {
 	 * b[6]: T_CELL_MAX (-128 to +127 degC)
 	 * b[7]: State bitfield:
 	 * [B7      B6      B5      B4      B3      B2      B1      B0      ]
-	 * [RSV     RSV     RSV     RSV     RSV     CHG_OK  IS_BAL  IS_CHG  ]
+	 * [DV3     DV2     DV1     DV0     RSV     CHG_OK  IS_BAL  IS_CHG  ]
 	 */
 	send_index = 0;
 	buffer_append_float16(buffer, (float_t)m_values.v_cell_min, 1e3, &send_index);
@@ -647,7 +652,11 @@ void bms_send_status_can(void) {
 	buffer[send_index++] = (uint8_t)(m_values.soc * 255.0);
 	buffer[send_index++] = (uint8_t)(m_values.soh * 255.0);
 	buffer[send_index++] = (int8_t)m_values.temp_max_cell;
-	buffer[send_index++] = 0;
+	buffer[send_index++] =
+				((m_values.is_charging ? 1 : 0) << 0) |
+				((m_values.is_balancing ? 1 : 0) << 1) |
+				((m_values.is_charge_allowed ? 1 : 0) << 2) |
+				(m_values.data_version << 4);
 	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_SOC_SOH_TEMP_STAT << 8), buffer, send_index);
 
 	send_index = 0;
