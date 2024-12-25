@@ -1292,7 +1292,7 @@ static lbm_value ext_get_remote_state(lbm_value *args, lbm_uint argn) {
 }
 
 static bool check_eeprom_addr(int addr) {
-	if (addr < 0 || addr > 127) {
+	if (addr < 0 || addr >= EEPROM_VARS_CUSTOM) {
 		return false;
 	}
 

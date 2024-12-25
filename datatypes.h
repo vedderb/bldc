@@ -1385,7 +1385,7 @@ typedef union {
 } eeprom_var;
 
 #define EEPROM_VARS_HW			32
-#define EEPROM_VARS_CUSTOM		128
+#define EEPROM_VARS_CUSTOM		256
 
 typedef struct {
 	float ah_tot;

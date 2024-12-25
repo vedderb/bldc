@@ -185,7 +185,7 @@ bool conf_general_store_backup_data(void) {
  * true for success, false if variable was not found.
  */
 bool conf_general_read_eeprom_var_hw(eeprom_var *v, int address) {
-	if (address < 0 || address > (EEPROM_VARS_HW - 1)) {
+	if (address < 0 || address >= EEPROM_VARS_HW) {
 		return false;
 	}
 	return read_eeprom_var(v, address, EEPROM_BASE_HW);
@@ -204,7 +204,7 @@ bool conf_general_read_eeprom_var_hw(eeprom_var *v, int address) {
  * true for success, false if variable was not found.
  */
 bool conf_general_read_eeprom_var_custom(eeprom_var *v, int address) {
-	if (address < 0 || address > (EEPROM_VARS_CUSTOM - 1)) {
+	if (address < 0 || address >= EEPROM_VARS_CUSTOM) {
 		return false;
 	}
 	return read_eeprom_var(v, address, EEPROM_BASE_CUSTOM);
@@ -223,7 +223,7 @@ bool conf_general_read_eeprom_var_custom(eeprom_var *v, int address) {
  * true for success, false if something went wrong.
  */
 bool conf_general_store_eeprom_var_hw(eeprom_var *v, int address) {
-	if (address < 0 || address > (EEPROM_VARS_HW - 1)) {
+	if (address < 0 || address >= EEPROM_VARS_HW) {
 		return false;
 	}
 	return store_eeprom_var(v, address, EEPROM_BASE_HW);
@@ -242,7 +242,7 @@ bool conf_general_store_eeprom_var_hw(eeprom_var *v, int address) {
  * true for success, false if something went wrong.
  */
 bool conf_general_store_eeprom_var_custom(eeprom_var *v, int address) {
-	if (address < 0 || address > (EEPROM_VARS_CUSTOM - 1)) {
+	if (address < 0 || address >= EEPROM_VARS_CUSTOM) {
 		return false;
 	}
 	return store_eeprom_var(v, address, EEPROM_BASE_CUSTOM);
