@@ -520,6 +520,8 @@ void bms_process_cmd(unsigned char *data, unsigned int len,
 		// Pressure
 		buffer_append_float16(send_buffer, m_values.pressure, 1e-1, &ind);
 
+		send_buffer[ind++] = m_values.data_version;
+
 		reply_func(send_buffer, ind);
 	} break;
 
