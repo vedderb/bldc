@@ -7163,6 +7163,82 @@ Check if any client (e.g. VESC Tool) is connected over usb. Returns true when co
 
 ---
 
+## Non-Volatile Storage (NVS) on QML Partition
+
+The QML-partition on the ESP32 can be used to store non-volatile data as key-values. Note that QML-data cannot be stored as usual when using the QML-partition as NVS.
+
+---
+
+#### nvs-qml-erase
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(nvs-qml-erase)
+```
+
+Erase all data on QML-partition.
+
+---
+
+#### nvs-qml-init
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(nvs-qml-init)
+```
+
+Initialize the QML-partition with the NVS-module. This has to be done before further NVS-operations can be used. If needed, the QML-partition will be erased; this can happen if other data is stored on the QML-partition that is incompatible with the NVS-module.
+
+---
+
+#### nvs-qml-read
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(nvs-qml-read key)
+```
+
+Read key from QML-partition, return the content as a byte array. This can fail if key does not exist or if (nvs-qml-init) has not been run.
+
+---
+
+#### nvs-qml-write
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(nvs-qml-write key data)
+```
+
+Write data to key on QML-partition. If key already exists the old data will be replaced. This can fail if (nvs-qml-init) has not been run or if there is not enough space.
+
+---
+
+#### nvs-qml-erase-key
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(nvs-qml-erase-key key)
+```
+
+Erase single key from QML-partition. This can fail if key does not exist or if (nvs-qml-init) has not been run.
+
+---
+
 ## How to update
 
 To update from remote repository:
