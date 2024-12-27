@@ -7239,6 +7239,20 @@ Erase single key from QML-partition. This can fail if key does not exist or if (
 
 ---
 
+#### nvs-qml-list
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(nvs-qml-list)
+```
+
+Returns a list with all existing NVS keys. If (nvs-qml-init) has not been run this always returns nil.
+
+---
+
 ## How to update
 
 To update from remote repository:
