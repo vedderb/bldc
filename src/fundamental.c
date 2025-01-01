@@ -210,12 +210,11 @@ static lbm_uint sub2(lbm_uint a, lbm_uint b) {
 static bool bytearray_equality(lbm_value a, lbm_value b) {
   lbm_array_header_t *a_ = (lbm_array_header_t*)lbm_car(a);
   lbm_array_header_t *b_ = (lbm_array_header_t*)lbm_car(b);
-
+  bool res = false;
   // A NULL array arriving here should be impossible.
   // if the a and b are not valid arrays at this point, the data
   // is most likely nonsense - corrupted by cosmic radiation.
-  bool res = a_->size == b_->size;
-  if (res) {
+  if ((a_ && b_) && a_->size == b_->size) {
     res = (memcmp((char*)a_->data, (char*)b_->data, a_->size) == 0);
   }
   return res;
@@ -225,10 +224,10 @@ static bool bytearray_equality(lbm_value a, lbm_value b) {
 static bool array_struct_equality(lbm_value a, lbm_value b) {
   lbm_array_header_t *a_ = (lbm_array_header_t*)lbm_car(a);
   lbm_array_header_t *b_ = (lbm_array_header_t*)lbm_car(b);
-  lbm_value *adata = (lbm_value*)a_->data;
-  lbm_value *bdata = (lbm_value*)b_->data;
-  bool res =  a_->size == b_->size;
-  if (res) {
+  bool res = false;
+  if ((a_ && b_) &&  a_->size == b_->size) {
+    lbm_value *adata = (lbm_value*)a_->data;
+    lbm_value *bdata = (lbm_value*)b_->data;
     lbm_uint size = (lbm_uint)a_->size / (lbm_uint)sizeof(lbm_value);
     for (lbm_uint i = 0; i < size; i ++ ) {
       res = struct_eq(adata[i], bdata[i]);
@@ -790,8 +789,8 @@ static lbm_value fundamental_string_to_symbol(lbm_value *args, lbm_uint nargs, e
   lbm_value result = ENC_SYM_EERROR;
   if (nargs == 1) {
     result = ENC_SYM_TERROR;
-    if (lbm_is_array_r(args[0])) {
-      lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
+    lbm_array_header_t *arr = lbm_dec_array_r(args[0]);
+    if (arr) {
       // TODO: String to symbol, string should be in LBM_memory..
       // Some better sanity check is possible here.
       // Check that array points into lbm_memory.
@@ -1340,8 +1339,8 @@ static lbm_value fundamental_mkarray(lbm_value *args, lbm_uint nargs, eval_conte
 static lbm_value fundamental_array_to_list(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   lbm_value res = ENC_SYM_TERROR;
-  if (nargs == 1 && lbm_is_lisp_array_r(args[0])) {
-    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(args[0]);
+  lbm_array_header_t *header = NULL;
+  if (nargs == 1 && (header = lbm_dec_lisp_array_r(args[0]))) {
     lbm_value *arrdata = (lbm_value*)header->data;
     lbm_uint size = (header->size / sizeof(lbm_uint));
     res = lbm_heap_allocate_list(size);

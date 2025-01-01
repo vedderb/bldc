@@ -111,6 +111,31 @@ typedef enum {
 #define FB_OK             0
 #define FB_TYPE_ERROR    -1
 
+// Infer canarie
+//
+// In some cases Infer incorrectly complains about null pointer
+// derefences that cannot happen. In these cases the longjmp
+// error system aborts execution before the potential null
+// pointer dereference can occur.
+//
+// Functions such as stack_reserve does not return NULL,
+// instead it executes a longjmp and does not return at all.
+// Infer does not seem to understand this abrubt code flow.
+#ifdef LBM64
+#define INFER_CANARY_BITS (lbm_uint)0xAAAAAAAAAAAAAAAA
+#else
+#define INFER_CANARY_BITS 0xAAAAAAAAu
+#endif
+lbm_uint INFER_CANARY[1];
+
+bool check_infer_canary(void) {
+  return INFER_CANARY[0] == INFER_CANARY_BITS;
+}
+
+void reset_infer_canary(void) {
+  INFER_CANARY[0] = INFER_CANARY_BITS;
+}
+
 const char* lbm_error_str_parse_eof = "End of parse stream.";
 const char* lbm_error_str_parse_dot = "Incorrect usage of '.'.";
 const char* lbm_error_str_parse_close = "Expected closing parenthesis.";
@@ -472,7 +497,7 @@ static lbm_uint *get_stack_ptr(eval_context_t *ctx, unsigned int n) {
     return &ctx->K.data[index];
   }
   error_ctx(ENC_SYM_STACK_ERROR);
-  return 0; // dead code cannot be reached, but C compiler doesn't realise.
+  return (lbm_uint*)INFER_CANARY; // dead code cannot be reached, but C compiler doesn't realise.
 }
 
 // pop_stack_ptr is safe when no GC is performed and
@@ -483,7 +508,7 @@ static lbm_uint *pop_stack_ptr(eval_context_t *ctx, unsigned int n) {
     return &ctx->K.data[ctx->K.sp];
   }
   error_ctx(ENC_SYM_STACK_ERROR);
-  return 0; // dead code cannot be reached, but C compiler doesn't realise.
+  return (lbm_uint*)INFER_CANARY; // dead code cannot be reached, but C compiler doesn't realise.
 }
 
 static inline lbm_uint *stack_reserve(eval_context_t *ctx, unsigned int n) {
@@ -493,7 +518,7 @@ static inline lbm_uint *stack_reserve(eval_context_t *ctx, unsigned int n) {
     return ptr;
   }
   error_ctx(ENC_SYM_STACK_ERROR);
-  return 0; // dead code cannot be reached, but C compiler doesn't realise.
+  return (lbm_uint*)INFER_CANARY; // dead code cannot be reached, but C compiler doesn't realise.
 }
 
 static void handle_flash_status(lbm_flash_status s) {
@@ -616,6 +641,11 @@ static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cd
 #define LOOP_COND  1
 #define LOOP_BODY  2
 
+// TODO: extract_n could be a good place to do some error checking.
+//       extract_n is often used to extract components of a list that
+//       makes up a special form application. If there are not n items
+//       present that could be an indication of a syntax error in the
+//       special form application.
 // (a b c) -> [a b c]
 static lbm_value extract_n(lbm_value curr, lbm_value *res, unsigned int n) {
   for (unsigned int i = 0; i < n; i ++) {
@@ -1000,6 +1030,14 @@ void lbm_set_error_reason(char *error_str) {
 
 // Not possible to CONS_WITH_GC in error_ctx_base (potential loop)
 static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigned int row, unsigned int column) {
+
+  if (!check_infer_canary()) {
+    // If this happens the Runtime system is likely corrupt and
+    // a crash is imminent.
+    // A critical error is issues so that the crash can be handled.
+    // At a minimum the lbm runtime should be restarted.
+    lbm_critical_error();
+  }
 
   print_error_message(err_val,
                       has_at,
@@ -2762,10 +2800,8 @@ static void apply_flatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
 }
 
 static void apply_unflatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  if(nargs == 1 && lbm_type_of(args[0]) == LBM_TYPE_ARRAY) {
-    lbm_array_header_t *array;
-    array = (lbm_array_header_t *)get_car(args[0]);
-
+  lbm_array_header_t *array;
+  if(nargs == 1 && (array = lbm_dec_array_r(args[0]))) {
     lbm_flat_value_t fv;
     fv.buf = (uint8_t*)array->data;
     fv.buf_size = array->size;
@@ -3791,6 +3827,8 @@ static void cont_read_next_token(eval_context_t *ctx) {
   lbm_char_channel_t *chan = lbm_dec_channel(stream);
   if (chan == NULL || chan->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
+    return; // INFER does not understant that error_ctx longjmps
+            // out of this function.
   }
 
   if (!lbm_channel_more(chan) && lbm_channel_is_empty(chan)) {
@@ -4115,6 +4153,8 @@ static void cont_read_start_array(eval_context_t *ctx) {
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
+    return; // INFER does not understand that error_ctx longjmps out
+            // of this function here.
   }
   if (ctx->r == ENC_SYM_CLOSEBRACK) {
     lbm_value array;
@@ -4225,6 +4265,8 @@ static void cont_read_append_continue(eval_context_t *ctx) {
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
+    return; // INFER does not understand that execution
+            // jumps out on error_ctx with a longjmp.
   }
 
   if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
@@ -4318,18 +4360,18 @@ static void cont_read_expect_closepar(eval_context_t *ctx) {
   lbm_pop_2(&ctx->K, &res, &stream);
 
   lbm_char_channel_t *str = lbm_dec_channel(stream);
-  if (str == NULL || str->state == NULL) {
+  if (str == NULL || str->state == NULL) { // TODO: De Morgan these conditions.
     error_ctx(ENC_SYM_FATAL_ERROR);
-  }
-
-  if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
-      ctx->r == ENC_SYM_CLOSEPAR) {
-    ctx->r = res;
-    ctx->app_cont = true;
   } else {
-    lbm_channel_reader_close(str);
-    lbm_set_error_reason((char*)lbm_error_str_parse_close);
-    read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+    if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
+        ctx->r == ENC_SYM_CLOSEPAR) {
+      ctx->r = res;
+      ctx->app_cont = true;
+    } else {
+      lbm_channel_reader_close(str);
+      lbm_set_error_reason((char*)lbm_error_str_parse_close);
+      read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+    }
   }
 }
 
@@ -4342,33 +4384,27 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
-  }
-
-  lbm_stack_drop(&ctx->K ,3);
-
-  if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
-      (ctx->r == ENC_SYM_CLOSEPAR ||
-       ctx->r == ENC_SYM_DOT)) {
+  } else if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL &&
+             (ctx->r == ENC_SYM_CLOSEPAR ||
+              ctx->r == ENC_SYM_DOT)) {
     lbm_channel_reader_close(str);
     lbm_set_error_reason((char*)lbm_error_str_parse_dot);
     read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+  } else if (lbm_is_cons(last_cell)) {
+    lbm_set_cdr(last_cell, ctx->r);
+    ctx->r = sptr[0]; // first cell
+    lbm_value *rptr = stack_reserve(ctx, 3);
+    sptr[0] = stream;
+    sptr[1] = ctx->r;
+    sptr[2] = READ_EXPECT_CLOSEPAR;
+    rptr[0] = stream;
+    rptr[1] = lbm_enc_u(0);
+    rptr[2] = READ_NEXT_TOKEN;
+    ctx->app_cont = true;
   } else {
-    if (lbm_is_cons(last_cell)) {
-      lbm_set_cdr(last_cell, ctx->r);
-      ctx->r = sptr[0]; // first cell
-      lbm_value *rptr = stack_reserve(ctx, 6);
-      rptr[0] = stream;
-      rptr[1] = ctx->r;
-      rptr[2] = READ_EXPECT_CLOSEPAR;
-      rptr[3] = stream;
-      rptr[4] = lbm_enc_u(0);
-      rptr[5] = READ_NEXT_TOKEN;
-      ctx->app_cont = true;
-    } else {
-      lbm_channel_reader_close(str);
-      lbm_set_error_reason((char*)lbm_error_str_parse_dot);
-      read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
-    }
+    lbm_channel_reader_close(str);
+    lbm_set_error_reason((char*)lbm_error_str_parse_dot);
+    read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
   }
 }
 
@@ -4385,19 +4421,23 @@ static void cont_read_done(eval_context_t *ctx) {
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str == NULL || str->state == NULL) {
     error_ctx(ENC_SYM_FATAL_ERROR);
-  }
-
-  lbm_channel_reader_close(str);
-  if (lbm_is_symbol(ctx->r)) {
-    lbm_uint sym_val = lbm_dec_sym(ctx->r);
-    if (sym_val >= TOKENIZER_SYMBOLS_START &&
-        sym_val <= TOKENIZER_SYMBOLS_END) {
-      read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+  } else {
+    // the "else" is there to make INFER understand
+    // that this only happens if str is non-null.
+    // the "else" is unnecessary though as
+    // error_ctx longjmps out.
+    lbm_channel_reader_close(str);
+    if (lbm_is_symbol(ctx->r)) {
+      lbm_uint sym_val = lbm_dec_sym(ctx->r);
+      if (sym_val >= TOKENIZER_SYMBOLS_START &&
+          sym_val <= TOKENIZER_SYMBOLS_END) {
+        read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+      }
     }
+    ctx->row0 = -1;
+    ctx->row1 = -1;
+    ctx->app_cont = true;
   }
-  ctx->row0 = -1;
-  ctx->row1 = -1;
-  ctx->app_cont = true;
 }
 
 static void cont_wrap_result(eval_context_t *ctx) {
@@ -4627,7 +4667,7 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
 
   lbm_value val = ctx->r;
 
-  if (lbm_is_cons(val)) {
+  if (lbm_is_cons(val)) { // non-constant cons-cell
     lbm_value *rptr = stack_reserve(ctx, 5);
     rptr[0] = ENC_SYM_NIL; // fst cell of list
     rptr[1] = ENC_SYM_NIL; // last cell of list
@@ -4639,13 +4679,13 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
     return;
   }
 
-  if (lbm_is_ptr(val) && (val & LBM_PTR_TO_CONSTANT_BIT)) {
+  if (lbm_is_ptr(val) && (val & LBM_PTR_TO_CONSTANT_BIT)) { // constant pointer cons or not.
     //ctx->r unchanged
     ctx->app_cont = true;
     return;
   }
 
-  if (lbm_is_ptr(val)) {
+  if (lbm_is_ptr(val)) { // something that is not a cons but still a ptr type.
     lbm_cons_t *ref = lbm_ref_cell(val);
     if (lbm_type_of(ref->cdr) == LBM_TYPE_SYMBOL) {
       switch (ref->cdr) {
@@ -4724,6 +4764,8 @@ static void cont_move_val_to_flash_dispatch(eval_context_t *ctx) {
     ctx->app_cont = true;
     return;
   }
+
+  // if no condition matches, nothing happens (id).
   ctx->r = val;
   ctx->app_cont = true;
 }
@@ -5235,7 +5277,7 @@ static void evaluation_step(void){
      * into a form that can be applied (closure, symbol, ...) though.
      */
     lbm_value *reserved = stack_reserve(ctx, 3);
-    reserved[0] = ctx->curr_env;
+    reserved[0] = ctx->curr_env; // INFER: stack_reserve aborts context if error.
     reserved[1] = cell->cdr;
     reserved[2] = APPLICATION_START;
     ctx->curr_exp = h; // evaluate the function
@@ -5482,6 +5524,8 @@ int lbm_eval_init() {
 
   mutex_unlock(&lbm_events_mutex);
   mutex_unlock(&qmutex);
+
+  reset_infer_canary();
 
   if (!lbm_init_env()) return 0;
   eval_running = true;

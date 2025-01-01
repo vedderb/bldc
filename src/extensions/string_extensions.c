@@ -50,8 +50,8 @@ static size_t strlen_max(const char *s, size_t maxlen) {
 
 static bool dec_str_size(lbm_value v, char **data, size_t *size) {
   bool result = false;
-  if (lbm_is_array_r(v)) {
-      lbm_array_header_t *array = (lbm_array_header_t*) lbm_car(v);
+  lbm_array_header_t *array = lbm_dec_array_r(v);
+  if (array) {
       *data = (char*)array->data;
       *size = array->size;
       result = true;
@@ -114,7 +114,7 @@ static lbm_value ext_str_from_n(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_str_join(lbm_value *args, lbm_uint argn) {
   // This function does not check that the string arguments contain any
   // terminating null bytes.
-  
+
   if (argn != 1 && argn != 2) {
     lbm_set_error_reason((char *)lbm_error_str_num_args);
     return ENC_SYM_EERROR;
@@ -140,7 +140,7 @@ static lbm_value ext_str_join(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
   }
-  
+
   const char *delim = "";
   if (argn >= 2) {
     delim = lbm_dec_str(args[1]);
@@ -155,7 +155,7 @@ static lbm_value ext_str_join(lbm_value *args, lbm_uint argn) {
   if (str_count > 0) {
     str_len += (str_count - 1) * delim_len;
   }
-  
+
   lbm_value result;
   if (!lbm_create_array(&result, str_len + 1)) {
     return ENC_SYM_MERROR;
@@ -420,9 +420,9 @@ static lbm_value change_case(lbm_value *args, lbm_uint argn, bool to_upper) {
     lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(lbm_res);
     for (unsigned int i = 0;i < len;i++) {
       if (to_upper) {
-	((char*)(arr->data))[i] = (char)toupper(orig[i]);
+        ((char*)(arr->data))[i] = (char)toupper(orig[i]);
       } else {
-	((char*)(arr->data))[i] = (char)tolower(orig[i]);
+        ((char*)(arr->data))[i] = (char)tolower(orig[i]);
       }
     }
     ((char*)(arr->data))[len] = '\0';
@@ -601,136 +601,134 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
     lbm_set_error_reason((char *)lbm_error_str_num_args);
     return ENC_SYM_EERROR;
   }
-  if (!lbm_is_array_r(args[0])) {
-    lbm_set_error_suspect(args[0]);
-    lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
-    return ENC_SYM_TERROR;
-  }
+  lbm_array_header_t *str_header = lbm_dec_array_r(args[0]);
+  if (str_header) {
+    const char *str   = (const char *)str_header->data;
+    lbm_int str_size = (lbm_int)str_header->size;
 
-  lbm_array_header_t *str_header = (lbm_array_header_t *)lbm_car(args[0]);
-  const char *str   = (const char *)str_header->data;
-  lbm_int str_size = (lbm_int)str_header->size;
-
-  // Guaranteed to be list containing strings.
-  lbm_value substrings;
-  lbm_int min_substr_len = LBM_INT_MAX;
-  if (lbm_is_array_r(args[1])) {
-    substrings = lbm_cons(args[1], ENC_SYM_NIL);
-    if (substrings == ENC_SYM_MERROR) {
-      return ENC_SYM_MERROR;
-    }
-    lbm_array_header_t *header = (lbm_array_header_t *)lbm_car(args[1]);
-
-    lbm_int len = (lbm_int)header->size - 1;
-    if (len < 0) {
-      // substr is zero length array
-      return lbm_enc_i(-1);
-    }
-    min_substr_len = len;
-  } else if (lbm_is_list(args[1])) {
-    for (lbm_value current = args[1]; lbm_is_cons(current); current = lbm_cdr(current)) {
-      lbm_value car_val = lbm_car(current);
-      if (!lbm_is_array_r(car_val)) {
-        lbm_set_error_suspect(args[1]);
-        lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
-        return ENC_SYM_TERROR;
+    // Guaranteed to be list containing strings.
+    lbm_value substrings;
+    lbm_int min_substr_len = LBM_INT_MAX;
+    if (lbm_is_array_r(args[1])) {
+      substrings = lbm_cons(args[1], ENC_SYM_NIL);
+      if (substrings == ENC_SYM_MERROR) {
+        return ENC_SYM_MERROR;
       }
-
-      lbm_array_header_t *header = (lbm_array_header_t *)lbm_car(car_val);
+      lbm_array_header_t *header = (lbm_array_header_t *)lbm_car(args[1]);
 
       lbm_int len = (lbm_int)header->size - 1;
       if (len < 0) {
         // substr is zero length array
-        continue;
+        return lbm_enc_i(-1);
       }
-      if (len < min_substr_len) {
-        min_substr_len = len;
+      min_substr_len = len;
+    } else if (lbm_is_list(args[1])) {
+      for (lbm_value current = args[1]; lbm_is_cons(current); current = lbm_cdr(current)) {
+        lbm_value car_val = lbm_car(current);
+        lbm_array_header_t *header = lbm_dec_array_r(car_val);
+        if (header) {
+          lbm_int len = (lbm_int)header->size - 1;
+          if (len < 0) {
+            // substr is zero length array
+            continue;
+          }
+          if (len < min_substr_len) {
+            min_substr_len = len;
+          }
+        } else {
+          lbm_set_error_suspect(args[1]);
+          lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
+          return ENC_SYM_TERROR;
+        }
+      }
+      substrings = args[1];
+    } else {
+      lbm_set_error_suspect(args[1]);
+      lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
+      return ENC_SYM_TERROR;
+    }
+
+    bool to_right    = true;
+    bool case_sensitive = true;
+
+    int nums[2] = {0, 0};
+    bool nums_set[2] = {false, false};
+    int num_ix = 0;
+
+
+    for (int i = 0; i < (int)argn; i ++ ) {
+      if (lbm_is_number(args[i]) && num_ix < 2) {
+        nums_set[num_ix] = true;
+        nums[num_ix++] = lbm_dec_as_int(args[i]);
+      }
+      if (lbm_is_symbol(args[i])) {
+        lbm_uint symbol = lbm_dec_sym(args[i]);
+        if (symbol == sym_left) {
+          to_right = false;
+        } else if (symbol == sym_case_insensitive) {
+          case_sensitive = false;
+        }
       }
     }
-    substrings = args[1];
+
+    uint32_t occurrence = 0;
+    lbm_int start = to_right ? 0 : str_size - min_substr_len;
+    if (nums_set[0]) {
+      start = nums[0];
+    }
+    if (nums_set[1]) {
+      occurrence = (uint32_t)nums[1];
+    }
+
+    if (start < 0) {
+      // start: -1 starts the search at the character index before the final null
+      // byte index.
+      start = str_size - 1 + start;
+    }
+
+    if (!to_right && (start > str_size - min_substr_len)) {
+      start = str_size - min_substr_len;
+    }
+    else if (to_right && (start < 0)) {
+      start = 0;
+    }
+
+    lbm_int dir = to_right ? 1 : -1;
+    for (lbm_int i = start; to_right ? (i <= str_size - min_substr_len) : (i >= 0); i += dir) {
+      for (lbm_value current = substrings; lbm_is_cons(current); current = lbm_cdr(current)) {
+        lbm_array_header_t *header = (lbm_array_header_t *)lbm_car(lbm_car(current));
+        lbm_int substr_len         = (lbm_int)header->size - 1;
+        const char *substr         = (const char *)header->data;
+
+        if (
+            i > str_size - substr_len // substr length runs over str end.
+            || substr_len < 0 // empty substr substr was zero bytes in size
+            ) {
+          continue;
+        }
+
+        if ((case_sensitive && memcmp(&str[i], substr, (size_t)substr_len) == 0) ||
+            (!case_sensitive && ci_strncmp(&str[i], substr, (int)substr_len))) {
+          if (occurrence == 0) {
+            return lbm_enc_i(i);
+          }
+          occurrence -= 1;
+        }
+      }
+    }
+    return lbm_enc_i(-1);
   } else {
-    lbm_set_error_suspect(args[1]);
+    lbm_set_error_suspect(args[0]);
     lbm_set_error_reason((char *)lbm_error_str_incorrect_arg);
     return ENC_SYM_TERROR;
   }
-
-  bool to_right    = true;
-  bool case_sensitive = true;
-
-  int nums[2] = {0, 0};
-  bool nums_set[2] = {false, false};
-  int num_ix = 0;
-  
-  
-  for (int i = 0; i < (int)argn; i ++ ) {
-    if (lbm_is_number(args[i]) && num_ix < 2) {
-      nums_set[num_ix] = true;
-      nums[num_ix++] = lbm_dec_as_int(args[i]);
-    }
-    if (lbm_is_symbol(args[i])) {
-      lbm_uint symbol = lbm_dec_sym(args[i]);
-      if (symbol == sym_left) {
-	to_right = false;
-      } else if (symbol == sym_case_insensitive) {
-	case_sensitive = false;
-      }
-    }
-  }
-  
-  uint32_t occurrence = 0;
-  lbm_int start = to_right ? 0 : str_size - min_substr_len;
-  if (nums_set[0]) { 
-    start = nums[0];
-  }
-  if (nums_set[1]) {
-    occurrence = (uint32_t)nums[1];
-  }
-
-  if (start < 0) {
-    // start: -1 starts the search at the character index before the final null
-    // byte index.
-    start = str_size - 1 + start;
-  }
-
-  if (!to_right && (start > str_size - min_substr_len)) {
-    start = str_size - min_substr_len;
-  }
-  else if (to_right && (start < 0)) {
-    start = 0;
-  }
-
-  lbm_int dir = to_right ? 1 : -1;
-  for (lbm_int i = start; to_right ? (i <= str_size - min_substr_len) : (i >= 0); i += dir) {
-    for (lbm_value current = substrings; lbm_is_cons(current); current = lbm_cdr(current)) {
-      lbm_array_header_t *header = (lbm_array_header_t *)lbm_car(lbm_car(current));
-      lbm_int substr_len         = (lbm_int)header->size - 1;
-      const char *substr         = (const char *)header->data;
-
-      if (
-        i > str_size - substr_len // substr length runs over str end.
-        || substr_len < 0 // empty substr substr was zero bytes in size
-      ) {
-        continue;
-      }
-
-      if ((case_sensitive && memcmp(&str[i], substr, (size_t)substr_len) == 0) ||
-	  (!case_sensitive && ci_strncmp(&str[i], substr, (int)substr_len))) {
-        if (occurrence == 0) {
-          return lbm_enc_i(i);
-        }
-        occurrence -= 1;
-      }
-    }
-  }
-
-  return lbm_enc_i(-1);
 }
 
 void lbm_string_extensions_init(void) {
-  
+
   lbm_add_symbol_const("left", &sym_left);
   lbm_add_symbol_const("nocase", &sym_case_insensitive);
-  
+
   lbm_add_extension("str-from-n", ext_str_from_n);
   lbm_add_extension("str-join", ext_str_join);
   lbm_add_extension("str-to-i", ext_str_to_i);

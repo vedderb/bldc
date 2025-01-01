@@ -114,13 +114,19 @@ static inline bool image_buffer_is_valid(uint8_t *data, lbm_uint size) {
 }
 
 static inline bool array_is_image_buffer(lbm_value v) {
-  bool res = lbm_is_array_r(v);
-  if (res) {
-    lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(v);
-    res = image_buffer_is_valid((uint8_t*)arr->data, arr->size);
+  lbm_array_header_t *arr = lbm_dec_array_r(v);
+  return arr && image_buffer_is_valid((uint8_t*)arr->data, arr->size);
+}
+
+static inline lbm_array_header_t *get_image_buffer(lbm_value v) {
+  lbm_array_header_t *res = NULL;
+  lbm_array_header_t *arr = lbm_dec_array_r(v);
+  if (arr && image_buffer_is_valid((uint8_t*)arr->data, arr->size)) {
+    res = arr;
   }
   return res;
 }
+
 
 static inline uint32_t color_apply_precalc(color_t color, int x, int y) {
   int pos;

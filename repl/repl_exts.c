@@ -565,7 +565,6 @@ static bool all_arrays(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_exec(lbm_value *args, lbm_uint argn) {
 
   lbm_value res = ENC_SYM_TERROR;
-  int pid;
 
   if (all_arrays(args, argn) && argn >= 1) {
     char **strs = malloc(argn * sizeof(char*) + 1);
@@ -575,7 +574,7 @@ static lbm_value ext_exec(lbm_value *args, lbm_uint argn) {
     strs[argn] = NULL;
     fflush(stdout);
     int status = 0;
-    pid = fork();
+    int pid = fork();
     if (pid == 0) {
       execvp(strs[0], &strs[1]);
       exit(0);
@@ -818,11 +817,11 @@ static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, c
 
     uint16_t w = img->width;
     uint16_t h = img->height;
-    uint8_t  bpp = img->fmt;
     uint8_t* data = img->mem_base;
 
     uint8_t *buffer = malloc((size_t)(w * h * 3)); // RGB 888
     if (buffer) {
+      uint8_t  bpp = img->fmt;
       switch(bpp) {
       case indexed2:
         buffer_blast_indexed2(buffer, data, colors);

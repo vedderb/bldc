@@ -27,13 +27,18 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 28u
+#define LBM_MINOR_VERSION 29u
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 1u
 
-#define LBM_VERSION_STRING "0.28.1"
+#define LBM_VERSION_STRING "0.29.1"
 
 /*! \page changelog Changelog
+DEC 26 2024: Version 0.29.0
+  - Identity operation added
+  - Bugfix in recv-to.
+  - bugfix in is_printable_string.
+
 DEC 5 2024: Version 0.28.0
   - Fixes bugs in recv-to (receive with timeout).
   - Fixes crash when trying to read an empty buffer.

@@ -6,7 +6,7 @@ if [ -z "$1" ]; then
     echo "No arg"
     exit 1
 fi
-   
+
 
 reportdir=./test_reports/version_$release
 
@@ -46,7 +46,7 @@ revgc_unit_tests_log_file="revgc_unit_tests_log_${release}.txt"
 failing_revgc_unit_tests_log_file="failing_revgc_unit_tests_log_${release}.txt"
 
 ############################################################
-# 32bit tests 
+# 32bit tests
 ./run_tests.sh ../$reportdir/$failing_unit_tests_log_file >> ../$reportdir/$unit_tests_log_file
 echo "" >> ../$reportdir/$release_readme
 echo "## 32BIT UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
@@ -81,28 +81,33 @@ tail -n 4 ../$reportdir/$revgc_unit_tests_log_file >> ../$reportdir/$release_rea
 cd ..
 cp -r tests/coverage $reportdir/coverage
 
-if ! command -v scan-build-14 &> /dev/null
-then
-    if ! command -v scan-build-10 &> /dev/null
-    then
-    
-        echo "scan-build could not be found"
-        exit 1
-    else
-        make clean
-        scan-build-10 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt
-    fi
-else
-    make clean
-    scan-build-14 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt
-fi
 
 echo "" >> ./$reportdir/$release_readme
-echo "## SCAN BUILD" >> ./$reportdir/$release_readme
-tail -n 1 $reportdir/scan_build_$release.txt >> ./$reportdir/$release_readme 
+make clean
+if command -v scan-build-18
+then
+    echo "## scan-build version 18" >> ./$reportdir/$release_readme
+    scan-build-18 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt
+else
+    if command -v scan-build-14
+    then
+        echo "## scan-build version 14" >> ./$reportdir/$release_readme
+        scan-build-14 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt
+    else
+        if command -v scan-build-10
+        then
+            echo "## scan-build version 10" >> ./$reportdir/$release_readme
+            scan-build-10 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt
+        else
+            echo "scan-build could not be found"
+            exit 1
+        fi
+    fi
+fi
+tail -n 1 $reportdir/scan_build_$release.txt >> ./$reportdir/$release_readme
 
 
-make clean 
+make clean
 infer run -- make
 
 cp ./infer-out/report.txt $reportdir/infer_${release}.txt
