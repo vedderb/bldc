@@ -44,8 +44,17 @@ void packet_send_packet(unsigned char *data, unsigned int len, PACKET_STATE_t *s
 	}
 
 	unsigned int b_ind = 0;
-
+#if PACKET_MAX_PL_LEN <= 65535
 	if (len <= 255) {
+		state->tx_buffer[b_ind++] = 2;
+		state->tx_buffer[b_ind++] = (unsigned char)len;
+	} else {
+		state->tx_buffer[b_ind++] = 3;
+		state->tx_buffer[b_ind++] = (unsigned char)(len >> 8);
+		state->tx_buffer[b_ind++] = len & 0xFF;
+	}
+#else
+        if (len <= 255) {
 		state->tx_buffer[b_ind++] = 2;
 		state->tx_buffer[b_ind++] = (unsigned char)len;
 	} else if (len <= 65535) {
@@ -58,6 +67,7 @@ void packet_send_packet(unsigned char *data, unsigned int len, PACKET_STATE_t *s
 		state->tx_buffer[b_ind++] = (len >> 8) & 0xFF;
 		state->tx_buffer[b_ind++] = len & 0xFF;
 	}
+#endif
 
 	memcpy(state->tx_buffer + b_ind, data, len);
 	b_ind += len;

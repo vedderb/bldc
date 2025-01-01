@@ -109,20 +109,19 @@ static bool decode_append_args(lbm_value *error, lbm_value *args, lbm_uint argn,
       *be = false;
     }
     /* fall through */
-  case 3:
-    if(lbm_is_array_rw(args[0]) &&
+  case 3: {
+    lbm_array_header_t *array = lbm_dec_array_rw(args[0]);
+    if(array &&
        lbm_is_number(args[1]) &&
        lbm_is_number(args[2])) {
-      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
-
       *a_size = array->size;
       *a_data = (uint8_t*)array->data;
       *index = lbm_dec_as_u32(args[1]);
-
       res = true;
     } else {
       *error = ENC_SYM_TERROR;
     }
+  }
   }
   return res;
 }
@@ -363,10 +362,10 @@ static bool decode_get_args(lbm_value *error, lbm_value *args, lbm_uint argn, lb
       *be = false;
     }
     /* fall through */
-  case 2:
-    if (lbm_is_array_r(args[0]) &&
+  case 2: {
+    lbm_array_header_t *array = lbm_dec_array_r(args[0]);
+    if (array &&
         lbm_is_number(args[1])) {
-      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
       *a_size = array->size;
       *a_data = (uint8_t*)array->data;
       *index = lbm_dec_as_u32(args[1]);
@@ -374,6 +373,7 @@ static bool decode_get_args(lbm_value *error, lbm_value *args, lbm_uint argn, lb
     } else {
       *error = ENC_SYM_TERROR;
     }
+  }
   }
   return res;
 }
@@ -569,10 +569,10 @@ lbm_value array_extension_buffer_get_f32(lbm_value *args, lbm_uint argn) {
 
 lbm_value array_extension_buffer_length(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_EERROR;
+  lbm_array_header_t *array;
   if (argn == 1 &&
-      lbm_is_array_r(args[0]) &&
+      (array = lbm_dec_array_r(args[0])) &&
       lbm_heap_array_valid(args[0])) {
-    lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
     res = lbm_enc_i((lbm_int)array->size);
   }
   return res;
@@ -661,7 +661,7 @@ static lbm_value array_extensions_bufset_bit(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_EERROR;
 
   if (argn == 3) {
-    res = ENC_SYM_TERROR; 
+    res = ENC_SYM_TERROR;
     if (lbm_is_array_rw(args[0]) &&
         lbm_is_number(args[1]) && lbm_is_number(args[2])) {
       lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);

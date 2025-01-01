@@ -259,16 +259,15 @@ static lbm_value image_buffer_allocate_dm(lbm_uint *dm, color_format_t fmt, uint
   uint32_t size_bytes = image_dims_to_size_bytes(fmt, width, height);
 
   lbm_value res = lbm_defrag_mem_alloc(dm, IMAGE_BUFFER_HEADER_SIZE + size_bytes);
-  if (lbm_is_symbol(res)) {
-    return res;
+  lbm_array_header_t *arr = lbm_dec_array_r(res);
+  if (arr) {
+    uint8_t *buf = (uint8_t*)arr->data;
+    buf[0] = (uint8_t)(width >> 8);
+    buf[1] = (uint8_t)width;
+    buf[2] = (uint8_t)(height >> 8);
+    buf[3] = (uint8_t)height;
+    buf[4] = color_format_to_byte(fmt);
   }
-  lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
-  uint8_t *buf = (uint8_t*)arr->data;
-  buf[0] = (uint8_t)(width >> 8);
-  buf[1] = (uint8_t)width;
-  buf[2] = (uint8_t)(height >> 8);
-  buf[3] = (uint8_t)height;
-  buf[4] = color_format_to_byte(fmt);  
   return res;
 }
 
@@ -1656,7 +1655,7 @@ static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int nu
   }
 
   // There are some expectations on ch that are not documented here.
-  if (char_num == 10) {  
+  if (char_num == 10) {
     ch = (uint8_t)(ch - '0');
   } else {
     ch = (uint8_t)(ch - ' ');
@@ -1733,13 +1732,13 @@ static void blit_rot_scale(
 
   int des_x_start = 0; // TODO: strange code. Vars hold known values..
   int des_y_start = 0;
-  int des_x_end = (des_x_start + des_w);
-  int des_y_end = (des_y_start + des_h);
+  int des_x_end = des_w; //(des_x_start + des_w);
+  int des_y_end = des_h; //(des_y_start + des_h);
 
-  if (des_x_start < 0) des_x_start = 0; // but here we check what they are and change.
-  if (des_x_end > des_w) des_x_end = des_w; //TODO: This condition is always false.
-  if (des_y_start < 0) des_y_start = 0;
-  if (des_y_end > des_h) des_y_end = des_h;
+  //if (des_x_start < 0) des_x_start = 0; // but here we check what they are and change.
+  //if (des_x_end > des_w) des_x_end = des_w; //TODO: This condition is always false.
+  //if (des_y_start < 0) des_y_start = 0;
+  //if (des_y_end > des_h) des_y_end = des_h;
 
   if (rot == 0.0 && scale == 1.0) {
     if (x > 0) des_x_start += x;
@@ -1856,107 +1855,100 @@ typedef struct {
 static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) {
   img_args_t res;
   memset(&res, 0, sizeof(res));
+  res.is_valid = false;
 
-  if (!lbm_is_array_r(args[0])) {
-    return res;
-  }
-  lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(args[0]);
-
-  if (!image_buffer_is_valid((uint8_t*)arr->data, arr->size)) {
-    res.is_valid = false;
-    return res;
-  }
-
-  res.img.width = image_buffer_width((uint8_t*)arr->data);
-  res.img.height = image_buffer_height((uint8_t*)arr->data);
-  res.img.fmt = image_buffer_format((uint8_t*)arr->data);
-  res.img.mem_base = (uint8_t*)arr->data;
-  res.img.data = image_buffer_data((uint8_t*)arr->data);
+  lbm_array_header_t *arr;
+  if (argn > 1 && (arr = get_image_buffer(args[0]))) {
+    // at least one argument which is an image buffer.
+    res.img.width = image_buffer_width((uint8_t*)arr->data);
+    res.img.height = image_buffer_height((uint8_t*)arr->data);
+    res.img.fmt = image_buffer_format((uint8_t*)arr->data);
+    res.img.mem_base = (uint8_t*)arr->data;
+    res.img.data = image_buffer_data((uint8_t*)arr->data);
 
 
-  int num_dec = 0;
-  for (unsigned int i = 1;i < argn;i++) {
-    if (!lbm_is_number(args[i]) && !lbm_is_cons(args[i])) {
-      return res;
-    }
-
-    if (lbm_is_number(args[i])) {
-      res.args[num_dec] = args[i];
-      num_dec++;
-
-      if (num_dec > ARG_MAX_NUM) {
+    int num_dec = 0;
+    for (unsigned int i = 1;i < argn;i++) {
+      if (!lbm_is_number(args[i]) && !lbm_is_cons(args[i])) {
         return res;
       }
-    } else {
-      lbm_value curr = args[i];
-      int attr_ind = 0;
-      attr_t *attr_now = 0;
-      while (lbm_is_cons(curr)) {
-        lbm_value  arg = lbm_car(curr);
 
-        if (attr_ind == 0) {
-          if (!lbm_is_symbol(arg)) {
-            return res;
-          }
+      if (lbm_is_number(args[i])) {
+        res.args[num_dec] = args[i];
+        num_dec++;
 
-          if (lbm_dec_sym(arg) == symbol_thickness) {
-            attr_now = &res.attr_thickness;
-            attr_now->arg_num = 1;
-          } else if (lbm_dec_sym(arg) == symbol_filled) {
-            attr_now = &res.attr_filled;
-            attr_now->arg_num = 0;
-          } else if (lbm_dec_sym(arg) == symbol_rounded) {
-            attr_now = &res.attr_rounded;
-            attr_now->arg_num = 1;
-          } else if (lbm_dec_sym(arg) == symbol_dotted) {
-            attr_now = &res.attr_dotted;
-            attr_now->arg_num = 2;
-          } else if (lbm_dec_sym(arg) == symbol_scale) {
-            attr_now = &res.attr_scale;
-            attr_now->arg_num = 1;
-          } else if (lbm_dec_sym(arg) == symbol_rotate) {
-            attr_now = &res.attr_rotate;
-            attr_now->arg_num = 3;
-          } else if (lbm_dec_sym(arg) == symbol_resolution) {
-            attr_now = &res.attr_resolution;
-            attr_now->arg_num = 1;
-          } else {
-            return res;
-          }
-        } else {
-          if (!lbm_is_number(arg)) {
-            return res;
-          }
-
-          attr_now->args[attr_ind - 1] = arg;
-        }
-
-        attr_ind++;
-        if (attr_ind > (ATTR_MAX_ARGS + 1)) {
+        if (num_dec > ARG_MAX_NUM) {
           return res;
         }
-
-        curr = lbm_cdr(curr);
-      }
-
-      // does this really compare the pointer addresses?
-      if (attr_now == &res.attr_rounded && attr_ind == 1) {
-        attr_now->arg_num = 0; // the `rounded` attribute may be empty
-      }
-
-
-      if ((attr_ind - 1) == attr_now->arg_num) {
-        attr_now->is_valid = true;
       } else {
-        return res;
+        lbm_value curr = args[i];
+        int attr_ind = 0;
+        attr_t *attr_now = 0;
+        while (lbm_is_cons(curr)) {
+          lbm_value  arg = lbm_car(curr);
+
+          if (attr_ind == 0) {
+            if (!lbm_is_symbol(arg)) {
+              return res;
+            }
+
+            if (lbm_dec_sym(arg) == symbol_thickness) {
+              attr_now = &res.attr_thickness;
+              attr_now->arg_num = 1;
+            } else if (lbm_dec_sym(arg) == symbol_filled) {
+              attr_now = &res.attr_filled;
+              attr_now->arg_num = 0;
+            } else if (lbm_dec_sym(arg) == symbol_rounded) {
+              attr_now = &res.attr_rounded;
+              attr_now->arg_num = 1;
+            } else if (lbm_dec_sym(arg) == symbol_dotted) {
+              attr_now = &res.attr_dotted;
+              attr_now->arg_num = 2;
+            } else if (lbm_dec_sym(arg) == symbol_scale) {
+              attr_now = &res.attr_scale;
+              attr_now->arg_num = 1;
+            } else if (lbm_dec_sym(arg) == symbol_rotate) {
+              attr_now = &res.attr_rotate;
+              attr_now->arg_num = 3;
+            } else if (lbm_dec_sym(arg) == symbol_resolution) {
+              attr_now = &res.attr_resolution;
+              attr_now->arg_num = 1;
+            } else {
+              return res;
+            }
+          } else {
+            if (!lbm_is_number(arg)) {
+              return res;
+            }
+
+            attr_now->args[attr_ind - 1] = arg;
+          }
+
+          attr_ind++;
+          if (attr_ind > (ATTR_MAX_ARGS + 1)) {
+            return res;
+          }
+
+          curr = lbm_cdr(curr);
+        }
+
+        // does this really compare the pointer addresses?
+        if (attr_now == &res.attr_rounded && attr_ind == 1) {
+          attr_now->arg_num = 0; // the `rounded` attribute may be empty
+        }
+
+
+        if ((attr_ind - 1) == attr_now->arg_num) {
+          attr_now->is_valid = true;
+        } else {
+          return res;
+        }
       }
     }
+    if (num_dec != num_expected) {
+      return res;
+    }
   }
-
-  if (num_dec != num_expected) {
-    return res;
-  }
-
   res.is_valid = true;
   return res;
 }
@@ -1985,7 +1977,7 @@ static lbm_value ext_image_buffer(lbm_value *args, lbm_uint argn) {
   color_format_t fmt = indexed2;
   lbm_uint w = 0;
   lbm_uint h = 0;
-  
+
   if (argn == 4 &&
       lbm_is_defrag_mem(args[0]) &&
       lbm_is_symbol(args[1]) &&
@@ -1996,15 +1988,15 @@ static lbm_value ext_image_buffer(lbm_value *args, lbm_uint argn) {
     h = lbm_dec_as_u32(args[3]);
     args_ok = true;
   } else if (argn == 3 &&
-	     lbm_is_symbol(args[0]) &&
-	     lbm_is_number(args[1]) &&
-	     lbm_is_number(args[2])) {
+             lbm_is_symbol(args[0]) &&
+             lbm_is_number(args[1]) &&
+             lbm_is_number(args[2])) {
     fmt = sym_to_color_format(args[0]);
     w = lbm_dec_as_u32(args[1]);
     h = lbm_dec_as_u32(args[2]);
     args_ok = true;
   }
-    
+
   if (args_ok && fmt != format_not_supported && w > 0 && h > 0 && w < MAX_WIDTH && h < MAX_HEIGHT) {
     if (argn == 3) {
       res = image_buffer_allocate(fmt, (uint16_t)w, (uint16_t)h);
@@ -2021,12 +2013,11 @@ static lbm_value ext_is_image_buffer(lbm_value *args, lbm_uint argn) {
 
   if (argn == 1) {
     res = ENC_SYM_NIL;
-    if (lbm_is_array_r(args[0])) {
-      lbm_value arr = args[0];
-      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(arr);
+    lbm_array_header_t *array = lbm_dec_array_r(args[0]);
+    if (array) {
       uint8_t *data = (uint8_t*)array->data;
       if (image_buffer_is_valid(data, array->size)) {
-	res = ENC_SYM_TRUE;;
+        res = ENC_SYM_TRUE;;
       }
     }
   }
@@ -2241,28 +2232,28 @@ static lbm_value ext_color_getpre(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_clear(lbm_value *args, lbm_uint argn) {
-  if ((argn != 1 && argn != 2) ||
-      !array_is_image_buffer(args[0]) ||
-      (argn == 2 && !lbm_is_number(args[1]))) {
-    return ENC_SYM_TERROR;
+
+  lbm_value res = ENC_SYM_TERROR;
+  lbm_array_header_t *arr;
+  if ((argn == 1 || argn == 2) &&
+      (arr = get_image_buffer(args[0])) &&   // assignment
+      (argn != 2 || lbm_is_number(args[1]))) { // ( argn == 2 -> lbm_is_number(args[1]))
+    image_buffer_t img_buf;
+    img_buf.width = image_buffer_width((uint8_t*)arr->data);
+    img_buf.height = image_buffer_height((uint8_t*)arr->data);
+    img_buf.fmt = image_buffer_format((uint8_t*)arr->data);
+    img_buf.mem_base = (uint8_t*)arr->data;
+    img_buf.data = image_buffer_data((uint8_t*)arr->data);
+
+    uint32_t color = 0;
+    if (argn == 2) {
+      color = lbm_dec_as_u32(args[1]);
+    }
+
+    image_buffer_clear(&img_buf, color);
+    res = ENC_SYM_TRUE;
   }
-
-  lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
-  image_buffer_t img_buf;
-  img_buf.width = image_buffer_width((uint8_t*)arr->data);
-  img_buf.height = image_buffer_height((uint8_t*)arr->data);
-  img_buf.fmt = image_buffer_format((uint8_t*)arr->data);
-  img_buf.mem_base = (uint8_t*)arr->data;
-  img_buf.data = image_buffer_data((uint8_t*)arr->data);
-
-  uint32_t color = 0;
-  if (argn == 2) {
-    color = lbm_dec_as_u32(args[1]);
-  }
-
-  image_buffer_clear(&img_buf, color);
-
-  return ENC_SYM_TRUE;
+  return res;
 }
 
 static lbm_value ext_putpixel(lbm_value *args, lbm_uint argn) {
@@ -2623,38 +2614,34 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_blit(lbm_value *args, lbm_uint argn) {
   img_args_t arg_dec = decode_args(args + 1, argn - 1, 3);
 
-  if (!arg_dec.is_valid) {
-    return ENC_SYM_TERROR;
+  lbm_value res = ENC_SYM_TERROR;
+  lbm_array_header_t *arr;
+  if (arg_dec.is_valid && (arr = get_image_buffer(args[0]))) { //assignment
+    image_buffer_t dest_buf;
+    dest_buf.width = image_buffer_width((uint8_t*)arr->data);
+    dest_buf.height = image_buffer_height((uint8_t*)arr->data);
+    dest_buf.fmt = image_buffer_format((uint8_t*)arr->data);
+    dest_buf.mem_base = (uint8_t*)arr->data;
+    dest_buf.data = image_buffer_data((uint8_t*)arr->data);
+
+    float scale = 1.0;
+    if (arg_dec.attr_scale.is_valid) {
+      scale = lbm_dec_as_float(arg_dec.attr_scale.args[0]);
+    }
+
+    blit_rot_scale(
+                   &dest_buf,
+                   &arg_dec.img,
+                   lbm_dec_as_i32(arg_dec.args[0]),
+                   lbm_dec_as_i32(arg_dec.args[1]),
+                   lbm_dec_as_float(arg_dec.attr_rotate.args[0]),
+                   lbm_dec_as_float(arg_dec.attr_rotate.args[1]),
+                   lbm_dec_as_float(arg_dec.attr_rotate.args[2]),
+                   scale,
+                   lbm_dec_as_i32(arg_dec.args[2]));
+    res = ENC_SYM_TRUE;
   }
-
-  if (!array_is_image_buffer(args[0])) {
-    return ENC_SYM_TERROR;
-  }
-  lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
-  image_buffer_t dest_buf;
-  dest_buf.width = image_buffer_width((uint8_t*)arr->data);
-  dest_buf.height = image_buffer_height((uint8_t*)arr->data);
-  dest_buf.fmt = image_buffer_format((uint8_t*)arr->data);
-  dest_buf.mem_base = (uint8_t*)arr->data;
-  dest_buf.data = image_buffer_data((uint8_t*)arr->data);
-
-  float scale = 1.0;
-  if (arg_dec.attr_scale.is_valid) {
-    scale = lbm_dec_as_float(arg_dec.attr_scale.args[0]);
-  }
-
-  blit_rot_scale(
-                 &dest_buf,
-                 &arg_dec.img,
-                 lbm_dec_as_i32(arg_dec.args[0]),
-                 lbm_dec_as_i32(arg_dec.args[1]),
-                 lbm_dec_as_float(arg_dec.attr_rotate.args[0]),
-                 lbm_dec_as_float(arg_dec.attr_rotate.args[1]),
-                 lbm_dec_as_float(arg_dec.attr_rotate.args[2]),
-                 scale,
-                 lbm_dec_as_i32(arg_dec.args[2]));
-
-  return ENC_SYM_TRUE;
+  return res;
 }
 
 void display_dummy_reset(void) {
@@ -2725,53 +2712,50 @@ static lbm_value ext_disp_render(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_EERROR;
   }
 
-  if ((argn != 3 && argn != 4) ||
-      !array_is_image_buffer(args[0]) ||
-      !lbm_is_number(args[1]) ||
-      !lbm_is_number(args[2])) {
-    return ENC_SYM_TERROR;
-  }
+  lbm_value res = ENC_SYM_TERROR;
+  lbm_array_header_t *arr;
+  if ((argn == 3 || argn == 4) &&
+      (arr = get_image_buffer(args[0])) &&
+      lbm_is_number(args[1]) &&
+      lbm_is_number(args[2])) {
+    image_buffer_t img_buf;
+    img_buf.fmt = image_buffer_format((uint8_t*)arr->data);
+    img_buf.width = image_buffer_width((uint8_t*)arr->data);
+    img_buf.height = image_buffer_height((uint8_t*)arr->data);
+    img_buf.mem_base = (uint8_t*)arr->data;
+    img_buf.data = image_buffer_data((uint8_t*)arr->data);
 
-  lbm_array_header_t *arr = (lbm_array_header_t *)lbm_car(args[0]);
+    color_t colors[16];
+    memset(colors, 0, sizeof(color_t) * 16);
 
-  image_buffer_t img_buf;
-  img_buf.fmt = image_buffer_format((uint8_t*)arr->data);
-  img_buf.width = image_buffer_width((uint8_t*)arr->data);
-  img_buf.height = image_buffer_height((uint8_t*)arr->data);
-  img_buf.mem_base = (uint8_t*)arr->data;
-  img_buf.data = image_buffer_data((uint8_t*)arr->data);
+    if (argn == 4 && lbm_is_list(args[3])) {
+      int i = 0;
+      lbm_value curr = args[3];
+      while (lbm_is_cons(curr) && i < 16) {
+        lbm_value arg = lbm_car(curr);
 
-  color_t colors[16];
-  memset(colors, 0, sizeof(color_t) * 16);
+        if (lbm_is_number(arg)) {
+          colors[i].color1 = (int)lbm_dec_as_u32(arg);
+        } else if (display_is_color(arg)) {
+          colors[i] = *((color_t*)lbm_get_custom_value(arg));
+        } else {
+          return ENC_SYM_TERROR;
+        }
 
-  if (argn == 4 && lbm_is_list(args[3])) {
-    int i = 0;
-    lbm_value curr = args[3];
-    while (lbm_is_cons(curr) && i < 16) {
-      lbm_value arg = lbm_car(curr);
-
-      if (lbm_is_number(arg)) {
-        colors[i].color1 = (int)lbm_dec_as_u32(arg);
-      } else if (display_is_color(arg)) {
-        colors[i] = *((color_t*)lbm_get_custom_value(arg));
-      } else {
-        return ENC_SYM_TERROR;
+        curr = lbm_cdr(curr);
+        i++;
       }
-
-      curr = lbm_cdr(curr);
-      i++;
     }
+
+    // img_buf is a stack allocated image_buffer_t.
+    bool render_res = disp_render_image(&img_buf, (uint16_t)lbm_dec_as_u32(args[1]), (uint16_t)lbm_dec_as_u32(args[2]), colors);
+    if (!render_res) {
+      lbm_set_error_reason("Could not render image. Check if the format and location is compatible with the display.");
+      return ENC_SYM_EERROR;
+    }
+    res = ENC_SYM_TRUE;
   }
-
-  // img_buf is a stack allocated image_buffer_t.
-  bool render_res = disp_render_image(&img_buf, (uint16_t)lbm_dec_as_u32(args[1]), (uint16_t)lbm_dec_as_u32(args[2]), colors);
-
-  if (!render_res) {
-    lbm_set_error_reason("Could not render image. Check if the format and location is compatible with the display.");
-    return ENC_SYM_EERROR;
-  }
-
-  return ENC_SYM_TRUE;
+  return res;
 }
 
 // Jpg decoder
@@ -2819,35 +2803,38 @@ int jpg_output_func (	/* 1:Ok, 0:Aborted */
 
 static lbm_value ext_disp_render_jpg(lbm_value *args, lbm_uint argn) {
 
-  if (argn != 3 ||
-      !lbm_is_array_r(args[0]) ||
-      !lbm_is_number(args[1]) ||
-      !lbm_is_number(args[2])) {
-    return ENC_SYM_TERROR;
+  lbm_array_header_t *array;
+  lbm_value res = ENC_SYM_TERROR;
+
+  if (argn == 3 &&
+      (array = lbm_dec_array_r(args[0])) && //asignment
+      lbm_is_number(args[1]) &&
+      lbm_is_number(args[2])) {
+
+    JDEC jd;
+    void *jdwork;
+    // make a bit of room before the buffer.
+    const size_t sz_work = 4096 + IMAGE_BUFFER_HEADER_SIZE;
+
+    jdwork = lbm_malloc(sz_work);
+    if (!jdwork) {
+      return ENC_SYM_MERROR;
+    }
+
+
+
+    jpg_bufdef iodev;
+    iodev.data = (uint8_t*)(array->data);
+    iodev.size = (int)array->size;
+    iodev.pos = 0;
+    iodev.ofs_x = lbm_dec_as_i32(args[1]);
+    iodev.ofs_y = lbm_dec_as_i32(args[2]);
+    jd_prepare(&jd, jpg_input_func, jdwork, sz_work + IMAGE_BUFFER_HEADER_SIZE, &iodev);
+    jd_decomp(&jd, jpg_output_func, 0);
+    lbm_free(jdwork);
+    res = ENC_SYM_TRUE;
   }
-
-  JDEC jd;
-  void *jdwork;
-  // make a bit of room before the buffer.
-  const size_t sz_work = 4096 + IMAGE_BUFFER_HEADER_SIZE;
-
-  jdwork = lbm_malloc(sz_work);
-  if (!jdwork) {
-    return ENC_SYM_MERROR;
-  }
-
-  lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(args[0]);
-
-  jpg_bufdef iodev;
-  iodev.data = (uint8_t*)(array->data);
-  iodev.size = (int)array->size;
-  iodev.pos = 0;
-  iodev.ofs_x = lbm_dec_as_i32(args[1]);
-  iodev.ofs_y = lbm_dec_as_i32(args[2]);
-  jd_prepare(&jd, jpg_input_func, jdwork, sz_work + IMAGE_BUFFER_HEADER_SIZE, &iodev);
-  jd_decomp(&jd, jpg_output_func, 0);
-  lbm_free(jdwork);
-  return ENC_SYM_TRUE;
+  return res;
 }
 
 void lbm_display_extensions_init(void) {

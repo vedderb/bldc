@@ -276,8 +276,11 @@ bool lbm_flatten_env(int index, lbm_uint** data, lbm_uint *size) {
 
   if (lbm_is_symbol(fv)) return false;
 
-  lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(fv);
-  *size = array->size;
-  *data = array->data;
-  return true;
+  lbm_array_header_t *array = lbm_dec_array_r(fv);
+  if (array) {
+    *size = array->size;
+    *data = array->data;
+    return true;
+  }
+  return false;
 }

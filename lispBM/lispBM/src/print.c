@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020 - 2025      Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2018, 2020 - 2024      Joel Svensson    svenssonjoel@yahoo.se
                            2022      Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -55,16 +55,23 @@ static int push_n(lbm_stack_t *s, lbm_uint *values, lbm_uint n) {
   return 0;
 }
 
+// is_printable_string is turning out to be a headache.
+// What do we want from this function???
+//
+// Value                   | Print as                | Condition
+// [0]                     | [0]                     |
+// [1]                     | [1]                     |
+// ""                      | [0]                     | (array->size <= 1) => false
+// "hej"                   | "hej"                   | printable characters followed by a 0
+// [65 66 67 0 65 66 67 0] | [65 66 67 0 65 66 67 0] | position of first 0 after printable characters = array->size-1
+// [0 65 66 0]             | [0 65 66 0]             | position of first 0 after printable characters = array->size-1
 bool lbm_value_is_printable_string(lbm_value v, char **str) {
   bool is_a_string = false;
-  if (lbm_is_array_r(v)) {    
-    lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
-    // TODO: Potential null deref.
-    //       Highly unlikely that array is a recognizable NULL though.
-    //       If it is incorrect, it is most likely arbitrary.
+  lbm_array_header_t *array = lbm_dec_array_r(v);
+  if (array) {
     char *c_data = (char *)array->data;
-    unsigned int i = 0;
-    if (array->size >= 1) { // nonzero length
+    if (array->size > 1) { // nonzero length
+      unsigned int i = 0;
       is_a_string = true;
       for (i = 0; i < array->size; i ++) {
 	if (c_data[i] == 0) break;
@@ -73,7 +80,8 @@ bool lbm_value_is_printable_string(lbm_value v, char **str) {
 	  break;
 	}
       }
-      if (i != array->size-1 && c_data[i-1] != 0) is_a_string = false;
+      if (i > 0 && i != array->size-1 && c_data[i-1] != 0) is_a_string = false;
+      if (array->size-1 > i) is_a_string = false;
       if (is_a_string) {
         *str = (char*)array->data;
       }
@@ -254,7 +262,8 @@ static int print_emit_array_data(lbm_char_channel_t *chan, lbm_array_header_t *a
 static int print_emit_bytearray(lbm_char_channel_t *chan, lbm_value v) {
   int r = 0;
   char *str;
-  if (lbm_is_array_r(v)) {
+  lbm_array_header_t *array = lbm_dec_array_r(v);
+  if (array) {
     if (lbm_value_is_printable_string(v, &str)) {
       r = print_emit_char(chan, '"');
       if (r == EMIT_OK) {
@@ -264,7 +273,6 @@ static int print_emit_bytearray(lbm_char_channel_t *chan, lbm_value v) {
         }
       }
     } else {
-      lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
       r=  print_emit_array_data(chan, array);
     }
   } else {

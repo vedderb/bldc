@@ -91,12 +91,11 @@ static lbm_value ext_vector(lbm_value *args, lbm_uint argn) {
   if (argn < 1) return ENC_SYM_TERROR;
 
   lbm_value vec = vector_float_allocate(argn);
-  if (lbm_is_error(vec)) return vec;
-
   vector_float_t *lvec = (vector_float_t*)lbm_get_custom_value(vec);
-
-  for (lbm_uint i = 0; i < argn; i ++) {
-    lvec->data[i] = lbm_dec_as_float(args[i]);
+  if (lvec) {
+    for (lbm_uint i = 0; i < argn; i ++) {
+      lvec->data[i] = lbm_dec_as_float(args[i]);
+    }
   }
   return vec;
 }
@@ -113,17 +112,17 @@ static lbm_value ext_list_to_vector(lbm_value *args, lbm_uint argn) {
 
     if (len > 0 && nums) {
       lbm_value vec = vector_float_allocate(len);
-      if (lbm_is_error(vec)) return vec;
-      vector_float_t *lvec = (vector_float_t*)lbm_get_custom_value(vec);
-
-      lbm_value curr = args[0];
-      unsigned int i = 0;
-      while (lbm_is_cons(curr)) {
-        lvec->data[i] = lbm_dec_as_float(lbm_car(curr));
-        i ++;
-        curr = lbm_cdr(curr);
-      }
       res = vec;
+      vector_float_t *lvec = (vector_float_t*)lbm_get_custom_value(vec);
+      if (lvec) {
+        lbm_value curr = args[0];
+        unsigned int i = 0;
+        while (lbm_is_cons(curr)) {
+          lvec->data[i] = lbm_dec_as_float(lbm_car(curr));
+          i ++;
+          curr = lbm_cdr(curr);
+        }
+      }
     }
   }
   return res;
@@ -134,20 +133,21 @@ static lbm_value ext_vector_to_list(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
   if (argn == 1 && is_vector_float(args[0])) {
     vector_float_t *lvec = (vector_float_t*)lbm_get_custom_value(args[0]);
-
-    lbm_value result = lbm_heap_allocate_list(lvec->size);
-    if (lbm_is_cons(result)) {
-      lbm_value curr = result;
-      for (lbm_uint i = 0; i < lvec->size; i ++) {
-        lbm_value f_val = lbm_enc_float(lvec->data[i]);
-        if (lbm_is_error(f_val)) {
-          result = f_val;
-          break;
+    if (lvec) {
+      lbm_value result = lbm_heap_allocate_list(lvec->size);
+      if (lbm_is_cons(result)) {
+        lbm_value curr = result;
+        for (lbm_uint i = 0; i < lvec->size; i ++) {
+          lbm_value f_val = lbm_enc_float(lvec->data[i]);
+          if (lbm_is_error(f_val)) {
+            result = f_val;
+            break;
+          }
+          lbm_set_car(curr, f_val);
+          curr = lbm_cdr(curr);
         }
-        lbm_set_car(curr, f_val);
-        curr = lbm_cdr(curr);
+        res = result;
       }
-      res = result;
     }
   }
   return res;
@@ -159,9 +159,11 @@ static lbm_value ext_vproj(lbm_value *args, lbm_uint argn) {
       is_vector_float(args[0]) &&
       lbm_is_number(args[1])) {
     vector_float_t *vec = (vector_float_t*)lbm_get_custom_value(args[0]);
-    uint32_t i = lbm_dec_as_u32(args[1]);
-    if (i < vec->size) {
-      res = lbm_enc_float(vec->data[i]);
+    if (vec) {
+      uint32_t i = lbm_dec_as_u32(args[1]);
+      if (i < vec->size) {
+        res = lbm_enc_float(vec->data[i]);
+      }
     }
   }
   return res;
@@ -175,22 +177,15 @@ static lbm_value ext_axpy(lbm_value *args, lbm_uint argn ) {
   lbm_value a = args[0];
   lbm_value x = args[1];
   lbm_value y = args[2];
-
   if (is_vector_float(x) && is_vector_float(y) && lbm_is_number(a)) {
-
     float alpha = lbm_dec_as_float(a);
     vector_float_t *X = (vector_float_t*)lbm_get_custom_value(x);
     vector_float_t *Y = (vector_float_t*)lbm_get_custom_value(y);
-
-    if (X->size == Y->size) {
-
+    if ((X && Y) && X->size == Y->size) {
       lbm_uint res_size = X->size;
-
       res = vector_float_allocate(res_size);
       if (!lbm_is_symbol_merror(res)) {
-
         vector_float_t *R = (vector_float_t*)lbm_get_custom_value(res);
-
         for (unsigned i = 0; i < res_size; i ++) {
           R->data[i] = alpha * X->data[i] + Y->data[i];
         }
@@ -213,7 +208,7 @@ static lbm_value ext_dot(lbm_value *args, lbm_uint argn) {
     vector_float_t *X = (vector_float_t*)lbm_get_custom_value(x);
     vector_float_t *Y = (vector_float_t*)lbm_get_custom_value(y);
 
-    if (X->size == Y->size) {
+    if ((X && Y) && X->size == Y->size) {
       lbm_uint res_size = X->size;
 
       float f_res = 0;
@@ -241,8 +236,10 @@ static lbm_value ext_mag(lbm_value *args, lbm_uint argn) {
   if (argn == 1 &&
       is_vector_float(args[0])) {
     vector_float_t *v = (vector_float_t *)lbm_get_custom_value(args[0]);
-    float mag = vector_float_mag(v);
-    res = lbm_enc_float(mag);
+    if (v) {
+      float mag = vector_float_mag(v);
+      res = lbm_enc_float(mag);
+    }
   }
   return res;
 }
@@ -255,12 +252,16 @@ static lbm_value ext_vmult(lbm_value *args, lbm_uint argn) {
 
     float alpha = lbm_dec_as_float(args[0]);
     vector_float_t *x = (vector_float_t *)lbm_get_custom_value(args[1]);
-    lbm_value y = vector_float_allocate(x->size);
-    res = y;
-    if (!lbm_is_error(y)) {
-      vector_float_t *y_vec = (vector_float_t *)lbm_get_custom_value(y);
-      for (unsigned int i = 0; i < x->size; i ++) {
-        y_vec->data[i] = alpha * x->data[i];
+    if (x) {
+      lbm_value y = vector_float_allocate(x->size);
+      res = y;
+      if (!lbm_is_error(y)) {
+        vector_float_t *y_vec = (vector_float_t *)lbm_get_custom_value(y);
+        if (y_vec) {
+          for (unsigned int i = 0; i < x->size; i ++) {
+            y_vec->data[i] = alpha * x->data[i];
+          }
+        }
       }
     }
   }
@@ -305,19 +306,20 @@ static lbm_value ext_matrix_to_list(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
   if (argn == 1 && is_matrix_float(args[0])) {
     matrix_float_t *lmat = (matrix_float_t*)lbm_get_custom_value(args[0]);
-    lbm_uint size = lmat->rows * lmat->cols;
-
-    res = lbm_heap_allocate_list(size);
-    if (lbm_is_cons(res)) {
-      lbm_value curr = res;
-      for (unsigned int i = 0; i < size; i ++) {
-        lbm_value f_val = lbm_enc_float(lmat->data[i]);
-        if (lbm_is_error(f_val)) {
-          res = f_val;
-          break;
+    if (lmat) {
+      lbm_uint size = lmat->rows * lmat->cols;
+      res = lbm_heap_allocate_list(size);
+      if (lbm_is_cons(res)) {
+        lbm_value curr = res;
+        for (unsigned int i = 0; i < size; i ++) {
+          lbm_value f_val = lbm_enc_float(lmat->data[i]);
+          if (lbm_is_error(f_val)) {
+            res = f_val;
+            break;
+          }
+          lbm_set_car(curr, f_val);
+          curr = lbm_cdr(curr);
         }
-        lbm_set_car(curr, f_val);
-        curr = lbm_cdr(curr);
       }
     }
   }

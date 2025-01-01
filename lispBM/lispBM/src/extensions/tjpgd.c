@@ -161,17 +161,16 @@ static JRESULT create_qt_tbl (	/* 0:OK, !0:Failed */
 	size_t ndata			/* Size of input data */
 )
 {
-	unsigned int i, zi;
-	uint8_t d;
+	unsigned int zi;
 	int32_t *pb;
 
 
 	while (ndata) {	/* Process all tables in the segment */
 		if (ndata < 65) return JDR_FMT1;	/* Err: table size is unaligned */
 		ndata -= 65;
-		d = *data++;							/* Get table property */
+		uint8_t d = *data++;							/* Get table property */
 		if (d & 0xF0) return JDR_FMT1;			/* Err: not 8-bit resolution */
-		i = d & 3;								/* Get table ID */
+		unsigned int i = d & 3;								/* Get table ID */
 		pb = alloc_pool(jd, 64 * sizeof (int32_t));/* Allocate a memory block for the table */
 		if (!pb) return JDR_MEM1;				/* Err: not enough memory */
 		jd->qttbl[i] = pb;						/* Register the table */
@@ -705,7 +704,7 @@ static JRESULT mcu_load (
 {
 	int32_t *tmp = (int32_t*)jd->workbuf;	/* Block working buffer for de-quantize and IDCT */
 	int d, e;
-	unsigned int blk, nby, i, bc, z, id, cmp;
+	unsigned int blk, nby, i, bc, z, id;
 	jd_yuv_t *bp;
 	const int32_t *dqf;
 
@@ -714,7 +713,7 @@ static JRESULT mcu_load (
 	bp = jd->mcubuf;			/* Pointer to the first block of MCU */
 
 	for (blk = 0; blk < nby + 2; blk++) {	/* Get nby Y blocks and two C blocks */
-		cmp = (blk < nby) ? 0 : blk - nby + 1;	/* Component number 0:Y, 1:Cb, 2:Cr */
+		unsigned int cmp = (blk < nby) ? 0 : blk - nby + 1;	/* Component number 0:Y, 1:Cb, 2:Cr */
 
 		if (cmp && jd->ncomp != 3) {		/* Clear C blocks if not exist (monochrome image) */
 			for (i = 0; i < 64; bp[i++] = 128) ;
@@ -934,11 +933,11 @@ static JRESULT mcu_output (
 	/* Convert RGB888 to RGB565 if needed */
 	if (JD_FORMAT == 1) {
 		uint8_t *s = (uint8_t*)jd->workbuf;
-		uint16_t w, *d = (uint16_t*)s;
+		uint16_t *d = (uint16_t*)s;
 		unsigned int n = rx * ry;
 
 		do {
-			w = (*s++ & 0xF8) << 8;		/* RRRRR----------- */
+			uint16_t w = (*s++ & 0xF8) << 8;		/* RRRRR----------- */
 			w |= (*s++ & 0xFC) << 3;	/* -----GGGGGG----- */
 			w |= *s++ >> 3;				/* -----------BBBBB */
 			*d++ = w;
@@ -970,7 +969,6 @@ JRESULT jd_prepare (
 	uint8_t *seg, b;
 	uint16_t marker;
 	unsigned int n, i, ofs;
-	size_t len;
 	JRESULT rc;
 
 
@@ -994,7 +992,7 @@ JRESULT jd_prepare (
 		/* Get a JPEG marker */
 		if (jd->infunc(jd, seg, 4) != 4) return JDR_INP;
 		marker = LDB_WORD(seg);		/* Marker */
-		len = LDB_WORD(seg + 2);	/* Length field */
+		size_t len = LDB_WORD(seg + 2);	/* Length field */
 		if (len <= 2 || (marker >> 8) != 0xFF) return JDR_FMT1;
 		len -= 2;			/* Segent content size */
 		ofs += 4 + len;		/* Number of bytes loaded */
