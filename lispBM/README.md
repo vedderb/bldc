@@ -6362,6 +6362,20 @@ Rename file (same as moving a file). Returns true on success, nil otherwise.
 
 ---
 
+#### f-sync
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(f-sync file)
+```
+
+Write buffered changes to the memory card.
+
+---
+
 #### f-fatinfo
 
 | Platforms | Firmware |
