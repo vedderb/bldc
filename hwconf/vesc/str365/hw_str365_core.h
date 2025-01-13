@@ -21,10 +21,17 @@
 #define HW_STR365_CORE_H_
 
 #ifdef HWSTR365
-  #define HW_NAME					"STR365"
+	#define HW_NAME					"STR365"
+#elif defined(HWSTR365_150)
+	#define HW_NAME					"STR365_150"
 #else
-  #error "Must define hardware type"
+	#error "Must define hardware type"
 #endif
+
+/*
+ * Todo 150V-board:
+ * - Reg-labels need swapping
+ */
 
 // HW properties
 #define HW_HAS_3_SHUNTS
@@ -146,7 +153,11 @@
 #define VIN_R1					150000.0
 #endif
 #ifndef VIN_R2
+#ifdef HWSTR365_150
+#define VIN_R2					3300.0
+#else
 #define VIN_R2					4700.0
+#endif
 #endif
 #ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN		20.0
@@ -278,11 +289,20 @@
 #define HW_DEAD_TIME_NSEC		600.0
 
 // Default setting overrides
+#ifdef HWSTR365_150
+#ifndef MCCONF_L_MIN_VOLTAGE
+#define MCCONF_L_MIN_VOLTAGE			20.0		// Minimum input voltage
+#endif
+#ifndef MCCONF_L_MAX_VOLTAGE
+#define MCCONF_L_MAX_VOLTAGE			140.0	// Maximum input voltage
+#endif
+#else
 #ifndef MCCONF_L_MIN_VOLTAGE
 #define MCCONF_L_MIN_VOLTAGE			18.0		// Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE			94.0	// Maximum input voltage
+#endif
 #endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
@@ -310,7 +330,11 @@
 #define HW_LIM_CURRENT			-500.0, 500.0
 #define HW_LIM_CURRENT_IN		-500.0, 500.0
 #define HW_LIM_CURRENT_ABS		0.0, 720.0
+#ifdef HWSTR365_150
+#define HW_LIM_VIN				20.0, 145.0
+#else
 #define HW_LIM_VIN				11.0, 97.0
+#endif
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
