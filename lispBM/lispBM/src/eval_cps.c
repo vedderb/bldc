@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020 - 2024 Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2018, 2020 - 2025 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -150,6 +150,7 @@ const char* lbm_error_str_flash_error = "Error writing to flash.";
 const char* lbm_error_str_flash_full = "Flash memory is full.";
 const char* lbm_error_str_variable_not_bound = "Variable not bound.";
 const char* lbm_error_str_read_no_mem = "Out of memory while reading.";
+const char* lbm_error_str_qq_expand = "Quasiquotation expansion error.";
 
 static lbm_value lbm_error_suspect;
 static bool lbm_error_has_suspect = false;
@@ -458,6 +459,11 @@ lbm_cid lbm_get_current_cid(void) {
 eval_context_t *lbm_get_current_context(void) {
   return ctx_running;
 }
+
+void lbm_surrender_quota(void) {
+  eval_steps_quota = 0;
+}
+
 
 /****************************************************/
 /* Utilities used locally in this file              */
@@ -770,14 +776,14 @@ void print_error_value(char *buf, lbm_uint bufsize, char *pre, lbm_value v, bool
   if (lookup) {
     if (lbm_is_symbol(v)) {
       if (lbm_dec_sym(v) >= RUNTIME_SYMBOLS_START) {
-	lbm_value res = ENC_SYM_NIL;
-	if (lbm_env_lookup_b(&res, v, ctx_running->curr_env) ||
-	    lbm_global_env_lookup(&res, v)) {
-	  lbm_print_value(buf, bufsize, res);
-	  printf_callback("      bound to: %s\n", buf);
-	} else {
-	  printf_callback("      UNDEFINED\n");
-	}
+        lbm_value res = ENC_SYM_NIL;
+        if (lbm_env_lookup_b(&res, v, ctx_running->curr_env) ||
+            lbm_global_env_lookup(&res, v)) {
+          lbm_print_value(buf, bufsize, res);
+          printf_callback("      bound to: %s\n", buf);
+        } else {
+          printf_callback("      UNDEFINED\n");
+        }
       }
     }
   }
@@ -1610,7 +1616,7 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
 static void mark_context(eval_context_t *ctx, void *arg1, void *arg2) {
   (void) arg1;
   (void) arg2;
-  lbm_value roots[3] = {ctx->curr_exp, ctx->program, ctx->r };
+  lbm_value roots[3] = {ctx->curr_exp, ctx->program, ctx->r};
   lbm_gc_mark_env(ctx->curr_env);
   lbm_gc_mark_roots(roots, 3);
   lbm_gc_mark_roots(ctx->mailbox, ctx->num_mail);
@@ -1759,7 +1765,7 @@ static void eval_atomic(eval_context_t *ctx) {
   eval_progn(ctx);
 }
 
-/* (call-cc (lambda (k) .... ))  */
+// (call-cc (lambda (k) .... ))
 static void eval_callcc(eval_context_t *ctx) {
   lbm_value cont_array;
   lbm_uint *sptr0 = stack_reserve(ctx, 1);
@@ -1789,6 +1795,28 @@ static void eval_callcc(eval_context_t *ctx) {
     // failed to create continuation array.
     error_ctx(ENC_SYM_MERROR);
   }
+}
+
+// (call-cc-unsafe (lambda (k) ... ))
+// cc-unsafe: continuation should not be bound to any global directly or indirectly.
+// invoking the continuation must check that target SP holds a continuation that
+// can be applied using app_cont, otherwise error. The continuation need not be correct
+// in case user globally bound the continuation, but it may rule out disastrous failure.
+static void eval_call_cc_unsafe(eval_context_t *ctx) {
+  lbm_uint sp = ctx->K.sp;
+  // The stored stack contains the is_atomic flag.
+  // This flag is overwritten in the following execution path.
+  lbm_value acont = lbm_heap_allocate_list_init(3,
+                                                ENC_SYM_CONT_SP,
+                                                lbm_enc_i((int32_t)sp),
+                                                is_atomic ? ENC_SYM_TRUE : ENC_SYM_NIL, ENC_SYM_NIL);
+  lbm_value arg_list = cons_with_gc(acont, ENC_SYM_NIL, ENC_SYM_NIL);
+  // Go directly into application evaluation without passing go
+  lbm_uint *sptr = stack_reserve(ctx, 3);
+  sptr[0] = ctx->curr_env;
+  sptr[1] = arg_list;
+  sptr[2] = APPLICATION_START;
+  ctx->curr_exp = get_cadr(ctx->curr_exp);
 }
 
 // (define sym exp)
@@ -2400,7 +2428,7 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
     lbm_value chan = ENC_SYM_NIL;
     if (lbm_type_of_functional(args[0]) == LBM_TYPE_ARRAY) {
       char *str = lbm_dec_str(args[0]);
-      if (str) { 
+      if (str) {
 #ifdef LBM_ALWAYS_GC
         gc();
 #endif
@@ -2780,7 +2808,7 @@ static void apply_flatten(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) 
   if (nargs == 1) {
 #ifdef LBM_ALWAYS_GC
     gc();
-#endif    
+#endif
     lbm_value v = flatten_value(args[0]);
     if ( v == ENC_SYM_MERROR) {
       gc();
@@ -4294,11 +4322,13 @@ static void cont_read_append_continue(eval_context_t *ctx) {
     }
   }
   lbm_value new_cell = cons_with_gc(ctx->r, ENC_SYM_NIL, ENC_SYM_NIL);
-  if (lbm_is_symbol_merror(new_cell)) {
-    lbm_channel_reader_close(str);
-    read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
-    return;
-  }
+  // Does not return if merror. So we cannot get a read-error here
+  // unless we write the a version of cons_with_gc here.
+  //if (lbm_is_symbol_merror(new_cell)) {
+  //  lbm_channel_reader_close(str);
+  //  read_error_ctx(lbm_channel_row(str), lbm_channel_column(str));
+  //  return;
+  //}
   if (lbm_type_of(last_cell) == LBM_TYPE_CONS) {
     lbm_set_cdr(last_cell, new_cell);
     last_cell = new_cell;
@@ -4307,7 +4337,7 @@ static void cont_read_append_continue(eval_context_t *ctx) {
   }
   sptr[0] = first_cell;
   sptr[1] = last_cell;
-  sptr[2] = stream;    // unchanged.
+  //sptr[2] = stream;    // unchanged.
   lbm_value *rptr = stack_reserve(ctx, 4);
   rptr[0] = READ_APPEND_CONTINUE;
   rptr[1] = stream;
@@ -4319,14 +4349,16 @@ static void cont_read_append_continue(eval_context_t *ctx) {
 static void cont_read_eval_continue(eval_context_t *ctx) {
   lbm_value env;
   lbm_value stream;
-  lbm_pop_2(&ctx->K, &env, &stream);
-
+  lbm_value *sptr = get_stack_ptr(ctx, 2);
+  env = sptr[1];
+  stream = sptr[0];
   lbm_char_channel_t *str = lbm_dec_channel(stream);
   if (str && str->state) {
     ctx->row1 = (lbm_int)str->row(str);
     if (lbm_type_of(ctx->r) == LBM_TYPE_SYMBOL) {
       switch(ctx->r) {
       case ENC_SYM_CLOSEPAR:
+        lbm_stack_drop(&ctx->K, 2);
         ctx->app_cont = true;
         return;
       case ENC_SYM_DOT:
@@ -4336,15 +4368,13 @@ static void cont_read_eval_continue(eval_context_t *ctx) {
         return;
       }
     }
-    lbm_value *rptr = stack_reserve(ctx, 8);
-    rptr[0] = stream;
-    rptr[1] = env;
-    rptr[2] = READ_EVAL_CONTINUE;
-    rptr[3] = stream;
-    rptr[4] = lbm_enc_u(1);
-    rptr[5] = READ_NEXT_TOKEN;
-    rptr[6] = lbm_enc_u(ctx->flags);
-    rptr[7] = POP_READER_FLAGS;
+    lbm_value *rptr = stack_reserve(ctx, 6);
+    rptr[0] = READ_EVAL_CONTINUE;
+    rptr[1] = stream;
+    rptr[2] = lbm_enc_u(1);
+    rptr[3] = READ_NEXT_TOKEN;
+    rptr[4] = lbm_enc_u(ctx->flags);
+    rptr[5] = POP_READER_FLAGS;
 
     ctx->curr_env = env;
     ctx->curr_exp = ctx->r;
@@ -4535,8 +4565,41 @@ static void cont_application_start(eval_context_t *ctx) {
       is_atomic = atomic ? 1 : 0;
 
       ctx->curr_exp = arg;
-      break;
-    }
+    } break;
+    case ENC_SYM_CONT_SP: {
+      // continuation created using call-cc-unsafe
+      // ((SYM_CONT_SP . stack_ptr) arg0 )
+      lbm_value c = get_cadr(ctx->r); /* should be the stack_ptr*/
+      lbm_value atomic = get_cadr(get_cdr(ctx->r));
+
+      if (!lbm_is_number(c)) {
+        error_ctx(ENC_SYM_FATAL_ERROR);
+      }
+
+      lbm_uint sp = (lbm_uint)lbm_dec_i(c);
+
+      lbm_uint arg_count = lbm_list_length(args);
+      lbm_value arg = ENC_SYM_NIL;
+      switch (arg_count) {
+      case 0:
+        arg = ENC_SYM_NIL;
+        break;
+      case 1:
+        arg = get_car(args);
+        break;
+      default:
+        lbm_set_error_reason((char*)lbm_error_str_num_args);
+        error_ctx(ENC_SYM_EERROR);
+      }
+      if (sp > 0 && sp <= ctx->K.sp && IS_CONTINUATION(ctx->K.data[sp-1])) {
+              is_atomic = atomic ? 1 : 0; // works fine with nil/true
+              ctx->K.sp = sp;
+              ctx->curr_exp = arg;
+              return;
+      } else {
+        error_ctx(ENC_SYM_FATAL_ERROR);
+      }
+    } break;
     case ENC_SYM_MACRO:{
       /*
        * Perform macro expansion.
@@ -4909,6 +4972,17 @@ lbm_value append(lbm_value front, lbm_value back) {
   return cons_with_gc(ENC_SYM_APPEND, t1, ENC_SYM_NIL);
 }
 
+// ////////////////////////////////////////////////////////////
+// Quasiquotation expansion that takes place at read time
+// and is based on the paper by Bawden "Quasiquotation in lisp".
+// Bawden, Alan. "Quasiquotation in Lisp." PEPM. 1999.
+//
+// cont_qq_expand and cont_qq_expand_list corresponds (mostly) to
+// qq-expand and qq-expand-list in the paper.
+// One difference is that the case where a backquote is nested
+// inside of a backqoute is handled via the recursion through the
+// reader.
+
 /* Bawden's qq-expand implementation
 (define (qq-expand x)
   (cond ((tag-comma? x)
@@ -4938,7 +5012,8 @@ static void cont_qq_expand(eval_context_t *ctx) {
       ctx->app_cont = true;
     } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
                car_val == ENC_SYM_COMMAAT) {
-      error_ctx(ENC_SYM_RERROR);
+      lbm_set_error_reason((char*)lbm_error_str_qq_expand);
+      error_at_ctx(ENC_SYM_RERROR, qquoted);
     } else {
       lbm_value *rptr = stack_reserve(ctx, 6);
       rptr[0] = ctx->r;
@@ -5001,7 +5076,8 @@ static void cont_qq_expand_list(eval_context_t* ctx) {
       return;
     } else if (lbm_type_of(car_val) == LBM_TYPE_SYMBOL &&
                car_val == ENC_SYM_COMMAAT) {
-      ctx->r = get_car(cdr_val);
+      lbm_value cadr_val = lbm_car(cdr_val);
+      ctx->r = cadr_val;
       return;
     } else {
       lbm_value *rptr = stack_reserve(ctx, 7);
@@ -5148,6 +5224,7 @@ static void cont_recv_to_retry(eval_context_t *ctx) {
   reblock_current_ctx(LBM_THREAD_STATE_RECV_TO,true);
 }
 
+
 /*********************************************************/
 /* Continuations table                                   */
 typedef void (*cont_fun)(eval_context_t *);
@@ -5201,7 +5278,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_exception_handler,
     cont_recv_to,
     cont_wrap_result,
-    cont_recv_to_retry
+    cont_recv_to_retry,
   };
 
 /*********************************************************/
@@ -5232,7 +5309,9 @@ static const evaluator_fun evaluators[] =
    eval_setq,
    eval_move_to_flash,
    eval_loop,
-   eval_trap
+   eval_trap,
+   eval_call_cc_unsafe,
+   eval_selfevaluating, // cont_sp
   };
 
 

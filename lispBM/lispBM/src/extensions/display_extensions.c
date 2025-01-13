@@ -1,7 +1,7 @@
 /*
-  Copyright 2023, 2024 Benjamin Vedder		benjamin@vedder.se
-  Copyright 2023, 2024 Joel Svensson		svenssonjoel@yahoo.se
-  Copyright 2023       Rasmus Söderhielm	rasmus.soderhielm@gmail.com
+  Copyright 2023, 2024       Benjamin Vedder            benjamin@vedder.se
+  Copyright 2023, 2024, 2025 Joel Svensson              svenssonjoel@yahoo.se
+  Copyright 2023             Rasmus Söderhielm          rasmus.soderhielm@gmail.com
 
   This file is part of LispBM. (Originally a part of the vesc_express FW)
 
@@ -25,7 +25,6 @@
 
 #include <extensions/display_extensions.h>
 #include <lbm_utils.h>
-#include <lbm_custom_type.h>
 #include <lbm_defrag_mem.h>
 
 #define MAX_WIDTH 32000
@@ -91,7 +90,7 @@ uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y) {
   }
 }
 
-static const char *color_desc = "Color";
+//static const char *color_desc = "Color";
 
 static lbm_uint symbol_indexed2 = 0;
 static lbm_uint symbol_indexed4 = 0;
@@ -176,14 +175,20 @@ static lbm_value image_buffer_lift(uint8_t *buf, color_format_t fmt, uint16_t wi
   return res;
 }
 
-static bool color_destructor(lbm_uint value) {
-  color_t *color = (color_t*)value;
-  if (color->precalc) {
-    lbm_free((void*)color->precalc);
-  }
-  lbm_free((void*)color);
-  return true;
+static inline bool is_color_sized(lbm_uint size) {
+  size_t color_size = sizeof(color_t);
+  return (size == color_size);
 }
+
+static inline bool is_color(uint8_t *data, lbm_uint size) {
+  bool res = false;
+  if (is_color_sized(size)) {
+    color_t *color = (color_t*)data;
+    res = (color->magic == COLOR_MAGIC);
+  }
+  return res;
+}
+
 
 static lbm_value color_allocate(COLOR_TYPE type, int32_t color1, int32_t color2, uint16_t param1, uint16_t param2, bool mirrored) {
   color_t *color = lbm_malloc(sizeof(color_t));
@@ -200,41 +205,39 @@ static lbm_value color_allocate(COLOR_TYPE type, int32_t color1, int32_t color2,
     }
   }
 
-  lbm_value res;
-  if (!lbm_custom_type_create((lbm_uint)color,
-                              color_destructor, color_desc, &res)) {
-    lbm_free(color);
+  lbm_value res = ENC_SYM_MERROR;
+
+  if (lbm_lift_array(&res, (char*)color, sizeof(color_t))) {
+    color->magic = COLOR_MAGIC;
+    color->type = type;
+    color->color1 = color1;
+    color->color2 = color2;
+    color->param1 = param1;
+    color->param2 = param2;
+    color->mirrored = mirrored;
+    color->precalc = pre;
+
     if (pre) {
-      lbm_free(pre);
+      COLOR_TYPE type_old = color->type;
+      if (type == COLOR_PRE_X) {
+        color->type = COLOR_GRADIENT_X;
+      } else if (type == COLOR_PRE_Y) {
+        color->type = COLOR_GRADIENT_Y;
+      }
+
+      if (color->param1 > COLOR_PRECALC_LEN) {
+        color->param1 = COLOR_PRECALC_LEN;
+      }
+
+      for (int i = 0;i < color->param1;i++) {
+        pre[i] = lbm_display_rgb888_from_color(*color, i + color->param2, i + color->param2);
+      }
+
+      color->type = type_old;
     }
-    return ENC_SYM_MERROR;
-  }
-
-  color->type = type;
-  color->color1 = color1;
-  color->color2 = color2;
-  color->param1 = param1;
-  color->param2 = param2;
-  color->mirrored = mirrored;
-  color->precalc = pre;
-
-  if (pre) {
-    COLOR_TYPE type_old = color->type;
-    if (type == COLOR_PRE_X) {
-      color->type = COLOR_GRADIENT_X;
-    } else if (type == COLOR_PRE_Y) {
-      color->type = COLOR_GRADIENT_Y;
-    }
-
-    if (color->param1 > COLOR_PRECALC_LEN) {
-      color->param1 = COLOR_PRECALC_LEN;
-    }
-
-    for (int i = 0;i < color->param1;i++) {
-      pre[i] = lbm_display_rgb888_from_color(*color, i + color->param2, i + color->param2);
-    }
-
-    color->type = type_old;
+  } else {
+    lbm_free(pre);
+    lbm_free(color);
   }
 
   return res;
@@ -273,8 +276,24 @@ static lbm_value image_buffer_allocate_dm(lbm_uint *dm, color_format_t fmt, uint
 
 // Exported interface
 bool display_is_color(lbm_value v) {
-  return (lbm_is_custom(v) && ((lbm_uint)lbm_get_custom_descriptor(v) == (lbm_uint)color_desc));
+  lbm_array_header_t *array = lbm_dec_array_r(v);
+  bool res = false;
+  if (array && is_color_sized(array->size)) {
+    res = (is_color((uint8_t*)array->data, array->size));
+  }
+  return res;
 }
+
+static color_t *get_color(lbm_value v) {
+  color_t *res = NULL;
+  lbm_array_header_t *array = lbm_dec_array_r(v);
+  if (array && is_color_sized(array->size)
+      && (is_color((uint8_t*)array->data, array->size))) {
+    res = (color_t*)array->data;
+  }
+  return res;
+}
+
 
 // Register symbols
 
@@ -1858,7 +1877,7 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
   res.is_valid = false;
 
   lbm_array_header_t *arr;
-  if (argn > 1 && (arr = get_image_buffer(args[0]))) {
+  if (argn >= 1 && (arr = get_image_buffer(args[0]))) {
     // at least one argument which is an image buffer.
     res.img.width = image_buffer_width((uint8_t*)arr->data);
     res.img.height = image_buffer_height((uint8_t*)arr->data);
@@ -2101,12 +2120,11 @@ static lbm_value ext_color(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_color_set(lbm_value *args, lbm_uint argn) {
-  if (argn != 3 || !display_is_color(args[0]) ||
+  color_t *color;
+  if (argn != 3 || !(color = get_color(args[0])) || // color assignment
       !lbm_is_symbol(args[1])) {
     return ENC_SYM_TERROR;
   }
-
-  color_t *color = (color_t*)lbm_get_custom_value(args[0]);
 
   bool is_regular = color->type == COLOR_REGULAR;
   bool is_gradient = color->type == COLOR_GRADIENT_X || color->type == COLOR_GRADIENT_Y;
@@ -2153,12 +2171,11 @@ static lbm_value ext_color_set(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_color_get(lbm_value *args, lbm_uint argn) {
-  if (argn != 2 || !display_is_color(args[0]) ||
+  color_t *color;
+  if (argn != 2 || !(color = get_color(args[0])) || // color assignment
       !lbm_is_symbol(args[1])) {
     return ENC_SYM_TERROR;
   }
-
-  color_t *color = (color_t*)lbm_get_custom_value(args[0]);
 
   bool is_gradient = color->type == COLOR_GRADIENT_X || color->type == COLOR_GRADIENT_Y;
   bool is_pre = color->type == COLOR_PRE_X || color->type == COLOR_PRE_Y;
@@ -2195,12 +2212,11 @@ static lbm_value ext_color_get(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_color_setpre(lbm_value *args, lbm_uint argn) {
-  if (argn != 3 || !display_is_color(args[0]) ||
+  color_t *color;
+  if (argn != 3 || !(color = get_color(args[0])) ||
       !lbm_is_number(args[1]) || !lbm_is_number(args[2])) {
     return ENC_SYM_TERROR;
   }
-
-  color_t *color = (color_t*)lbm_get_custom_value(args[0]);
 
   uint32_t pos = lbm_dec_as_u32(args[1]);
   int new_color = lbm_dec_as_i32(args[2]);
@@ -2215,13 +2231,11 @@ static lbm_value ext_color_setpre(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_color_getpre(lbm_value *args, lbm_uint argn) {
-  if (argn != 2 || !display_is_color(args[0]) ||
+  color_t *color;
+  if (argn != 2 || !(color = get_color(args[0])) ||
       !lbm_is_number(args[1])) {
     return ENC_SYM_TERROR;
   }
-
-  color_t *color = (color_t*)lbm_get_custom_value(args[0]);
-
   uint32_t pos = lbm_dec_as_u32(args[1]);
 
   if (color->precalc == 0 || pos >= COLOR_PRECALC_LEN) {
@@ -2733,11 +2747,11 @@ static lbm_value ext_disp_render(lbm_value *args, lbm_uint argn) {
       lbm_value curr = args[3];
       while (lbm_is_cons(curr) && i < 16) {
         lbm_value arg = lbm_car(curr);
-
+        color_t *color;
         if (lbm_is_number(arg)) {
           colors[i].color1 = (int)lbm_dec_as_u32(arg);
-        } else if (display_is_color(arg)) {
-          colors[i] = *((color_t*)lbm_get_custom_value(arg));
+        } else if ((color = get_color(arg))) { // color assignment
+          colors[i] = *color;
         } else {
           return ENC_SYM_TERROR;
         }

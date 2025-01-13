@@ -1,5 +1,6 @@
 /*
-    Copyright 2023 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2023, 2025 Joel Svensson        svenssonjoel@yahoo.se
+              2022       Benjamin Vedder      benjamin@vedder.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,20 +16,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef LOOP_EXTENSIONS_H_
-#define LOOP_EXTENSIONS_H_
+#ifndef LBM_LOOP_EXTENSIONS_H_
+#define LBM_LOOP_EXTENSIONS_H_
 
-#include <stdbool.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern const char *loop_extensions_dyn_load[4];
+const char *loop_extensions_dyn_load[] =
+  {
+   "(define loopfor (macro (it start cnd update body) (me-loopfor it start cnd update body)))",
+   "(define loopwhile (macro (cnd body) (me-loopwhile cnd body)))",
+   "(define looprange (macro (it start end body) (me-looprange it start end body)))",
+   "(define loopforeach (macro (it lst body) (me-loopforeach it lst body)))",
+   "(define loopwhile-thd (macro (stk cnd body) `(spawn ,stk (fn () (loopwhile ,cnd ,body)))))",
+  };
 
 void lbm_loop_extensions_init(void);
 
-#ifdef __cplusplus
-}
-#endif
 #endif

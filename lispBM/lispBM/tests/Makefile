@@ -26,19 +26,19 @@ SRC = src
 SOURCES = $(wildcard *.c)
 EXECS = $(patsubst %.c, %.exe, $(SOURCES))
 
-test_lisp_code_cps_gc: $(LISPBM_SRC) $(PLATFORM_SRC) test_lisp_code_cps.c
+test_lisp_code_cps_gc: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
 	$(CC) $(CCFLAGS_GC) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_gc -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
 
-test_lisp_code_cps_cov: $(LISPBM_SRC) $(PLATFORM_SRC) test_lisp_code_cps.c
+test_lisp_code_cps_cov: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
 	$(CC) $(CCFLAGS_COV) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_cov -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
 
-test_lisp_code_cps: $(LISPBM_SRC) $(PLATFORM_SRC) test_lisp_code_cps.c
+test_lisp_code_cps: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
 	$(CC) $(CCFLAGS_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
 
-test_lisp_code_cps_64: $(LISPBM_SRC) $(PLATFORM_SRC) test_lisp_code_cps.c
+test_lisp_code_cps_64: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
 	$(CC) $(CCFLAGS_64) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_64 -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
 
-test_lisp_code_cps_revgc: $(LISPBM_SRC) $(PLATFORM_SRC) test_lisp_code_cps.c
+test_lisp_code_cps_revgc: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
 	$(CC) $(CCFLAGS_REVGC) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_revgc -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
 
 all: test_lisp_code_cps_cov test_lisp_code_cps test_lisp_code_cps_64 test_lisp_code_cps_revgc test_lisp_code_cps_gc
