@@ -31,8 +31,10 @@
 #include "extensions/runtime_extensions.h"
 #include "extensions/matvec_extensions.h"
 #include "extensions/random_extensions.h"
-#include "extensions/loop_extensions.h"
 #include "extensions/set_extensions.h"
+#include "extensions/mutex_extensions.h"
+#include "extensions/loop_extensions.h"
+#include "extensions/lbm_dyn_lib.h"
 #include "lbm_channel.h"
 #include "lbm_flat_value.h"
 
@@ -124,64 +126,96 @@ void critical_error(void) {
   exit(EXIT_FAILURE);
 }
 
+
+// Dynamic loader
+
+static bool strmatch(const char *str1, const char *str2) {
+  size_t len = strlen(str1);
+
+  if (str2[len] != ' ') {
+    return false;
+  }
+
+  bool same = true;
+  for (unsigned int i = 0;i < len;i++) {
+    if (str1[i] != str2[i]) {
+      same = false;
+      break;
+    }
+  }
+
+  return same;
+}
+
 bool dyn_load(const char *str, const char **code) {
 
   size_t len = strlen(str);
-  bool res = false;
   if (len == 5 && strncmp(str, "defun", 5) == 0) {
     *code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
-    res = true;
+    return true;
   }  else if (len == 4 && strncmp(str, "iota", 4) == 0) {
     *code = "(define iota (lambda (n)"
             "(range 0 n)))";
-    res = true;
+    return true;
   } else if (len == 4 && strncmp(str, "take", 4) == 0) {
     *code = "(define take (lambda (n xs)"
             "(let ((take-tail (lambda (acc n xs)"
             "(if (= n 0) acc"
             "(take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))"
             "(reverse (take-tail nil n xs)))))";
-    res = true;
+    return true;
   } else if (len == 4 && strncmp(str, "drop", 4) == 0) {
     *code = "(define drop (lambda (n xs)"
             "(if (= n 0) xs"
             "(if (eq xs nil) nil"
             "(drop (- n 1) (cdr xs))))))";
-    res = true;
+    return true;
   } else if (len == 3 && strncmp(str, "zip", 3) == 0) {
     *code = "(define zip (lambda (xs ys)"
             "(if (eq xs nil) nil"
             "(if (eq ys nil) nil"
             "(cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys)))))))";
-    res = true;
+    return true;
   } else if (len == 6 && strncmp(str, "lookup", 6) == 0) {
     *code = "(define lookup (lambda (x xs)"
             "(if (eq xs nil) nil"
             "(if (eq (car (car xs)) x)"
             "(car (cdr (car xs)))"
             "(lookup x (cdr xs))))))";
-    res = true;
+    return true;
   } else if (len == 5 && strncmp(str, "foldr", 5) == 0) {
     *code = "(define foldr (lambda (f i xs)"
             "(if (eq xs nil) i"
             "(f (car xs) (foldr f i (cdr xs))))))";
-    res = true;
+    return true;
   } else if (len == 5 && strncmp(str, "foldl", 5) == 0) {
     *code = "(define foldl (lambda (f i xs)"
             "(if (eq xs nil) i (foldl f (f i (car xs)) (cdr xs)))))";
-    res = true;
+    return true;
   }
 
-
-  for (unsigned int i = 0; i < (sizeof(loop_extensions_dyn_load) / sizeof(loop_extensions_dyn_load[0])); i ++) {
-    if (strncmp (str, loop_extensions_dyn_load[i]+8, len)  == 0) {
+  for (unsigned int i = 0; i < (sizeof(loop_extensions_dyn_load) / sizeof(loop_extensions_dyn_load[0]));i++) {
+    if (strmatch(str, loop_extensions_dyn_load[i] + 8)) {
       *code = loop_extensions_dyn_load[i];
-      res = true;
-      break;
+      return true;
     }
   }
 
-  return res;
+  for (unsigned int i = 0; i < (sizeof(lbm_dyn_macros) / sizeof(lbm_dyn_macros[0]));i++) {
+    if (strmatch(str, lbm_dyn_macros[i] + 8)) {
+      *code = lbm_dyn_macros[i];
+      return true;
+    }
+  }
+
+  for (unsigned int i = 0; i < (sizeof(lbm_dyn_fun) / sizeof(lbm_dyn_fun[0]));i++) {
+    if (strmatch(str, lbm_dyn_fun[i] + 7)) {
+      *code = lbm_dyn_fun[i];
+      return true;
+    }
+  }
+
+  return false;
 }
 
   //lbm_value ext_even(lbm_value *args, lbm_uint argn) {
@@ -579,9 +613,10 @@ int main(int argc, char **argv) {
   lbm_runtime_extensions_init();
   lbm_matvec_extensions_init();
   lbm_random_extensions_init();
+  lbm_mutex_extensions_init();
+  lbm_set_extensions_init();
   lbm_loop_extensions_init();
 
-  lbm_set_extensions_init();
   lbm_add_extension("ext-even", ext_even);
   lbm_add_extension("ext-odd", ext_odd);
   lbm_add_extension("ext-numbers", ext_numbers);

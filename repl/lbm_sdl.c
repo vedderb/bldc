@@ -447,6 +447,7 @@ bool sdl_render_image(image_buffer_t *img, uint16_t x, uint16_t y, color_t *colo
     SDL_Rect dest = { x, y, w, h };
     SDL_RenderCopy(active_rend, tex, NULL, &dest);
     SDL_RenderPresent(active_rend);
+    SDL_DestroyTexture(tex);
   }
   return true;
 }

@@ -24,10 +24,47 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/runtime_extensions.c \
              $(LISPBM)/src/extensions/matvec_extensions.c \
              $(LISPBM)/src/extensions/random_extensions.c \
-             $(LISPBM)/src/extensions/loop_extensions.c \
 	     $(LISPBM)/src/extensions/set_extensions.c \
              $(LISPBM)/src/extensions/display_extensions.c \
-             $(LISPBM)/src/extensions/tjpgd.c
+             $(LISPBM)/src/extensions/loop_extensions.c \
+             $(LISPBM)/src/extensions/tjpgd.c \
+             $(LISPBM)/src/extensions/mutex_extensions.c
+
+LISPBM_H = $(LISPBM)/include/env.h \
+           $(LISPBM)/include/eval_cps.h \
+           $(LISPBM)/include/extensions.h \
+           $(LISPBM)/include/fundamental.h \
+           $(LISPBM)/include/heap.h \
+           $(LISPBM)/include/heap_vis.h \
+           $(LISPBM)/include/lbm_channel.h \
+           $(LISPBM)/include/lbm_c_interop.h \
+           $(LISPBM)/include/lbm_constants.h \
+           $(LISPBM)/include/lbm_custom_type.h \
+           $(LISPBM)/include/lbm_defines.h \
+           $(LISPBM)/include/lbm_defrag_mem.h \
+           $(LISPBM)/include/lbm_flags.h \
+           $(LISPBM)/include/lbm_flat_value.h \
+           $(LISPBM)/include/lbm_llama_ascii.h \
+           $(LISPBM)/include/lbm_memory.h \
+           $(LISPBM)/include/lbm_prof.h \
+           $(LISPBM)/include/lbm_types.h \
+           $(LISPBM)/include/lbm_utils.h \
+           $(LISPBM)/include/lbm_version.h \
+           $(LISPBM)/include/lispbm.h \
+           $(LISPBM)/include/print.h \
+           $(LISPBM)/include/stack.h \
+           $(LISPBM)/include/symrepr.h \
+           $(LISPBM)/include/tokpar.h \
+           $(LISPBM)/include/extensions/array_extensions.h \
+           $(LISPBM)/include/extensions/display_extensions.h \
+           $(LISPBM)/include/extensions/lbm_dyn_lib.h \
+           $(LISPBM)/include/extensions/math_extensions.h \
+           $(LISPBM)/include/extensions/matvec_extensions.h \
+           $(LISPBM)/include/extensions/random_extensions.h \
+           $(LISPBM)/include/extensions/runtime_extensions.h \
+           $(LISPBM)/include/extensions/set_extensions.h \
+           $(LISPBM)/include/extensions/string_extensions.h \
+           $(LISPBM)/include/extensions/loop_extensions.h
 
 
 LISPBM_INC = -I$(LISPBM)/include \

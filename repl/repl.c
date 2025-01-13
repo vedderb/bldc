@@ -1443,8 +1443,8 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     int32_t ind = 0;
     uint8_t send_buffer[65];
     send_buffer[ind++] = COMM_FW_VERSION;
-    send_buffer[ind++] = 1;
-    send_buffer[ind++] = 1;
+    send_buffer[ind++] = 6;
+    send_buffer[ind++] = 05;
 
     strcpy((char*)(send_buffer + ind), HW_NAME);
     ind += (int32_t)strlen(HW_NAME) + 1;
@@ -1459,7 +1459,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     send_buffer[ind++] = FW_TEST_VERSION_NUMBER;
 
     send_buffer[ind++] = HW_TYPE_CUSTOM_MODULE;
-    send_buffer[ind++] = 1; // One custom config
+    send_buffer[ind++] = 0; // No custom config
 
     send_buffer[ind++] = 0; // No phase filters
     send_buffer[ind++] = 0; // No HW QML
@@ -1475,7 +1475,13 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     strcpy((char*)(send_buffer + ind), FW_NAME);
     ind += (int32_t)strlen(FW_NAME) + 1;
 
-    buffer_append_uint32(send_buffer, 967, &ind); // main_calc_hw_crc()
+    reply_func(send_buffer, (unsigned int)ind);
+  } break;
+
+  case COMM_PING_CAN: {
+    int32_t ind = 0;
+    uint8_t send_buffer[1];
+    send_buffer[ind++] = COMM_PING_CAN;
     reply_func(send_buffer, (unsigned int)ind);
   } break;
 
