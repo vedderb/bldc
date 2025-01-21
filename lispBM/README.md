@@ -5467,6 +5467,79 @@ Change the stack size for the garbage collector. If the GC stack is too small th
 
 ---
 
+## Mutexes
+
+Mutexes can be used to lock resources from other contexts. Example:
+
+
+```clj
+(def mtx (mutex-create))
+
+(defun print-numbers() {
+        (mutex-lock mtx)
+        (print 1)
+        (sleep 0.5)
+        (print 2)
+        (sleep 0.5)
+        (print 3)
+        (sleep 0.5)
+        (print 4)
+        (mutex-unlock mtx)
+})
+
+(spawn 100 print-numbers)
+(sleep 0.1)
+(spawn 100 print-numbers)
+(sleep 0.1)
+(spawn 100 print-numbers)
+(sleep 0.1)
+(spawn 100 print-numbers)
+```
+
+---
+
+#### mutex-create
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.06+ |
+
+```clj
+(mutex-create)
+```
+
+Creates a mutex object. The mutex object is a dotted pair (ls . last) which contains two references into a single list, implementing a O(1)-insert-last O(1)-remove-first queue. At the surface though, it is a regular lisp dotted pair that can be destroyed with standard lisp functionality, no protection!
+
+---
+
+#### mutex-lock
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.06+ |
+
+```clj
+(mutex-lock mtx)
+```
+
+Lock mutex mtx. If mtx already is locked the current context will sleep until it is unlocked.
+
+---
+
+#### mutex-unlock
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.06+ |
+
+```clj
+(mutex-unlock mtx)
+```
+
+Unlock mutex mtx. If one or more contexts are waiting on this mutex the next one in the waiting queue will be unblocked.
+
+---
+
 ## Plotting
 
 VESC Tool can be used for plotting data. The easiest way to plot a variable is to just select it in the binding tab while "Poll Status" is active and go to the binding plot below the editor. The plot commands in this section make plots that show up in the "Experiment Plot" tab below the editor and allow more control over the plotting.
