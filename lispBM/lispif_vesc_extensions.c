@@ -5147,6 +5147,33 @@ static lbm_value ext_pwm_set_duty(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(pwm_servo_set_duty(lbm_dec_as_float(args[0])));
 }
 
+static const char* dyn_functions[] = {
+		"(defun uart-read-bytes (buffer n ofs)"
+		"(let ((rd (uart-read buffer n ofs)))"
+		"(if (= rd n)"
+		"(bufset-u8 buffer (+ ofs rd) 0)"
+		"(progn (yield 4000) (uart-read-bytes buffer (- n rd) (+ ofs rd)))"
+		")))",
+
+		"(defun uart-read-until (buffer n ofs end)"
+		"(let ((rd (uart-read buffer n ofs end)))"
+		"(if (and (> rd 0) (or (= rd n) (= (bufget-u8 buffer (+ ofs (- rd 1))) end)))"
+		"(bufset-u8 buffer (+ ofs rd) 0)"
+		"(progn (yield 10000) (uart-read-until buffer (- n rd) (+ ofs rd) end))"
+		")))",
+};
+
+static bool dynamic_loader(const char *str, const char **code) {
+	for (unsigned int i = 0; i < (sizeof(dyn_functions) / sizeof(dyn_functions[0]));i++) {
+		if (strmatch(str, dyn_functions[i] + 7)) {
+			*code = dyn_functions[i];
+			return true;
+		}
+	}
+
+	return lbm_dyn_lib_find(str, code);
+}
+
 void lispif_load_vesc_extensions(void) {
 	lispif_stop_lib();
 
@@ -5452,7 +5479,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_mutex_extensions_init();
 	lbm_dyn_lib_init();
 
-	lbm_set_dynamic_load_callback(lbm_dyn_lib_find);
+	lbm_set_dynamic_load_callback(dynamic_loader);
 }
 
 static bool start_flatten_with_gc(lbm_flat_value_t *v, size_t buffer_size) {
