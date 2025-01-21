@@ -17,10 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef HW_IVY_100V_MINI_H_
-#define HW_IVY_100V_MINI_H_
+#ifndef HW_IVY_AceDeck_H_
 
-#define HW_NAME "IVY_100V_MINI"
+#define HW_IVY_AceDeck_H_
+
+#define HW_NAME "IVY_AceDeck"
 
 // Default setting overrides
 #define APPCONF_APP_TO_USE APP_NONE
@@ -48,7 +49,7 @@
 // Position PID parameters
 #define MCCONF_P_PID_KP 0.03              // Proportional gain
 #define MCCONF_P_PID_KI 0.0               // Integral gain
-#define MCCONF_P_PID_KD 0.0               // Derivative gain
+#define MCCONF_P_PID_KD 0.00000           // Derivative gain
 #define MCCONF_P_PID_KD_PROC 0.00035      // Derivative gain process
 #define MCCONF_P_PID_KD_FILTER 0.2        // Derivative filter
 #define MCCONF_P_PID_ANG_DIV 10.0         // Divide angle by this value
@@ -56,22 +57,22 @@
 #define MCCONF_P_PID_OFFSET 0.0           // Angle offset
 
 #define MCCONF_L_MIN_VOLTAGE 20.0 // Minimum input voltage
-#define MCCONF_L_MAX_VOLTAGE 90.0 // Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE 80.0 // Maximum input voltage
 #define MCCONF_DEFAULT_MOTOR_TYPE MOTOR_TYPE_FOC
 
-#define MCCONF_L_MAX_ABS_CURRENT 160.0 // The maximum absolute current above which a fault is generated
-#define MCCONF_L_IN_CURRENT_MAX 110.0  // Input current limit in Amperes (Upper)
-#define MCCONF_L_IN_CURRENT_MIN -110.0 // Input current limit in Amperes (Lower)
+#define MCCONF_L_MAX_ABS_CURRENT 164.0 // The maximum absolute current above which a fault is generated
+#define MCCONF_L_IN_CURRENT_MAX 130.0  // Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MIN -130.0 // Input current limit in Amperes (Lower)
 
 #define MCCONF_FOC_F_ZV 30000.0
-#define MCCONF_FOC_CONTROL_SAMPLE_MODE FOC_CONTROL_SAMPLE_MODE_V0_V7
-#define MCCONF_FOC_SAMPLE_V0_V7 true // Run control loop in both v0 and v7 (requires phase shunts)
+#define MCCONF_FOC_CONTROL_SAMPLE_MODE FOC_CONTROL_SAMPLE_MODE_V0
+#define MCCONF_FOC_SAMPLE_V0_V7 false // Run control loop in both v0 and v7 (requires phase shunts)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC 700.0
+#define HW_DEAD_TIME_NSEC 850.0
 
 // HW properties
-#define HW_HAS_3_SHUNTS
+// #define HW_HAS_3_SHUNTS
 // #define HW_HAS_PHASE_SHUNTS
 // #define HW_HAS_PHASE_FILTERS
 // #define HW_HAS_CURR_FILTERS
@@ -159,10 +160,10 @@
 #define V_REG 3.30
 
 // The voltage dividing acquisition circuit on the Makerbase VESC motherboard is 560K and 21.5K resistors.
-#define VIN_R1 750000.0
+#define VIN_R1 560000.0
 #define VIN_R2 22000.0
 
-#define CURRENT_AMP_GAIN (-20.0)
+#define CURRENT_AMP_GAIN 20.0
 #define CURRENT_SHUNT_RES (0.0005)
 
 // Input voltage
@@ -268,10 +269,10 @@
 #define READ_HALL3() palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Setting limits
-#define HW_LIM_CURRENT -110.0, 110.0
+#define HW_LIM_CURRENT -130.0, 130.0
 #define HW_LIM_CURRENT_IN -100.0, 100.0
-#define HW_LIM_CURRENT_ABS 0.0, 160
-#define HW_LIM_VIN 12.0, 95.0
+#define HW_LIM_CURRENT_ABS 0.0, 164
+#define HW_LIM_VIN 12.0, 85.0
 #define HW_LIM_ERPM -200e3, 200e3
 #define HW_LIM_DUTY_MIN 0.0, 0.1
 #define HW_LIM_DUTY_MAX 0.0, 0.99
@@ -279,4 +280,4 @@
 
 // HW-specific functions
 bool hw_sample_shutdown_button(void);
-#endif /* HW_IVY_100V_MINI_H_ */
+#endif /* HW_IVY_AceDeck_H_ */

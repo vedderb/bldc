@@ -15,7 +15,7 @@
 // V2
 
 #include "hw.h"
-#include "hw_IVY_80_110.h"
+#include "hw_IVY_AceDeck.h"
 
 #include "ch.h"
 #include "hal.h"

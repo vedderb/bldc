@@ -68,11 +68,11 @@
 #define MCCONF_FOC_SAMPLE_V0_V7 true // Run control loop in both v0 and v7 (requires phase shunts)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC 500.0
+#define HW_DEAD_TIME_NSEC 700.0
 
 // HW properties
 #define HW_HAS_3_SHUNTS
-#define HW_HAS_PHASE_SHUNTS
+// #define HW_HAS_PHASE_SHUNTS
 #define HW_HAS_PHASE_FILTERS
 #define HW_HAS_CURR_FILTERS
 

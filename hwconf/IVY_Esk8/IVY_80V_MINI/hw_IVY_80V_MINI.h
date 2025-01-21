@@ -52,11 +52,11 @@
 #define MCCONF_P_PID_KD_PROC 0.00035      // Derivative gain process
 #define MCCONF_P_PID_KD_FILTER 0.2        // Derivative filter
 #define MCCONF_P_PID_ANG_DIV 10.0         // Divide angle by this value
-#define MCCONF_P_PID_GAIN_DEC_ANGLE 550.0 // Decrease PID-gains when the error is below this value
+#define MCCONF_P_PID_GAIN_DEC_ANGLE 500.0 // Decrease PID-gains when the error is below this value
 #define MCCONF_P_PID_OFFSET 0.0           // Angle offset
 
 #define MCCONF_L_MIN_VOLTAGE 20.0 // Minimum input voltage
-#define MCCONF_L_MAX_VOLTAGE 70.0 // Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE 87.0 // Maximum input voltage
 #define MCCONF_DEFAULT_MOTOR_TYPE MOTOR_TYPE_FOC
 
 #define MCCONF_L_MAX_ABS_CURRENT 160.0 // The maximum absolute current above which a fault is generated
@@ -64,11 +64,11 @@
 #define MCCONF_L_IN_CURRENT_MIN -110.0 // Input current limit in Amperes (Lower)
 
 #define MCCONF_FOC_F_ZV 30000.0
-#define MCCONF_FOC_CONTROL_SAMPLE_MODE FOC_CONTROL_SAMPLE_MODE_V0
-#define MCCONF_FOC_SAMPLE_V0_V7 false // Run control loop in both v0 and v7 (requires phase shunts)
+#define MCCONF_FOC_CONTROL_SAMPLE_MODE FOC_CONTROL_SAMPLE_MODE_V0_V7
+#define MCCONF_FOC_SAMPLE_V0_V7 true // Run control loop in both v0 and v7 (requires phase shunts)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC 500.0
+#define HW_DEAD_TIME_NSEC 600.0
 
 // HW properties
 #define HW_HAS_3_SHUNTS
@@ -271,7 +271,7 @@
 #define HW_LIM_CURRENT -110.0, 110.0
 #define HW_LIM_CURRENT_IN -100.0, 100.0
 #define HW_LIM_CURRENT_ABS 0.0, 160
-#define HW_LIM_VIN 12.0, 75.0
+#define HW_LIM_VIN 12.0, 87.0
 #define HW_LIM_ERPM -200e3, 200e3
 #define HW_LIM_DUTY_MIN 0.0, 0.1
 #define HW_LIM_DUTY_MAX 0.0, 0.99

@@ -17,11 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef HW_IVY_80_110_H_
+#ifndef HW_650_330_H_
 
-#define HW_IVY_80_110_H_
+#define HW_650_330_H_
 
-#define HW_NAME "IVY_80_110"
+#define HW_NAME "650_330"
 
 // Default setting overrides
 #define APPCONF_APP_TO_USE APP_NONE
@@ -57,10 +57,10 @@
 #define MCCONF_P_PID_OFFSET 0.0           // Angle offset
 
 #ifndef MCCONF_L_MIN_VOLTAGE
-#define MCCONF_L_MIN_VOLTAGE 20.0 // Minimum input voltage
+#define MCCONF_L_MIN_VOLTAGE 30.0 // Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE 70.0 // Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE 600.0 // Maximum input voltage
 #endif
 #endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
@@ -70,19 +70,19 @@
 #define MCCONF_FOC_F_ZV 30000.0
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT 160.0 // The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT 330.0 // The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
-#define MCCONF_FOC_SAMPLE_V0_V7 false // Run control loop in both v0 and v7 (requires phase shunts)
+#define MCCONF_FOC_SAMPLE_V0_V7 true // Run control loop in both v0 and v7 (requires phase shunts)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX 110.0 // Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MAX 200.0 // Input current limit in Amperes (Upper)
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN -110.0 // Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN -200.0 // Input current limit in Amperes (Lower)
 #endif
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC 500.0
+#define HW_DEAD_TIME_NSEC 1800.0
 
 // HW properties
 #define HW_HAS_3_SHUNTS
@@ -176,14 +176,14 @@
 
 // The voltage dividing acquisition circuit on the Makerbase VESC motherboard is 560K and 21.5K resistors.
 #ifndef VIN_R1
-#define VIN_R1 560000.0
+#define VIN_R1 1410000.0
 #endif
 #ifndef VIN_R2
-#define VIN_R2 22000.0
+#define VIN_R2 5000.0
 #endif
 
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN (-20.0)
+#define CURRENT_AMP_GAIN (20.0)
 #endif
 #ifndef CURRENT_SHUNT_RES
 #define CURRENT_SHUNT_RES (0.0005)
@@ -298,10 +298,10 @@
 #define READ_HALL3() palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Setting limits
-#define HW_LIM_CURRENT -110.0, 110.0
-#define HW_LIM_CURRENT_IN -100.0, 100.0
-#define HW_LIM_CURRENT_ABS 0.0, 160
-#define HW_LIM_VIN 12.0, 75.0
+#define HW_LIM_CURRENT -330.0, 330.0
+#define HW_LIM_CURRENT_IN -200.0, 200.0
+#define HW_LIM_CURRENT_ABS 0.0, 330
+#define HW_LIM_VIN 30.0, 650.0
 #define HW_LIM_ERPM -200e3, 200e3
 #define HW_LIM_DUTY_MIN 0.0, 0.1
 #define HW_LIM_DUTY_MAX 0.0, 0.99
@@ -309,4 +309,4 @@
 
 // HW-specific functions
 bool hw_sample_shutdown_button(void);
-#endif /* HW_IVY_80_110_H_ */
+#endif /* HW_650_330_H_ */
