@@ -30,7 +30,6 @@
 #include "extensions/set_extensions.h"
 #include "extensions/display_extensions.h"
 #include "extensions/mutex_extensions.h"
-#include "extensions/loop_extensions.h"
 #include "extensions/lbm_dyn_lib.h"
 
 #include <png.h>
@@ -699,7 +698,6 @@ int init_exts(void) {
   lbm_set_extensions_init();
   lbm_display_extensions_init();
   lbm_mutex_extensions_init();
-  lbm_loop_extensions_init();
   lbm_dyn_lib_init();
 
   lbm_add_extension("unsafe-call-system", ext_unsafe_call_system);
@@ -738,11 +736,5 @@ int init_exts(void) {
 // Dynamic loader
 
 bool dynamic_loader(const char *str, const char **code) {
-  for (unsigned int i = 0; i < (sizeof(loop_extensions_dyn_load) / sizeof(loop_extensions_dyn_load[0]));i++) {
-    if (strmatch(str, loop_extensions_dyn_load[i] + 8)) {
-      *code = loop_extensions_dyn_load[i];
-      return true;
-    }
-  }
   return lbm_dyn_lib_find(str, code);
 }

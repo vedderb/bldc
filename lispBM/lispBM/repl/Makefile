@@ -6,7 +6,14 @@ include $(LISPBM)/lispbm.mk
 PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
 PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c
 
-CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 -DFULL_RTS_LIB -DLBM_USE_DYN_FUNS -DLBM_USE_DYN_MACROS -DLBM_USE_DYN_DEFSTRUCT -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
+LBMFLAGS = -DFULL_RTS_LIB \
+           -DLBM_USE_DYN_FUNS \
+           -DLBM_USE_DYN_MACROS \
+           -DLBM_USE_DYN_DEFSTRUCT \
+           -DLBM_USE_DYN_LOOPS
+
+
+CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
 
 PICCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11
 
