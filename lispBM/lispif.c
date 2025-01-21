@@ -338,6 +338,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				commands_printf_lisp("Recovered arrays: %u\n", lbm_heap_state.gc_recovered_arrays);
 				commands_printf_lisp("Marked: %d\n", lbm_heap_state.gc_marked);
 				commands_printf_lisp("GC SP max: %u (size %u)\n", lbm_get_max_stack(&lbm_heap_state.gc_stack), lbm_heap_state.gc_stack.size);
+				commands_printf_lisp("Global env cells: %u\n", lbm_get_global_env_size());
 				commands_printf_lisp("--(Symbol and Array memory)--\n");
 				commands_printf_lisp("Memory size: %u bytes\n", lbm_memory_num_words() * 4);
 				commands_printf_lisp("Memory free: %u bytes\n", lbm_memory_num_free() * 4);
@@ -702,8 +703,6 @@ bool lispif_restart(bool print, bool load_code, bool load_imports) {
 
 			ext_load_callbacks[i]();
 		}
-
-		lbm_set_dynamic_load_callback(lispif_vesc_dynamic_loader);
 
 		int code_chars = 0;
 		if (code_data) {

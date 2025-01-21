@@ -22,9 +22,10 @@ LISPBMSRC = $(LISPBM)/src/env.c \
             $(LISPBM)/src/extensions/array_extensions.c \
             $(LISPBM)/src/extensions/math_extensions.c \
             $(LISPBM)/src/extensions/string_extensions.c \
+            $(LISPBM)/src/extensions/mutex_extensions.c \
+            $(LISPBM)/src/extensions/lbm_dyn_lib.c \
 			lispBM/lispif.c \
 			lispBM/lispif_vesc_extensions.c \
-			lispBM/lispif_vesc_dynamic_loader.c \
 			lispBM/lispif_c_lib.c \
             lispBM/lbm_vesc_utils.c
 
