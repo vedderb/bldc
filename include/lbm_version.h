@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 - 2024 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2022 - 2025 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,13 +27,23 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 29u
+#define LBM_MINOR_VERSION 30u
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 1u
 
-#define LBM_VERSION_STRING "0.29.1"
+#define LBM_VERSION_STRING "0.30.1"
 
 /*! \page changelog Changelog
+JAN 19 2025: Version 0.30.0
+  - Loop macros and defun, defunret are part of LBM now.
+  - Added "unsafe" variant of callcc for efficiency in cases where it can be used.
+  - lbm_get_global_env_size function added.
+  - Error printing then "trapped" can be toggled.
+  - Added a defstruct functionality.
+  - Custom types are being phased out where not absolutely needed.
+  - Added mutex extensions.
+  - Bugfixes and refactorings for making static analysis happy.
+
 DEC 26 2024: Version 0.29.0
   - Identity operation added
   - Bugfix in recv-to.

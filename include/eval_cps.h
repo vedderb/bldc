@@ -330,6 +330,10 @@ void lbm_toggle_verbose(void);
  * \param verbose Boolean to turn verbose errors on or off.
  */
 void lbm_set_verbose(bool verbose);
+/** Hide error messages for trapped errors
+ * \param hide true to hide error messages when trapped.
+ */
+void lbm_set_hide_trapped_error(bool hide);
 /** Set a usleep callback for use by the evaluator thread.
  *
  * \param fptr Pointer to a sleep function.

@@ -25,55 +25,6 @@ static lbm_uint sym_brk;
 static lbm_uint sym_rst;
 static lbm_uint sym_return;
 
-
-static lbm_value make_list(int num, ...) {
-  va_list arguments;
-  va_start (arguments, num);
-  lbm_value res = ENC_SYM_NIL;
-  for (int i = 0; i < num; i++) {
-    res = lbm_cons(va_arg(arguments, lbm_value), res);
-  }
-  va_end (arguments);
-  return lbm_list_destructive_reverse(res);
-}
-
-
-static inline lbm_value mk_lam(lbm_value args, lbm_value body) {
-  return make_list(3, ENC_SYM_LAMBDA, args, body);
-}
-
-static inline lbm_value mk_call_cc(lbm_value body) {
-  return make_list(2, ENC_SYM_CALL_CC_UNSAFE, body);
-}
-
-static inline lbm_value mk_let(lbm_value bindings, lbm_value body) {
-  return make_list(3, ENC_SYM_LET, bindings, body);
-}
-
-static inline lbm_value mk_if(lbm_value cond, lbm_value tb, lbm_value fb) {
-  return make_list(4, ENC_SYM_IF, cond, tb, fb);
-}
-
-static inline lbm_value mk_inc(lbm_value v) {
-  return make_list(3, ENC_SYM_ADD, v, lbm_enc_i(1));
-}
-
-static inline lbm_value mk_lt(lbm_value a, lbm_value b) {
-  return make_list(3, ENC_SYM_LT, a, b);
-}
-
-static inline lbm_value mk_eq(lbm_value a, lbm_value b) {
-  return make_list(3, ENC_SYM_EQ, a, b);
-}
-
-static inline lbm_value mk_car(lbm_value a) {
-  return make_list(2, ENC_SYM_CAR, a);
-}
-
-static inline lbm_value mk_cdr(lbm_value a) {
-  return make_list(2, ENC_SYM_CDR, a);
-}
-
 static lbm_value ext_me_loopfor(lbm_value *args, lbm_uint argn) {
   if (argn != 5) {
     return ENC_SYM_EERROR;

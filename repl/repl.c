@@ -1640,6 +1640,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         commands_printf_lisp("Recovered arrays: %u\n", lbm_heap_state.gc_recovered_arrays);
         commands_printf_lisp("Marked: %d\n", lbm_heap_state.gc_marked);
         commands_printf_lisp("GC SP max: %u (size %u)\n", lbm_get_max_stack(&lbm_heap_state.gc_stack), lbm_heap_state.gc_stack.size);
+        commands_printf_lisp("Global env cells: %"PRI_UINT"\n", lbm_get_global_env_size());
         commands_printf_lisp("--(Symbol and Array memory)--\n");
         commands_printf_lisp("Memory size: %u bytes\n", lbm_memory_num_words() * 4);
         commands_printf_lisp("Memory free: %u bytes\n", lbm_memory_num_free() * 4);
@@ -2161,6 +2162,7 @@ int main(int argc, char **argv) {
         printf("Marked: %"PRI_INT"\n", heap_state.gc_marked);
         printf("GC stack size: %"PRI_UINT"\n", lbm_get_gc_stack_size());
         printf("GC SP max: %"PRI_UINT"\n", lbm_get_gc_stack_max());
+        printf("Global env cells: %"PRI_UINT"\n", lbm_get_global_env_size());
         printf("--(Symbol and Array memory)---------------------------------\n");
         printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());
         printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());

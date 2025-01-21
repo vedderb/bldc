@@ -13,26 +13,25 @@
   })
 
 (defun is-struct (struct name)
-  (eq (ix struct 0) name))
+  (and (eq (type-of struct) type-lisparray)
+       (eq (ix struct 0) name)))
 
 (defun accessor-sym (name field)
   (str2sym (str-merge name "-" (sym2str field))))
 
 (defun access-set (i)
-  (lambda ( struct)
+  (lambda (struct)
     (if (rest-args)
         (setix struct i (rest-args 0))
       (ix struct i))))
   
 
-(define defstruct
-  (macro (name list-of-fields)
+(define defstruct (macro (name list-of-fields)
          {
-         (print "a")
          (var num-fields (length list-of-fields))
          (var name-as-string (sym2str name))
-         (var new-create-sym (str2sym (str-merge "create-" name-as-string)))
-         (var new-pred-sym (str2sym (str-merge "is-" name-as-string)))
+         (var new-create-sym (str2sym (str-merge "make-" name-as-string)))
+         (var new-pred-sym (str2sym (str-merge name-as-string "?")))
          (var field-ix (zip list-of-fields (range 1 (+ num-fields 1))))
          `(progn
             (define ,new-create-sym (lambda () (create-struct ',name ,num-fields)))

@@ -440,6 +440,7 @@ bool    qmutex_initialized = false;
 
 // MODES
 static volatile bool lbm_verbose = false;
+static volatile bool lbm_hide_trapped_error = false;
 
 void lbm_toggle_verbose(void) {
   lbm_verbose = !lbm_verbose;
@@ -447,6 +448,10 @@ void lbm_toggle_verbose(void) {
 
 void lbm_set_verbose(bool verbose) {
   lbm_verbose = verbose;
+}
+
+void lbm_set_hide_trapped_error(bool hide) {
+  lbm_hide_trapped_error = hide;
 }
 
 lbm_cid lbm_get_current_cid(void) {
@@ -1045,15 +1050,18 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
     lbm_critical_error();
   }
 
-  print_error_message(err_val,
-                      has_at,
-                      at,
-                      row,
-                      column,
-                      ctx_running->row0,
-                      ctx_running->row1,
-                      ctx_running->id,
-                      ctx_running->name);
+  if (!(lbm_hide_trapped_error &&
+	(ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN))) {
+    print_error_message(err_val,
+			has_at,
+			at,
+			row,
+			column,
+			ctx_running->row0,
+			ctx_running->row1,
+			ctx_running->id,
+			ctx_running->name);
+  }
 
   if (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP) {
     if (lbm_heap_num_free() < 3) {

@@ -29,7 +29,6 @@
 #include "extensions/math_extensions.h"
 #include "extensions/string_extensions.h"
 #include "extensions/runtime_extensions.h"
-#include "extensions/matvec_extensions.h"
 #include "extensions/random_extensions.h"
 #include "extensions/set_extensions.h"
 #include "extensions/mutex_extensions.h"
@@ -129,24 +128,6 @@ void critical_error(void) {
 
 // Dynamic loader
 
-static bool strmatch(const char *str1, const char *str2) {
-  size_t len = strlen(str1);
-
-  if (str2[len] != ' ') {
-    return false;
-  }
-
-  bool same = true;
-  for (unsigned int i = 0;i < len;i++) {
-    if (str1[i] != str2[i]) {
-      same = false;
-      break;
-    }
-  }
-
-  return same;
-}
-
 bool dyn_load(const char *str, const char **code) {
 
   size_t len = strlen(str);
@@ -200,22 +181,7 @@ bool dyn_load(const char *str, const char **code) {
       return true;
     }
   }
-
-  for (unsigned int i = 0; i < (sizeof(lbm_dyn_macros) / sizeof(lbm_dyn_macros[0]));i++) {
-    if (strmatch(str, lbm_dyn_macros[i] + 8)) {
-      *code = lbm_dyn_macros[i];
-      return true;
-    }
-  }
-
-  for (unsigned int i = 0; i < (sizeof(lbm_dyn_fun) / sizeof(lbm_dyn_fun[0]));i++) {
-    if (strmatch(str, lbm_dyn_fun[i] + 7)) {
-      *code = lbm_dyn_fun[i];
-      return true;
-    }
-  }
-
-  return false;
+  return lbm_dyn_lib_find(str,code);
 }
 
   //lbm_value ext_even(lbm_value *args, lbm_uint argn) {
@@ -611,7 +577,6 @@ int main(int argc, char **argv) {
   lbm_math_extensions_init();
   lbm_string_extensions_init();
   lbm_runtime_extensions_init();
-  lbm_matvec_extensions_init();
   lbm_random_extensions_init();
   lbm_mutex_extensions_init();
   lbm_set_extensions_init();
@@ -650,7 +615,7 @@ int main(int argc, char **argv) {
 
   lbm_set_verbose(true);
 
-  printf("LBM memory free: %u words, %u bytes \n", lbm_memory_num_free(), lbm_memory_num_free() * sizeof(lbm_uint));
+  printf("LBM memory free: %"PRI_UINT" words, %"PRI_UINT" bytes \n", lbm_memory_num_free(), lbm_memory_num_free() * sizeof(lbm_uint));
 
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
@@ -693,7 +658,7 @@ int main(int argc, char **argv) {
   }
 
   test_cid = cid; // the result which is important for success or failure of test.
-  printf("test_cid = %d\n", test_cid);
+  printf("test_cid = %"PRI_INT"\n", test_cid);
 
   lbm_continue_eval();
   uint32_t stream_i = 0;

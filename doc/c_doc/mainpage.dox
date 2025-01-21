@@ -6,6 +6,8 @@ http://www.lispbm.com
 
 https://github.com/svenssonjoel/lispBM
 
+Building instructions: \ref Building
+
 <h2> Implementation documentation </h2>
 
 C Interoperation: \ref lbm_c_interop.h \ref lbm_c_interop.c <br>

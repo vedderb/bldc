@@ -19,57 +19,7 @@
 #ifndef LBM_DYN_LIB_H_
 #define LBM_DYN_LIB_H_
 
-const char* lbm_dyn_fun[] = {
-  "(defun str-merge () (str-join (rest-args)))",
-  "(defun iota (n) (range n))",
-
-  "(defun foldl (f init lst)"
-  "(if (eq lst nil) init (foldl f (f init (car lst)) (cdr lst))))",
-
-  "(defun foldr (f init lst)"
-  "(if (eq lst nil) init (f (car lst) (foldr f init (cdr lst)))))",
-
-  "(defun apply (f lst) (eval (cons f lst)))",
-
-  "(defun zipwith (f xs ys) "
-  "(let (( zip-acc (lambda (acc xs ys) "
-  "(if (and xs ys) "
-  "(zip-acc (cons (f (car xs) (car ys)) acc) (cdr xs) (cdr ys)) "
-  "acc)))) "
-  "(reverse (zip-acc nil xs ys))))",
-
-  "(defun zip (xs ys) "
-  "(zipwith cons xs ys))",
-
-  "(defun filter (f lst)"
-  "(let ((filter-rec (lambda (f lst ys)"
-  "(if (eq lst nil)"
-  "(reverse ys)"
-  "(if (f (car lst))"
-  "(filter-rec f (cdr lst) (cons (car lst) ys))"
-  "(filter-rec f (cdr lst) ys))))))"
-  "(filter-rec f lst nil)"
-  "))",
-
-  "(defun str-cmp-asc (a b) (< (str-cmp a b) 0))",
-  "(defun str-cmp-dsc (a b) (> (str-cmp a b) 0))",
-
-  "(defun second (x) (car (cdr x)))",
-  "(defun third (x) (car (cdr (cdr x))))",
-
-  "(defun abs (x) (if (< x 0) (- x) x))",
-};
-
-const char* lbm_dyn_macros[] =
-  {
-  "(define defun "
-  "(macro (name param body) "
-  "`(define ,name (lambda ,param ,body))))",
-
-  "(define defunret "
-  "(macro (name param body) "
-  "`(define ,name (lambda ,param (call-cc-unsafe (lambda (return) ,body))))))"
-
-  };
+void lbm_dyn_lib_init(void);
+bool lbm_dyn_lib_find(const char *str, const char **code);
 
 #endif
