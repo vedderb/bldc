@@ -316,7 +316,6 @@ void lbm_dyn_lib_init(void) {
   lbm_add_extension("me-defun", ext_me_defun);
   lbm_add_extension("me-defunret", ext_me_defunret);
 #ifdef LBM_USE_DYN_LOOPS
-  printf("adding loops\n");
   lbm_add_symbol_const("a01", &sym_res);
   lbm_add_symbol_const("a02", &sym_loop);
   lbm_add_symbol_const("break", &sym_break);
