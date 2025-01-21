@@ -378,6 +378,36 @@ Zero current measurement offset on BMS. Has to be done while no current (or char
 
 ---
 
+#### bms-st
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(bms-st can-id)
+```
+
+Run self-test on BMS with can-id. Returns the following list on success, otherwise timeout:
+
+```clj
+(
+    1 ; Balance IC OK
+    1 ; Balamce connection check OK
+    8 ; Cell num (8 Cells)
+    (1 3.691400f32 3.561700f32) ; Cell 1 OK, V_BAL, V_NO_BAL
+    (1 3.687200f32 3.367500f32) ; Cell 2 OK, V_BAL, V_NO_BAL
+    (1 3.687500f32 3.377500f32) ; Cell 3 OK, V_BAL, V_NO_BAL
+    (1 3.688900f32 3.389400f32) ; Cell 4 OK, V_BAL, V_NO_BAL
+    (1 3.690100f32 3.401900f32) ; Cell 5 OK, V_BAL, V_NO_BAL
+    (1 3.688800f32 3.413800f32) ; Cell 6 OK, V_BAL, V_NO_BAL
+    (1 3.689000f32 3.424600f32) ; Cell 7 OK, V_BAL, V_NO_BAL
+    (1 3.688900f32 3.433300f32) ; Cell 8 OK, V_BAL, V_NO_BAL
+)
+```
+
+---
+
 #### get-adc
 
 | Platforms | Firmware |
