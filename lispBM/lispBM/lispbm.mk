@@ -22,13 +22,13 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/string_extensions.c \
              $(LISPBM)/src/extensions/math_extensions.c \
              $(LISPBM)/src/extensions/runtime_extensions.c \
-             $(LISPBM)/src/extensions/matvec_extensions.c \
              $(LISPBM)/src/extensions/random_extensions.c \
 	     $(LISPBM)/src/extensions/set_extensions.c \
              $(LISPBM)/src/extensions/display_extensions.c \
              $(LISPBM)/src/extensions/loop_extensions.c \
              $(LISPBM)/src/extensions/tjpgd.c \
-             $(LISPBM)/src/extensions/mutex_extensions.c
+             $(LISPBM)/src/extensions/mutex_extensions.c \
+             $(LISPBM)/src/extensions/lbm_dyn_lib.c 
 
 LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/eval_cps.h \
@@ -59,7 +59,6 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/extensions/display_extensions.h \
            $(LISPBM)/include/extensions/lbm_dyn_lib.h \
            $(LISPBM)/include/extensions/math_extensions.h \
-           $(LISPBM)/include/extensions/matvec_extensions.h \
            $(LISPBM)/include/extensions/random_extensions.h \
            $(LISPBM)/include/extensions/runtime_extensions.h \
            $(LISPBM)/include/extensions/set_extensions.h \

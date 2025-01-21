@@ -164,3 +164,32 @@ bool lbm_check_argn_number(lbm_value *args, lbm_uint argn, lbm_uint n) {
     return true;
   }
 }
+
+lbm_value make_list(int num, ...) {
+  va_list arguments;
+  va_start (arguments, num);
+  lbm_value res = ENC_SYM_NIL;
+  for (int i = 0; i < num; i++) {
+    res = lbm_cons(va_arg(arguments, lbm_value), res);
+  }
+  va_end (arguments);
+  return lbm_list_destructive_reverse(res);
+}
+
+bool strmatch(const char *str1, const char *str2) {
+  size_t len = strlen(str1);
+
+  if (str2[len] != ' ') {
+    return false;
+  }
+
+  bool same = true;
+  for (unsigned int i = 0;i < len;i++) {
+    if (str1[i] != str2[i]) {
+      same = false;
+      break;
+    }
+  }
+
+  return same;
+}

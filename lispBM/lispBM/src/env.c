@@ -33,6 +33,18 @@ int lbm_init_env(void) {
   return 1;
 }
 
+lbm_uint lbm_get_global_env_size(void) {
+  lbm_uint n = 0;
+  for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+    lbm_value curr = env_global[i];
+    while (lbm_is_cons(curr)) {
+      n++;
+      curr = lbm_cdr(curr);
+    }
+  }
+  return n;
+}
+
 lbm_value *lbm_get_global_env(void) {
   return env_global;
 }

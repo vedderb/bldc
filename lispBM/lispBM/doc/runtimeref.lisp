@@ -253,7 +253,34 @@
            (list version
                  arch
                  word
-           )))
+                 )))
+
+(define hide-em
+  (ref-entry "hide-trapped-error"
+             (list
+              (para (list "The default behavior is to print error messages even if the error is trapped."
+                          "Trapped errors can be hidden by calling this function at the beginning of a program."
+                          ))
+              (code '((hide-trapped-error)
+                      ))
+              end)))
+
+(define show-em
+  (ref-entry "show-trapped-errors"
+             (list
+              (para (list "If you have hidden trapped errors they can be toggled back to being showed again"
+                          "using this function."
+                          ))
+              (code '((show-trapped-error)
+                      ))
+              end)))
+  
+
+(define chapter-errors
+  (section 2 "Errors"
+           (list hide-em
+                 show-em
+                 )))
 
 
 (define manual
@@ -266,6 +293,7 @@
                          "Minimal mode is the default when compiling LBM. To get the"
                          "full mode the `-DFULL_RTS_LIB` flag must be used when compiling."
                          ))
+             chapter-errors
              chapter-environments
              chapter-gc
              chapter-memory

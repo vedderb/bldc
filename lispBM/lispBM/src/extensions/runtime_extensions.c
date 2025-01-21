@@ -43,6 +43,20 @@ lbm_value ext_eval_set_quota(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+lbm_value ext_hide_trapped_error(lbm_value *args, lbm_uint argn) {
+  (void)args;
+  (void)argn;
+  lbm_set_hide_trapped_error(true);
+  return ENC_SYM_TRUE;
+}
+
+lbm_value ext_show_trapped_error(lbm_value *args, lbm_uint argn) {
+  (void)args;
+  (void)argn;
+  lbm_set_hide_trapped_error(false);
+  return ENC_SYM_TRUE;
+}
+
 #ifdef FULL_RTS_LIB
 lbm_value ext_memory_num_free(lbm_value *args, lbm_uint argn) {
   (void)args;
@@ -214,8 +228,12 @@ void lbm_runtime_extensions_init(void) {
 
 #ifndef FULL_RTS_LIB
     lbm_add_extension("set-eval-quota", ext_eval_set_quota);
+    lbm_add_extension("hide-trapped-error", ext_hide_trapped_error);
+    lbm_add_extension("show-trapped-error", ext_show_trapped_error);
 #else
     lbm_add_extension("set-eval-quota", ext_eval_set_quota);
+    lbm_add_extension("hide-trapped-error", ext_hide_trapped_error);
+    lbm_add_extension("show-trapped-error", ext_show_trapped_error);
     lbm_add_extension("mem-num-free", ext_memory_num_free);
     lbm_add_extension("mem-longest-free", ext_memory_longest_free);
     lbm_add_extension("mem-size", ext_memory_size);

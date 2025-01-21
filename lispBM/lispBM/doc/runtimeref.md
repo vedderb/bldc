@@ -2,6 +2,76 @@
 
 The runtime extensions, if present, can be either compiled in a minimal or a full mode. In the minimal mode only `set-eval-quota` is present. Minimal mode is the default when compiling LBM. To get the full mode the `-DFULL_RTS_LIB` flag must be used when compiling. 
 
+## Errors
+
+
+### hide-trapped-error
+
+The default behavior is to print error messages even if the error is trapped. Trapped errors can be hidden by calling this function at the beginning of a program. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(hide-trapped-error)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### show-trapped-errors
+
+If you have hidden trapped errors they can be toggled back to being showed again using this function. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(show-trapped-error)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
 ## Environments
 
 
@@ -295,7 +365,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((manual (section 1 "LispBM Runtime Extensions Reference Manual" ((para ("The runtime extensions, if present, can be either compiled" "in a minimal or a full mode." "In the minimal mode only `set-eval-quota` is present." "Minimal mode is the default when 
+((hide-em newline (section 3 "hide-trapped-error" ((para ("The default behavior is to print error messages even if the error is trapped." "Trapped errors can be hidden by calling this function at the beginning of a program.")) (code ((hide-trapped-error))
 ```
 
 
@@ -313,7 +383,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((render-manual closure nil (let ((h (fopen "runtimeref.md" "w")) (r (lambda (s) (fwrite-str h s)))) (progn (gc) (var t0 (systime)) (render r manual) (print "Runtime reference manual was generated in " (secs-since t0) " seconds"))) nil) (s-exp-graph closu
+((show-em newline (section 3 "show-trapped-errors" ((para ("If you have hidden trapped errors they can be toggled back to being showed again" "using this function.")) (code ((show-trapped-error))) nil)) newline hline) (s-exp-graph closure (img-name code) 
 ```
 
 
@@ -331,7 +401,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((pretty-aligned-ontop closure (n cs) (match cs (nil [0]) (((? x) ? xs) (str-merge "\n" (pretty-ind n x) (pretty-aligned-ontop n xs)))) nil) (section closure (i str strs) (list (quote section) i str strs) nil))
+((chapter-errors section 2 "Errors" ((newline (section 3 "hide-trapped-error" ((para ("The default behavior is to print error messages even if the error is trapped." "Trapped errors can be hidden by calling this function at the beginning of a program.")) 
 ```
 
 
@@ -349,7 +419,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((render-dot closure (filename code) (let ((dot-str (to-dot code)) (name-dot (str-merge "./images/" filename ".dot")) (name-png (str-merge "./images/" filename ".png")) (fp-dot (fopen name-dot "w")) (fp-png (fopen name-png "w"))) (progn (fwrite fp-dot dot
+((manual (section 1 "LispBM Runtime Extensions Reference Manual" ((para ("The runtime extensions, if present, can be either compiled" "in a minimal or a full mode." "In the minimal mode only `set-eval-quota` is present." "Minimal mode is the default when 
 ```
 
 
@@ -367,7 +437,7 @@ The runtime extensions, if present, can be either compiled in a minimal or a ful
 <td>
 
 ```clj
-((semantic-step closure (c1 c2 prop) (list (quote semantic-step) c1 c2 prop) nil) (render closure (rend ss) (match ss (nil t) (((? x) ? xs) (progn (render-it rend x) (render rend xs)))) nil))
+((render-manual closure nil (let ((h (fopen "runtimeref.md" "w")) (r (lambda (s) (fwrite-str h s)))) (progn (gc) (var t0 (systime)) (render r manual) (print "Runtime reference manual was generated in " (secs-since t0) " seconds"))) nil) (semantic-step clo
 ```
 
 
@@ -755,7 +825,7 @@ t
 <td>
 
 ```clj
-254550
+254250
 ```
 
 
@@ -789,7 +859,7 @@ t
 <td>
 
 ```clj
-254480
+254180
 ```
 
 
@@ -893,7 +963,7 @@ t
 <td>
 
 ```clj
-10485u
+11103u
 ```
 
 
@@ -911,7 +981,7 @@ t
 <td>
 
 ```clj
-818u
+844u
 ```
 
 
@@ -947,7 +1017,7 @@ t
 <td>
 
 ```clj
-3690u
+3748u
 ```
 
 
@@ -965,7 +1035,7 @@ t
 <td>
 
 ```clj
-9996310u
+9996252u
 ```
 
 
@@ -1001,7 +1071,7 @@ t
 <td>
 
 ```clj
-9996310u
+9996252u
 ```
 
 
@@ -1019,7 +1089,7 @@ t
 <td>
 
 ```clj
-9996310u
+9996252u
 ```
 
 
@@ -1091,7 +1161,7 @@ t
 <td>
 
 ```clj
-3697u
+3764u
 ```
 
 
@@ -1159,7 +1229,7 @@ t
 <td>
 
 ```clj
-1579u
+1610u
 ```
 
 

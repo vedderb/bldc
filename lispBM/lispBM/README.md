@@ -8,14 +8,20 @@ either 32 or 64 bit platforms and runs on a wide range of hardware
 such as for example STM32, NRF52, ESP32 or X86.  When running the
 LispBM runtime system on a microcontroller it can be built on top of
 ChibiOS, FreeRTOS or ZephyrOS or, if you are adventurous, on bare-metal.
-LispBM can also be built to run on top of a regular linux. 
+LispBM can also be built to run on top of a regular linux.
+
+LispBM is an embeddable scripting language meant to be integrated into
+a larger application. Our goal is that LispBM is a suitably sandboxed scripting
+language to be used in just about any application domain.
 
 ![LispBM mascot](https://github.com/svenssonjoel/lispBM/blob/master/mascot/lispbm_llama_small.png)
 
 The LispBM mascot, Lispy the llama, was created by
 [PixiLadyArt](https://www.instagram.com/pixiladyart/). Thank you, Pixi! 
 
-## Want to get involved and help out?
+## Contribute to LispBM!
+LispBM is an open source project and welcomes collaboration and contribution.
+Do you want to get involved and help out?
 
  - Check out the [lispbm.com](http://www.lispbm.com) website.
  - Join the [discord server](https://discord.gg/urtJUUMnwQ).
@@ -41,8 +47,7 @@ what we call "extensions" which are C functions that can be called from your Lis
  - Work in prograss [LispBM display library reference](./doc/displayref.md).
  - [LispBM runtime system library reference](./doc/runtimeref.md).
  - Gotchas and caveats [Gotchas and caveats](./doc/gotchas.md).
- - !OUTDATED! [LispBM programming manual](./doc/manual).
- - C code documentation can be found [here](http://svenssonjoel.github.io/lbmdoc/html/index.html).
+ - C code documentation can be found [here](http://lispbm.com/cdocs/html/index.html).
  - LispBM's internals are documented as a series of (now quite outdated) [blog posts](http://svenssonjoel.github.io).
  - There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3TaqZoDOQqZcB9Yj-R1zS2DWDZ9q9).
 
