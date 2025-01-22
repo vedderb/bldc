@@ -37,7 +37,7 @@
 #define LBM_MEMORY_BITMAP_SIZE_28K LBM_MEMORY_BITMAP_SIZE(448)
 
 #ifndef EXTENSION_STORAGE_SIZE
-#define EXTENSION_STORAGE_SIZE		298
+#define EXTENSION_STORAGE_SIZE		300
 #endif
 
 #define HEAP_SIZE					(((1024 * 24) - (EXTENSION_STORAGE_SIZE * sizeof(lbm_extension_t))) / sizeof(lbm_cons_t))

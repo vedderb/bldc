@@ -2271,6 +2271,28 @@ Actively scan the CAN-bus and return a list with devices that responded. This fu
 
 ---
 
+#### can-ping
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.06+ |
+
+```clj
+(can-ping id)
+```
+
+Ping can-device with id. Valid IDs are 0 to 253. If the device responds 0, 1 or 2 is returned, meaning
+
+| Response | HW Type |
+|---|---|
+| 0 | ESC |
+| 1 | Old BMS |
+| 2 | Custom (e.g. Express or new BMS) |
+
+If the device does not respond nil is returned.
+
+---
+
 #### can-local-id
 
 | Platforms | Firmware |

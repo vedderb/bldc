@@ -2488,6 +2488,20 @@ static lbm_value ext_can_scan(lbm_value *args, lbm_uint argn) {
 	return dev_list;
 }
 
+static lbm_value ext_can_ping(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1);
+
+	int id = lbm_dec_as_i32(args[0]);
+	if (id < 0 || id > 253) {
+		return ENC_SYM_TERROR;
+	}
+
+	HW_TYPE hw = HW_TYPE_VESC;
+	bool res = comm_can_ping(id, &hw);
+
+	return res ? lbm_enc_i(hw) : ENC_SYM_NIL;
+}
+
 static lbm_value ext_can_send(lbm_value *args, lbm_uint argn, bool is_eid) {
 	if (argn != 2 || !lbm_is_number(args[0])) {
 		return ENC_SYM_EERROR;
@@ -5367,6 +5381,7 @@ void lispif_load_vesc_extensions(void) {
 
 	lbm_add_extension("can-list-devs", ext_can_list_devs);
 	lbm_add_extension("can-scan", ext_can_scan);
+	lbm_add_extension("can-ping", ext_can_ping);
 	lbm_add_extension("can-send-sid", ext_can_send_sid);
 	lbm_add_extension("can-send-eid", ext_can_send_eid);
 	lbm_add_extension("can-recv-sid", ext_can_recv_sid);
