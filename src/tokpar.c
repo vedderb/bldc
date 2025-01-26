@@ -33,8 +33,8 @@ char tokpar_sym_str[TOKENIZER_MAX_SYMBOL_AND_STRING_LENGTH+1];
 
 typedef struct {
   const char *str;
-  uint32_t token;
-  uint32_t len;
+  uint16_t token;
+  uint16_t len;
 } matcher;
 
 /*
@@ -65,10 +65,11 @@ const char special_chars[NUM_SPECIAL_CHARS][2] =
    {'\\', '\\'},
    {'d', 127}};
 
-#define NUM_FIXED_SIZE_TOKENS 16
+#define NUM_FIXED_SIZE_TOKENS 18
 const matcher fixed_size_tokens[NUM_FIXED_SIZE_TOKENS] = {
   {"(", TOKOPENPAR, 1},
   {")", TOKCLOSEPAR, 1},
+  {"[|", TOKOPENARRAY, 2},
   {"[", TOKOPENBRACK, 1},
   {"]", TOKCLOSEBRACK, 1},
   {".", TOKDOT, 1},
@@ -80,6 +81,7 @@ const matcher fixed_size_tokens[NUM_FIXED_SIZE_TOKENS] = {
   {"?", TOKMATCHANY, 1},
   {"{", TOKOPENCURL, 1},
   {"}", TOKCLOSECURL, 1},
+  {"|]", TOKCLOSEARRAY, 2},
   {"@const-start", TOKCONSTSTART, 12},
   {"@const-end", TOKCONSTEND, 10},
 };

@@ -10,17 +10,10 @@
 
 [Runtime library](./runtimeref.md)
 
+[Library of dynamically loadable functionality](./dynref.md)
+
 
 ## Gotchas
 
 [Gotchas and caveats](./gotchas.md)
 
-## Programming manual
-
-This programming manual is outdated and should be avoided!
-
-[Chapter 1: Introduction](./manual/ch1_introduction.md)
-
-[Chapter 2: List processing](./manual/ch2_list_processing.md)
-
-[Chapter 3: Concurrency](./manual/ch3_concurrency.md)

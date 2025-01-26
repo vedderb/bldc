@@ -41,8 +41,10 @@
 
 (defun pretty-ind (n c)
   (match c
-         ( (loopfor (? v) (? init) (? cond) (? upd) (? body) )
-           (str-merge (ind-spaces n) "(loopfor " (pretty nil v) " " (pretty nil init) " " (pretty nil cond) " " (pretty nil upd) "\n" (pretty-ind (+ n 6) body) ")"))
+         ( (loopfor (? v) (? init) (? cnd) (? upd) (? body) )
+           (str-merge (ind-spaces n) "(loopfor " (pretty nil v) " " (pretty nil init) " " (pretty nil cnd) " " (pretty nil upd) "\n" (pretty-ind (+ n 6) body) ")"))
+         ( (loopwhile (? cnd) (? body) )
+           (str-merge (ind-spaces n) "(loopwhile " (pretty nil cnd) "\n" (pretty-ind (+ n 6) body) ")"))
          ( (disp-render-mac (? i) (? x) (? y) (? color))
            (str-merge (ind-spaces n) "(disp-render " (pretty nil i) " " (pretty nil x) " " (pretty nil y) " " (pretty nil color) ")"))
          ( (fopen (? f) (? m))
@@ -60,7 +62,7 @@
          ( (match (? e) . (? es))
            (str-merge (ind-spaces n) "(match " (pretty nil e) (pretty-aligned-ontop (+ n 7) es) ")" ))
          ( (progn (? e ) . (? es))
-           (str-merge (ind-spaces n) "(progn " (pretty nil e) (pretty-aligned-ontop (+ n 7) es) ")" ))
+           (str-merge (ind-spaces n) "(progn " (pretty-aligned-ontop (+ n 4) (cons e es)) ")" ))
          ( (quote (? e)) (str-merge (ind-spaces n) "'" (pretty nil e)))
          ( (let ((? b0) . (? brest)) (? body)) ;; pattern
            (str-merge (ind-spaces n)
@@ -468,10 +470,14 @@
            (rend (str-merge cap0 " | " cap1 "\n"
                             "|:---:|:---:|\n"
                             "![" txt0 "](" fig0 ") | ![" txt1 "](" fig1 ")\n\n")))
-         ( (s-exp-graph (? img-name) (? code))
+         ( (s-exp-graph (? img-name) (? code) (? ra) )
            {
            (render-dot img-name code)
-           (rend (str-merge "![Graph representaion of s-expression](./images/" img-name ".png)\n\n"))
+           (if ra
+               (rend (str-merge "![" ra  "](./images/" img-name ".png)\n\n"))
+             (rend (str-merge "![Graph representaion of s-expression](./images/" img-name ".png)\n\n"))
+             )
+             
            })
          ( (semantic-step (? c1) (? c2) (? p)
                           ))
@@ -553,7 +559,7 @@
   (list 'image-pair cap0 txt0 fig0 cap1 txt1 fig1))
 
 (defun s-exp-graph (img-name code)
-  (list 's-exp-graph img-name code))
+  (list 's-exp-graph img-name code (rest-args 0)))
 
 (defun semantic-step (c1 c2 prop)
   (list 'semantic-step c1 c2 prop))
@@ -579,6 +585,18 @@
                    )
              )
            )
+         ( (? x) (eq (type-of x) type-lisparray)
+           (let ( (node (str-merge "cons" (to-str i)))
+                  (atom1 (str-merge "atom" (to-str (+ i 1))))
+                  (atom2 (str-merge "atom" (to-str (+ i 2))))
+                  (str1 (str-merge "   " atom1 " [label=\"" (to-str x) "\"]\n"))
+                  (str2 (str-merge "   " atom2 " [label=\"ARRAY TAG\"]\n")))
+             
+             (list node (str-merge "   "  node " [label=\"heap-cell\"]\n"
+                                   str1 str2
+                                   "   " node " -> " atom1 ";\n"
+                                   "   " node " -> " atom2 ";\n"))))
+                                   
          ( (? x)
            (let ( (node (str-merge "atom" (to-str i))) )
              (list node (str-merge "   " node " [label=\"" (to-str x)  "\"]"))

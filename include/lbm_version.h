@@ -29,9 +29,9 @@ extern "C" {
 /** LBM minor version */
 #define LBM_MINOR_VERSION 30u
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 1u
+#define LBM_PATCH_VERSION 3u
 
-#define LBM_VERSION_STRING "0.30.1"
+#define LBM_VERSION_STRING "0.30.3"
 
 /*! \page changelog Changelog
 JAN 19 2025: Version 0.30.0
