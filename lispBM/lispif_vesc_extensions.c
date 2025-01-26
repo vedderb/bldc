@@ -1530,6 +1530,30 @@ static lbm_value ext_can_local_id(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_i(app_get_configuration()->controller_id);
 }
 
+static lbm_value ext_can_update_baud(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN(1);
+
+	int kbits = lbm_dec_as_i32(args[0]);
+
+	CAN_BAUD baud = comm_can_kbits_to_baud(kbits);
+	if (baud != CAN_BAUD_INVALID) {
+		for (int i = 0;i < 10;i++) {
+			comm_can_send_update_baud(kbits, 1000);
+			chThdSleepMilliseconds(50);
+		}
+
+		comm_can_set_baud(baud, 1000);
+
+		app_configuration *appconf = (app_configuration*)app_get_configuration();
+		appconf->can_baud_rate = baud;
+		conf_general_store_app_configuration(appconf);
+
+		return ENC_SYM_TRUE;
+	} else {
+		return ENC_SYM_TERROR;
+	}
+}
+
 // App set commands
 static lbm_value ext_app_adc_detach(lbm_value *args, lbm_uint argn) {
 	if (argn == 1) {
@@ -5388,6 +5412,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("can-recv-eid", ext_can_recv_eid);
 	lbm_add_extension("can-cmd", ext_can_cmd);
 	lbm_add_extension("can-local-id", ext_can_local_id);
+	lbm_add_extension("can-update-baud", ext_can_update_baud);
 
 	// Math
 	lbm_add_extension("throttle-curve", ext_throttle_curve);

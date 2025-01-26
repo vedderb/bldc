@@ -28,7 +28,8 @@
 
 // Functions
 void comm_can_init(void);
-void comm_can_set_baud(CAN_BAUD baud);
+CAN_BAUD comm_can_kbits_to_baud(int kbits);
+void comm_can_set_baud(CAN_BAUD baud, int delay_msec);
 void comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len);
 void comm_can_transmit_eid_if(uint32_t id, const uint8_t *data, uint8_t len, int interface);
 void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len, bool replace, int interface);
@@ -59,6 +60,7 @@ void comm_can_detect_all_foc_res_clear(void);
 void comm_can_conf_battery_cut(uint8_t controller_id,
 		bool store, float start, float end);
 void comm_can_shutdown(uint8_t controller_id);
+void comm_can_send_update_baud(int kbits, int delay_msec);
 can_status_msg *comm_can_get_status_msg_index(int index);
 can_status_msg *comm_can_get_status_msg_id(int id);
 can_status_msg_2 *comm_can_get_status_msg_2_index(int index);

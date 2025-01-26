@@ -77,7 +77,7 @@ void app_set_configuration(app_configuration *conf) {
 	}
 
 #if CAN_ENABLE
-	comm_can_set_baud(conf->can_baud_rate);
+	comm_can_set_baud(conf->can_baud_rate, 0);
 #endif
 
 	imu_init(&conf->imu_conf);

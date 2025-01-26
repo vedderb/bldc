@@ -2307,6 +2307,25 @@ Get local CAN ID.
 
 ---
 
+#### can-update-baud
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.06+ |
+
+```clj
+(can-update-baud kbits)
+```
+
+Update CAN baudrate locally and on connected CAN-devices. kbits is the new baudrate. Note that this is only supported when all CAN-devices have firmware 6.06 or later. If the update fails the CAN-bus can become unusable until the settings are restored manually on each device. Valid baudrates in kbits are 125, 250, 500, 1000, 10, 20, 50, 75 and 100. Example:
+
+```clj
+(can-update-baud 1000) ; Update baudrate to 1 MBit/s
+(can-update-baud 250) ; Update baudrate to 250 KBit/s
+```
+
+---
+
 #### can-send-sid
 
 | Platforms | Firmware |

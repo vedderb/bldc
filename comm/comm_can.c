@@ -205,7 +205,41 @@ void comm_can_init(void) {
 #endif
 }
 
-void comm_can_set_baud(CAN_BAUD baud) {
+CAN_BAUD comm_can_kbits_to_baud(int kbits) {
+	CAN_BAUD new_baud = CAN_BAUD_INVALID;
+
+	switch (kbits) {
+	case 125: new_baud = CAN_BAUD_125K; break;
+	case 250: new_baud = CAN_BAUD_250K; break;
+	case 500: new_baud = CAN_BAUD_500K; break;
+	case 1000: new_baud = CAN_BAUD_1M; break;
+	case 10: new_baud = CAN_BAUD_10K; break;
+	case 20: new_baud = CAN_BAUD_20K; break;
+	case 50: new_baud = CAN_BAUD_50K; break;
+	case 75: new_baud = CAN_BAUD_75K; break;
+	case 100: new_baud = CAN_BAUD_100K; break;
+	default: new_baud = CAN_BAUD_INVALID; break;
+	}
+
+	return new_baud;
+}
+
+void comm_can_set_baud(CAN_BAUD baud, int delay_msec) {
+	if (baud == CAN_BAUD_INVALID) {
+		return;
+	}
+
+	if (delay_msec > 0) {
+#ifdef HW_CAN2_DEV
+		canStop(&CAND1);
+		canStop(&CAND2);
+#else
+		canStop(&HW_CAN_DEV);
+#endif
+
+		chThdSleepMilliseconds(delay_msec);
+	}
+
 	switch (baud) {
 	case CAN_BAUD_125K:	set_timing(15, 14, 4); break;
 	case CAN_BAUD_250K:	set_timing(7, 14, 4); break;
@@ -772,6 +806,17 @@ void comm_can_shutdown(uint8_t controller_id) {
 	uint8_t buffer[8];
 	comm_can_transmit_eid_replace(controller_id |
 			((uint32_t)(CAN_PACKET_SHUTDOWN) << 8), buffer, send_index, true, 0);
+}
+
+void comm_can_send_update_baud(int kbits, int delay_msec) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+
+	buffer_append_int16(buffer, kbits, &send_index);
+	buffer_append_int16(buffer, delay_msec, &send_index);
+
+	comm_can_transmit_eid_replace(255 | ((uint32_t)CAN_PACKET_UPDATE_BAUD << 8),
+				buffer, send_index, false, 0);
 }
 
 /**
@@ -2161,6 +2206,21 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 		d->speed = buffer_get_float16(data8, 1.0e2, &ind);
 		d->hdop = buffer_get_float16(data8, 1.0e2, &ind);
 		d->last_update = chVTGetSystemTimeX();
+	} break;
+
+	case CAN_PACKET_UPDATE_BAUD: {
+		ind = 0;
+		int kbits = buffer_get_int16(data8, &ind);
+		int delay_msec = buffer_get_int16(data8, &ind);
+
+		CAN_BAUD baud = comm_can_kbits_to_baud(kbits);
+		if (baud != CAN_BAUD_INVALID) {
+			comm_can_set_baud(baud, delay_msec);
+
+			app_configuration *appconf = (app_configuration*)app_get_configuration();
+			appconf->can_baud_rate = baud;
+			conf_general_store_app_configuration(appconf);
+		}
 	} break;
 
 	default:
