@@ -937,6 +937,7 @@ int lbm_gc_sweep_phase(void) {
         case ENC_SYM_IND_F_TYPE:
           lbm_memory_free((lbm_uint*)heap[i].car);
           break;
+        case ENC_SYM_DEFRAG_LISPARRAY_TYPE: /* fall through */
         case ENC_SYM_DEFRAG_ARRAY_TYPE:
           lbm_defrag_mem_free((lbm_uint*)heap[i].car);
           break;

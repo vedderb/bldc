@@ -11,7 +11,9 @@ PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c
 
 # -DLBM_ALWAYS_GC
 
-CCFLAGS = -Wall -Wextra -Wshadow -Wconversion -Wclobbered -pedantic -std=c99 -DFULL_RTS_LIB -DLBM_USE_DYN_MACROS -DLBM_USE_DYN_LOOPS
+LBMFLAGS = -DFULL_RTS_LIB -DLBM_USE_DYN_FUNS -DLBM_USE_DYN_MACROS -DLBM_USE_DYN_LOOPS -DLBM_USE_DYN_ARRAYS
+
+CCFLAGS = -Wall -Wextra -Wshadow -Wconversion -Wclobbered -pedantic -std=c99 $(LBMFLAGS)
 
 CCFLAGS_32 = $(CCFLAGS) -m32 -g -O2
 CCFLAGS_GC = $(CCFLAGS) -m32 -DLBM_ALWAYS_GC -g -O2

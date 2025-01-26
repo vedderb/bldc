@@ -298,7 +298,7 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
     case START_ARRAY: {
       lbm_pop(&print_stack, &curr);
       int res = 1;
-      r = print_emit_char(chan, '[');
+      r = print_emit_string(chan, "[|");
       lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(curr);
       lbm_uint size = arr->size / sizeof(lbm_value);
       lbm_value *arrdata = (lbm_value*)arr->data;
@@ -311,7 +311,7 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
            PRINT};
         res = res && push_n(&print_stack, continuation, 5);
       } else {
-        res = res && lbm_push(&print_stack, END_LIST);
+        res = res && lbm_push(&print_stack, END_ARRAY);
       }
       if (!res) {
         return EMIT_FAILED;
@@ -344,7 +344,7 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
       break;
     }
     case END_ARRAY: {
-      r = print_emit_char(chan, ']');
+      r = print_emit_string(chan, "|]");
       break;
     }
     case START_LIST: {

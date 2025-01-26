@@ -43,10 +43,11 @@ what we call "extensions" which are C functions that can be called from your Lis
 
 ### Documentation
 
- - Work in progress [LispBM language reference](./doc/lbmref.md).
- - Work in prograss [LispBM display library reference](./doc/displayref.md).
+ - [LispBM language reference](./doc/lbmref.md).
+ - [LispBM display library reference](./doc/displayref.md).
  - [LispBM runtime system library reference](./doc/runtimeref.md).
- - Gotchas and caveats [Gotchas and caveats](./doc/gotchas.md).
+ - [LispBM dynlib reference](./doc/dynref.md).
+ - [LispBM Gotchas and caveats](./doc/gotchas.md).
  - C code documentation can be found [here](http://lispbm.com/cdocs/html/index.html).
  - LispBM's internals are documented as a series of (now quite outdated) [blog posts](http://svenssonjoel.github.io).
  - There are [demonstrations on YouTube](https://youtube.com/playlist?list=PLtf_3TaqZoDOQqZcB9Yj-R1zS2DWDZ9q9).

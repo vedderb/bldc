@@ -7,10 +7,13 @@ PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
 PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c
 
 LBMFLAGS = -DFULL_RTS_LIB \
+	   -DLBM_USE_DYN_MACROS \
+           -DLBM_USE_DYN_LOOPS \
            -DLBM_USE_DYN_FUNS \
-           -DLBM_USE_DYN_MACROS \
-           -DLBM_USE_DYN_DEFSTRUCT \
-           -DLBM_USE_DYN_LOOPS
+           -DLBM_USE_DYN_ARRAYS \
+           -DLBM_USE_DYN_DEFSTRUCT
+
+
 
 
 CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast

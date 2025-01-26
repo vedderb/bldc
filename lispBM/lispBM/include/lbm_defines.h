@@ -164,20 +164,22 @@
 
 
 //#define TYPE_CLASSIFIER_STARTS 0x30
-#define SYM_ARRAY_TYPE         0x30
-#define SYM_RAW_I_TYPE         0x31
-#define SYM_RAW_U_TYPE         0x32
-#define SYM_RAW_F_TYPE         0x33
-#define SYM_IND_I_TYPE         0x34
-#define SYM_IND_U_TYPE         0x35
-#define SYM_IND_F_TYPE         0x36
-#define SYM_CHANNEL_TYPE       0x37
-#define SYM_CUSTOM_TYPE        0x38
-#define SYM_LISPARRAY_TYPE     0x39
-#define SYM_DEFRAG_MEM_TYPE    0x3A
-#define SYM_DEFRAG_ARRAY_TYPE  0x3B
+#define SYM_ARRAY_TYPE            0x30
+#define SYM_RAW_I_TYPE            0x31
+#define SYM_RAW_U_TYPE            0x32
+#define SYM_RAW_F_TYPE            0x33
+#define SYM_IND_I_TYPE            0x34
+#define SYM_IND_U_TYPE            0x35
+#define SYM_IND_F_TYPE            0x36
+#define SYM_CHANNEL_TYPE          0x37
+#define SYM_CUSTOM_TYPE           0x38
+#define SYM_LISPARRAY_TYPE        0x39
+#define SYM_DEFRAG_MEM_TYPE       0x3A
+#define SYM_DEFRAG_ARRAY_TYPE     0x3B
+#define SYM_DEFRAG_LISPARRAY_TYPE 0x3C
 //#define TYPE_CLASSIFIER_ENDS   0x39
-#define SYM_NONSENSE           0x3C
+
+#define SYM_NONSENSE              0x3D
 
 #define SYM_NO_MATCH       0x40
 #define SYM_MATCH_ANY      0x41
@@ -218,7 +220,9 @@
 #define SYM_TOKENIZER_RERROR 0x82
 #define SYM_OPENCURL         0x84
 #define SYM_CONST            0x85
-#define TOKENIZER_SYMBOLS_END 0x85
+#define SYM_OPENARRAY        0x86
+#define SYM_CLOSEARRAY       0x87
+#define TOKENIZER_SYMBOLS_END 0x87
 
 // Built in special forms:
 // Special forms get their arguments unevaluated
@@ -330,14 +334,13 @@
 #define SYM_TAKE                0x20038
 #define SYM_DROP                0x20039
 #define SYM_MKARRAY             0x2003A
-#define SYM_ARRAY_TO_LIST       0x2003B
-#define SYM_LIST_TO_ARRAY       0x2003C
-#define SYM_DM_CREATE           0x2003D
-#define SYM_DM_ALLOC            0x2003E
-#define SYM_IS_LIST             0x2003F
-#define SYM_IS_NUMBER           0x20040
-#define SYM_INT_DIV             0x20041
-#define SYM_IDENTITY            0x20042
+#define SYM_DM_CREATE           0x2003B
+#define SYM_DM_ALLOC            0x2003C
+#define SYM_IS_LIST             0x2003D
+#define SYM_IS_NUMBER           0x2003E
+#define SYM_INT_DIV             0x2003F
+#define SYM_IDENTITY            0x20040
+#define SYM_ARRAY               0x20041
 
 
 // Apply funs:
@@ -414,22 +417,23 @@
 #define ENC_SYM_ERROR_FLASH_HEAP_FULL ENC_SYM(SYM_ERROR_FLASH_HEAP_FULL)
 #define ENC_SYM_PLACEHOLDER           ENC_SYM(SYM_PLACEHOLDER)
 
-#define ENC_SYM_ARRAY_TYPE         ENC_SYM(SYM_ARRAY_TYPE)
-#define ENC_SYM_RAW_I_TYPE         ENC_SYM(SYM_RAW_I_TYPE)
-#define ENC_SYM_RAW_U_TYPE         ENC_SYM(SYM_RAW_U_TYPE)
-#define ENC_SYM_RAW_F_TYPE         ENC_SYM(SYM_RAW_F_TYPE)
-#define ENC_SYM_IND_I_TYPE         ENC_SYM(SYM_IND_I_TYPE)
-#define ENC_SYM_IND_U_TYPE         ENC_SYM(SYM_IND_U_TYPE)
-#define ENC_SYM_IND_F_TYPE         ENC_SYM(SYM_IND_F_TYPE)
-#define ENC_SYM_CHANNEL_TYPE       ENC_SYM(SYM_CHANNEL_TYPE)
-#define ENC_SYM_CUSTOM_TYPE        ENC_SYM(SYM_CUSTOM_TYPE)
-#define ENC_SYM_LISPARRAY_TYPE     ENC_SYM(SYM_LISPARRAY_TYPE)
-#define ENC_SYM_DEFRAG_MEM_TYPE    ENC_SYM(SYM_DEFRAG_MEM_TYPE)
-#define ENC_SYM_DEFRAG_ARRAY_TYPE  ENC_SYM(SYM_DEFRAG_ARRAY_TYPE)
-#define ENC_SYM_NONSENSE           ENC_SYM(SYM_NONSENSE)
+#define ENC_SYM_ARRAY_TYPE            ENC_SYM(SYM_ARRAY_TYPE)
+#define ENC_SYM_RAW_I_TYPE            ENC_SYM(SYM_RAW_I_TYPE)
+#define ENC_SYM_RAW_U_TYPE            ENC_SYM(SYM_RAW_U_TYPE)
+#define ENC_SYM_RAW_F_TYPE            ENC_SYM(SYM_RAW_F_TYPE)
+#define ENC_SYM_IND_I_TYPE            ENC_SYM(SYM_IND_I_TYPE)
+#define ENC_SYM_IND_U_TYPE            ENC_SYM(SYM_IND_U_TYPE)
+#define ENC_SYM_IND_F_TYPE            ENC_SYM(SYM_IND_F_TYPE)
+#define ENC_SYM_CHANNEL_TYPE          ENC_SYM(SYM_CHANNEL_TYPE)
+#define ENC_SYM_CUSTOM_TYPE           ENC_SYM(SYM_CUSTOM_TYPE)
+#define ENC_SYM_LISPARRAY_TYPE        ENC_SYM(SYM_LISPARRAY_TYPE)
+#define ENC_SYM_DEFRAG_MEM_TYPE       ENC_SYM(SYM_DEFRAG_MEM_TYPE)
+#define ENC_SYM_DEFRAG_ARRAY_TYPE     ENC_SYM(SYM_DEFRAG_ARRAY_TYPE)
+#define ENC_SYM_DEFRAG_LISPARRAY_TYPE ENC_SYM(SYM_DEFRAG_LISPARRAY_TYPE)
+#define ENC_SYM_NONSENSE              ENC_SYM(SYM_NONSENSE)
 
-#define ENC_SYM_NO_MATCH       ENC_SYM(SYM_NO_MATCH)
-#define ENC_SYM_MATCH_ANY      ENC_SYM(SYM_MATCH_ANY)
+#define ENC_SYM_NO_MATCH        ENC_SYM(SYM_NO_MATCH)
+#define ENC_SYM_MATCH_ANY       ENC_SYM(SYM_MATCH_ANY)
 
 #define ENC_SYM_TYPE_LIST       ENC_SYM(SYM_TYPE_LIST)
 #define ENC_SYM_TYPE_I          ENC_SYM(SYM_TYPE_I)
@@ -464,6 +468,8 @@
 #define ENC_SYM_TOKENIZER_RERROR ENC_SYM(SYM_TOKENIZER_RERROR)
 #define ENC_SYM_OPENCURL         ENC_SYM(SYM_OPENCURL)
 #define ENC_SYM_CONST            ENC_SYM(SYM_CONST)
+#define ENC_SYM_OPENARRAY        ENC_SYM(SYM_OPENARRAY)
+#define ENC_SYM_CLOSEARRAY       ENC_SYM(SYM_CLOSEARRAY)
 
 #define ENC_SYM_QUOTE               ENC_SYM(SYM_QUOTE)
 #define ENC_SYM_DEFINE              ENC_SYM(SYM_DEFINE)
@@ -574,8 +580,6 @@
 #define ENC_SYM_TAKE                ENC_SYM(SYM_TAKE)
 #define ENC_SYM_DROP                ENC_SYM(SYM_DROP)
 #define ENC_SYM_MKARRAY             ENC_SYM(SYM_MKARRAY)
-#define ENC_SYM_ARRAY_TO_LIST       ENC_SYM(SYM_ARRAY_TO_LIST)
-#define ENC_SYM_LIST_TO_ARRAY       ENC_SYM(SYM_LIST_TO_ARRAY)
 #define ENC_SYM_DM_CREATE           ENC_SYM(SYM_DM_CREATE)
 #define ENC_SYM_DM_ALLOC            ENC_SYM(SYM_DM_ALLOC)
 #define ENC_SYM_IS_LIST             ENC_SYM(SYM_IS_LIST)

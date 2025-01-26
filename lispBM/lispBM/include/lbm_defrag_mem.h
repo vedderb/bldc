@@ -1,5 +1,5 @@
 /*
-    Copyright 2024 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2024, 2025 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 extern lbm_value lbm_defrag_mem_create(lbm_uint nbytes);
 extern void lbm_defrag_mem_destroy(lbm_uint *ptr);
 extern lbm_value lbm_defrag_mem_alloc(lbm_uint *defrag_mem, lbm_uint nbytes);
+extern lbm_value lbm_defrag_mem_alloc_lisparray(lbm_uint *defrag_mem, lbm_uint elts);
 extern void lbm_defrag_mem_free(lbm_uint* data);
 
 static inline bool lbm_defrag_mem_valid(lbm_value arr) {

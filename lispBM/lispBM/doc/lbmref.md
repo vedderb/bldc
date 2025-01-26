@@ -646,13 +646,19 @@ Below are a selection of basic special-forms in lispBM together with their evalu
 `and`, `or`, `progn` and `if` evaluates expressions in sequence. `if` evaluates first the condition expression and then either the true or false branch. `progn` evaluates all of the expressions in sequence. In the case of `and`, `or`, `progn` and `if`, the constituent expressions are all evaluated in the same local environment. Any extensions to the local environment performed by an expresison in the sequence is only visible within that expression itself. 
 
    - **let**: `(let ((s1 e1) (s2 e2) ... (sN eN) e)` eI are evaluated in order into `vI`. The local environment is extended with `(sI . vI)`. `sI` is visible in `eJ` for `J >= I`. `e` is then evaluated in the extended local environment.
-   - **setq**: `(setq s e)' is evaluated by first evaluating `e` into `v`. The environments are then scanned for a bining of `s`. local environment is searched first followed by global. If a binding of `s` is found it is modified into `(s . v)`.
+   - **setq**: `(setq s e)` is evaluated by first evaluating `e` into `v`. The environments are then scanned for a bining of `s`. local environment is searched first followed by global. If a binding of `s` is found it is modified into `(s . v)`.
 
 If no binding of `s` is found when evaluating `(setq s e)` a `variable_not_bound` error is triggered. 
 
 **Function application evaluation** 
 
-The evaluation strategies explained here are applied to composite expressions of the `(e1 ... eN)` form. 
+The evaluation strategies explained here are applied to composite expressions of the `(e1 ... eN)` form where `e1` does not fall into the category of "special forms". 
+
+In LispBM an `(e1 ... eN)` is evaluated by first evaluating `e1`. This is because depending on what kind of function object `e1` evaluates into, the application if evaluated in different ways. 
+
+`e1` sould evaluate into a `closure`, a "fundamental operation" or an "extension". fundamental operations and extensions take their arguments passed on the stack while a closure is applied in an environment extended with the argument value bindings. 
+
+Depending on the value of `e1` the arguments are either evaluated left to right and the results are pushed onto the stack, or they are evaluated left to right and used to extend the environment. 
 
 **The quote and the quasiquote** 
 
@@ -1145,10 +1151,11 @@ Integer division operation. Like normal division except if the result is a float
 <td>
 
 ```clj
-(progn (var total-seconds 62.500000f32)
-       (var minutes (// total-seconds 60))
-       (var seconds (mod total-seconds 60))
-       (str-join (list (str-from-n minutes) m  (str-from-n seconds) s) [0]))
+(progn 
+    (var total-seconds 62.500000f32)
+    (var minutes (// total-seconds 60))
+    (var seconds (mod total-seconds 60))
+    (str-join (list (str-from-n minutes) m  (str-from-n seconds) s) [0]))
 ```
 
 
@@ -4805,8 +4812,9 @@ The  `list-of-local-bindings` are very similar to how `let` works, just that her
  (define sum 0)
  (loop ((a 0))
       (<= a 10)
-      (progn (setq sum (+ sum a))
-             (setq a (+ a 1))))
+      (progn 
+          (setq sum (+ sum a))
+          (setq a (+ a 1))))
  sum
 ```
 
@@ -4967,9 +4975,10 @@ The `set` form is used to change the value of some variable in an environment. Y
 
 
 ```clj
- (progn (var a 10)
-       (set 'a 20)
-       a)
+ (progn 
+    (var a 10)
+    (set 'a 20)
+    a)
 ```
 
 
@@ -5035,9 +5044,10 @@ Just like `set` and `setvar`, `setq` can be used on variables that are bound loc
 
 
 ```clj
- (progn (var a 10)
-       (setq a 20)
-       a)
+ (progn 
+    (var a 10)
+    (setq a 20)
+    a)
 ```
 
 
@@ -5084,9 +5094,10 @@ The evaluation result of a progn sequence is the value that the last `exprN` eva
 <td>
 
 ```clj
-(progn 1
-       2
-       3)
+(progn 
+    1
+    2
+    3)
 ```
 
 
@@ -5104,9 +5115,10 @@ The evaluation result of a progn sequence is the value that the last `exprN` eva
 <td>
 
 ```clj
-(progn (define a 10)
-       (define b 20)
-       (+ a b))
+(progn 
+    (define a 10)
+    (define b 20)
+    (+ a b))
 ```
 
 
@@ -5183,9 +5195,10 @@ The var special form allows local bindings in a progn expression. A var expressi
 <td>
 
 ```clj
-(progn (var a 10)
-       (var b 20)
-       (+ a b))
+(progn 
+    (var a 10)
+    (var b 20)
+    (+ a b))
 ```
 
 
@@ -5203,9 +5216,10 @@ The var special form allows local bindings in a progn expression. A var expressi
 <td>
 
 ```clj
-(progn (var a 10)
-       (var b (+ a 10))
-       (+ a b))
+(progn 
+    (var a 10)
+    (var b (+ a 10))
+    (+ a b))
 ```
 
 
@@ -5231,8 +5245,9 @@ You can deconstruct composite value while var binding.
 <td>
 
 ```clj
-(progn (var (a b) (list 1 2))
-       (+ a b))
+(progn 
+    (var (a b) (list 1 2))
+    (+ a b))
 ```
 
 
@@ -5250,8 +5265,9 @@ You can deconstruct composite value while var binding.
 <td>
 
 ```clj
-(progn (var (a . as) (list 1 2 3 4 5 6))
-       (cons a (reverse as)))
+(progn 
+    (var (a . as) (list 1 2 3 4 5 6))
+    (cons a (reverse as)))
 ```
 
 
@@ -5502,7 +5518,7 @@ A cons cell can be used to store a pair of values. You create a pair by sticking
 
 A list is a number of cons cells linked together where the car fields hold values and the cdr fields hold pointers (the last cdr field is nil). The list below can be created either as `'(1 2 3)` or as `(list 1 2 3)`. 
 
-![list](images/list.png "list")
+![Graph representaion of s-expression](./images/list_1_2_3.png)
 
 
 ### car
@@ -6693,7 +6709,7 @@ The `setassoc` function destructively updates a key-value mapping in an alist. T
 
 ---
 
-## Arrays (byte buffers)
+## Byte buffers
 
 
 ---
@@ -6701,7 +6717,7 @@ The `setassoc` function destructively updates a key-value mapping in an alist. T
 
 ### bufcreate
 
-Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate size-expr)` 
+Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate size-expr)`. 
 
 <table>
 <tr>
@@ -6744,6 +6760,52 @@ Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate si
 </td>
 </tr>
 </table>
+
+Alternatively a buffer can be allocated from a compactible memory region (defrag mem). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define dm (dm-create 1000))
+```
+
+
+</td>
+<td>
+
+```clj
+DM
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define data-in-dm (bufcreate dm 10))
+```
+
+
+</td>
+<td>
+
+```clj
+[0 0 0 0 0 0 0 0 0 0]
+```
+
+
+</td>
+</tr>
+</table>
+
+For more information about defragmentable memory see <a href=#Defragmentable_memory>Defragmentable memory</a>. 
 
 
 
@@ -7391,9 +7453,9 @@ data
 ---
 
 
-### Byte-array literal syntax
+### Byte buffer literal syntax
 
-Byte-array (buffer) literals can be created using the `[` and `]` syntax to enclose values to initialize the array with. The `[` and `]` syntax is complete resolved in the parser and thus cannot contain arbitrary lisp terms. the values listed between the `[` and the `]` must be literals! 
+Byte buffer literals can be created using the `[` and `]` syntax to enclose values to initialize the array with. The `[` and `]` syntax is complete resolved in the parser and thus cannot contain arbitrary lisp terms. the values listed between the `[` and the `]` must be literals! 
 
 The form of the `[` and `]` syntax is `[ val1 ... valN ]`. 
 
@@ -7414,6 +7476,430 @@ The form of the `[` and `]` syntax is `[ val1 ... valN ]`.
 
 ```clj
 [1 2 3 4 5 6 7 8 9 10]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+## Arrays
+
+LispBM supports arrays of arbitrary lisp values (including other arrays). 
+
+
+### array literals
+
+An array literal are specified as a sequence of lisp values between `[|` and `|]`. Values in a literal array are not evaluated. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr [|1 2 3|])
+```
+
+
+</td>
+<td>
+
+```clj
+[|1 2 3|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr [|daniel jackson|])
+```
+
+
+</td>
+<td>
+
+```clj
+[|daniel jackson|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr [|(apa . bepa) (1 . 2)|])
+```
+
+
+</td>
+<td>
+
+```clj
+[|(apa . bepa) (1 . 2)|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr [|(+ 1 2) (+ 3 4)|])
+```
+
+
+</td>
+<td>
+
+```clj
+[|(+ 1 2) (+ 3 4)|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr [|[|1 2 3|] [|4 5 6|]|])
+```
+
+
+</td>
+<td>
+
+```clj
+[|[|1 2 3|] [|4 5 6|]|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix my-arr 0)
+```
+
+
+</td>
+<td>
+
+```clj
+[|1 2 3|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix my-arr 1)
+```
+
+
+</td>
+<td>
+
+```clj
+[|4 5 6|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix (ix my-arr 0) 1)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix (ix my-arr 1) 2)
+```
+
+
+</td>
+<td>
+
+```clj
+6
+```
+
+
+</td>
+</tr>
+</table>
+
+All arrays have an associated heap-cell that acts as a liaison in relation to the garbage collector. When garbage collection frees the liaison, it also frees the array data in buffers and arrays memory (lbm_memory). 
+
+![In memory representation of an array](./images/array_literal.png)
+
+
+
+
+---
+
+
+### array
+
+`array` takes n arguments and creates an array holding those arguments as values. The form of an `array` expression is `(array expr1 ... exprN)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr (array 1 2 3))
+```
+
+
+</td>
+<td>
+
+```clj
+[|1 2 3|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr (array (+ 1 2) (+ 3 4)))
+```
+
+
+</td>
+<td>
+
+```clj
+[|3 7|]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### mkarray
+
+Allocate an array with `mkarray`. Arrays are allocated in arrays and byte buffer memory but can also be allocated in a compactible (defrag mem) area. The form of an `mkarray` expression is either `(mkarray num)` or `(mkarray dm num)` where `dm` is a defrag-mem area and num is the size of the array to allocate. 
+
+Note that there is currently no literal syntax for arrays. 
+
+The example below allocates an array in "lbm_memory" (arrays and byte-buffer memory). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr (mkarray 10))
+```
+
+
+</td>
+<td>
+
+```clj
+[|nil nil nil nil nil nil nil nil nil nil|]
+```
+
+
+</td>
+</tr>
+</table>
+
+Below is an example allocating an array from a compactible memory area. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-dm (dm-create 1000))
+```
+
+
+</td>
+<td>
+
+```clj
+DM
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(define my-arr (mkarray my-dm 10))
+```
+
+
+</td>
+<td>
+
+```clj
+[|nil nil nil nil nil nil nil nil nil nil|]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### ix
+
+Index into an array using the `ix` function. The form of an `ix` expression is `(ix array-expr index-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative index accesses values starting from the end of the array. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix [|1 2 3 4|] 1)
+```
+
+
+</td>
+<td>
+
+```clj
+2
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(ix [|1 2 3 4|] -1)
+```
+
+
+</td>
+<td>
+
+```clj
+4
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### setix
+
+Destructively update an element in an array. The form of a `setix` expression is `(setix arr-expr index-extr value-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative value -n will update the nth value from the end of the list. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(setix [|1 2 3 4 5|] 2 77)
+```
+
+
+</td>
+<td>
+
+```clj
+[|1 2 77 4 5|]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(setix [|1 2 3 4 5|] -2 66)
+```
+
+
+</td>
+<td>
+
+```clj
+[|1 2 3 66 5|]
 ```
 
 
@@ -7816,7 +8302,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-4133
+4676
 ```
 
 
@@ -8021,7 +8507,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 180959 kurt-russel)
+(exit-ok 193074 kurt-russel)
 ```
 
 
@@ -8090,7 +8576,7 @@ To receive a message use the `recv` command. A process will block on a `recv` un
 
 Like [recv](#recv), `recv-to` is used to receive messages but `recv-to` takes an extra timeout argument. It then receives a message containing the symbol `timeout` after the timeout period ends. 
 
-The form of an `recv-to` expression is ```clj (recv-to timeout-secs                 (pattern1 exp1)                 ...                 (patternN expN)) ``` 
+The form of an `recv-to` expression is `(recv-to timeout-secs (pattern1 exp1) ... (patternN expN))` 
 
 <table>
 <tr>
@@ -9440,5 +9926,5 @@ Convert any numerical value to a double precision floating point value. If the i
 
 ---
 
-This document was generated by LispBM version 0.29.1 
+This document was generated by LispBM version 0.30.3 
 

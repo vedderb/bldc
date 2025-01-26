@@ -18,9 +18,10 @@ These should be added as a -D... flag to the C compiler for the LispBM compilati
 <li>LBM64 - Builds the 64bit version of LispBM. Default is 32bit.</li>
 <li>FULL_RTS_LIB - Build all the extensions in the runtime system extensions library.</li>
 <li>LBM_USE_DYN_FUNS - Add a library of functions to the dynamic loader.</li>
-<li>LBM_USE_DYN_MACRO - Add a library of macros to the dynamic loader.</li>
+<li>LBM_USE_DYN_MACROS - Add a library of macros to the dynamic loader.</li>
 <li>LBM_USE_DYN_DEFSTRUCT - Add the defstruct mechanism, requires LBM_USE_DYN_FUNS and LBM_USE_DYN_MACROS.</li>
 <li>LBM_USE_DYN_LOOPS - Add loop macros, requires LBM_USE_DYN_MACROS.</li>
+<li>LBM_USE_DYN_ARRAYS - Add additional array manipulation functions. Requires LBM_USE_DYN_MACROS and LBM_USE_DYN_LOOPS</li>
 </ul>
 
 <h2>Build on Linux</h2>

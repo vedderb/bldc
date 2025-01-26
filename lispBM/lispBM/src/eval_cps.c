@@ -47,56 +47,58 @@ static jmp_buf critical_error_jmp_buf;
 #define IS_CONTINUATION(x) (((x) & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)
 #define CONTINUATION(x) (((x) << LBM_ADDRESS_SHIFT) | LBM_CONTINUATION_INTERNAL)
 
-#define DONE                  CONTINUATION(0)
-#define SET_GLOBAL_ENV        CONTINUATION(1)
-#define BIND_TO_KEY_REST      CONTINUATION(2)
-#define IF                    CONTINUATION(3)
-#define PROGN_REST            CONTINUATION(4)
-#define APPLICATION_ARGS      CONTINUATION(5)
-#define AND                   CONTINUATION(6)
-#define OR                    CONTINUATION(7)
-#define WAIT                  CONTINUATION(8)
-#define MATCH                 CONTINUATION(9)
-#define APPLICATION_START     CONTINUATION(10)
-#define EVAL_R                CONTINUATION(11)
-#define RESUME                CONTINUATION(12)
-#define CLOSURE_ARGS          CONTINUATION(13)
-#define EXIT_ATOMIC           CONTINUATION(14)
-#define READ_NEXT_TOKEN       CONTINUATION(15)
-#define READ_APPEND_CONTINUE  CONTINUATION(16)
-#define READ_EVAL_CONTINUE    CONTINUATION(17)
-#define READ_EXPECT_CLOSEPAR  CONTINUATION(18)
-#define READ_DOT_TERMINATE    CONTINUATION(19)
-#define READ_DONE             CONTINUATION(20)
-#define READ_START_ARRAY      CONTINUATION(21)
-#define READ_APPEND_ARRAY     CONTINUATION(22)
-#define MAP                   CONTINUATION(23)
-#define MATCH_GUARD           CONTINUATION(24)
-#define TERMINATE             CONTINUATION(25)
-#define PROGN_VAR             CONTINUATION(26)
-#define SETQ                  CONTINUATION(27)
-#define MOVE_TO_FLASH         CONTINUATION(28)
+#define DONE                       CONTINUATION(0)
+#define SET_GLOBAL_ENV             CONTINUATION(1)
+#define BIND_TO_KEY_REST           CONTINUATION(2)
+#define IF                         CONTINUATION(3)
+#define PROGN_REST                 CONTINUATION(4)
+#define APPLICATION_ARGS           CONTINUATION(5)
+#define AND                        CONTINUATION(6)
+#define OR                         CONTINUATION(7)
+#define WAIT                       CONTINUATION(8)
+#define MATCH                      CONTINUATION(9)
+#define APPLICATION_START          CONTINUATION(10)
+#define EVAL_R                     CONTINUATION(11)
+#define RESUME                     CONTINUATION(12)
+#define CLOSURE_ARGS               CONTINUATION(13)
+#define EXIT_ATOMIC                CONTINUATION(14)
+#define READ_NEXT_TOKEN            CONTINUATION(15)
+#define READ_APPEND_CONTINUE       CONTINUATION(16)
+#define READ_EVAL_CONTINUE         CONTINUATION(17)
+#define READ_EXPECT_CLOSEPAR       CONTINUATION(18)
+#define READ_DOT_TERMINATE         CONTINUATION(19)
+#define READ_DONE                  CONTINUATION(20)
+#define READ_START_BYTEARRAY       CONTINUATION(21)
+#define READ_APPEND_BYTEARRAY      CONTINUATION(22)
+#define MAP                        CONTINUATION(23)
+#define MATCH_GUARD                CONTINUATION(24)
+#define TERMINATE                  CONTINUATION(25)
+#define PROGN_VAR                  CONTINUATION(26)
+#define SETQ                       CONTINUATION(27)
+#define MOVE_TO_FLASH              CONTINUATION(28)
 #define MOVE_VAL_TO_FLASH_DISPATCH CONTINUATION(29)
-#define MOVE_LIST_TO_FLASH    CONTINUATION(30)
-#define CLOSE_LIST_IN_FLASH   CONTINUATION(31)
-#define QQ_EXPAND_START       CONTINUATION(32)
-#define QQ_EXPAND             CONTINUATION(33)
-#define QQ_APPEND             CONTINUATION(34)
-#define QQ_EXPAND_LIST        CONTINUATION(35)
-#define QQ_LIST               CONTINUATION(36)
-#define KILL                  CONTINUATION(37)
-#define LOOP                  CONTINUATION(38)
-#define LOOP_CONDITION        CONTINUATION(39)
-#define MERGE_REST            CONTINUATION(40)
-#define MERGE_LAYER           CONTINUATION(41)
-#define CLOSURE_ARGS_REST     CONTINUATION(42)
-#define MOVE_ARRAY_ELTS_TO_FLASH CONTINUATION(43)
-#define POP_READER_FLAGS      CONTINUATION(44)
-#define EXCEPTION_HANDLER     CONTINUATION(45)
-#define RECV_TO               CONTINUATION(46)
-#define WRAP_RESULT           CONTINUATION(47)
-#define RECV_TO_RETRY         CONTINUATION(48)
-#define NUM_CONTINUATIONS     49
+#define MOVE_LIST_TO_FLASH         CONTINUATION(30)
+#define CLOSE_LIST_IN_FLASH        CONTINUATION(31)
+#define QQ_EXPAND_START            CONTINUATION(32)
+#define QQ_EXPAND                  CONTINUATION(33)
+#define QQ_APPEND                  CONTINUATION(34)
+#define QQ_EXPAND_LIST             CONTINUATION(35)
+#define QQ_LIST                    CONTINUATION(36)
+#define KILL                       CONTINUATION(37)
+#define LOOP                       CONTINUATION(38)
+#define LOOP_CONDITION             CONTINUATION(39)
+#define MERGE_REST                 CONTINUATION(40)
+#define MERGE_LAYER                CONTINUATION(41)
+#define CLOSURE_ARGS_REST          CONTINUATION(42)
+#define MOVE_ARRAY_ELTS_TO_FLASH   CONTINUATION(43)
+#define POP_READER_FLAGS           CONTINUATION(44)
+#define EXCEPTION_HANDLER          CONTINUATION(45)
+#define RECV_TO                    CONTINUATION(46)
+#define WRAP_RESULT                CONTINUATION(47)
+#define RECV_TO_RETRY              CONTINUATION(48)
+#define READ_START_ARRAY           CONTINUATION(49)
+#define READ_APPEND_ARRAY          CONTINUATION(50)
+#define NUM_CONTINUATIONS          51
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -1814,10 +1816,11 @@ static void eval_call_cc_unsafe(eval_context_t *ctx) {
   lbm_uint sp = ctx->K.sp;
   // The stored stack contains the is_atomic flag.
   // This flag is overwritten in the following execution path.
-  lbm_value acont = lbm_heap_allocate_list_init(3,
-                                                ENC_SYM_CONT_SP,
-                                                lbm_enc_i((int32_t)sp),
-                                                is_atomic ? ENC_SYM_TRUE : ENC_SYM_NIL, ENC_SYM_NIL);
+  lbm_value acont;
+  WITH_GC(acont, lbm_heap_allocate_list_init(3,
+					     ENC_SYM_CONT_SP,
+					     lbm_enc_i((int32_t)sp),
+					     is_atomic ? ENC_SYM_TRUE : ENC_SYM_NIL, ENC_SYM_NIL));
   lbm_value arg_list = cons_with_gc(acont, ENC_SYM_NIL, ENC_SYM_NIL);
   // Go directly into application evaluation without passing go
   lbm_uint *sptr = stack_reserve(ctx, 3);
@@ -3906,6 +3909,9 @@ static void cont_read_next_token(eval_context_t *ctx) {
     if (!lbm_channel_drop(chan, (unsigned int)n)) {
       error_ctx(ENC_SYM_FATAL_ERROR);
     }
+    lbm_value compound_read_start = READ_START_BYTEARRAY;
+    lbm_value compound_value_opener = ENC_SYM_OPENBRACK;
+    lbm_value compound_value_closer = ENC_SYM_CLOSEBRACK;
     ctx->app_cont = true;
     switch(tok_match) {
     case TOKOPENPAR: {
@@ -3923,18 +3929,23 @@ static void cont_read_next_token(eval_context_t *ctx) {
       lbm_stack_drop(&ctx->K, 2);
       ctx->r = ENC_SYM_CLOSEPAR;
     } return;
+    case TOKOPENARRAY:
+      compound_read_start = READ_START_ARRAY; // switch to array reader
+      compound_value_opener = ENC_SYM_OPENARRAY; /* fall through */
     case TOKOPENBRACK: {
       sptr[0] = stream;
-      sptr[1] = READ_START_ARRAY;
+      sptr[1] = compound_read_start;
       lbm_value *rptr = stack_reserve(ctx, 3);
       rptr[0] = stream;
       rptr[1] = lbm_enc_u(0);
       rptr[2] = READ_NEXT_TOKEN;
-      ctx->r = ENC_SYM_OPENBRACK;
+      ctx->r = compound_value_opener;
     } return;
+    case TOKCLOSEARRAY:
+      compound_value_closer = ENC_SYM_CLOSEARRAY; /* fall through */
     case TOKCLOSEBRACK:
       lbm_stack_drop(&ctx->K, 2);
-      ctx->r = ENC_SYM_CLOSEBRACK;
+      ctx->r = compound_value_closer;
       return;
     case TOKDOT:
       lbm_stack_drop(&ctx->K, 2);
@@ -4182,7 +4193,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
   read_error_ctx(lbm_channel_row(chan), lbm_channel_column(chan));
 }
 
-static void cont_read_start_array(eval_context_t *ctx) {
+static void cont_read_start_bytearray(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 1);
   lbm_value stream = sptr[0];
 
@@ -4242,7 +4253,7 @@ static void cont_read_start_array(eval_context_t *ctx) {
     rptr[0] = lbm_enc_u(initial_size);
     rptr[1] = lbm_enc_u(0);
     rptr[2] = stream;
-    rptr[3] = READ_APPEND_ARRAY;
+    rptr[3] = READ_APPEND_BYTEARRAY;
     ctx->app_cont = true;
   } else {
     lbm_channel_reader_close(str);
@@ -4250,7 +4261,7 @@ static void cont_read_start_array(eval_context_t *ctx) {
   }
 }
 
-static void cont_read_append_array(eval_context_t *ctx) {
+static void cont_read_append_bytearray(eval_context_t *ctx) {
   lbm_uint *sptr = get_stack_ptr(ctx, 4);
 
   lbm_value array  = sptr[0];
@@ -4270,7 +4281,7 @@ static void cont_read_append_array(eval_context_t *ctx) {
 
     sptr[2] = lbm_enc_u(ix + 1);
     lbm_value *rptr = stack_reserve(ctx, 4);
-    rptr[0] = READ_APPEND_ARRAY;
+    rptr[0] = READ_APPEND_BYTEARRAY;
     rptr[1] = stream;
     rptr[2] = lbm_enc_u(0);
     rptr[3] = READ_NEXT_TOKEN;
@@ -4290,6 +4301,110 @@ static void cont_read_append_array(eval_context_t *ctx) {
     error_ctx(ENC_SYM_TERROR);
   }
 }
+
+// Lisp array syntax reading ////////////////////////////////////////
+
+static void cont_read_start_array(eval_context_t *ctx) {
+  lbm_value *sptr = get_stack_ptr(ctx, 1);
+  lbm_value stream = sptr[0];
+
+  lbm_char_channel_t *str = lbm_dec_channel(stream);
+  if (str == NULL || str->state == NULL) {
+    error_ctx(ENC_SYM_FATAL_ERROR);
+    return; // INFER does not understand that error_ctx longjmps out
+            // of this function here.
+  }
+  if (ctx->r == ENC_SYM_CLOSEARRAY) {
+    lbm_value array;
+
+    if (!lbm_heap_allocate_lisp_array(&array, 0)) {
+      gc();
+      if (!lbm_heap_allocate_lisp_array(&array, 0)) {
+        lbm_set_error_reason((char*)lbm_error_str_read_no_mem);
+        lbm_channel_reader_close(str);
+        error_ctx(ENC_SYM_FATAL_ERROR); // Terminates ctx
+      }
+    }
+    lbm_stack_drop(&ctx->K, 1);
+    ctx->r = array;
+    ctx->app_cont = true;
+  } else {
+#ifdef LBM_ALWAYS_GC
+    gc();
+#endif
+    lbm_uint num = ((lbm_uint)((float)lbm_memory_longest_free() * 0.9) / sizeof(lbm_uint)) ;
+    lbm_uint initial_size = (lbm_uint)num;
+    if (initial_size == 0) {
+      gc();
+      num = ((lbm_uint)((float)lbm_memory_longest_free() * 0.9) / sizeof(lbm_uint)) ;
+      initial_size = (lbm_uint)num;
+      if (initial_size == 0) {
+        lbm_channel_reader_close(str);
+        error_ctx(ENC_SYM_MERROR);
+      }
+    }
+    lbm_value array;
+    initial_size = sizeof(lbm_uint) * initial_size;
+
+    if (!lbm_heap_allocate_lisp_array(&array, initial_size)) {
+      gc();
+      if (!lbm_heap_allocate_lisp_array(&array, initial_size)) {
+        lbm_set_error_reason((char*)lbm_error_str_read_no_mem);
+        lbm_channel_reader_close(str);
+        error_ctx(ENC_SYM_FATAL_ERROR);
+      }
+    }
+
+    sptr[0] = array;
+    lbm_value *rptr = stack_reserve(ctx, 4);
+    rptr[0] = lbm_enc_u(initial_size);
+    rptr[1] = lbm_enc_u(0);
+    rptr[2] = stream;
+    rptr[3] = READ_APPEND_ARRAY;
+    ctx->app_cont = true;
+  }
+}
+
+static void cont_read_append_array(eval_context_t *ctx) {
+  lbm_uint *sptr = get_stack_ptr(ctx, 4);
+
+  lbm_value array  = sptr[0];
+  lbm_value size   = lbm_dec_as_u32(sptr[1]);
+  lbm_value ix     = lbm_dec_as_u32(sptr[2]);
+  lbm_value stream = sptr[3];
+
+  if (ix >= (size - 1)) {
+    error_ctx(ENC_SYM_MERROR);
+  }
+
+  // if sptr[0] is not an array something is very very wrong.
+  // Not robust against a garbage on stack. But how would garbage get onto stack?
+  lbm_array_header_t *arr = assume_array(array);
+  if (lbm_is_symbol(ctx->r) && ctx->r == ENC_SYM_CLOSEARRAY) {
+    lbm_uint array_size = ix;
+
+    if (ix % sizeof(lbm_uint) != 0) {
+      array_size = array_size + 1;
+    }
+    lbm_memory_shrink((lbm_uint*)arr->data, array_size);
+    arr->size = ix * sizeof(lbm_uint);
+    lbm_stack_drop(&ctx->K, 4);
+    ctx->r = array;
+    ctx->app_cont = true;
+  } else {
+    ((lbm_uint*)arr->data)[ix] = ctx->r;
+
+    sptr[2] = lbm_enc_u(ix + 1);
+    lbm_value *rptr = stack_reserve(ctx, 4);
+    rptr[0] = READ_APPEND_ARRAY;
+    rptr[1] = stream;
+    rptr[2] = lbm_enc_u(0);
+    rptr[3] = READ_NEXT_TOKEN;
+    ctx->app_cont = true;
+  }
+}
+
+// Lisp list syntax reading ////////////////////////////////////////
 
 static void cont_read_append_continue(eval_context_t *ctx) {
   lbm_value *sptr = get_stack_ptr(ctx, 3);
@@ -5259,8 +5374,8 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_read_expect_closepar,
     cont_read_dot_terminate,
     cont_read_done,
-    cont_read_start_array,
-    cont_read_append_array,
+    cont_read_start_bytearray,
+    cont_read_append_bytearray,
     cont_map,
     cont_match_guard,
     cont_terminate,
@@ -5287,6 +5402,8 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_recv_to,
     cont_wrap_result,
     cont_recv_to_retry,
+    cont_read_start_array,
+    cont_read_append_array
   };
 
 /*********************************************************/
