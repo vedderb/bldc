@@ -139,6 +139,20 @@ dev-1| a clear origin!
 
 ---
 
+#### set-fw-name
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(set-fw-name str)
+```
+
+Set (or override if already set in the firmware) firmware name. The firmware name is printed in the CAN-list in VESC Tool when it is set. It can also be used by packages to determine if they are compatible with the connected hardware.
+
+---
+
 #### timeout-reset
 
 | Platforms | Firmware |
