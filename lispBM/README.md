@@ -6737,7 +6737,7 @@ Write data to qml-buffer at offset. Returns true on success or nil/timeout on fa
 (lbm-run running optCanId)
 ```
 
-Run or stop the lbm-code (run if running is 1, stop otherwise). Returns true on success or nil/timeout on failure. If the optional argument optCanId is omitted or set to -1 the command is performed locally, otherwise it is performed on the CAN-device with id optCanId.
+Run or stop the lbm-code (run if running is 1, stop otherwise). Returns true on success or nil/timeout on failure. If the optional argument optCanId is omitted or set to -1 the command is performed locally, otherwise it is performed on the CAN-device with id optCanId. If running is set to 1 and LispBM already is running a restart is performed.
 
 ---
 
