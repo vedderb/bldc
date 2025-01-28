@@ -2927,7 +2927,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		uint32_t duty1, duty2, duty3, top;
 		top = TIM1->ARR;
-		foc_svm(state_m->mod_alpha_raw, state_m->mod_beta_raw,
+		foc_svm(state_m->mod_alpha_raw, state_m->mod_beta_raw, conf_now->l_max_duty,
 				top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
 
 #ifdef HW_HAS_DUAL_MOTORS
@@ -3582,7 +3582,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	// Calculate duty cycle
 	motor_now->m_motor_state.duty_now = SIGN(motor_now->m_motor_state.vq) *
-			NORM2_f(motor_now->m_motor_state.mod_d, motor_now->m_motor_state.mod_q) * TWO_BY_SQRT3;
+			NORM2_f(motor_now->m_motor_state.mod_d, motor_now->m_motor_state.mod_q) *
+			motor_now->p_duty_norm; // p_duty_norm = TWO_BY_SQRT3 / conf_now->foc_overmod_factor;
 
 	float phase_for_speed_est = 0.0;
 	switch (conf_now->foc_speed_soure) {
@@ -4446,7 +4447,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 
 	// Calculate the max length of the voltage space vector without overmodulation.
 	// Is simply 1/sqrt(3) * v_bus. See https://microchipdeveloper.com/mct5001:start. Adds margin with max_duty.
-	float max_v_mag = ONE_BY_SQRT3 * max_duty * state_m->v_bus;
+	float max_v_mag = ONE_BY_SQRT3 * max_duty * state_m->v_bus * conf_now->foc_overmod_factor;
 
 	// Saturation and anti-windup. Notice that the d-axis has priority as it controls field
 	// weakening and the efficiency.
@@ -4741,11 +4742,12 @@ static void control_current(motor_all_state_t *motor, float dt) {
 			// Delay adding the HFI voltage when not sampling in both 0 vectors, as it will cancel
 			// itself with the opposite pulse from the previous HFI sample. This makes more sense
 			// when drawing the SVM waveform.
-			foc_svm(mod_alpha_v7, mod_beta_v7, TIM1->ARR,
-				(uint32_t*)&motor->m_duty1_next,
-				(uint32_t*)&motor->m_duty2_next,
-				(uint32_t*)&motor->m_duty3_next,
-				(uint32_t*)&state_m->svm_sector); //svm_sector already gettings written here. Seems incorrect since it will only be used in the next update, but svm_sector seems unused so no issue.
+			foc_svm(mod_alpha_v7, mod_beta_v7,
+					conf_now->l_max_duty, TIM1->ARR,
+					(uint32_t*)&motor->m_duty1_next,
+					(uint32_t*)&motor->m_duty2_next,
+					(uint32_t*)&motor->m_duty3_next,
+					(uint32_t*)&state_m->svm_sector); // svm_sector already getting written here. Seems incorrect since it will only be used in the next update, but svm_sector seems unused so no issue.
 			motor->m_duty_next_set = true;
 		}
 	} else {
@@ -4772,7 +4774,8 @@ static void control_current(motor_all_state_t *motor, float dt) {
 
 	// Calculate the duty cycles for all the phases. This also injects a zero modulation signal to
 	// be able to fully utilize the bus voltage. See https://microchipdeveloper.com/mct5001:start
-	foc_svm(state_m->mod_alpha_raw, state_m->mod_beta_raw, top, &duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
+	foc_svm(state_m->mod_alpha_raw, state_m->mod_beta_raw, conf_now->l_max_duty, top,
+			&duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
 
 	if (motor == &m_motor_1) {
 		TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3);

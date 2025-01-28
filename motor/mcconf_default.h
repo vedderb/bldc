@@ -505,6 +505,9 @@
 #ifndef MCCONF_FOC_SHORT_LS_ON_ZERO_DUTY
 #define MCCONF_FOC_SHORT_LS_ON_ZERO_DUTY false // Short low-side phases on zero duty cycle
 #endif
+#ifndef MCCONF_FOC_OVERMOD_FACTOR
+#define MCCONF_FOC_OVERMOD_FACTOR 		1.0 // Overmodulation factor
+#endif
 
 // GPD
 #ifndef MCCONF_GPD_BUFFER_NOTIFY_LEFT

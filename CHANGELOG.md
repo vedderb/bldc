@@ -11,6 +11,7 @@
 * Automatic offset calibration support.
 * Added HFI ambiguity resolution modes using id injection.
 * Support for coordinated CAN baudrate update.
+* Overmodulation support.
 
 ### 6.05
 #### 2024-08-19
