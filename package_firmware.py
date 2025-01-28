@@ -193,6 +193,8 @@ package_dict["STR500_HP"] = [['str500_hp', default_name],
 package_dict["RB"] = [['rb', default_name]]
 package_dict["STR365"] = [['str365', default_name],
                     ['str365_no_limits', no_limits_name]]
+package_dict["STR365_150"] = [['str365_150', default_name],
+                    ['str365_150_no_limits', no_limits_name]]
 package_dict["SPARKF"] = [['sparkf', default_name]]
 package_dict["VESC_BASIC"] = [['basic', default_name],
                     ['basic_no_limits', no_limits_name]]
