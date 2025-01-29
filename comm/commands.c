@@ -1882,6 +1882,7 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 
 	float ctrl_loop_freq = 0.0;
 
+#if FOC_CONTROL_LOOP_FREQ_DIVIDER < 2 // When skipping cycles you are on your own!
 	// This limit should always be active, as starving the threads never
 	// makes sense.
 #ifdef HW_LIM_FOC_CTRL_LOOP_FREQ
@@ -1898,6 +1899,7 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 		ctrl_loop_freq = mcconf->foc_f_zv / 2.0;
 #endif
     }
+#endif
 #endif
 
     if (ctrl_loop_freq >= (hw_lim_upper(HW_LIM_FOC_CTRL_LOOP_FREQ) * 0.9)) {

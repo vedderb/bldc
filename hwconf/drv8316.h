@@ -49,6 +49,7 @@ void drv8316_write_reg(uint8_t reg, uint8_t data);
 #define DRV8316_CTRL_REG_4		    0x06
 #define DRV8316_CTRL_REG_5		    0x07
 #define DRV8316_CTRL_REG_6		    0x08
+#define DRV8316_CTRL_REG_10		    0x0C
 
 // IC Faults
 #define DRV8316_IC_FAULT_BUCK_FLT           (1 << 6)

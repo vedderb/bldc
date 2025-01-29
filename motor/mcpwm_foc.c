@@ -2820,13 +2820,6 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	(void)p;
 	(void)flags;
 
-	static int skip = 0;
-	if (++skip == FOC_CONTROL_LOOP_FREQ_DIVIDER) {
-		skip = 0;
-	} else {
-		return;
-	}
-
 	uint32_t t_start = timer_time_now();
 
 	bool is_v7 = !(TIM1->CR1 & TIM_CR1_DIR);
@@ -2949,6 +2942,20 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	if (do_return) {
 		return;
 	}
+
+#if FOC_CONTROL_LOOP_FREQ_DIVIDER > 1
+	static int skip = 0;
+	if (++skip == FOC_CONTROL_LOOP_FREQ_DIVIDER) {
+		skip = 0;
+	} else {
+		return;
+	}
+
+	// This has to be done for the skip function to have any chance at working with the
+	// observer and control loops.
+	// TODO: Test this.
+	dt *= (float)FOC_CONTROL_LOOP_FREQ_DIVIDER;
+#endif
 
 	// Reset the watchdog
 	timeout_feed_WDT(THREAD_MCPWM);
@@ -3089,11 +3096,6 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	float ia = curr0;
 	float ib = curr1;
 	float ic = curr2;
-
-	// This has to be done for the skip function to have any chance at working with the
-	// observer and control loops.
-	// TODO: Test this.
-	dt *= (float)FOC_CONTROL_LOOP_FREQ_DIVIDER;
 
 	UTILS_LP_FAST(motor_now->m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
 
