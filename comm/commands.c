@@ -2144,9 +2144,11 @@ static THD_FUNCTION(blocking_thread, arg) {
 				float current = buffer_get_float32(data, 1e3, &ind);
 
 				mcconf->motor_type = MOTOR_TYPE_FOC;
-				mcconf->foc_f_zv = 10000.0;
-				mcconf->foc_current_kp = 0.01;
-				mcconf->foc_current_ki = 10.0;
+				// These parameters work for most motors if detection has not been
+				// done before, but not for all motors. For now we disable them.
+//				mcconf->foc_f_zv = 10000.0;
+//				mcconf->foc_current_kp = 0.01;
+//				mcconf->foc_current_ki = 10.0;
 				mc_interface_set_configuration(mcconf);
 
 				float offset = 0.0;
