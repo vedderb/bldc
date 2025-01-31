@@ -93,7 +93,11 @@ void lispif_init(void) {
 		lispif_restart(false, true, true);
 	}
 
+#ifdef LBM_USE_TIME_QUOTA
+	lbm_set_eval_time_quota(2000);
+#else
 	lbm_set_eval_step_quota(50);
+#endif
 
 	chMtxObjectInit(&lbm_mutex);
 }

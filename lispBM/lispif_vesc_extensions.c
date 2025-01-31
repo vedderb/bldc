@@ -4386,7 +4386,12 @@ static lbm_value ext_lbm_set_quota(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_EERROR;
 	}
 
+#ifdef LBM_USE_TIME_QUOTA
+	lbm_set_eval_time_quota(q);
+#else
 	lbm_set_eval_step_quota(q);
+#endif
+
 	return ENC_SYM_TRUE;
 }
 
