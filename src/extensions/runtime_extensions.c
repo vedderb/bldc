@@ -39,7 +39,11 @@ static lbm_uint sym_num_last_free;
 lbm_value ext_eval_set_quota(lbm_value *args, lbm_uint argn) {
   LBM_CHECK_ARGN_NUMBER(1);
   uint32_t q = lbm_dec_as_u32(args[0]);
+#ifdef LBM_USE_TIME_QUOTA
+  lbm_set_eval_time_quota(q);
+#else
   lbm_set_eval_step_quota(q);
+#endif
   return ENC_SYM_TRUE;
 }
 

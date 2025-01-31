@@ -35,9 +35,9 @@ static inline lbm_uint bs2ws(lbm_uint bs) {
 //       headers in the case of ByteArrays.
 #define DEFRAG_ALLOC_SIZE(X) X[0]
 #define DEFRAG_ALLOC_DATA(X) X[1]
-#define DEFRAG_ALLOC_INDEX(X) X[2] // GC index for traversal of high-level arrays
-#define DEFRAG_ALLOC_CELLPTR(X) X[3]
-#define DEFRAG_ALLOC_ARRAY_HEADER_SIZE 4
+//#define DEFRAG_ALLOC_INDEX(X) X[2] // GC index for traversal of high-level arrays
+#define DEFRAG_ALLOC_CELLPTR(X) X[2]
+#define DEFRAG_ALLOC_ARRAY_HEADER_SIZE 3
 
 lbm_value lbm_defrag_mem_create(lbm_uint nbytes) {
   lbm_value res = ENC_SYM_TERROR;
@@ -239,22 +239,22 @@ lbm_value lbm_defrag_mem_alloc(lbm_uint *defrag_mem, lbm_uint bytes) {
 }
 
 // Allocate a high-level array from DM area
-lbm_value lbm_defrag_mem_alloc_lisparray(lbm_uint *defrag_mem, lbm_uint elts) {
+/* lbm_value lbm_defrag_mem_alloc_lisparray(lbm_uint *defrag_mem, lbm_uint elts) { */
 
-  size_t bytes = elts * sizeof(lbm_uint);
-  lbm_value res = lbm_defrag_mem_alloc_internal(defrag_mem, bytes, ENC_SYM_DEFRAG_LISPARRAY_TYPE); // Try to allocate
-  if (lbm_is_symbol_merror(res)) {
-    if (DEFRAG_MEM_FLAGS(defrag_mem)) { //if we already performed GC, then also defrag
-      lbm_defrag_mem_defrag(defrag_mem, bytes);
-      res = lbm_defrag_mem_alloc_internal(defrag_mem, bytes, ENC_SYM_DEFRAG_LISPARRAY_TYPE); // then try again
-      DEFRAG_MEM_FLAGS(defrag_mem) = 0;
-    }
-  }
-  if (!lbm_is_symbol_merror(res)) {
-    res = lbm_set_ptr_type(res, LBM_TYPE_LISPARRAY);
-  }
-  return res;
-}
+/*   size_t bytes = elts * sizeof(lbm_uint); */
+/*   lbm_value res = lbm_defrag_mem_alloc_internal(defrag_mem, bytes, ENC_SYM_DEFRAG_LISPARRAY_TYPE); // Try to allocate */
+/*   if (lbm_is_symbol_merror(res)) { */
+/*     if (DEFRAG_MEM_FLAGS(defrag_mem)) { //if we already performed GC, then also defrag */
+/*       lbm_defrag_mem_defrag(defrag_mem, bytes); */
+/*       res = lbm_defrag_mem_alloc_internal(defrag_mem, bytes, ENC_SYM_DEFRAG_LISPARRAY_TYPE); // then try again */
+/*       DEFRAG_MEM_FLAGS(defrag_mem) = 0; */
+/*     } */
+/*   } */
+/*   if (!lbm_is_symbol_merror(res)) { */
+/*     res = lbm_set_ptr_type(res, LBM_TYPE_LISPARRAY); */
+/*   } */
+/*   return res; */
+/* } */
 
 
 

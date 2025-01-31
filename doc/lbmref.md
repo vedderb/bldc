@@ -7729,7 +7729,7 @@ All arrays have an associated heap-cell that acts as a liaison in relation to th
 
 ### mkarray
 
-Allocate an array with `mkarray`. Arrays are allocated in arrays and byte buffer memory but can also be allocated in a compactible (defrag mem) area. The form of an `mkarray` expression is either `(mkarray num)` or `(mkarray dm num)` where `dm` is a defrag-mem area and num is the size of the array to allocate. 
+Allocate an array with `mkarray`. Arrays are allocated in arrays and byte buffer memory. The form an `mkarray` expression is `(mkarray num-expr)`. 
 
 Note that there is currently no literal syntax for arrays. 
 
@@ -7744,50 +7744,6 @@ The example below allocates an array in "lbm_memory" (arrays and byte-buffer mem
 
 ```clj
 (define my-arr (mkarray 10))
-```
-
-
-</td>
-<td>
-
-```clj
-[|nil nil nil nil nil nil nil nil nil nil|]
-```
-
-
-</td>
-</tr>
-</table>
-
-Below is an example allocating an array from a compactible memory area. 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(define my-dm (dm-create 1000))
-```
-
-
-</td>
-<td>
-
-```clj
-DM
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-(define my-arr (mkarray my-dm 10))
 ```
 
 
@@ -8302,7 +8258,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-4676
+4707
 ```
 
 
@@ -8507,7 +8463,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 193074 kurt-russel)
+(exit-ok 191774 kurt-russel)
 ```
 
 
