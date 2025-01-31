@@ -2128,10 +2128,11 @@
 (define array-mkarray
   (ref-entry "mkarray"
    (list
-    (para (list "Allocate an array with `mkarray`. Arrays are allocated in arrays and byte buffer memory"
-                "but can also be allocated in a compactible (defrag mem) area."
-                "The form of an `mkarray` expression is either `(mkarray num)` or `(mkarray dm num)` where"
-                "`dm` is a defrag-mem area and num is the size of the array to allocate."
+    (para (list "Allocate an array with `mkarray`. Arrays are allocated in arrays and byte buffer memory."
+                "The form an `mkarray` expression is `(mkarray num-expr)`."
+                ;;"but can also be allocated in a compactible (defrag mem) area."
+                ;;"The form of an `mkarray` expression is either `(mkarray num)` or `(mkarray dm num)` where"
+                ;;"`dm` is a defrag-mem area and num is the size of the array to allocate."
                 ))
     (para (list "Note that there is currently no literal syntax for arrays."
                 ))
@@ -2139,11 +2140,11 @@
                 ))
     (code '((define my-arr (mkarray 10))
             ))
-    (para (list "Below is an example allocating an array from a compactible memory area."
-                ))
-    (code '((define my-dm (dm-create 1000))
-            (define my-arr (mkarray my-dm 10))
-            ))
+    ;;(para (list "Below is an example allocating an array from a compactible memory area."
+    ;;            ))
+    ;;(code '((define my-dm (dm-create 1000))
+    ;;        (define my-arr (mkarray my-dm 10))
+    ;;        ))
     end
     )
    )

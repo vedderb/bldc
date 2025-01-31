@@ -307,17 +307,6 @@ static int compare_num(lbm_uint a, lbm_uint b) {
   return retval;
 }
 
-/* (array-create size) */
-static void array_create(lbm_value *args, lbm_uint nargs, lbm_value *result) {
-  *result = ENC_SYM_EERROR;
-  if (nargs == 1 && IS_NUMBER(args[0])) {
-    lbm_heap_allocate_array(result, lbm_dec_as_u32(args[0]));
-  } else if (nargs == 2 && IS_NUMBER(args[1]) && lbm_type_of(args[0]) == LBM_TYPE_DEFRAG_MEM) {
-    lbm_uint *dm = (lbm_uint*)lbm_car(args[0]);
-    *result = lbm_defrag_mem_alloc(dm, lbm_dec_as_uint(args[1]));
-  }
-}
-
 static lbm_value assoc_lookup(lbm_value key, lbm_value assoc) {
   lbm_value curr = assoc;
   lbm_value res = ENC_SYM_NO_MATCH;
@@ -465,28 +454,21 @@ static lbm_value fundamental_div(lbm_value *args, lbm_uint nargs, eval_context_t
 
 static lbm_value fundamental_mod(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-  if (nargs != 2) {
-    lbm_set_error_reason((char*)lbm_error_str_num_args);
-    return ENC_SYM_EERROR;
+  if (nargs == 2) {
+    return mod2(args[0], args[1]);
   }
-  lbm_value res = args[0];
-  lbm_value arg2 = args[1];
-  res = mod2(res, arg2);
-  return res;
+  lbm_set_error_reason((char*)lbm_error_str_num_args);
+  return  ENC_SYM_EERROR;
 }
 
 static lbm_value fundamental_eq(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-
   lbm_uint a = args[0];
-  bool r = true;
-
   for (lbm_uint i = 1; i < nargs; i ++) {
     lbm_uint b = args[i];
-    r = r && struct_eq(a, b);
-    if (!r) break;
+    if (!struct_eq(a, b)) return ENC_SYM_NIL;
   }
-  return r ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  return ENC_SYM_TRUE;
 }
 
 static lbm_value fundamental_not_eq(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
@@ -520,6 +502,7 @@ static lbm_value fundamental_numeq(lbm_value *args, lbm_uint nargs, eval_context
 
 static lbm_value fundamental_num_not_eq(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   lbm_value r = fundamental_numeq(args, nargs, ctx);
+  // Needs the more expensive check as r can be ENC_SYM_TERROR.
   if (r == ENC_SYM_NIL) {
     r = ENC_SYM_TRUE;
   } else if (r == ENC_SYM_TRUE) {
@@ -602,11 +585,10 @@ static lbm_value fundamental_gt(lbm_value *args, lbm_uint nargs, eval_context_t 
 
 static lbm_value fundamental_not(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
-  lbm_value r = ENC_SYM_EERROR;
   if (nargs == 1) {
-    r = args[0] ? ENC_SYM_NIL : ENC_SYM_TRUE;
+    return args[0] ? ENC_SYM_NIL : ENC_SYM_TRUE;
   }
-  return r;
+  return ENC_SYM_EERROR;
 }
 
 static lbm_value fundamental_gc(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
@@ -757,7 +739,12 @@ static lbm_value fundamental_undefine(lbm_value *args, lbm_uint nargs, eval_cont
 static lbm_value fundamental_buf_create(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   (void) ctx;
   lbm_value result = ENC_SYM_EERROR;
-  array_create(args, nargs, &result);
+  if (nargs == 1 && IS_NUMBER(args[0])) {
+    lbm_heap_allocate_array(&result, lbm_dec_as_u32(args[0]));
+  } else if (nargs == 2 && IS_NUMBER(args[1]) && lbm_type_of(args[0]) == LBM_TYPE_DEFRAG_MEM) {
+    lbm_uint *dm = (lbm_uint*)lbm_car(args[0]);
+    return lbm_defrag_mem_alloc(dm, lbm_dec_as_uint(args[1]));
+  }
   return result;
 }
 
@@ -810,7 +797,7 @@ static lbm_value fundamental_symbol_to_uint(lbm_value *args, lbm_uint nargs, eva
   (void) ctx;
   if (nargs < 1) return ENC_SYM_EERROR;
   lbm_value s = args[0];
-  if (lbm_type_of_functional(s) == LBM_TYPE_SYMBOL)
+  if (lbm_is_symbol(s))
     return lbm_enc_u(lbm_dec_sym(s));
 
   lbm_set_error_suspect(s);
@@ -1331,10 +1318,12 @@ static lbm_value fundamental_mkarray(lbm_value *args, lbm_uint nargs, eval_conte
   lbm_value res = ENC_SYM_TERROR;
   if (nargs == 1 && IS_NUMBER(args[0])) {
     lbm_heap_allocate_lisp_array(&res, lbm_dec_as_u32(args[0]));
-  } else if (nargs == 2 && IS_NUMBER(args[1]) && lbm_type_of(args[0]) == LBM_TYPE_DEFRAG_MEM) {
-    lbm_uint *dm = (lbm_uint*)lbm_car(args[0]);
-    res = lbm_defrag_mem_alloc_lisparray(dm, lbm_dec_as_u32(args[1]));
   }
+  // No high-level arrays in defrag mem until we figure out how to do it without overhead.
+  //else if (nargs == 2 && IS_NUMBER(args[1]) && lbm_type_of(args[0]) == LBM_TYPE_DEFRAG_MEM) {
+  //  lbm_uint *dm = (lbm_uint*)lbm_car(args[0]);
+  //  res = lbm_defrag_mem_alloc_lisparray(dm, lbm_dec_as_u32(args[1]));
+  //}
   return res;
 }
 
@@ -1371,12 +1360,14 @@ static lbm_value fundamental_dm_alloc(lbm_value *args, lbm_uint argn, eval_conte
       lbm_uint *dm = (lbm_uint*)lbm_car(args[0]);
       res = lbm_defrag_mem_alloc(dm, lbm_dec_as_uint(args[1]));
     }
-  } else if (argn == 3 && lbm_is_number(args[1]) && args[2] == ENC_SYM_TYPE_LISPARRAY)  {
-    if (lbm_type_of(args[0]) == LBM_TYPE_DEFRAG_MEM) {
-      lbm_uint *dm = (lbm_uint*)lbm_car(args[0]);
-      res = lbm_defrag_mem_alloc_lisparray(dm, lbm_dec_as_uint(args[1]));
-    }
   }
+  // NO high level arrays in Defrag mem until we can do it without overhead in the DM representation!
+  //else if (argn == 3 && lbm_is_number(args[1]) && args[2] == ENC_SYM_TYPE_LISPARRAY)  {
+  //  if (lbm_type_of(args[0]) == LBM_TYPE_DEFRAG_MEM) {
+  //    lbm_uint *dm = (lbm_uint*)lbm_car(args[0]);
+  //    res = lbm_defrag_mem_alloc_lisparray(dm, lbm_dec_as_uint(args[1]));
+  //  }
+  //}
   return res;
 }
 

@@ -158,6 +158,13 @@ static lbm_value lbm_error_suspect;
 static bool lbm_error_has_suspect = false;
 #ifdef LBM_ALWAYS_GC
 
+// TODO: Optimize, In a large number of cases
+// where WITH_GC is used, it is not really required to check is_symbol_merror.
+// Just checking is_symbol should be enough.
+// Given the number of calls to WITH_GC this could save some code
+// space and potentially also be a slight speedup.
+// TODO: profile.
+
 #define WITH_GC(y, x)                           \
   gc();                                         \
   (y) = (x);                                    \
@@ -239,15 +246,24 @@ void lbm_request_gc(void) {
 */
 
 #define EVAL_CPS_DEFAULT_STACK_SIZE 256
+#define EVAL_TIME_QUOTA 400 // time in used, if time quota
 #define EVAL_CPS_MIN_SLEEP 200
 #define EVAL_STEPS_QUOTA   10
 
+#ifdef LBM_USE_TIME_QUOTA
+static volatile uint32_t eval_time_refill = EVAL_TIME_QUOTA;
+static uint32_t eval_time_quota = EVAL_TIME_QUOTA;
+static uint32_t eval_current_quota = 0;
+void lbm_set_eval_time_quota(uint32_t quota) {
+  eval_time_refill = quota;
+}
+#else
 static volatile uint32_t eval_steps_refill = EVAL_STEPS_QUOTA;
 static uint32_t eval_steps_quota = EVAL_STEPS_QUOTA;
-
 void lbm_set_eval_step_quota(uint32_t quota) {
   eval_steps_refill = quota;
 }
+#endif
 
 static uint32_t          eval_cps_run_state = EVAL_CPS_STATE_DEAD;
 static volatile uint32_t eval_cps_next_state = EVAL_CPS_STATE_NONE;
@@ -467,10 +483,15 @@ eval_context_t *lbm_get_current_context(void) {
   return ctx_running;
 }
 
+#ifdef LBM_USE_TIME_QUOTA
+void lbm_surrender_quota(void) {
+  // dummy;
+}
+#else
 void lbm_surrender_quota(void) {
   eval_steps_quota = 0;
 }
-
+#endif
 
 /****************************************************/
 /* Utilities used locally in this file              */
@@ -1053,16 +1074,16 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
   }
 
   if (!(lbm_hide_trapped_error &&
-	(ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN))) {
+        (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN))) {
     print_error_message(err_val,
-			has_at,
-			at,
-			row,
-			column,
-			ctx_running->row0,
-			ctx_running->row1,
-			ctx_running->id,
-			ctx_running->name);
+                        has_at,
+                        at,
+                        row,
+                        column,
+                        ctx_running->row0,
+                        ctx_running->row1,
+                        ctx_running->id,
+                        ctx_running->name);
   }
 
   if (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP) {
@@ -1442,6 +1463,7 @@ bool lbm_unblock_ctx_r(lbm_cid cid) {
 }
 
 // unblock unboxed is also safe for rmbr:ed things.
+// TODO: What happens if we unblock and the value is "merror"
 bool lbm_unblock_ctx_unboxed(lbm_cid cid, lbm_value unboxed) {
   mutex_lock(&blocking_extension_mutex);
   bool r = false;
@@ -1501,6 +1523,7 @@ void lbm_undo_block_ctx_from_extension(void) {
 int lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   mutex_lock(&qmutex);
   eval_context_t *found = NULL;
+  int res = LBM_RECEIVER_FOUND;
 
   found = lookup_ctx_nm(&blocked, cid);
   if (found) {
@@ -1510,34 +1533,31 @@ int lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
       enqueue_ctx_nm(&queue,found);
     }
     if (!mailbox_add_mail(found, msg)) {
-      mutex_unlock(&qmutex);
-      return LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
+      res = LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
     }
-    mutex_unlock(&qmutex);
-    return LBM_RECEIVER_FOUND;
+    goto find_receiver_end;
   }
 
   found = lookup_ctx_nm(&queue, cid);
   if (found) {
     if (!mailbox_add_mail(found, msg)) {
-      mutex_unlock(&qmutex);
-      return LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
+      res = LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
     }
-    mutex_unlock(&qmutex);
-    return LBM_RECEIVER_FOUND;
+    goto find_receiver_end;
   }
 
   /* check the current context */
   if (ctx_running && ctx_running->id == cid) {
     if (!mailbox_add_mail(ctx_running, msg)) {
-      mutex_unlock(&qmutex);
-      return LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
+      res = LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
     }
-    mutex_unlock(&qmutex);
-    return LBM_RECEIVER_FOUND;
+    goto find_receiver_end;
   }
   mutex_unlock(&qmutex);
   return LBM_RECEIVER_NOT_FOUND;
+ find_receiver_end:
+  mutex_unlock(&qmutex);
+  return res;
 }
 
 // a match binder looks like (? x) or (? _) for example.
@@ -1592,7 +1612,6 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env, bool *gc) {
 // A completely malformed recv form is most likely to
 // just return no_match.
 static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value *e, lbm_value *env) {
-
   // A pattern list is a list of pattern, expression lists.
   // ( (p1 e1) (p2 e2) ... (pn en))
   lbm_value curr_p = plist;
@@ -1601,22 +1620,35 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
   for (int i = 0; i < (int)num; i ++ ) {
     lbm_value curr_e = earr[i];
     while (!lbm_is_symbol_nil(curr_p)) {
+      lbm_value p[3];
+      extract_n(get_car(curr_p), p, 3);
       lbm_value me = get_car(curr_p);
-      if (match(get_car(me), curr_e, env, &need_gc)) {
-        if (need_gc) return FM_NEED_GC;
-        *e = get_cadr(me);
-
-        if (!lbm_is_symbol_nil(get_cadr(get_cdr(me)))) {
-          return FM_PATTERN_ERROR;
+      if (!lbm_is_symbol_nil(p[2])) { // A rare syntax check. maybe drop?
+        lbm_set_error_reason("Incorrect pattern format for recv");
+        error_at_ctx(ENC_SYM_EERROR,me);
+        return FM_NO_MATCH; // PHONY for SA
+      }
+#ifdef LBM_ALWAYS_GC
+      gc();
+#endif
+      if (match(p[0], curr_e, env, &need_gc) && !need_gc) {
+        *e = p[1];
+         return n;
+      } else if (need_gc) {
+        gc();
+        if (match(p[0], curr_e, env, &need_gc) && !need_gc) {
+          *e = p[1];
+           return n;
+        } else {
+          error_ctx(ENC_SYM_MERROR);
+          return FM_NO_MATCH; // PHONY for SA
         }
-        return n;
       }
       curr_p = get_cdr(curr_p);
     }
     curr_p = plist;       /* search all patterns against next exp */
     n ++;
   }
-
   return FM_NO_MATCH;
 }
 
@@ -1818,9 +1850,9 @@ static void eval_call_cc_unsafe(eval_context_t *ctx) {
   // This flag is overwritten in the following execution path.
   lbm_value acont;
   WITH_GC(acont, lbm_heap_allocate_list_init(3,
-					     ENC_SYM_CONT_SP,
-					     lbm_enc_i((int32_t)sp),
-					     is_atomic ? ENC_SYM_TRUE : ENC_SYM_NIL, ENC_SYM_NIL));
+                                             ENC_SYM_CONT_SP,
+                                             lbm_enc_i((int32_t)sp),
+                                             is_atomic ? ENC_SYM_TRUE : ENC_SYM_NIL, ENC_SYM_NIL));
   lbm_value arg_list = cons_with_gc(acont, ENC_SYM_NIL, ENC_SYM_NIL);
   // Go directly into application evaluation without passing go
   lbm_uint *sptr = stack_reserve(ctx, 3);
@@ -2231,42 +2263,6 @@ static void eval_match(eval_context_t *ctx) {
   }
 }
 
-static void receive_base(eval_context_t *ctx, lbm_value pats) {
-  if (ctx->num_mail == 0) {
-      block_current_ctx(LBM_THREAD_STATE_RECV_BL,0,false);
-  } else {
-    lbm_value *msgs = ctx->mailbox;
-    lbm_uint  num   = ctx->num_mail;
-
-    lbm_value e;
-    lbm_value new_env = ctx->curr_env;
-#ifdef LBM_ALWAYS_GC
-    gc();
-#endif
-    int n = find_match(pats, msgs, num, &e, &new_env);
-    if (n == FM_NEED_GC) {
-      gc();
-      new_env = ctx->curr_env;
-      n = find_match(pats, msgs, num, &e, &new_env);
-      if (n == FM_NEED_GC) {
-        error_ctx(ENC_SYM_MERROR);
-      }
-    }
-    if (n == FM_PATTERN_ERROR) {
-      lbm_set_error_reason("Incorrect pattern format for recv");
-      error_at_ctx(ENC_SYM_EERROR,pats);
-    } else if (n >= 0 ) { /* Match */
-      mailbox_remove_mail(ctx, (lbm_uint)n);
-      ctx->curr_env = new_env;
-      ctx->curr_exp = e;
-    } else { /* No match  go back to sleep */
-      ctx->r = ENC_SYM_NO_MATCH;
-      block_current_ctx(LBM_THREAD_STATE_RECV_BL, 0,false);
-    }
-  }
-  return;
-}
-
 // Receive-timeout
 // (recv-to timeout (pattern expr)
 //                  (pattern expr))
@@ -2291,11 +2287,31 @@ static void eval_receive_timeout(eval_context_t *ctx) {
 static void eval_receive(eval_context_t *ctx) {
   if (is_atomic) atomic_error();
   lbm_value pats = get_cdr(ctx->curr_exp);
-  if (lbm_is_symbol_nil(pats)) {
+  if (pats) { // non-nil check
+    if (ctx->num_mail == 0) {
+      block_current_ctx(LBM_THREAD_STATE_RECV_BL,0,false);
+    } else {
+      lbm_value *msgs = ctx->mailbox;
+      lbm_uint  num   = ctx->num_mail;
+
+      lbm_value e;
+      lbm_value new_env = ctx->curr_env;
+#ifdef LBM_ALWAYS_GC
+      gc();
+#endif
+      int n = find_match(pats, msgs, num, &e, &new_env);
+      if (n >= 0 ) { /* Match */
+        mailbox_remove_mail(ctx, (lbm_uint)n);
+        ctx->curr_env = new_env;
+        ctx->curr_exp = e;
+      } else { /* No match  go back to sleep */
+        ctx->r = ENC_SYM_NO_MATCH;
+        block_current_ctx(LBM_THREAD_STATE_RECV_BL, 0,false);
+      }
+    }
+  } else {
     lbm_set_error_reason((char*)lbm_error_str_num_args);
     error_at_ctx(ENC_SYM_EERROR,ctx->curr_exp);
-  } else {
-    receive_base(ctx, pats);
   }
 }
 
@@ -2704,6 +2720,7 @@ static void apply_ok(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs >= 1) {
     ok_val = args[0];
   }
+  is_atomic = false;
   ctx->r = ok_val;
   ok_ctx();
 }
@@ -2714,6 +2731,7 @@ static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs >= 1) {
     err_val = args[0];
   }
+  is_atomic = false;
   error_at_ctx(err_val, ENC_SYM_EXIT_ERROR);
 }
 
@@ -3449,13 +3467,13 @@ static void cont_match(eval_context_t *ctx) {
     lbm_value match_case = get_car(patterns);
     lbm_value pattern = get_car(match_case);
     lbm_value n1      = get_cadr(match_case);
-    lbm_value n2      = get_cadr(get_cdr(match_case));
+    lbm_value n2      = get_cdr(get_cdr(match_case));
     lbm_value body;
     bool check_guard = false;
     if (lbm_is_symbol_nil(n2)) { // TODO: Not a very robust check.
       body = n1;
     } else {
-      body = n2;
+      body = get_car(n2);
       check_guard = true;
     }
 #ifdef LBM_ALWAYS_GC
@@ -5273,16 +5291,7 @@ static void cont_recv_to(eval_context_t *ctx) {
       gc();
 #endif
       int n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
-      if (n == FM_NEED_GC) {
-        gc();
-        new_env = ctx->curr_env;
-        n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
-        if (n == FM_NEED_GC) error_ctx(ENC_SYM_MERROR);
-      }
-      if (n == FM_PATTERN_ERROR) {
-        lbm_set_error_reason("Incorrect pattern format for recv");
-        error_at_ctx(ENC_SYM_EERROR, sptr[0]);
-      } else if (n >= 0) { // match
+      if (n >= 0) { // match
         mailbox_remove_mail(ctx, (lbm_uint)n);
         ctx->curr_env = new_env;
         ctx->curr_exp = e;
@@ -5316,16 +5325,7 @@ static void cont_recv_to_retry(eval_context_t *ctx) {
     gc();
 #endif
     int n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
-    if (n == FM_NEED_GC) {
-      gc();
-      new_env = ctx->curr_env;
-      n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
-      if (n == FM_NEED_GC) error_ctx(ENC_SYM_MERROR);
-    }
-    if (n == FM_PATTERN_ERROR) {
-      lbm_set_error_reason("Incorrect pattern format for recv");
-      error_at_ctx(ENC_SYM_EERROR, sptr[0]);
-    } else if (n >= 0) { // match
+    if (n >= 0) { // match
       mailbox_remove_mail(ctx, (lbm_uint)n);
       ctx->curr_env = new_env;
       ctx->curr_exp = e;
@@ -5633,7 +5633,11 @@ void lbm_run_eval(void){
           queue.first = NULL;
           queue.last = NULL;
           ctx_running = NULL;
+#ifdef LBM_USE_TIME_QUOTA
+          eval_time_quota = 0; // maybe timestamp here ?
+#else
           eval_steps_quota = eval_steps_refill;
+#endif
           eval_cps_run_state = EVAL_CPS_STATE_RESET;
           if (blocking_extension) {
             blocking_extension = false;
@@ -5662,6 +5666,38 @@ void lbm_run_eval(void){
       }
     }
     while (true) {
+#ifdef LBM_USE_TIME_QUOTA
+      // use a fast implementation of timestamp where possible.
+      if (timestamp_us_callback() < eval_current_quota && ctx_running) {
+        evaluation_step();
+      } else {
+        if (eval_cps_state_changed) break;
+        // On overflow of timer, task will get a no-quota.
+        // Could lead to busy-wait here until timestamp and quota
+        // are on same side of overflow.
+        eval_current_quota = timestamp_us_callback() + eval_time_refill;
+        if (!is_atomic) {
+          if (gc_requested) {
+            gc();
+          }
+          process_events();
+          mutex_lock(&qmutex);
+          if (ctx_running) {
+            enqueue_ctx_nm(&queue, ctx_running);
+            ctx_running = NULL;
+          }
+          wake_up_ctxs_nm();
+          ctx_running = dequeue_ctx_nm(&queue);
+          mutex_unlock(&qmutex);
+          if (!ctx_running) {
+            lbm_system_sleeping = true;
+            //Fixed sleep interval to poll events regularly.
+            usleep_callback(EVAL_CPS_MIN_SLEEP);
+            lbm_system_sleeping = false;
+          }
+        }
+      }
+#else
       if (eval_steps_quota && ctx_running) {
         eval_steps_quota--;
         evaluation_step();
@@ -5689,6 +5725,7 @@ void lbm_run_eval(void){
           }
         }
       }
+#endif
     }
   }
 }

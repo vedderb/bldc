@@ -17,7 +17,7 @@ CCFLAGS = -Wall -Wextra -Wshadow -Wconversion -Wclobbered -pedantic -std=c99 $(L
 
 CCFLAGS_32 = $(CCFLAGS) -m32 -g -O2
 CCFLAGS_GC = $(CCFLAGS) -m32 -DLBM_ALWAYS_GC -g -O2
-CCFLAGS_REVGC = $(CCFLAGS) -DUSE_GC_PTR_REV -m32
+CCFLAGS_REVGC = $(CCFLAGS) -DLBM_USE_GC_PTR_REV -m32
 CCFLAGS_64 = $(CCFLAGS) -DLBM64 -g -O2
 CCFLAGS_COV = $(CCFLAGS) -m32 --coverage -g -O0 -DLONGER_DELAY
 

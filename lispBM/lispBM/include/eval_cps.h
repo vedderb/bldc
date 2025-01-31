@@ -126,11 +126,19 @@ lbm_value eval_cps_get_env(void);
  * \return 1 on success and 0 on failure.
  */
 int lbm_eval_init(void);
+#ifdef LBM_USE_TIME_QUOTA
+/**  Set a new value to use as time quota.
+ *   This changes the scheduling interval.
+ *   \param quota The new quota.
+ */
+void lbm_set_eval_time_quota(uint32_t quota);
+#else
 /**  Set a new value to use as step quota.
  *   This changes the scheduling interval.
  *   \param quota The new quota.
  */
 void lbm_set_eval_step_quota(uint32_t quota);
+#endif
 /** Initialize events
  * \param num_events The maximum number of unprocessed events.
  * \return true on success, false otherwise.
