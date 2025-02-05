@@ -221,7 +221,7 @@ static int gc(void);
 static void error_ctx(lbm_value);
 static void error_at_ctx(lbm_value err_val, lbm_value at);
 static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx);
-static bool mailbox_add_mail(eval_context_t *ctx, lbm_value mail);
+static void mailbox_add_mail(eval_context_t *ctx, lbm_value mail);
 
 // The currently executing context.
 eval_context_t *ctx_running = NULL;
@@ -1410,7 +1410,7 @@ static void mailbox_remove_mail(eval_context_t *ctx, lbm_uint ix) {
   ctx->num_mail --;
 }
 
-static bool mailbox_add_mail(eval_context_t *ctx, lbm_value mail) {
+static void mailbox_add_mail(eval_context_t *ctx, lbm_value mail) {
 
   if (ctx->num_mail >= ctx->mailbox_size) {
     mailbox_remove_mail(ctx, 0);
@@ -1418,7 +1418,6 @@ static bool mailbox_add_mail(eval_context_t *ctx, lbm_value mail) {
 
   ctx->mailbox[ctx->num_mail] = mail;
   ctx->num_mail ++;
-  return true;
 }
 
 /**************************************************************
@@ -1516,14 +1515,10 @@ void lbm_undo_block_ctx_from_extension(void) {
   mutex_unlock(&blocking_extension_mutex);
 }
 
-#define LBM_RECEIVER_FOUND 0
-#define LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED -1
-#define LBM_RECEIVER_NOT_FOUND -2
-
-int lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
+bool lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   mutex_lock(&qmutex);
   eval_context_t *found = NULL;
-  int res = LBM_RECEIVER_FOUND;
+  int res = true;
 
   found = lookup_ctx_nm(&blocked, cid);
   if (found) {
@@ -1532,29 +1527,22 @@ int lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
       found->state = LBM_THREAD_STATE_READY;
       enqueue_ctx_nm(&queue,found);
     }
-    if (!mailbox_add_mail(found, msg)) {
-      res = LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
-    }
+    mailbox_add_mail(found, msg);
     goto find_receiver_end;
   }
 
   found = lookup_ctx_nm(&queue, cid);
   if (found) {
-    if (!mailbox_add_mail(found, msg)) {
-      res = LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
-    }
+    mailbox_add_mail(found, msg);
     goto find_receiver_end;
   }
 
   /* check the current context */
   if (ctx_running && ctx_running->id == cid) {
-    if (!mailbox_add_mail(ctx_running, msg)) {
-      res = LBM_RECEIVER_FOUND_MAIL_DELIVERY_FAILED;
-    }
+    mailbox_add_mail(ctx_running, msg);
     goto find_receiver_end;
   }
-  mutex_unlock(&qmutex);
-  return LBM_RECEIVER_NOT_FOUND;
+  res = false;
  find_receiver_end:
   mutex_unlock(&qmutex);
   return res;
@@ -2296,9 +2284,6 @@ static void eval_receive(eval_context_t *ctx) {
 
       lbm_value e;
       lbm_value new_env = ctx->curr_env;
-#ifdef LBM_ALWAYS_GC
-      gc();
-#endif
       int n = find_match(pats, msgs, num, &e, &new_env);
       if (n >= 0 ) { /* Match */
         mailbox_remove_mail(ctx, (lbm_uint)n);
@@ -2701,10 +2686,10 @@ static void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     if (lbm_type_of(args[0]) == LBM_TYPE_I) {
       lbm_cid cid = (lbm_cid)lbm_dec_i(args[0]);
       lbm_value msg = args[1];
-      int r = lbm_find_receiver_and_send(cid, msg);
+      bool r = lbm_find_receiver_and_send(cid, msg);
       /* return the status */
       lbm_stack_drop(&ctx->K, nargs+1);
-      ctx->r = r == 0 ? ENC_SYM_TRUE : ENC_SYM_NIL;
+      ctx->r = r ? ENC_SYM_TRUE : ENC_SYM_NIL;
       ctx->app_cont = true;
     } else {
       error_at_ctx(ENC_SYM_TERROR, ENC_SYM_SEND);
@@ -5287,9 +5272,6 @@ static void cont_recv_to(eval_context_t *ctx) {
     if (ctx->num_mail > 0) {
       lbm_value e;
       lbm_value new_env = ctx->curr_env;
-#ifdef LBM_ALWAYS_GC
-      gc();
-#endif
       int n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
       if (n >= 0) { // match
         mailbox_remove_mail(ctx, (lbm_uint)n);
@@ -5321,9 +5303,6 @@ static void cont_recv_to_retry(eval_context_t *ctx) {
   if (ctx->num_mail > 0) {
     lbm_value e;
     lbm_value new_env = ctx->curr_env;
-#ifdef LBM_ALWAYS_GC
-    gc();
-#endif
     int n = find_match(sptr[0], ctx->mailbox, ctx->num_mail, &e, &new_env);
     if (n >= 0) { // match
       mailbox_remove_mail(ctx, (lbm_uint)n);

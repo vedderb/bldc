@@ -20,6 +20,8 @@ CCFLAGS_GC = $(CCFLAGS) -m32 -DLBM_ALWAYS_GC -g -O2
 CCFLAGS_REVGC = $(CCFLAGS) -DLBM_USE_GC_PTR_REV -m32
 CCFLAGS_64 = $(CCFLAGS) -DLBM64 -g -O2
 CCFLAGS_COV = $(CCFLAGS) -m32 --coverage -g -O0 -DLONGER_DELAY
+CCFLAGS_TIME_32 = $(CCFLAGS) -m32 -g -O2 -DLBM_USE_TIME_QUOTA
+CCFLAGS_TIME_64 = $(CCFLAGS) -DLBM64 -g -O2 -DLBM_USE_TIME_QUOTA
 
 CC=gcc
 
@@ -37,8 +39,14 @@ test_lisp_code_cps_cov: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code
 test_lisp_code_cps: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
 	$(CC) $(CCFLAGS_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
 
+test_lisp_code_cps_time: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
+	$(CC) $(CCFLAGS_TIME_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_time -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+
 test_lisp_code_cps_64: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
 	$(CC) $(CCFLAGS_64) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_64 -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+
+test_lisp_code_cps_64_time: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
+	$(CC) $(CCFLAGS_TIME_64) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_64_time -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps_revgc: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
 	$(CC) $(CCFLAGS_REVGC) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_revgc -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
