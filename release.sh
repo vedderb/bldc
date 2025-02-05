@@ -33,34 +33,51 @@ cd ..
 
 cd tests
 
+############################################################
+# 32bit tests
 unit_tests_log_file="unit_tests_log_${release}.txt"
 failing_unit_tests_log_file="failing_unit_tests_log_${release}.txt"
 
-unit_tests_64_log_file="unit_tests_log_64_${release}.txt"
-failing_unit_tests_64_log_file="failing_unit_tests_log_64_${release}.txt"
-
-gc_unit_tests_log_file="gc_unit_tests_log_${release}.txt"
-failing_gc_unit_tests_log_file="failing_gc_unit_tests_log_${release}.txt"
-
-revgc_unit_tests_log_file="revgc_unit_tests_log_${release}.txt"
-failing_revgc_unit_tests_log_file="failing_revgc_unit_tests_log_${release}.txt"
-
-############################################################
-# 32bit tests
 ./run_tests.sh ../$reportdir/$failing_unit_tests_log_file >> ../$reportdir/$unit_tests_log_file
 echo "" >> ../$reportdir/$release_readme
 echo "## 32BIT UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$unit_tests_log_file >> ../$reportdir/$release_readme
 
 ############################################################
+# 32bit time based scheduler tests
+unit_tests_time_log_file="unit_tests_log_${release}.txt"
+failing_unit_tests_time_log_file="failing_unit_tests_log_${release}.txt"
+
+./run_tests.sh ../$reportdir/$failing_unit_tests_time_log_file >> ../$reportdir/$unit_tests_time_log_file
+echo "" >> ../$reportdir/$release_readme
+echo "## 32BIT TIME BASED SCHEDULER UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
+tail -n 4 ../$reportdir/$unit_tests_time_log_file >> ../$reportdir/$release_readme
+
+############################################################
 # 64bit tests
+unit_tests_64_log_file="unit_tests_log_64_${release}.txt"
+failing_unit_tests_64_log_file="failing_unit_tests_log_64_${release}.txt"
+
 ./run_tests64.sh ../$reportdir/$failing_unit_tests_64_log_file >> ../$reportdir/$unit_tests_64_log_file
 echo "" >> ../$reportdir/$release_readme
 echo "## 64BIT UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$unit_tests_64_log_file >> ../$reportdir/$release_readme 
 
 ############################################################
+# 64bit time based scheduler tests
+unit_tests_64_time_log_file="unit_tests_log_64_${release}.txt"
+failing_unit_tests_64_time_log_file="failing_unit_tests_log_64_${release}.txt"
+
+./run_tests64.sh ../$reportdir/$failing_unit_tests_64_time_log_file >> ../$reportdir/$unit_tests_64_time_log_file
+echo "" >> ../$reportdir/$release_readme
+echo "## 64BIT TIME BASED SCHEDULER UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
+tail -n 4 ../$reportdir/$unit_tests_64_time_log_file >> ../$reportdir/$release_readme 
+
+############################################################
 # Always GC tests
+gc_unit_tests_log_file="gc_unit_tests_log_${release}.txt"
+failing_gc_unit_tests_log_file="failing_gc_unit_tests_log_${release}.txt"
+
 ./run_tests_gc.sh ../$reportdir/$failing_gc_unit_tests_log_file >> ../$reportdir/$gc_unit_tests_log_file
 echo "" >> ../$reportdir/$release_readme
 echo "## ALWAYS GC UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
@@ -68,6 +85,9 @@ tail -n 4 ../$reportdir/$gc_unit_tests_log_file >> ../$reportdir/$release_readme
 
 ############################################################
 #Pointer reversal gc tests
+revgc_unit_tests_log_file="revgc_unit_tests_log_${release}.txt"
+failing_revgc_unit_tests_log_file="failing_revgc_unit_tests_log_${release}.txt"
+
 ./run_tests_gc_rev.sh ../$reportdir/$failing_revgc_unit_tests_log_file >> ../$reportdir/$revgc_unit_tests_log_file
 echo "" >> ../$reportdir/$release_readme
 echo "## POINTER REVERSAL GC UNIT TESTS RESULTS" >> ../$reportdir/$release_readme

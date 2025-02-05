@@ -407,9 +407,9 @@ lbm_flash_status request_flash_storage_cell(lbm_value val, lbm_value *res);
  *
  * \param cid Process to deliver to.
  * \param msg Message to deliver
- * \return 0 on success negative value on error.
+ * \return true on success false on failure.
  */
-int lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg);
+bool lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg);
 /** Perform garbage collection,
  * If this is called from another thread than the eval thread, evaluation must be
  * paused! Or there will be lots of trouble!

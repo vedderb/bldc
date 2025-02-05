@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020, 2022 - 2024 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2022 - 2025 Joel Svensson  svenssonjoel@yahoo.se
                           2022        Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -992,17 +992,11 @@ lbm_value lbm_cons(lbm_value car, lbm_value cdr) {
 }
 
 lbm_value lbm_car(lbm_value c){
-
   if (lbm_is_ptr(c) ){
     lbm_cons_t *cell = lbm_ref_cell(c);
     return cell->car;
   }
-
-  if (lbm_is_symbol_nil(c)) {
-    return c; // if nil, return nil.
-  }
-
-  return ENC_SYM_TERROR;
+  return c ? ENC_SYM_TERROR : c; //nil if c == nil
 }
 
 // TODO: Many comparisons "is this the nil symbol" can be
@@ -1010,34 +1004,26 @@ lbm_value lbm_car(lbm_value c){
 // lbm_value.
 
 lbm_value lbm_caar(lbm_value c) {
+  lbm_value tmp = ENC_SYM_NIL;
   if (lbm_is_ptr(c)) {
-    lbm_value tmp = lbm_ref_cell(c)->car;
-
+    tmp = lbm_ref_cell(c)->car;
     if (lbm_is_ptr(tmp)) {
       return lbm_ref_cell(tmp)->car;
-    } else if (lbm_is_symbol_nil(tmp)) {
-      return tmp;
     }
-  } else if (lbm_is_symbol_nil(c)){
-    return c;
   }
-  return ENC_SYM_TERROR;
+  return c || tmp ? ENC_SYM_TERROR : c; //nil if not something else
 }
 
 
 lbm_value lbm_cadr(lbm_value c) {
+  lbm_value tmp = ENC_SYM_NIL;
   if (lbm_is_ptr(c)) {
-    lbm_value tmp = lbm_ref_cell(c)->cdr;
-
+    tmp = lbm_ref_cell(c)->cdr;
     if (lbm_is_ptr(tmp)) {
       return lbm_ref_cell(tmp)->car;
-    } else if (lbm_is_symbol_nil(tmp)) {
-      return tmp;
     }
-  } else if (lbm_is_symbol_nil(c)) {
-    return c;
   }
-  return ENC_SYM_TERROR;
+  return c || tmp ? ENC_SYM_TERROR : c;
 }
 
 lbm_value lbm_cdr(lbm_value c){
@@ -1045,10 +1031,7 @@ lbm_value lbm_cdr(lbm_value c){
     lbm_cons_t *cell = lbm_ref_cell(c);
     return cell->cdr;
   }
-  if (lbm_is_symbol_nil(c)) {
-    return ENC_SYM_NIL; // if nil, return nil.
-  }
-  return ENC_SYM_TERROR;
+  return c ? ENC_SYM_TERROR: c;
 }
 
 lbm_value lbm_cddr(lbm_value c) {
@@ -1058,10 +1041,7 @@ lbm_value lbm_cddr(lbm_value c) {
       return lbm_ref_cell(tmp)->cdr;
     }
   }
-  if (lbm_is_symbol_nil(c)) {
-    return ENC_SYM_NIL;
-  }
-  return ENC_SYM_TERROR;
+  return c ? ENC_SYM_TERROR : c;
 }
 
 int lbm_set_car(lbm_value c, lbm_value v) {
