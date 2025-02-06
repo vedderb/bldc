@@ -817,33 +817,42 @@ void print_error_value(char *buf, lbm_uint bufsize, char *pre, lbm_value v, bool
   }
 }
 
-void print_error_message(lbm_value error,
-                         bool has_at,
-                         lbm_value at,
-                         unsigned int row,
-                         unsigned int col,
-                         lbm_int row0,
-                         lbm_int row1,
-                         lbm_int cid,
-                         char *name) {
+static void print_error_message(lbm_value error,
+                                bool has_at,
+                                lbm_value at,
+                                unsigned int row,
+                                unsigned int col,
+                                lbm_int row0,
+                                lbm_int row1,
+                                lbm_int cid,
+                                char *name,
+                                bool trapped) {
   /* try to allocate a lbm_print_value buffer on the lbm_memory */
   char *buf = lbm_malloc_reserve(ERROR_MESSAGE_BUFFER_SIZE_BYTES);
   if (!buf) {
-    printf_callback("Error: Not enough free memory to create a human readable error message\n");
+    printf_callback("Error: Not enough memory to show a human readable error message\n");
     return;
   }
-
-  print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   Error:", error, false);
+  if (trapped) {
+    print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   Error (trapped):", error, false);
+  } else {
+    print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   Error:", error, false);
+  }
   if (name) {
     printf_callback(  "   CTX: %d \"%s\"\n", cid, name);
   } else {
     printf_callback(  "   CTX: %d\n", cid);
   }
   print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   Current:", ctx_running->curr_exp, true);
+  // An error can have both a set suspect that can be more detailed than the "at"
+  // show both if present!
   if (lbm_error_has_suspect) {
       print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   At:", lbm_error_suspect, true);
       lbm_error_has_suspect = false;
-  } else if (has_at) {
+  }
+  // TODO: Should perhaps be called has_in and be meant to capture a bit
+  // of the surrounding of where the error happened.
+  if (has_at) {
     print_error_value(buf, ERROR_MESSAGE_BUFFER_SIZE_BYTES,"   In:", at, true);
   }
 
@@ -1068,10 +1077,12 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
   if (!check_infer_canary()) {
     // If this happens the Runtime system is likely corrupt and
     // a crash is imminent.
-    // A critical error is issues so that the crash can be handled.
+    // A critical error is issued so that the crash can be handled.
     // At a minimum the lbm runtime should be restarted.
     lbm_critical_error();
   }
+
+  bool print_trapped = !lbm_hide_trapped_error && (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN);
 
   if (!(lbm_hide_trapped_error &&
         (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN))) {
@@ -1083,7 +1094,9 @@ static void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigne
                         ctx_running->row0,
                         ctx_running->row1,
                         ctx_running->id,
-                        ctx_running->name);
+                        ctx_running->name,
+                        print_trapped
+                        );
   }
 
   if (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP) {
