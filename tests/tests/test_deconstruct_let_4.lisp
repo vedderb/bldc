@@ -11,4 +11,6 @@
   )
 
 
-(check (= (punisher 100000 0) 478))
+(define iterations (if (is-always-gc) 10 100000))
+
+(check (= (punisher iterations 0) 478))

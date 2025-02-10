@@ -16,6 +16,26 @@
   (section 2 "Scheduling"
            (list evaluation-quota)))
 
+(define threads-mailbox-get
+  (ref-entry "mailbox-get"
+             (list
+              (para (list "`mailbox-get` returns the mailbox contents of a thread as a list."
+                          "The form of a `mailbox-get` expression is `(mailbox-get pid)`."
+                          "Note that `mailbox-get` does **NOT** empty the mailbox."
+                          ))
+              (code '((define f (lambda () {(sleep 1) (f)}))
+                      (define pid (spawn f))
+                      (send pid "hello world")
+                      (send pid (list 1 2 3))
+                      (send pid 'apa)
+                      (mailbox-get pid)
+                      ))
+              end)))
+
+(define chapter-threads
+  (section 2 "Threads"
+           (list threads-mailbox-get)))
+
 
 (define num-free
   (ref-entry "mem-num-free"
@@ -82,9 +102,19 @@
                       ))
               end)))
 
+(define gc-is-always-gc
+    (ref-entry "is-always-gc"
+	       (list
+		(para (list "The `is-always-gc` predicate is true if LBM is built with the LBM_ALWAYS_GC debug flag."
+			    ))
+		(code '((is-always-gc)
+			))
+		end)))
+
 (define chapter-gc
   (section 2 "GC"
-           (list gc-stack)))
+           (list gc-stack
+		 gc-is-always-gc)))
 
 
 
@@ -299,6 +329,7 @@
              chapter-memory
              chapter-scheduling
              chapter-symboltable
+             chapter-threads
              chapter-versioning
              ))
    info

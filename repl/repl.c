@@ -2351,8 +2351,7 @@ int main(int argc, char **argv) {
         char *sym = str + i;
         lbm_uint sym_id = 0;
         if (lbm_get_symbol_by_name(sym, &sym_id)) {
-          lbm_running_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
-          lbm_blocked_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
+          lbm_all_ctxs_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
         } else {
           printf("symbol does not exist\n");
         }
