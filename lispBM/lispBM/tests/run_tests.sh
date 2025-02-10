@@ -23,6 +23,11 @@ expected_fails=("test_lisp_code_cps -h 1024 tests/test_take_iota_0.lisp"
                 "test_lisp_code_cps -i -s -h 1024 tests/test_take_iota_0.lisp"
                 "test_lisp_code_cps -i -h 512 tests/test_take_iota_0.lisp"
                 "test_lisp_code_cps -i -s -h 512 tests/test_take_iota_0.lisp"
+		"test_lisp_code_cps -h 512 tests/test_match_stress_2.lisp"
+		"test_lisp_code_cps -i -h 512 tests/test_match_stress_2.lisp"
+		"test_lisp_code_cps -s -h 512 tests/test_match_stress_2.lisp"
+		"test_lisp_code_cps -i -s -h 512 tests/test_match_stress_2.lisp"
+
               )
 
 

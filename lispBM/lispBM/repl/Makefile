@@ -12,7 +12,8 @@ LBMFLAGS = -DFULL_RTS_LIB \
            -DLBM_USE_DYN_FUNS \
            -DLBM_USE_DYN_ARRAYS \
            -DLBM_USE_DYN_DEFSTRUCT \
-           -DLBM_USE_TIME_QUOTA
+           -DLBM_USE_TIME_QUOTA \
+           -DLBM_USE_ERROR_LINENO
 
 
 

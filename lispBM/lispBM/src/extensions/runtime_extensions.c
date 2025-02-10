@@ -213,7 +213,54 @@ lbm_value ext_symbol_table_size_names_flash(lbm_uint *args, lbm_uint argn) {
   return lbm_enc_u(lbm_get_symbol_table_size_names_flash());
 }
 
+lbm_value ext_is_always_gc(lbm_uint *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  #ifdef LBM_ALWAYS_GC
+  return ENC_SYM_TRUE;
+  #else
+  return ENC_SYM_NIL;
+  #endif
+}
+
 #endif
+
+#if defined(LBM_USE_EXT_MAILBOX_GET) || defined(FULL_RTS_LIB)
+
+void find_cid(eval_context_t *ctx, void *arg1, void *arg2) {
+  lbm_cid id = (lbm_cid)arg1;
+  if (ctx->id == id) {
+    *(eval_context_t**)arg2 = ctx;
+  }
+}
+
+
+lbm_value ext_mailbox_get(lbm_uint *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  eval_context_t *ctx = NULL;
+
+  if (argn == 1 && lbm_is_number(args[0])) {
+    res = ENC_SYM_NIL;
+    lbm_cid cid = lbm_dec_as_i32(args[0]);
+    lbm_all_ctxs_iterator(find_cid, (void*)cid, (void*)&ctx);
+    if (ctx) {
+      uint32_t num_mail = ctx->num_mail;
+      lbm_value ls = (lbm_heap_allocate_list(num_mail));
+      res = ls;
+      if (lbm_is_ptr(ls)) {
+        lbm_value curr = ls;
+        int i = 0;
+        while (lbm_is_ptr(curr)) {
+          lbm_set_car(curr, ctx->mailbox[i++]);
+          curr = lbm_cdr(curr);
+        }
+      }
+    }
+  }
+  return res;
+}
+#endif
+
 
 void lbm_runtime_extensions_init(void) {
 
@@ -230,11 +277,15 @@ void lbm_runtime_extensions_init(void) {
     lbm_add_symbol_const("get-gc-num-last-free", &sym_num_last_free);
 #endif
 
+#if defined(LBM_USE_EXT_MAILBOX_GET) || defined(FULL_RTS_LIB)
+    lbm_add_extension("mailbox-get", ext_mailbox_get);
+#endif
 #ifndef FULL_RTS_LIB
     lbm_add_extension("set-eval-quota", ext_eval_set_quota);
     lbm_add_extension("hide-trapped-error", ext_hide_trapped_error);
     lbm_add_extension("show-trapped-error", ext_show_trapped_error);
 #else
+    lbm_add_extension("is-always-gc",ext_is_always_gc);
     lbm_add_extension("set-eval-quota", ext_eval_set_quota);
     lbm_add_extension("hide-trapped-error", ext_hide_trapped_error);
     lbm_add_extension("show-trapped-error", ext_show_trapped_error);

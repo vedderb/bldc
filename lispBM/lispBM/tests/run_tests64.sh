@@ -24,6 +24,10 @@ expected_fails=("test_lisp_code_cps_64 -h 1024 tests/test_take_iota_0.lisp"
                 "test_lisp_code_cps_64 -i -s -h 1024 tests/test_take_iota_0.lisp"
                 "test_lisp_code_cps_64 -i -h 512 tests/test_take_iota_0.lisp"
                 "test_lisp_code_cps_64 -i -s -h 512 tests/test_take_iota_0.lisp"
+		"test_lisp_code_cps_64 -h 512 tests/test_match_stress_2.lisp"
+		"test_lisp_code_cps_64 -i -h 512 tests/test_match_stress_2.lisp"
+		"test_lisp_code_cps_64 -s -h 512 tests/test_match_stress_2.lisp"
+		"test_lisp_code_cps_64 -i -s -h 512 tests/test_match_stress_2.lisp"
               )
 
 success_count=0

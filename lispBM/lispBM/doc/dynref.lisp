@@ -527,13 +527,13 @@
                          (my-struct-b s1)
                          (my-struct-c s1)
                          ))
-                 (para (list "Instances of a struct can also be allocated in a compactible memory region (defrag mem)."
-                             ))
-                 (code '((define dm (dm-create 1000))
-                         (define s2 (make-my-struct dm))
-                         ))
-                 (para (list "For more information about defragmentable memory see the LispBM [reference manual](https://github.com/svenssonjoel/lispBM/blob/master/doc/lbmref.md)."
-                             ))
+                 ;; (para (list "Instances of a struct can also be allocated in a compactible memory region (defrag mem)."
+                 ;;             ))
+                 ;; (code '((define dm (dm-create 1000))
+                 ;;         (define s2 (make-my-struct dm))
+                 ;;         ))
+                 ;; (para (list "For more information about defragmentable memory see the LispBM [reference manual](https://github.com/svenssonjoel/lispBM/blob/master/doc/lbmref.md)."
+                 ;;             ))
                  )
            )
   )

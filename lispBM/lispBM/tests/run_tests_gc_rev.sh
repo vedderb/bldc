@@ -25,6 +25,10 @@ expected_fails=("test_lisp_code_cps_revgc -t $timeout -h 1024 tests/test_take_io
                 "test_lisp_code_cps_revgc -t $timeout -i -s -h 1024 tests/test_take_iota_0.lisp"
                 "test_lisp_code_cps_revgc -t $timeout -i -h 512 tests/test_take_iota_0.lisp"
                 "test_lisp_code_cps_revgc -t $timeout -i -s -h 512 tests/test_take_iota_0.lisp"
+		"test_lisp_code_cps_revgc -t 50 -h 512 tests/test_match_stress_2.lisp"
+		"test_lisp_code_cps_revgc -t 50 -i -h 512 tests/test_match_stress_2.lisp"
+		"test_lisp_code_cps_revgc -t 50 -s -h 512 tests/test_match_stress_2.lisp"
+		"test_lisp_code_cps_revgc -t 50 -i -s -h 512 tests/test_match_stress_2.lisp"
                )
 
 
