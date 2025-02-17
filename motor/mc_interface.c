@@ -103,7 +103,9 @@ static volatile motor_if_state_t m_motor_2;
 #endif
 
 // Sampling variables
+#ifndef ADC_SAMPLE_MAX_LEN
 #define ADC_SAMPLE_MAX_LEN		1000 // 20 byte per sample
+#endif
 __attribute__((section(".ram4"))) static volatile int16_t m_curr0_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int16_t m_curr1_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int16_t m_curr2_samples[ADC_SAMPLE_MAX_LEN];

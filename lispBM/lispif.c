@@ -40,7 +40,11 @@
 #define EXTENSION_STORAGE_SIZE		300
 #endif
 
-#define HEAP_SIZE					(((1024 * 24) - (EXTENSION_STORAGE_SIZE * sizeof(lbm_extension_t))) / sizeof(lbm_cons_t))
+#ifndef ADC_SAMPLE_MAX_LEN
+#define ADC_SAMPLE_MAX_LEN			1000 // 20 byte per sample
+#endif
+
+#define HEAP_SIZE					(((1024 * 24 + (1000 - ADC_SAMPLE_MAX_LEN) * 20) - (EXTENSION_STORAGE_SIZE * sizeof(lbm_extension_t))) / sizeof(lbm_cons_t))
 #define LISP_MEM_SIZE				LBM_MEMORY_SIZE_28K
 #define LISP_MEM_BITMAP_SIZE		LBM_MEMORY_BITMAP_SIZE_28K
 #define GC_STACK_SIZE				160
