@@ -294,6 +294,7 @@ typedef struct {
 
 #define BMS_MAX_CELLS	50
 #define BMS_MAX_TEMPS	50
+#define BMS_STATUS_LEN	41
 
 typedef struct {
 	float v_tot;
@@ -325,6 +326,7 @@ typedef struct {
 	int is_balancing;
 	int is_charge_allowed;
 	int data_version;
+	char status[BMS_STATUS_LEN];
 	systime_t update_time;
 } bms_values;
 
@@ -1189,6 +1191,11 @@ typedef enum {
 	CAN_PACKET_GNSS_LON						= 61,
 	CAN_PACKET_GNSS_ALT_SPEED_HDOP			= 62,
 	CAN_PACKET_UPDATE_BAUD					= 63,
+	CAN_PACKET_BMS_STATUS_1					= 64,
+	CAN_PACKET_BMS_STATUS_2					= 65,
+	CAN_PACKET_BMS_STATUS_3					= 66,
+	CAN_PACKET_BMS_STATUS_4					= 67,
+	CAN_PACKET_BMS_STATUS_5					= 68,
 	CAN_PACKET_MAKE_ENUM_32_BITS = 0xFFFFFFFF,
 } CAN_PACKET_ID;
 

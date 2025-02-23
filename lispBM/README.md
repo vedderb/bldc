@@ -297,6 +297,7 @@ Get value from BMS. Examples:
 (get-bms-val 'bms-msg-age) ; Age of last message from BMS in seconds
 (get-bms-val 'bms-chg-allowed) ; Charging allowed (Added in 6.05, Express only)
 (get-bms-val 'bms-data-version) ; Data version (added in 6.06)
+(get-bms-val 'bms-status) ; Status string (added in 6.06)
 ```
 
 **Note**  

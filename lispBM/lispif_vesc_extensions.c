@@ -95,6 +95,7 @@ typedef struct {
 	lbm_uint msg_age;
 	lbm_uint chg_allowed;
 	lbm_uint data_version;
+	lbm_uint status;
 
 	// GPIO
 	lbm_uint pin_mode_out;
@@ -326,6 +327,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("bms-chg-allowed", comp);
 		} else if (comp == &syms_vesc.data_version) {
 			lbm_add_symbol_const("bms-data-version", comp);
+		} else if (comp == &syms_vesc.status) {
+			lbm_add_symbol_const("bms-status", comp);
 		}
 
 		else if (comp == &syms_vesc.pin_mode_out) {
@@ -778,6 +781,30 @@ static lbm_value get_or_set_bool(bool set, bool *val, lbm_value *lbm_val) {
 	}
 }
 
+static lbm_value get_or_set_string(bool set, char *val, lbm_value *lbm_val, int max_len) {
+	if (set) {
+		char *str = lbm_dec_str(*lbm_val);
+		if (str) {
+			strncpy(val, str, max_len - 1);
+			val[max_len - 1] = '\0';
+			return ENC_SYM_TRUE;
+		} else {
+			return ENC_SYM_TERROR;
+		}
+	} else {
+		lbm_value res;
+		lbm_uint len = strnlen(val, max_len);
+		if (lbm_create_array(&res, len + 1)) {
+			lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
+			memcpy(arr->data, val, len);
+			((char*)(arr->data))[len] = '\0';
+			return res;
+		} else {
+			return ENC_SYM_MERROR;
+		}
+	}
+}
+
 static lbm_value get_set_bms_val(bool set, lbm_value *args, lbm_uint argn) {
 	lbm_value res = ENC_SYM_EERROR;
 
@@ -785,11 +812,6 @@ static lbm_value get_set_bms_val(bool set, lbm_value *args, lbm_uint argn) {
 	if (set && argn >= 1) {
 		set_arg = args[argn - 1];
 		argn--;
-
-		if (!lbm_is_number(set_arg)) {
-			lbm_set_error_reason((char*)lbm_error_str_no_number);
-			return ENC_SYM_EERROR;
-		}
 	}
 
 	if (argn != 1 && argn != 2) {
@@ -802,6 +824,11 @@ static lbm_value get_set_bms_val(bool set, lbm_value *args, lbm_uint argn) {
 
 	lbm_uint name = lbm_dec_sym(args[0]);
 	bms_values *val = (bms_values*)bms_get_values();
+
+	if (set && !compare_symbol(name, &syms_vesc.status) && !lbm_is_number(set_arg)) {
+		lbm_set_error_reason((char*) lbm_error_str_no_number);
+		return ENC_SYM_TERROR;
+	}
 
 	if (compare_symbol(name, &syms_vesc.v_tot)) {
 		res = get_or_set_float(set, &val->v_tot, &set_arg);
@@ -894,6 +921,8 @@ static lbm_value get_set_bms_val(bool set, lbm_value *args, lbm_uint argn) {
 		res = get_or_set_i(set, &val->data_version, &set_arg);
 	} else if (compare_symbol(name, &syms_vesc.msg_age)) {
 		res = lbm_enc_float(UTILS_AGE_S(val->update_time));
+	} else if (compare_symbol(name, &syms_vesc.status)) {
+		res = get_or_set_string(set, val->status, &set_arg, BMS_STATUS_LEN);
 	}
 
 	if (res != ENC_SYM_EERROR && set) {

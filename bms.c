@@ -329,6 +329,20 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 				}
 			} break;
 
+			case CAN_PACKET_BMS_STATUS_1:
+			case CAN_PACKET_BMS_STATUS_2:
+			case CAN_PACKET_BMS_STATUS_3:
+			case CAN_PACKET_BMS_STATUS_4:
+			case CAN_PACKET_BMS_STATUS_5:{
+				used_data = true;
+
+				if (id == m_values.can_id || m_values.can_id == -1 || UTILS_AGE_S(m_values.update_time) > MAX_CAN_AGE_SEC) {
+					m_values.can_id = id;
+					m_values.update_time = chVTGetSystemTimeX();
+					memcpy((void*)m_values.status + ((cmd - CAN_PACKET_BMS_STATUS_1) * 8), data8, len);
+				}
+			} break;
+
 			default:
 				break;
 			}
@@ -520,7 +534,12 @@ void bms_process_cmd(unsigned char *data, unsigned int len,
 		// Pressure
 		buffer_append_float16(send_buffer, m_values.pressure, 1e-1, &ind);
 
+		// Data version
 		send_buffer[ind++] = m_values.data_version;
+
+		// Status string
+		strcpy((char*)(send_buffer + ind), (char*)m_values.status);
+		ind += strlen((char*)m_values.status) + 1;
 
 		reply_func(send_buffer, ind);
 	} break;
@@ -670,6 +689,12 @@ void bms_send_status_can(void) {
 	buffer_append_float32_auto(buffer, m_values.ah_cnt_dis_total, &send_index);
 	buffer_append_float32_auto(buffer, m_values.wh_cnt_dis_total, &send_index);
 	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_AH_WH_DIS_TOTAL << 8), buffer, send_index);
+
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_STATUS_1 << 8), (uint8_t*)m_values.status, send_index);
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_STATUS_2 << 8), (uint8_t*)m_values.status + 8, send_index);
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_STATUS_3 << 8), (uint8_t*)m_values.status + 16, send_index);
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_STATUS_4 << 8), (uint8_t*)m_values.status + 24, send_index);
+	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_STATUS_5 << 8), (uint8_t*)m_values.status + 32, send_index);
 }
 
 #pragma GCC pop_options
