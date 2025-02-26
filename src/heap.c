@@ -35,7 +35,6 @@
 #include "heap_vis.h"
 #endif
 
-
 static inline lbm_value lbm_set_gc_mark(lbm_value x) {
   return x | LBM_GC_MARKED;
 }

@@ -82,6 +82,7 @@
              )
            )
          ( ((? x) . (? xs)) (str-merge (ind-spaces n) "(" (pretty nil x) (pretty-list xs) ")" ))
+         ( (? x) (string? x) (str-merge (ind-spaces n) "\"" x "\""))
          (_ (str-merge (ind-spaces n) (to-str c))))
   )
 

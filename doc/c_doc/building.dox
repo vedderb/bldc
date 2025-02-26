@@ -24,6 +24,7 @@ These should be added as a -D... flag to the C compiler for the LispBM compilati
 <li>LBM_USE_DYN_DEFSTRUCT - Add the defstruct mechanism, requires LBM_USE_DYN_FUNS and LBM_USE_DYN_MACROS.</li>
 <li>LBM_USE_DYN_LOOPS - Add loop macros, requires LBM_USE_DYN_MACROS.</li>
 <li>LBM_USE_DYN_ARRAYS - Add additional array manipulation functions. Requires LBM_USE_DYN_MACROS and LBM_USE_DYN_LOOPS</li>
+<li>LBM_USE_DYN_TTF - Load the lisp part of the TTF font library dynamically.</li>
 <li>LBM_USE_TIME_QUOTA - Use scheduler with time-based quotas instead of evaluator steps.</li>
 <li>LBM_USE_EXT_MAILBOX_GET - loads the mailbox-get extension that allows introspection into mailboxes.</li>
 <li>LBM_USE_ERROR_LINENO - Reports the line in eval_cps.c where the error was triggered. For debug use.</li>

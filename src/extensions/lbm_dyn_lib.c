@@ -362,7 +362,6 @@ bool lbm_dyn_lib_find(const char *str, const char **code) {
   }
 #endif
 
-
 #if defined(LBM_USE_DYN_FUNS) || defined(LBM_USE_DYN_ARRAYS)
   for (unsigned int i = 0; i < (sizeof(lbm_dyn_fun) / sizeof(lbm_dyn_fun[0]));i++) {
     if (strmatch(str, lbm_dyn_fun[i] + 7)) { // defun is 5

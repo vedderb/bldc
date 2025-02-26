@@ -341,6 +341,7 @@
 #define SYM_INT_DIV             0x2003F
 #define SYM_IDENTITY            0x20040
 #define SYM_ARRAY               0x20041
+#define SYM_IS_STRING           0x20042
 
 
 // Apply funs:

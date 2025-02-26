@@ -26,6 +26,7 @@
 #include "lbm_constants.h"
 #include "fundamental.h"
 #include "lbm_defrag_mem.h"
+#include "print.h" // printable string?
 
 #include <stdio.h>
 #include <math.h>
@@ -1414,6 +1415,16 @@ static lbm_value fundamental_identity(lbm_value *args, lbm_uint argn, eval_conte
   return res;
 }
 
+static lbm_value fundamental_is_string(lbm_value *args, lbm_uint argn, eval_context_t *ctx) {
+  (void) ctx;
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1) {
+    char *str;
+    res = lbm_value_is_printable_string(args[0], &str) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  }
+  return res;
+}
+
 const fundamental_fun fundamental_table[] =
   {fundamental_add,
    fundamental_sub,
@@ -1480,5 +1491,6 @@ const fundamental_fun fundamental_table[] =
    fundamental_is_number,
    fundamental_int_div,
    fundamental_identity,
-   fundamental_array
+   fundamental_array,
+   fundamental_is_string
   };

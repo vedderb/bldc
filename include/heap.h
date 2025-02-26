@@ -823,7 +823,7 @@ static inline int32_t lbm_dec_i32(lbm_value x) {
  * \return decoded int64_t.
  */
 extern int64_t lbm_dec_i64(lbm_value x);
-
+  
 /**
  * Check if a value is a heap pointer
  * \param x Value to check

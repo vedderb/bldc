@@ -1155,7 +1155,7 @@ Integer division operation. Like normal division except if the result is a float
     (var total-seconds 62.500000f32)
     (var minutes (// total-seconds 60))
     (var seconds (mod total-seconds 60))
-    (str-join (list (str-from-n minutes) m  (str-from-n seconds) s) [0]))
+    (str-join (list (str-from-n minutes) "m " (str-from-n seconds) "s") [0]))
 ```
 
 
@@ -4158,7 +4158,7 @@ The `str2sym` function converts a string to a symbol.
 <td>
 
 ```clj
-(str2sym hello)
+(str2sym "hello")
 ```
 
 
@@ -8258,7 +8258,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-4676
+4738
 ```
 
 
@@ -8463,7 +8463,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 191866 kurt-russel)
+(exit-ok 191624 kurt-russel)
 ```
 
 

@@ -169,10 +169,19 @@ static inline uint32_t color_apply_precalc(color_t color, int x, int y) {
 #define COLOR_TO_RGB888(color, x, y) (color.type == COLOR_REGULAR ? (uint32_t)color.color1 : COLOR_CHECK_PRE(color, x, y))
 
 // Interface
+
+bool display_is_symbol_up(lbm_value v);
+bool display_is_symbol_down(lbm_value v);
+
+color_format_t sym_to_color_format(lbm_value v);
+uint32_t image_dims_to_size_bytes(color_format_t fmt, uint16_t width, uint16_t height);
+
+void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c);
+uint32_t getpixel(image_buffer_t* img, int x_i, int y_i);
+
 bool lbm_display_is_color(lbm_value v);
 uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y);
 void image_buffer_clear(image_buffer_t *img, uint32_t cc);
-
 
 void lbm_display_extensions_init(void);
 void lbm_display_extensions_set_callbacks(
