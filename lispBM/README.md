@@ -23,7 +23,7 @@ Most of these are available on ESC and Express. They are loaded dynamically when
 
 **LBM Gotchas and Caveats**
 
-[Libraries](lispBM/doc/gotchas.md)
+[Gotchas](lispBM/doc/gotchas.md)
 
 ## VESC Express Libraries
 
