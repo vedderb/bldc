@@ -26,7 +26,7 @@ The display driver allows driving many common displays using SPI, such as the ST
 
 **TTF Font Renderer for Display Driver**  
 
-[VESC Express Display Driver](lispBM/doc/ttfref.md)
+[TTF Font Renderer](lispBM/doc/ttfref.md)
 
 **VESC Express Wifi and TCP**  
 
