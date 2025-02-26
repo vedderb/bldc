@@ -18,6 +18,7 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/lbm_flags.c\
              $(LISPBM)/src/lbm_prof.c\
              $(LISPBM)/src/lbm_defrag_mem.c\
+             $(LISPBM)/src/buffer.c \
              $(LISPBM)/src/extensions/array_extensions.c \
              $(LISPBM)/src/extensions/string_extensions.c \
              $(LISPBM)/src/extensions/math_extensions.c \
@@ -27,7 +28,9 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/display_extensions.c \
              $(LISPBM)/src/extensions/tjpgd.c \
              $(LISPBM)/src/extensions/mutex_extensions.c \
-             $(LISPBM)/src/extensions/lbm_dyn_lib.c 
+             $(LISPBM)/src/extensions/lbm_dyn_lib.c \
+             $(LISPBM)/src/extensions/schrift.c \
+             $(LISPBM)/src/extensions/ttf_extensions.c
 
 LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/eval_cps.h \
@@ -54,6 +57,7 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/stack.h \
            $(LISPBM)/include/symrepr.h \
            $(LISPBM)/include/tokpar.h \
+           $(LISPBM)/include/buffer.h \
            $(LISPBM)/include/extensions/array_extensions.h \
            $(LISPBM)/include/extensions/display_extensions.h \
            $(LISPBM)/include/extensions/lbm_dyn_lib.h \
@@ -61,7 +65,8 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/extensions/random_extensions.h \
            $(LISPBM)/include/extensions/runtime_extensions.h \
            $(LISPBM)/include/extensions/set_extensions.h \
-           $(LISPBM)/include/extensions/string_extensions.h
+           $(LISPBM)/include/extensions/string_extensions.h \
+           $(LISPBM)/include/extensions/ttf_extensions.h
 
 
 LISPBM_INC = -I$(LISPBM)/include \

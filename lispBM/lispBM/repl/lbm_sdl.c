@@ -89,12 +89,12 @@ static lbm_value ext_sdl_create_window(lbm_value *args, lbm_uint argn) {
       int32_t h = lbm_dec_as_i32(args[2]);
 
       SDL_Window* win = SDL_CreateWindow(title,
-					 SDL_WINDOWPOS_CENTERED,
-					 SDL_WINDOWPOS_CENTERED,
-					 w, h, 0);
+                                         SDL_WINDOWPOS_CENTERED,
+                                         SDL_WINDOWPOS_CENTERED,
+                                         w, h, 0);
 
       if (win && !lbm_custom_type_create((lbm_uint)win, sdl_window_destructor, "SDLWindow", &res)) {
-	SDL_DestroyWindow(win);
+        SDL_DestroyWindow(win);
       }
     }
   }
@@ -239,12 +239,12 @@ static lbm_value ext_sdl_load_texture(lbm_value *args, lbm_uint argn) {
     SDL_Renderer *rend = (SDL_Renderer*)m[CUSTOM_TYPE_VALUE];
     char *filename = lbm_dec_str(args[1]);
     if (rend &&
-	filename) {
+        filename) {
 
       SDL_Texture *texture = IMG_LoadTexture(rend, filename);
       if (texture &&
-	  !lbm_custom_type_create((lbm_uint)texture, sdl_texture_destructor, "SDLTexture", &res))
-	SDL_DestroyRenderer(rend);
+          !lbm_custom_type_create((lbm_uint)texture, sdl_texture_destructor, "SDLTexture", &res))
+        SDL_DestroyRenderer(rend);
     }
   }
   return res;
@@ -365,7 +365,11 @@ static void blast_rgb332(uint8_t *dest, int dest_pitch,image_buffer_t *img) {
     uint32_t r = (uint32_t)((pix >> 5) & 0x7);
     uint32_t g = (uint32_t)((pix >> 2) & 0x7);
     uint32_t b = (uint32_t)(pix & 0x3);
-    uint32_t rgb888 = r << (16 + 5) | g << (8 + 5) | b << 6;
+    b = (b > 0) ? 2 * b + 1 : 0;
+    r = (r == 7) ? 255 : r * 36;
+    g = (g == 7) ? 255 : g * 36;
+    b = (b == 7) ? 255 : b * 36;
+    uint32_t rgb888 = r << 16 | g << 8| b;
     w_dest[i] = rgb888;
   }
 }
@@ -378,8 +382,7 @@ static void blast_rgb565(uint8_t *dest, int dest_pitch, image_buffer_t *img) {
 
   uint32_t *w_dest = (uint32_t *)dest;
   for (int i = 0; i < num_pix; i ++) {
-    uint16_t pix = (uint16_t)((((uint16_t)data[2 * i]) << 8) | ((uint16_t)data[2 * i + 1]));
-
+    uint16_t pix = (uint16_t)((data[2 * i] << 8) | data[2 * i + 1]);
     uint32_t r = (uint32_t)(pix >> 11);
     uint32_t g = (uint32_t)((pix >> 5) & 0x3F);
     uint32_t b = (uint32_t)(pix & 0x1F);

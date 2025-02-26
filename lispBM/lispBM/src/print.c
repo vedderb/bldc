@@ -44,17 +44,6 @@ static bool print_has_stack = false;
 
 const char *failed_str = "Error: print failed\n";
 
-static int push_n(lbm_stack_t *s, lbm_uint *values, lbm_uint n) {
-  if (s->sp + n < s->size) {
-    for (lbm_uint i = 0; i < n; i ++) {
-      s->data[s->sp+i] = values[i];
-    }
-    s->sp+=n;
-    return 1;
-  }
-  return 0;
-}
-
 // is_printable_string is turning out to be a headache.
 // What do we want from this function???
 //
@@ -90,6 +79,16 @@ bool lbm_value_is_printable_string(lbm_value v, char **str) {
   return is_a_string;
 }
 
+static int push_n(lbm_stack_t *s, lbm_uint *values, lbm_uint n) {
+  if (s->sp + n < s->size) {
+    for (lbm_uint i = 0; i < n; i ++) {
+      s->data[s->sp+i] = values[i];
+    }
+    s->sp+=n;
+    return 1;
+  }
+  return 0;
+}
 
 int lbm_print_init(lbm_uint print_stack_size) {
 

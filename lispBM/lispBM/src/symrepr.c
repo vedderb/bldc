@@ -231,6 +231,7 @@ special_sym const special_symbols[] =  {
 
   {"list?"          , SYM_IS_LIST},
   {"number?"        , SYM_IS_NUMBER},
+  {"string?"        , SYM_IS_STRING},
 
   // fast access in list
   {"ix"             , SYM_IX},

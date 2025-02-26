@@ -31,6 +31,7 @@
 #include "extensions/display_extensions.h"
 #include "extensions/mutex_extensions.h"
 #include "extensions/lbm_dyn_lib.h"
+#include "extensions/ttf_extensions.h"
 
 #include <png.h>
 
@@ -474,7 +475,10 @@ static void buffer_blast_rgb332(uint8_t *dest, uint8_t *img) {
     uint8_t pix = data[i];
     uint32_t r = (uint32_t)((pix >> 5) & 0x7);
     uint32_t g = (uint32_t)((pix >> 2) & 0x7);
-    uint32_t b = (uint32_t)(pix & 0x3);
+    uint32_t b = 2 * (uint32_t)(pix & 0x3) +1;
+    r = (r == 7) ? 255 : 36 * r;
+    g = (g == 7) ? 255 : 36 * g;
+    b = (b == 7) ? 255 : 36 * b;
     dest[t_pos++] = (uint8_t)r;
     dest[t_pos++] = (uint8_t)g;
     dest[t_pos++] = (uint8_t)b;
@@ -635,7 +639,6 @@ static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, c
         buffer_blast_rgb565(buffer, data);
         break;
       case rgb888:
-	printf("blasting 888\n");
         buffer_blast_rgb888(buffer, data);
         break;
       default:
@@ -699,6 +702,7 @@ int init_exts(void) {
   lbm_display_extensions_init();
   lbm_mutex_extensions_init();
   lbm_dyn_lib_init();
+  lbm_ttf_extensions_init();
 
   lbm_add_extension("unsafe-call-system", ext_unsafe_call_system);
   lbm_add_extension("exec", ext_exec);
