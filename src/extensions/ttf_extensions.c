@@ -47,61 +47,6 @@ static SFT mk_sft(SFT_Font *ft, float x_scale, float y_scale) {
   return sft;
 }
 
-// Binary prerendered font format
-// contents:
-// Line-metrics
-// Kerning table
-// Glyphs
-//   Glyph-metrics
-
-// Format font type identification
-// uint16_t : 0x0             (rule out string)
-// uint16_t : version number  (expect to not have to maintain different versions of this)
-// uint32_t : 0x666F6E74      (magic number that makes us fairly sure the data is a font)
-
-// format Line-metrics
-// - "lmtx"
-// - uint32 : size
-// - float : ascender
-// - float : descender
-// - float : lineGap
-
-// Format kerning table
-// - "kern"
-// - uint32 : kern-table-total-size
-// - uint32 : numRows
-// - kernTableRow[]
-
-// 13 + (8 * 4) + (10 * 6)
-// 13 + 16 + 60
-// 29 + 60
-// 89
-// format kerning table row
-// - UTF32 : leftGlyph
-// - uint32 : numKernPairs
-// - KernPair[]
-
-// format KernPair
-// - UTF32 : rightGlyph
-// - float : xShift
-// - float : yShift
-
-// format glyph table
-// "glyphs"
-// uint32 : total size bytes
-// - numberOfGlyphs
-// - image format of glyphs
-// - glyph[]
-
-// format glyph
-// - UTF32 : glyph
-// - float : advanceWidth
-// - float : leftSideBearing
-// - int32 : yOffset          - can prob be int16
-// - int32 : width            - can be int16
-// - int32 : height           - can be int16
-// - uint8[] : width * height number data
-
 // If we are not bin searching then sorting the UTF32 codes is not needed.
 
 #define FONT_MAX_ID_STRING_LENGTH   10

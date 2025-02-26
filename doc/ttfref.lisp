@@ -165,6 +165,81 @@
                          ))
 	     
 	     end ))
+   (section 1 "Binary format description"
+            (list
+             (para (list "The LispBM TrueType font support works in two phases. The first phase is called"
+                         "prepare and it prerenders selected glyphs into a custom binary format that we feel"
+                         "are more suitable for small embedded systems."
+                         "This prerendering can be done offline and then only the binary blob be uploaded to the"
+                         "embedded system or it can be used on-demand if there is resourses and a need for that."
+                         ))
+             (para (list "The binary format starts with a preamble"
+                         ))
+             (bullet '("0 - uint16"
+                       "version - uint16"
+                       "\"font\" - zero terminated string"
+                       ))
+             (para (list "Following the preamble a number of different tables will be stored."
+                         "Each table starts with a string (zero terminated) indicating what kind of table"
+                         "it is. Following the table string is 4 byte size field."
+                         "This is common to all tables:"
+                         ))
+             (bullet '("kind - zero terminated string"
+                       "size - uint32"
+                       ))
+             (para (list "The different kinds of tables that can occur after the preamble are:"
+                         ))
+             (bullet '("Line metrics table - \"lmtx\"" 
+                       "Kerning table - \"kern\""
+                       "Glyph table - \"glyphs\""
+                       ))
+             (para (list "**Line metrics**"
+                         ))
+             (bullet '("\"lmtx\" - zero terminated string"
+                       "size - uint32"
+                       "ascender - float32"
+                       "descender - float32"
+                       "line_gap - float32"
+                       ))
+             (para (list "**Kerning table**"
+                         ))
+             (bullet '("\"kern\" - zero terminated string"
+                       "size - uint32"
+                       "num_rows - uint32"
+                       "rows - kern_table_row[]"
+                       ))
+             (para (list "kern_table_row:"
+                         ))
+             (bullet '("utf32 : uint32"
+                       "num_pairs : uint32"
+                       "pairs - kern_pair[]"
+                       ))
+             (para (list "kern_pair:"
+                         ))
+             (bullet '("utf32 : uint32"
+                       "x_shift : float32"
+                       "y_shift : float32"
+                       ))
+             (para (list "**Glyph table**"
+                         ))
+             (bullet '("\"glyphs\" - zero terminated string"
+                       "size - uint32"
+                       "num_glyphs - uint32"
+                       "format - uint32"
+                       "glyps - glyph[]"
+                       ))
+             (para (list "glyph:"
+                         ))
+             (bullet '("utf32 : uint32"
+                       "advance_width : float32"
+                       "left_side_bearing : float32"
+                       "y_offset : int32"
+                       "width : int32"
+                       "height : int32"
+                       "data : uint8[]"
+                       ))
+             )
+            )        
    (section 1 "Reference"
             (list
              font-ttf-prepare
