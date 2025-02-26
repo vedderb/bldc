@@ -12,15 +12,26 @@ This is the VESC-integration of [lispBM](https://github.com/svenssonjoel/lispBM)
 
 ## Language Reference
 
+The language reference is probably the most important document to read when working with with LBM. It describes the concepts of the language and, importantly, all basic functions it provides for various operations.
+
 [LispBM Language Reference](lispBM/doc/lbmref.md)
+
+**Libraries**
+Most of these are available on ESC and Express. They are loaded dynamically when used the first time.
+
+[Libraries](lispBM/doc/dynref.md)
+
+**LBM Gotchas and Caveats**
+
+[Libraries](lispBM/doc/gotchas.md)
 
 ## VESC Express Libraries
 
 The VESC Express has some extra libraries that are documented in separate documents.
 
-**VESC Express Display Driver**  
+**Display Driver**  
 
-[VESC Express Display Driver](lispBM/doc/displayref.md)
+[Display Driver](lispBM/doc/displayref.md)
 
 The display driver allows driving many common displays using SPI, such as the ST7789, ST7735, ILI9341, ILI9488, SH8501, SSD1306 and SSD1351. There are accelerated rendering and font extensions that can be used from LispBM.  
 
