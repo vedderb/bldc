@@ -3788,6 +3788,8 @@ The following selection of app and motor parameters can be read and set from Lis
                         ; 3: Enabled with scripting
 'ble-name               ; Device name (also the name that shows up in VESC Tool)
 'ble-pin                ; BLE pin code
+'ble-service-capacity   ; BLE Service Capacity
+'ble-chr-descr-capacity ; BLE Characteristics and Descriptor Capacity
 ```
 
 ---
