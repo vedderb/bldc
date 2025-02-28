@@ -1791,6 +1791,13 @@ static lbm_value ext_foc_openloop(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_foc_openloop_phase(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(2);
+	timeout_reset();
+	mc_interface_set_openloop_phase(lbm_dec_as_float(args[0]), lbm_dec_as_float(args[1]));
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_foc_beep(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(3);
 	timeout_reset();
@@ -5353,6 +5360,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("set-rpm", ext_set_rpm);
 	lbm_add_extension("set-pos", ext_set_pos);
 	lbm_add_extension("foc-openloop", ext_foc_openloop);
+	lbm_add_extension("foc-openloop-phase", ext_foc_openloop_phase);
 
 	lbm_add_extension("foc-beep", ext_foc_beep);
 	lbm_add_extension("foc-play-tone", ext_foc_play_tone);

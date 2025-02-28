@@ -1205,6 +1205,20 @@ Run FOC in open loop. Useful to test thermal properties of motors and power stag
 
 ---
 
+#### foc-openloop-phase
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06+ |
+
+```clj
+(foc-openloop-phase current phase)
+```
+
+Run FOC in open loop in phase mode. Phase is the electrical position of the openloop-vector in degrees, range 0.0 to 360.0.
+
+---
+
 #### foc-beep
 
 | Platforms | Firmware |
