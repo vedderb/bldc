@@ -3780,6 +3780,8 @@ The following selection of app and motor parameters can be read and set from Lis
                         ; 4: 10K
                         ; 5: 20K
                         ; 6: 50K
+                        ; 7: 75K
+                        ; 8: 100K
 'can-status-rate-hz     ; CAN status message rate
 'wifi-mode              ; Wifi mode
                         ; 0: Disabled
