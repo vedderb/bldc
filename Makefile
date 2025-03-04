@@ -139,6 +139,20 @@ define FIND_TARGET_C_CODE
    endif
 
 endef
+define FIND_TARGET_MAKE_FILE
+   # Remove `_no_limits`
+   $(eval ROOT_TARGET_NAME = $(subst _no_limits,,$(2)))
+
+   # Look for `*_core.mk` file
+   ifneq ("$(wildcard $(3)/hw_*_core.mk)","")
+      # Good luck, there it is!
+      $(1) = $(realpath $(wildcard $(3)/hw_*_core.mk))
+   else
+      # There isn't one, so let's hope for the sister `.mk` file
+      $(1) = $(realpath $(3)/hw_$(ROOT_TARGET_NAME).mk)
+   endif
+
+endef
 
 # $(1) = Canonical board name all in lower case (e.g. 100_250)
 # $(2) = firmware build directory
@@ -148,6 +162,7 @@ endef
 # $(6) = compiler version
 # $(7) [optional] = hw source filepath
 # $(8) [optional] = hw header filepath (must be given/not given if $(7) is given/not given)
+# $(9) [optional] = hw extra makefile filepath (must be given/not given if $(7)/$(8) is given/not given)
 define FW_TEMPLATE
 .PHONY: $(1) fw_$(1)
 $(1): fw_$(1)_vescfw
@@ -158,9 +173,11 @@ ifeq ($(7),)
   $(1)_HW_HEADER = $$($(1)_HW_DIR)/hw_$(1).h
   
   $$(eval $$(call FIND_TARGET_C_CODE,$(1)_HW_SRC_FILE,$(1),$$($(1)_HW_DIR)))
+  $$(eval $$(call FIND_TARGET_MAKE_FILE,$(1)_HW_MAKE_FILE,$(1),$$($(1)_HW_DIR)))
 else
   $(1)_HW_SRC_FILE = $(7)
   $(1)_HW_HEADER = $(8)
+  $(1)_HW_MAKE_FILE = $(9)
 endif
 
 $(1)_BUILD_MACROS = -DHW_SOURCE=\"$$($(1)_HW_SRC_FILE)\" -DHW_HEADER=\"$$($(1)_HW_HEADER)\" -DGIT_BRANCH_NAME=\"$(4)\" -DGIT_COMMIT_HASH=\"$(5)\" -DARM_GCC_VERSION=\"$(6)\"
@@ -177,6 +194,7 @@ fw_$(1)_vescfw:
 	@echo "********* BUILD: $(1) **********"
 	$(V1) $(MKDIR) $(BUILD_DIR)/$(1)
 	$(V1) $$(MAKE) -f $(MAKE_DIR)/fw.mk \
+		--eval='-include $$($(1)_HW_MAKE_FILE)' \
 		TCHAIN_PREFIX="$(ARM_SDK_PREFIX)" \
 		BUILDDIR="$(2)" \
 		PROJECT="$(3)" \
