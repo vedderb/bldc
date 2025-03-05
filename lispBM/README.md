@@ -3582,7 +3582,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-min-duty             ; Minimum duty cycle
 'l-max-duty             ; Maximum duty cycle
 'l-watt-min             ; Minimum power regen in W (a negative value)
-'l-watt-max             ; Maximum power regen in W
+'l-watt-max             ; Maximum power in W
 'l-battery-cut-start    ; Voltage where current starts to get reduced
 'l-battery-cut-end      ; Voltage below which current is not allowed
 'l-temp-motor-start     ; Temperature where motor current starts to get reduced
