@@ -517,6 +517,22 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 		imu_ready = true;
 	}
 
+#ifdef IMU_CUSTOM_FUNC
+	IMU_CUSTOM_FUNC;
+#endif // IMU_CUSTOM_FUNC
+
+#ifdef IMU_ROT_Y_270
+	float a2_old = accel[2];
+	float g2_old = gyro[2];
+	float m2_old = mag[2];
+	accel[2] = accel[0];
+	accel[0] = -a2_old;
+	gyro[2] = gyro[0];
+	gyro[0] = -g2_old;
+	mag[2] = mag[0];
+	mag[0] = -m2_old;
+#endif
+
 #ifdef IMU_FLIP
 	accel[0] *= -1.0;
 	accel[2] *= -1.0;
