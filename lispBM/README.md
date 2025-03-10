@@ -5077,21 +5077,22 @@ The following example shows how to spawn a thread that handles SID (standard-id)
 Possible events to register are
 
 ```clj
+; ESC and Express
 (event-enable 'event-can-sid)  ; -> (event-can-sid . (id . data)), where id is U32 and data is a byte array
 (event-enable 'event-can-eid)  ; -> (event-can-eid . (id . data)), where id is U32 and data is a byte array
 (event-enable 'event-data-rx)  ; -> (event-data-rx . data), where data is a byte array
+
+; ESC Only
 (event-enable 'event-shutdown) ; -> event-shutdown
 (event-enable 'event-icu-width) ; -> (event-icu-width . (width . period))
 (event-enable 'event-icu-period) ; -> (event-icu-period . (width . period))
 
-; BMS events (currently express only)
+; Express only
 (event-enable 'event-bms-chg-allow) ; -> (event-bms-chg-allow allow)
 (event-enable 'event-bms-bal-ovr) ; -> (event-bms-bal-ovr ch bal)
 (event-enable 'event-bms-reset-cnt) ; -> event-bms-reset-cnt
 (event-enable 'event-bms-force-bal) ; -> (event-bms-force-bal force)
 (event-enable 'event-bms-zero-ofs) ; -> event-bms-zero-ofs
-
-; Other express only events
 (event-enable 'event-ble-rx) ; -> (event-ble-rx handle data)
 (event-enable 'event-wifi-disconnect) ; -> ('event-wifi-disconnect reason from-extension)
 (event-enable 'event-esp-now-rx) ; -> (event-esp-now-rx src des data rssi)
@@ -5111,7 +5112,7 @@ This event is sent when extended id CAN-frames are received.
 This event is sent when custom app data is sent from VESC Tool or other connected devices. This works using all communication ports including USB, UART and CAN-bus.
 
 **event-shutdown**  
-This event is sent when the VESC is about to shut down. Note that this event currently only works on hardware with a power switch. If that is not the case you could try to, for example, monitor the input voltage and simulate this event when it drops below a set level.
+This event is sent when the ESC is about to shut down. Note that this event currently only works on hardware with a power switch. If that is not the case you could try to, for example, monitor the input voltage and simulate this event when it drops below a set level.
 
 **event-icu-width**  
 This event is sent when the input capture unit captures a pulse. Both the pulse width and the period of the last pulse are provided.
@@ -5120,13 +5121,13 @@ This event is sent when the input capture unit captures a pulse. Both the pulse 
 This event is sent when the input capture unit ends a period and the next pulse starts. Both the pulse width and the period are provided.
 
 **event-ble-rx** (Express exclusive)  
-This event is sent when a client connected to the VESC writes a value to a
+This event is sent when a client connected to the Express writes a value to a
 characteristic or descriptor. Read the
 [BLE docs](https://github.com/vedderb/vesc_express/tree/main/main/ble#events)
 for details.
 
 **event-wifi-disconnect** (Express exclusive)  
-This event is sent when the VESC disconnects from the currently connected
+This event is sent when the Express disconnects from the currently connected
 network for any reason. Read the
 [Wi-Fi docs](https://github.com/vedderb/vesc_express/tree/main/main/wifi#events)
 for details.
