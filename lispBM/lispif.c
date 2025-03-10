@@ -723,7 +723,7 @@ bool lispif_restart(bool print, bool load_code, bool load_imports) {
 
 		const_heap_max_ind = 0;
 		const_heap_ptr = (lbm_uint*)flash_helper_code_data_raw(CODE_IND_LISP_CONST);
-		lbm_const_heap_init(const_heap_write, &const_heap, const_heap_ptr, 1024 * 128);
+		lbm_const_heap_init(const_heap_write, &const_heap, const_heap_ptr, 256 * 128);
 
 		// Load imports
 		if (load_imports) {
