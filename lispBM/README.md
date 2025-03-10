@@ -5094,6 +5094,7 @@ Possible events to register are
 ; Other express only events
 (event-enable 'event-ble-rx) ; -> (event-ble-rx handle data)
 (event-enable 'event-wifi-disconnect) ; -> ('event-wifi-disconnect reason from-extension)
+(event-enable 'event-esp-now-rx) ; -> (event-esp-now-rx src des data rssi)
 ```
 
 The CAN-frames arrive whenever data is received on the CAN-bus and data-rx is received for example when data is sent from a Qml-script in VESC Tool.
@@ -5129,6 +5130,9 @@ This event is sent when the VESC disconnects from the currently connected
 network for any reason. Read the
 [Wi-Fi docs](https://github.com/vedderb/vesc_express/tree/main/main/wifi#events)
 for details.
+
+**event-esp-now-rx**  
+This event is sent when ESP-NOW data is received.
 
 ---
 
