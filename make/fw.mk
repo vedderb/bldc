@@ -112,6 +112,7 @@ include libcanard/canard.mk
 include imu/imu.mk
 include blackmagic/blackmagic.mk
 include encoder/encoder.mk
+include tmc/tmc.mk
 
 ifeq ($(USE_LISPBM),1)
   include lispBM/lispbm.mk
@@ -147,6 +148,7 @@ CSRC = $(STARTUPSRC) \
        $(BLACKMAGICSRC) \
        qmlui/qmlui.c \
        $(ENCSRC) \
+       $(TMCSRC)
        conf_custom.c
 
 ifeq ($(USE_LISPBM),1)
@@ -192,7 +194,8 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          qmlui \
          qmlui/hw \
          qmlui/app \
-         $(ENCINC)
+         $(ENCINC) \
+         $(TMCINC)
 
 include comm/comm.mk
 include motor/motor.mk
