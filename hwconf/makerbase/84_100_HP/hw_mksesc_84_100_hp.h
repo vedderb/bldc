@@ -114,12 +114,12 @@
 #define V_REG				3.30
 #endif
 
-//The voltage dividing acquisition circuit on the Makerbase VESC motherboard is 560K and 21.5K resistors.
+//The voltage dividing acquisition circuit on the Makerbase VESC motherboard is 56K and 2.2K resistors.
 #ifndef VIN_R1
-#define VIN_R1				560000.0 
+#define VIN_R1				56000.0 
 #endif
 #ifndef VIN_R2
-#define VIN_R2				21500.0 
+#define VIN_R2				2200.0 
 #endif
 
 #ifndef CURRENT_AMP_GAIN
@@ -269,7 +269,7 @@
 #define MCCONF_L_IN_CURRENT_MAX			100.0	// Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN			-100.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN			-20.0	// Input current limit in Amperes (Lower)
 #endif
 
 
@@ -277,8 +277,8 @@
 #define HW_LIM_CURRENT			-120.0, 120.0 
 #define HW_LIM_CURRENT_IN		-120.0, 120.0 
 #define HW_LIM_CURRENT_ABS		0.0, 200 
-#define HW_LIM_VIN				6.0, 120.0 
-#define HW_LIM_ERPM				-200e3, 200e3 
+#define HW_LIM_VIN			6.0, 120.0 
+#define HW_LIM_ERPM			-200e3, 200e3 
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
