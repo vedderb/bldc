@@ -151,6 +151,8 @@ void mcpwm_foc_tim_sample_int_handler(void);
 void mcpwm_foc_adc_int_handler(void *p, uint32_t flags);
 
 // Defines
+#ifndef MCPWM_FOC_CURRENT_SAMP_OFFSET
 #define MCPWM_FOC_CURRENT_SAMP_OFFSET				(2) // Offset from timer top for ADC samples
+#endif
 
 #endif /* MCPWM_FOC_H_ */

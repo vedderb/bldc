@@ -5122,6 +5122,11 @@ static lbm_value ext_const_heap_erase(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_override_speed(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(2);
+	mc_interface_override_wheel_speed(lbm_dec_as_i32(args[0]), lbm_dec_as_float(args[1]));
+	return ENC_SYM_TRUE;
+}
 
 // Remote Messages
 
@@ -5337,6 +5342,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("buf-resize", ext_buf_resize);
 	lbm_add_extension("shutdown-hold", ext_shutdown_hold);
 	lbm_add_extension("const-heap-erase", ext_const_heap_erase);
+	lbm_add_extension("override-speed", ext_override_speed);
 
 	// APP commands
 	lbm_add_extension("app-adc-detach", ext_app_adc_detach);

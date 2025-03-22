@@ -897,6 +897,28 @@ Reboot CPU. Required on the express when e.g. changing wifi-settings.
 
 ---
 
+#### override-speed
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06+ |
+
+```clj
+(overide-speed ovr speed)
+```
+
+Override speed reported to VESC Tool (and to other extensions). The argument speed is the speed to override with in meters per second and the argument ovr is set to 1 for overriding the speed and to 0 for reporting the speed as before. Example:
+
+```clj
+; Override speed with 3.6 km/h
+(overide-speed 1 (/ 12.0 3.6))
+
+; Do not override speed anymore
+(overide-speed 0 0)
+```
+
+---
+
 ### App Override Commands
 
 Several app-inputs can be detached from the external interfaces and overridden from lisp. This is useful to take advantage of existing throttle curves and control modes from the apps while providing a custom input source.
