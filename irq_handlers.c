@@ -25,6 +25,7 @@
 #include "mcpwm_foc.h"
 #include "hw.h"
 #include "encoder/encoder.h"
+#include "main.h"
 
 CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 	CH_IRQ_PROLOGUE();
@@ -73,64 +74,22 @@ CH_IRQ_HANDLER(PVD_IRQHandler) {
 	}
 }
 
-static void stop_motor_and_reset(void) {
-	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
-
-	TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Disable);
-
-	TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Disable);
-
-	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
-
-#ifdef HW_HAS_DRV8313
-		DISABLE_BR();
-#endif
-
-#ifdef HW_HAS_DUAL_MOTORS
-	TIM_SelectOCxM(TIM8, TIM_Channel_1, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM8, TIM_Channel_1, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM8, TIM_Channel_1, TIM_CCxN_Disable);
-
-	TIM_SelectOCxM(TIM8, TIM_Channel_2, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM8, TIM_Channel_2, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM8, TIM_Channel_2, TIM_CCxN_Disable);
-
-	TIM_SelectOCxM(TIM8, TIM_Channel_3, TIM_ForcedAction_InActive);
-	TIM_CCxCmd(TIM8, TIM_Channel_3, TIM_CCx_Enable);
-	TIM_CCxNCmd(TIM8, TIM_Channel_3, TIM_CCxN_Disable);
-
-	TIM_GenerateEvent(TIM8, TIM_EventSource_COM);
-
-#ifdef HW_HAS_DRV8313_2
-		ENABLE_BR_2();
-#endif
-#endif
-
-	NVIC_SystemReset();
-}
-
 CH_IRQ_HANDLER(NMI_Handler) {
-	stop_motor_and_reset();
+	main_stop_motor_and_reset();
 }
 
 CH_IRQ_HANDLER(HardFault_Handler) {
-	stop_motor_and_reset();
+	main_stop_motor_and_reset();
 }
 
 CH_IRQ_HANDLER(MemManage_Handler) {
-	stop_motor_and_reset();
+	main_stop_motor_and_reset();
 }
 
 CH_IRQ_HANDLER(BusFault_Handler) {
-	stop_motor_and_reset();
+	main_stop_motor_and_reset();
 }
 
 CH_IRQ_HANDLER(UsageFault_Handler) {
-	stop_motor_and_reset();
+	main_stop_motor_and_reset();
 }
