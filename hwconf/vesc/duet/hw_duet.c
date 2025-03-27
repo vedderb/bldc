@@ -24,8 +24,6 @@
 #include "utils_math.h"
 #include "main.h"
 
-#include "drv8323s.h"
-
 typedef enum {
 	SWITCH_BOOTED = 0,
 	SWITCH_TURN_ON_DELAY_ACTIVE,

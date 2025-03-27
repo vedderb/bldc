@@ -384,19 +384,9 @@
 #define HW_CANTX_PORT			GPIOD
 #define HW_CANTX_PIN			1
 
-
-#ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE		92.0
-#endif
-#ifndef MCCONF_M_DRV8301_OC_ADJ
-#define MCCONF_M_DRV8301_OC_ADJ		14
-#endif
-#ifndef MCCONF_L_DUTY_START
-#define MCCONF_L_DUTY_START			0.9 // Start limiting current at this duty cycle
-#endif
 // Setting limits
-#define HW_LIM_CURRENT				-150.0, 150.0
-#define HW_LIM_CURRENT_ABS			0.0, 150.0
+#define HW_LIM_CURRENT				-120.0, 120.0
+#define HW_LIM_CURRENT_ABS			0.0, 160.0
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT	150.0	// The maximum absolute current above which a fault is generated
 #endif
