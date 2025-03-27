@@ -275,15 +275,20 @@ void comm_can_set_baud(CAN_BAUD baud, int delay_msec) {
  * 0: Both
  * 1: CAN1
  * 2: CAN2
+ *
+ * @return
+ * MSG_OK for success, anything else otherwise.
  */
-void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len, bool replace, int interface) {
+msg_t comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len, bool replace, int interface) {
 	if (len > 8) {
 		len = 8;
 	}
 
+	msg_t ret = MSG_TIMEOUT;
+
 #if CAN_ENABLE
 	if (!init_done) {
-		return;
+		return MSG_RESET;
 	}
 
 #ifdef HW_HAS_DUAL_MOTORS
@@ -293,7 +298,7 @@ void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len
 			uint8_t data_tmp[10];
 			memcpy(data_tmp, data, len);
 			decode_msg(id, data_tmp, len, true);
-			return;
+			return MSG_OK;
 		}
 	}
 #else
@@ -314,18 +319,19 @@ void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len
 			msg_t ok = canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_IMMEDIATE);
 			msg_t ok2 = canTransmit(&HW_CAN2_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_IMMEDIATE);
 			if (ok == MSG_OK || ok2 == MSG_OK) {
+				ret = MSG_OK;
 				break;
 			}
 			chThdSleepMicroseconds(500);
 		}
 	} else if (interface == 1) {
-		canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, MS2ST(5));
+		ret = canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, MS2ST(5));
 	} else if (interface == 2) {
-		canTransmit(&HW_CAN2_DEV, CAN_ANY_MAILBOX, &txmsg, MS2ST(5));
+		ret = canTransmit(&HW_CAN2_DEV, CAN_ANY_MAILBOX, &txmsg, MS2ST(5));
 	}
 #else
 	(void)interface;
-	canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, MS2ST(5));
+	ret = canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, MS2ST(5));
 #endif
 	chMtxUnlock(&can_mtx);
 #else
@@ -335,24 +341,27 @@ void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len
 	(void)replace;
 	(void)interface;
 #endif
+	return ret;
 }
 
-void comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len) {
-	comm_can_transmit_eid_replace(id, data, len, false, 0);
+msg_t comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len) {
+	return comm_can_transmit_eid_replace(id, data, len, false, 0);
 }
 
-void comm_can_transmit_eid_if(uint32_t id, const uint8_t *data, uint8_t len, int interface) {
-	comm_can_transmit_eid_replace(id, data, len, false, interface);
+msg_t comm_can_transmit_eid_if(uint32_t id, const uint8_t *data, uint8_t len, int interface) {
+	return comm_can_transmit_eid_replace(id, data, len, false, interface);
 }
 
-void comm_can_transmit_sid(uint32_t id, const uint8_t *data, uint8_t len) {
+msg_t comm_can_transmit_sid(uint32_t id, const uint8_t *data, uint8_t len) {
 	if (len > 8) {
 		len = 8;
 	}
 
+	msg_t ret = MSG_TIMEOUT;
+
 #if CAN_ENABLE
 	if (!init_done) {
-		return;
+		return MSG_RESET;
 	}
 
 	CANTxFrame txmsg;
@@ -368,12 +377,13 @@ void comm_can_transmit_sid(uint32_t id, const uint8_t *data, uint8_t len) {
 		msg_t ok = canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_IMMEDIATE);
 		msg_t ok2 = canTransmit(&HW_CAN2_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_IMMEDIATE);
 		if (ok == MSG_OK || ok2 == MSG_OK) {
+			ret = MSG_OK;
 			break;
 		}
 		chThdSleepMicroseconds(500);
 	}
 #else
-	canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, MS2ST(5));
+	ret = canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, MS2ST(5));
 #endif
 	chMtxUnlock(&can_mtx);
 #else
@@ -381,6 +391,7 @@ void comm_can_transmit_sid(uint32_t id, const uint8_t *data, uint8_t len) {
 	(void)data;
 	(void)len;
 #endif
+	return ret;
 }
 
 /**
