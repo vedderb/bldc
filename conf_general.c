@@ -146,6 +146,14 @@ void conf_general_init(void) {
  * app config to get lost.
  */
 bool conf_general_store_backup_data(void) {
+	mc_interface_ignore_input_both(5000);
+	mc_interface_release_motor_override_both();
+
+	if (!mc_interface_wait_for_motor_release_both(3.0)) {
+		return 100;
+	}
+
+	utils_sys_lock_cnt();
 	timeout_configure_IWDT_slowest();
 
 	bool is_ok = true;
@@ -165,9 +173,11 @@ bool conf_general_store_backup_data(void) {
 			break;
 		}
 	}
-	FLASH_Lock();
 
+	FLASH_Lock();
 	timeout_configure_IWDT();
+	mc_interface_ignore_input_both(100);
+	utils_sys_unlock_cnt();
 
 	return is_ok;
 }
@@ -270,6 +280,14 @@ static bool store_eeprom_var(eeprom_var *v, int address, uint16_t base) {
 	var0 = v->as_u32 >> 16;
 	var1 = v->as_u32 & 0xFFFF;
 
+	mc_interface_ignore_input_both(5000);
+	mc_interface_release_motor_override_both();
+
+	if (!mc_interface_wait_for_motor_release_both(3.0)) {
+		return 100;
+	}
+
+	utils_sys_lock_cnt();
 	timeout_configure_IWDT_slowest();
 
 	FLASH_Unlock();
@@ -287,8 +305,9 @@ static bool store_eeprom_var(eeprom_var *v, int address, uint16_t base) {
 	}
 
 	FLASH_Lock();
-
 	timeout_configure_IWDT();
+	mc_interface_ignore_input_both(100);
+	utils_sys_unlock_cnt();
 
 	return is_ok;
 }
@@ -339,32 +358,14 @@ void conf_general_read_app_configuration(app_configuration *conf) {
  * A pointer to the configuration that should be stored.
  */
 bool conf_general_store_app_configuration(app_configuration *conf) {
-	int motor_old = mc_interface_get_motor_thread();
+	mc_interface_ignore_input_both(5000);
+	mc_interface_release_motor_override_both();
 
-	mc_interface_select_motor_thread(1);
-	mc_interface_unlock();
-	mc_interface_release_motor();
-	mc_interface_lock();
-
-	if (!mc_interface_wait_for_motor_release(2.0)) {
-		mc_interface_unlock();
-		mc_interface_select_motor_thread(motor_old);
-		return false;
-	}
-
-	mc_interface_select_motor_thread(2);
-	mc_interface_unlock();
-	mc_interface_release_motor();
-	mc_interface_lock();
-
-	if (!mc_interface_wait_for_motor_release(2.0)) {
-		mc_interface_unlock();
-		mc_interface_select_motor_thread(motor_old);
+	if (!mc_interface_wait_for_motor_release_both(3.0)) {
 		return false;
 	}
 
 	utils_sys_lock_cnt();
-
 	timeout_configure_IWDT_slowest();
 
 	bool is_ok = true;
@@ -386,20 +387,11 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 			break;
 		}
 	}
+
 	FLASH_Lock();
-
 	timeout_configure_IWDT();
-
-	chThdSleepMilliseconds(100);
-
-	mc_interface_select_motor_thread(1);
-	mc_interface_unlock();
-	mc_interface_select_motor_thread(2);
-	mc_interface_unlock();
-
+	mc_interface_ignore_input_both(100);
 	utils_sys_unlock_cnt();
-
-	mc_interface_select_motor_thread(motor_old);
 
 	return is_ok;
 }
@@ -450,32 +442,14 @@ void conf_general_read_mc_configuration(mc_configuration *conf, bool is_motor_2)
  * A pointer to the configuration that should be stored.
  */
 bool conf_general_store_mc_configuration(mc_configuration *conf, bool is_motor_2) {
-	int motor_old = mc_interface_get_motor_thread();
+	mc_interface_ignore_input_both(5000);
+	mc_interface_release_motor_override_both();
 
-	mc_interface_select_motor_thread(1);
-	mc_interface_unlock();
-	mc_interface_release_motor();
-	mc_interface_lock();
-
-	if (!mc_interface_wait_for_motor_release(2.0)) {
-		mc_interface_unlock();
-		mc_interface_select_motor_thread(motor_old);
-		return false;
-	}
-
-	mc_interface_select_motor_thread(2);
-	mc_interface_unlock();
-	mc_interface_release_motor();
-	mc_interface_lock();
-
-	if (!mc_interface_wait_for_motor_release(2.0)) {
-		mc_interface_unlock();
-		mc_interface_select_motor_thread(motor_old);
+	if (!mc_interface_wait_for_motor_release_both(3.0)) {
 		return false;
 	}
 
 	utils_sys_lock_cnt();
-
 	timeout_configure_IWDT_slowest();
 
 	bool is_ok = true;
@@ -497,20 +471,11 @@ bool conf_general_store_mc_configuration(mc_configuration *conf, bool is_motor_2
 			break;
 		}
 	}
+
 	FLASH_Lock();
-
 	timeout_configure_IWDT();
-
-	chThdSleepMilliseconds(100);
-
-	mc_interface_select_motor_thread(1);
-	mc_interface_unlock();
-	mc_interface_select_motor_thread(2);
-	mc_interface_unlock();
-
+	mc_interface_ignore_input_both(100);
 	utils_sys_unlock_cnt();
-
-	mc_interface_select_motor_thread(motor_old);
 
 	return is_ok;
 }
