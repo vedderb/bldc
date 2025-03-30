@@ -671,7 +671,7 @@ typedef struct {
 #define VESC_IF		((vesc_c_if*)(0x1000F800))
 
 // Put this at the beginning of your source file
-#define HEADER		static volatile int __attribute__((__section__(".program_ptr"))) prog_ptr;
+#define HEADER		volatile int __attribute__((__section__(".program_ptr"))) prog_ptr;
 
 // Init function
 #define INIT_FUN	bool __attribute__((__section__(".init_fun"))) init
@@ -684,6 +684,8 @@ typedef struct {
 
 // The argument that was set in the init function (same as the one you get in stop_fun)
 #define ARG			(*VESC_IF->get_arg(PROG_ADDR))
+
+extern volatile int prog_ptr;
 
 #endif  // VESC_C_IF_H
 
