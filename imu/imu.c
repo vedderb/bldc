@@ -313,7 +313,7 @@ void imu_get_mag(float *mag) {
 	memcpy(mag, m_mag, sizeof(m_mag));
 }
 
-void imu_derotate(float *input, float *output) {
+void imu_derotate(const float *input, float *output) {
 	float rpy[3];
 	imu_get_rpy(rpy);
 

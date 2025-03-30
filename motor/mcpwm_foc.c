@@ -2180,7 +2180,7 @@ void mcpwm_foc_stop_audio(bool reset) {
 	}
 }
 
-bool mcpwm_foc_set_audio_sample_table(int channel, float *samples, int len) {
+bool mcpwm_foc_set_audio_sample_table(int channel, const float *samples, int len) {
 	if (channel < 0 || channel >= MC_AUDIO_CHANNELS) {
 		return false;
 	}
