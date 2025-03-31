@@ -5159,6 +5159,20 @@ This event is sent when ESP-NOW data is received.
 
 ---
 
+#### event-enable
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.00+ |
+
+```clj
+(event-enable event optEn)
+```
+
+Enable or disable event. The optional argument optEn can be set to 1 to enable the event or to 0 to disable it. If optEn is left out the event will be enabled.
+
+---
+
 ## Byte Arrays
 
 Byte arrays (and text strings) are allocated in memory as consecutive arrays of bytes (not linked lists). They can be shared with C and are more space and performance efficient than linked lists. Several of the extensions also take byte arrays as input as an alternative to lists and some of the events return byte arrays.
