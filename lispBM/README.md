@@ -4040,7 +4040,7 @@ Since firmware 6.06 the argument calUndriven can be omitted. When it is omitted 
 Manually set the offsets on the selected motor. Arguments that are set to nil will leave the corresponding offset unchanged. If not all arguments are given the ones left out will not be updated. Example:
 
 ```clj
-; Set the i3-offset to 1.1 and the v2-offset to 2.3. Leave the rest unchanged.
+; Set the i2-offset to 1.1 ADC counts and the v2-offset to 2.3 V. Leave the rest unchanged.
 (conf-dc-cal-set nil nil 1.1 nil nil 2.3)
 ```
 
