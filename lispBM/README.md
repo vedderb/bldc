@@ -4023,6 +4023,27 @@ Run FOC DC offset calibration. calUndriven can be set to true for including the 
 (i0 i1 i2 v0 v1 v2 v0-undriven v1-undriven v2-undriven)
 ```
 
+Since firmware 6.06 the argument calUndriven can be omitted. When it is omitted no calibration is done and the offsets in use are returned.
+
+---
+
+#### conf-dc-cal-set
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06+ |
+
+```clj
+(conf-dc-cal-set i0 i1 i2 v0 v1 v2 v0-undriven v1-undriven v2-undriven)
+```
+
+Manually set the offsets on the selected motor. Arguments that are set to nil will leave the corresponding offset unchanged. If not all arguments are given the ones left out will not be updated. Example:
+
+```clj
+; Set the i3-offset to 1.1 and the v2-offset to 2.3. Leave the rest unchanged.
+(conf-dc-cal-set nil nil 1.1 nil nil 2.3)
+```
+
 ---
 
 #### conf-get-limits

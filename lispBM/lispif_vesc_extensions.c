@@ -4354,16 +4354,19 @@ static lbm_value ext_conf_restore_app(lbm_value *args, lbm_uint argn) {
 }
 
 static lbm_value ext_conf_dc_cal(lbm_value *args, lbm_uint argn) {
-	if (argn != 1) {
+	if (argn != 0 && argn != 1) {
 		lbm_set_error_reason((char*)lbm_error_str_num_args);
 		return ENC_SYM_TERROR;
 	}
 
-	if (!is_symbol_true_false(args[0])) {
-		return ENC_SYM_TERROR;
-	}
+	int cal_res = 0;
+	if (argn == 1) {
+		if (!is_symbol_true_false(args[0])) {
+			return ENC_SYM_TERROR;
+		}
 
-	int cal_res = mcpwm_foc_dc_cal(lbm_is_symbol_true(args[0]));
+		cal_res = mcpwm_foc_dc_cal(lbm_is_symbol_true(args[0]));
+	}
 
 	if (cal_res < 0) {
 		return ENC_SYM_NIL;
@@ -4381,6 +4384,31 @@ static lbm_value ext_conf_dc_cal(lbm_value *args, lbm_uint argn) {
 		res = lbm_cons(lbm_enc_float(conf->foc_offsets_current[0]), res);
 		return res;
 	}
+}
+
+static lbm_value ext_conf_dc_cal_set(lbm_value *args, lbm_uint argn) {
+	volatile mc_configuration *conf = (volatile mc_configuration*)mc_interface_get_configuration();
+
+	for (lbm_uint i = 0;i < argn;i++) {
+		if (lbm_is_number(args[i])) {
+			float val = lbm_dec_as_float(args[i]);
+
+			switch (i) {
+				case 0: conf->foc_offsets_current[0] = val; break;
+				case 1: conf->foc_offsets_current[1] = val; break;
+				case 2: conf->foc_offsets_current[2] = val; break;
+				case 3: conf->foc_offsets_voltage[0] = val; break;
+				case 4: conf->foc_offsets_voltage[1] = val; break;
+				case 5: conf->foc_offsets_voltage[2] = val; break;
+				case 6: conf->foc_offsets_voltage_undriven[0] = val; break;
+				case 7: conf->foc_offsets_voltage_undriven[1] = val; break;
+				case 8: conf->foc_offsets_voltage_undriven[2] = val; break;
+				default: break;
+			}
+		}
+	}
+
+	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_conf_get_limits(lbm_value *args, lbm_uint argn) {
@@ -5510,6 +5538,7 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("conf-restore-mc", ext_conf_restore_mc);
 	lbm_add_extension("conf-restore-app", ext_conf_restore_app);
 	lbm_add_extension("conf-dc-cal", ext_conf_dc_cal);
+	lbm_add_extension("conf-dc-cal-set", ext_conf_dc_cal_set);
 	lbm_add_extension("conf-get-limits", ext_conf_get_limits);
 
 	// Native libraries
