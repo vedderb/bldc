@@ -1754,6 +1754,8 @@ bool mc_interface_wait_for_motor_release_both(float timeout) {
 		return false;
 	}
 
+	mc_interface_select_motor_thread(motor_last);
+
 	return true;
 }
 
