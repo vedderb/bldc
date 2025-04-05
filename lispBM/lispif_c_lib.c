@@ -463,6 +463,10 @@ static float lib_get_cfg_float(CFG_PARAM p) {
 		case CFG_PARAM_si_battery_ah: res = mcconf->si_battery_ah; break;
 		case CFG_PARAM_si_motor_nl_current: res = mcconf->si_motor_nl_current; break;
 
+		case CFG_PARAM_foc_motor_r: res = mcconf->foc_motor_r; break;
+		case CFG_PARAM_foc_motor_l: res = mcconf->foc_motor_l; break;
+		case CFG_PARAM_foc_motor_flux_linkage: res = mcconf->foc_motor_flux_linkage; break;
+
 		default: break;
 	}
 
@@ -545,6 +549,10 @@ static bool lib_set_cfg_float(CFG_PARAM p, float value) {
 		case CFG_PARAM_si_wheel_diameter: mcconf->si_wheel_diameter = value; changed_mc = 1; res = true; break;
 		case CFG_PARAM_si_battery_ah: mcconf->si_battery_ah = value; changed_mc = 1; res = true; break;
 		case CFG_PARAM_si_motor_nl_current: mcconf->si_motor_nl_current = value; changed_mc = 1; res = true; break;
+
+		case CFG_PARAM_foc_motor_r: mcconf->foc_motor_r = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_foc_motor_l: mcconf->foc_motor_r = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_foc_motor_flux_linkage: mcconf->foc_motor_flux_linkage = value; changed_mc = 1; res = true; break;
 		default: break;
 	}
 

@@ -297,6 +297,11 @@ typedef enum {
 	CFG_PARAM_si_battery_cells,
 	CFG_PARAM_si_battery_ah,
 	CFG_PARAM_si_motor_nl_current,
+
+	// Motor FOC Parameters
+	CFG_PARAM_foc_motor_r,
+	CFG_PARAM_foc_motor_l,
+	CFG_PARAM_foc_motor_flux_linkage,
 } CFG_PARAM;
 
 typedef struct {
