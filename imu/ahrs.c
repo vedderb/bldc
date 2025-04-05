@@ -56,7 +56,7 @@ void ahrs_init_attitude_info(ATTITUDE_INFO *att) {
 	att->initialUpdateDone = 0;
 }
 
-void ahrs_update_initial_orientation(float *accelXYZ, float *magXYZ, ATTITUDE_INFO *att) {
+void ahrs_update_initial_orientation(const float *accelXYZ, const float *magXYZ, ATTITUDE_INFO *att) {
 	// See https://cache.freescale.com/files/sensors/doc/app_note/AN4248.pdf
 	// and http://sedris.org/wg8home/Documents/WG80485.pdf
 
@@ -94,7 +94,7 @@ void ahrs_update_initial_orientation(float *accelXYZ, float *magXYZ, ATTITUDE_IN
 	att->q3 = cr * cp * sy - sr * sp * cy;
 }
 
-void ahrs_update_mahony_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att) {
+void ahrs_update_mahony_imu(const float *gyroXYZ, const float *accelXYZ, float dt, ATTITUDE_INFO *att) {
 	float accelNorm, recipNorm;
 	float qa, qb, qc;
 
@@ -178,7 +178,7 @@ void ahrs_update_mahony_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_
 	att->q3 *= recipNorm;
 }
 
-void ahrs_update_madgwick_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att) {
+void ahrs_update_madgwick_imu(const float *gyroXYZ, const float *accelXYZ, float dt, ATTITUDE_INFO *att) {
 	float accelNorm, recipNorm;
 	float qDot1, qDot2, qDot3, qDot4;
 
@@ -269,7 +269,7 @@ void ahrs_update_madgwick_imu(float *gyroXYZ, float *accelXYZ, float dt, ATTITUD
 	att->q3 = q3;
 }
 
-float ahrs_get_roll(ATTITUDE_INFO *att) {
+float ahrs_get_roll(const ATTITUDE_INFO *att) {
 	const float q0 = att->q0;
 	const float q1 = att->q1;
 	const float q2 = att->q2;
@@ -278,7 +278,7 @@ float ahrs_get_roll(ATTITUDE_INFO *att) {
 	return -atan2f(q0 * q1 + q2 * q3, 0.5 - (q1 * q1 + q2 * q2));
 }
 
-float ahrs_get_pitch(ATTITUDE_INFO *att) {
+float ahrs_get_pitch(const ATTITUDE_INFO *att) {
 	const float q0 = att->q0;
 	const float q1 = att->q1;
 	const float q2 = att->q2;
@@ -287,7 +287,7 @@ float ahrs_get_pitch(ATTITUDE_INFO *att) {
 	return asinf(-2.0 * (q1 * q3 - q0 * q2));
 }
 
-float ahrs_get_yaw(ATTITUDE_INFO *att) {
+float ahrs_get_yaw(const ATTITUDE_INFO *att) {
 	const float q0 = att->q0;
 	const float q1 = att->q1;
 	const float q2 = att->q2;
@@ -296,7 +296,7 @@ float ahrs_get_yaw(ATTITUDE_INFO *att) {
 	return -atan2f(q0 * q3 + q1 * q2, 0.5 - (q2 * q2 + q3 * q3));
 }
 
-void ahrs_get_roll_pitch_yaw(float *rpy, ATTITUDE_INFO *att) {
+void ahrs_get_roll_pitch_yaw(float *rpy, const ATTITUDE_INFO *att) {
 	// See http://math.stackexchange.com/questions/687964/getting-euler-tait-bryan-angles-from-quaternion-representation
 	const float q0 = att->q0;
 	const float q1 = att->q1;
