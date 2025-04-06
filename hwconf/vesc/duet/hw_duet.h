@@ -26,9 +26,9 @@
 #endif
 
 #define INVERTED_SHUNT_POLARITY
-#define HW_DEAD_TIME_NSEC               150.0   // Dead time
-
 #define HW_HAS_3_SHUNTS
+
+#define HW_DEAD_TIME_NSEC               200.0
 
 //Switch Pins
 #define HW_HAS_STORMCORE_SWITCH
@@ -81,11 +81,11 @@
 		palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
 
 
-#define DCCAL_ON() //drv8323s_dccal_on()
-#define DCCAL_OFF() //drv8323s_dccal_off()
+#define DCCAL_ON()
+#define DCCAL_OFF()
 
 #define HW_EARLY_INIT()				smart_switch_pin_init(); \
-		smart_switch_thread_start();
+									smart_switch_thread_start();
 
 
 //Pins for BLE UART
@@ -98,21 +98,6 @@
 #define HW_UART_P_TX_PIN			9
 #define HW_UART_P_RX_PORT			GPIOA
 #define HW_UART_P_RX_PIN			10
-
-// SPI for DRV8301
-#define DRV8323S_MOSI_GPIO			GPIOC
-#define DRV8323S_MOSI_PIN			12
-#define DRV8323S_MISO_GPIO			GPIOC
-#define DRV8323S_MISO_PIN			11
-#define DRV8323S_SCK_GPIO			GPIOC
-#define DRV8323S_SCK_PIN			10
-#define DRV8323S_CS_GPIO			GPIOC
-#define DRV8323S_CS_PIN				13
-#define DRV8323S_CS_GPIO2			GPIOD
-#define DRV8323S_CS_PIN2			2
-#define DRV8323S_CS_GPIO3			GPIOE
-#define DRV8323S_CS_PIN3			15
-
 
 #define ADC_SW_EN_PORT		GPIOB
 #define ADC_SW_EN_PIN		12
@@ -187,13 +172,13 @@
 
 #define ADC_IND_CURR3			3
 #define ADC_IND_CURR4			4
-#define ADC_IND_VM_SENSE		9
+#define ADC_IND_ADC_MUX			5
 
 #define ADC_IND_CURR6			6
 #define ADC_IND_CURR5			7
 #define ADC_IND_SENS4			8
 
-#define ADC_IND_ADC_MUX			5
+#define ADC_IND_VM_SENSE		9
 #define ADC_IND_SENS5			10
 #define ADC_IND_SENS6			11
 
@@ -341,18 +326,6 @@
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE	MOTOR_TYPE_FOC
 #endif
-
-// SPI pins
-#define HW_SPI_DEV				SPID1
-#define HW_SPI_GPIO_AF			GPIO_AF_SPI1
-#define HW_SPI_PORT_NSS			GPIOB
-#define HW_SPI_PIN_NSS			11
-#define HW_SPI_PORT_SCK			GPIOA
-#define HW_SPI_PIN_SCK			5
-#define HW_SPI_PORT_MOSI		GPIOB
-#define HW_SPI_PIN_MOSI			5
-#define HW_SPI_PORT_MISO		GPIOA
-#define HW_SPI_PIN_MISO			6
 
 // LSM6DS3
 #define LSM6DS3_SDA_GPIO		GPIOB
