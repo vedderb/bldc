@@ -76,7 +76,8 @@ typedef enum {
 typedef enum {
 	FOC_CURRENT_SAMPLE_MODE_LONGEST_ZERO = 0,
 	FOC_CURRENT_SAMPLE_MODE_ALL_SENSORS,
-	FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT
+	FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT,
+ 	FOC_CURRENT_SAMPLE_MODE_BEST_SENSOR // Experimental, not used!
 } mc_foc_current_sample_mode;
 
 // Auxiliary output mode
