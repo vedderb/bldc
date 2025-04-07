@@ -695,6 +695,14 @@ static int lib_lbm_set_error_reason(char *str) {
 	return 1;
 }
 
+static void comm_can_transmit_sid_wrapper(uint32_t id, const uint8_t *data, uint8_t len) {
+	comm_can_transmit_sid(id, data, len);
+}
+
+static void comm_can_transmit_eid_wrapper(uint32_t id, const uint8_t *data, uint8_t len) {
+	comm_can_transmit_eid(id, data, len);
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -785,8 +793,8 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		// CAN
 		cif.cif.can_set_sid_cb = comm_can_set_sid_rx_callback;
 		cif.cif.can_set_eid_cb = comm_can_set_eid_rx_callback;
-		cif.cif.can_transmit_sid = comm_can_transmit_sid;
-		cif.cif.can_transmit_eid = comm_can_transmit_eid;
+		cif.cif.can_transmit_sid = comm_can_transmit_sid_wrapper;
+		cif.cif.can_transmit_eid = comm_can_transmit_eid_wrapper;
 		cif.cif.can_send_buffer = comm_can_send_buffer;
 		cif.cif.can_set_duty = comm_can_set_duty;
 		cif.cif.can_set_current = comm_can_set_current;
