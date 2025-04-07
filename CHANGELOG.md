@@ -12,6 +12,7 @@
 * Added HFI ambiguity resolution modes using id injection.
 * Support for coordinated CAN baudrate update.
 * Overmodulation support.
+* Added PWM and PWM+ABI encoder modes.
 
 ### 6.05
 #### 2024-08-19
