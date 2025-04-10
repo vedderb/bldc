@@ -167,7 +167,7 @@ Note try to not put duplicate characters in the utf8-str. Duplicate characters u
 </td>
 <td>
 
-<img src=./images/img1.png >
+<img src=./images/ttf-img1.png >
 
 </td>
 <td>
@@ -190,7 +190,7 @@ t
 </td>
 <td>
 
-<img src=./images/img2.png >
+<img src=./images/ttf-img2.png >
 
 </td>
 <td>
@@ -213,7 +213,7 @@ t
 </td>
 <td>
 
-<img src=./images/img3.png >
+<img src=./images/ttf-img3.png >
 
 </td>
 <td>
@@ -236,7 +236,7 @@ t
 </td>
 <td>
 
-<img src=./images/img4.png >
+<img src=./images/ttf-img4.png >
 
 </td>
 <td>
@@ -259,7 +259,7 @@ t
 </td>
 <td>
 
-<img src=./images/img5.png >
+<img src=./images/ttf-img5.png >
 
 </td>
 <td>
@@ -531,7 +531,7 @@ t
 </td>
 <td>
 
-<img src=./images/img6.png >
+<img src=./images/ttf-img6.png >
 
 </td>
 <td>

@@ -115,11 +115,24 @@ make sdl64
 
 <p> Or for 32bit.</p>
 
+<p><b>WARNING</b> if you are using UBUNTU 24.04(.0/.2) lts <b>DO NOT</b> "sudo atp install" the 32 bit sdl libraries.
+Doing so may render your system unusable as the apt solver is incorrectly deciding to uninstall key operating system
+packages. See <a href=https://bugs.launchpad.net/ubuntu/+source/libsdl2/+bug/2104920> bugreport </a>. Instead do the following: <p>
+
+@code
+sudo apt install aptitude
+sudo aptitude install libsdl2-dev:i386
+sudo aptitude install libsdl2-image-dev:i386
+@endcode
+
+<p> Then to build 32bit LBM with sdl do: </p>
+
 @code
 make sdl
 @endcode
 
 <p>The REPL with SDL requires <code>libsdl2-dev</code> and <code>libsdl2-image-dev</code> libraries or
 the 32 bit versions (for 32bit repl binary) <code>libsdl2-dev:i386</code> and <code>libsdl2-image-dev:i386</code>.</p>
+
 
 */

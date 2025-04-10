@@ -1,5 +1,5 @@
 /*
-  Copyright 2024 Joel Svensson  svenssonjoel@yahoo.se
+  Copyright 2024 2025 Joel Svensson  svenssonjoel@yahoo.se
             2022 Benjamin Vedder benjamin@vedder.se
 
   This program is free software: you can redistribute it and/or modify
@@ -32,6 +32,9 @@
 #include "extensions/mutex_extensions.h"
 #include "extensions/lbm_dyn_lib.h"
 #include "extensions/ttf_extensions.h"
+
+#include "lbm_image.h"
+#include "lbm_flat_value.h"
 
 #include <png.h>
 
@@ -350,6 +353,24 @@ static lbm_value ext_fwrite_value(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+static lbm_value ext_fwrite_image(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      is_file_handle(args[0])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    uint32_t *image_data = lbm_image_get_image();
+    if (image_data) {
+      size_t size = (size_t)lbm_image_get_size();
+      fwrite((uint8_t*)image_data, 1, size * sizeof(uint32_t), h->fp);
+      fflush(h->fp);
+      res = ENC_SYM_TRUE;
+    } else {
+      res = ENC_SYM_NIL;
+    }
+  }
+  return res;
+}
 
 static bool all_arrays(lbm_value *args, lbm_uint argn) {
   bool r = true;
@@ -429,7 +450,7 @@ static void buffer_blast_indexed4(uint8_t *dest, uint8_t *img, color_t *colors) 
   uint16_t w    = image_buffer_width(img);
   uint16_t h    = image_buffer_height(img);
   int num_pix = w * h;
-  
+
   uint32_t t_pos = 0;
   for (int i = 0; i < num_pix; i ++) {
     int byte = i >> 2;
@@ -518,8 +539,8 @@ void copy_image_area(uint8_t*target, uint16_t tw, uint16_t th, uint16_t x, uint1
     int end_y = y + h > th ? th : y + h;
     int start_y = y;
 
-    int len = (x + w > tw) ? w - (tw - (x + w)) : w;    
-    int read_y = 0;    
+    int len = (x + w > tw) ? w - (tw - (x + w)) : w;
+    int read_y = 0;
     for (int i = start_y; i < end_y; i ++){
       memcpy(target + (i * tw * 3) + (x * 3), buffer + (read_y * w * 3), (size_t)(len * 3));
       read_y++;
@@ -647,9 +668,9 @@ static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, c
       uint16_t t_w = image_buffer_width(target_image);
       uint16_t t_h = image_buffer_height(target_image);
       if (t_w == w && t_h == h) {
-	memcpy(image_buffer_data(target_image), buffer, (size_t)w * h * 3);
+        memcpy(image_buffer_data(target_image), buffer, (size_t)w * h * 3);
       } else {
-	copy_image_area(image_buffer_data(target_image), t_w, t_h, x, y, buffer, w, h);
+        copy_image_area(image_buffer_data(target_image), t_w, t_h, x, y, buffer, w, h);
       }
       free(buffer);
       r = true;
@@ -685,9 +706,54 @@ static lbm_value ext_display_to_image(lbm_value *args, lbm_uint argn) {
 
   return ENC_SYM_TRUE;
 }
+// boot images, snapshots, workspaces....
+
+lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+
+  bool r = lbm_image_save_global_env();
+
+  lbm_uint main_sym = ENC_SYM_NIL;
+  if (lbm_get_symbol_by_name("main", &main_sym)) {
+    lbm_value binding;
+    if ( lbm_global_env_lookup(&binding, lbm_enc_sym(main_sym))) {
+      if (lbm_is_cons(binding) && lbm_car(binding) == ENC_SYM_CLOSURE) {
+        goto image_has_main;
+      }
+    }
+  }
+  lbm_set_error_reason("No main function in image\n");
+  return ENC_SYM_EERROR;
+ image_has_main:
+  r = r && lbm_image_save_extensions();
+  r = r && lbm_image_save_constant_heap_ix();
+  return r ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+lbm_value ext_image_save_const_heap_ix(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  return lbm_image_save_constant_heap_ix() ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
 
 
+void dummy_f(lbm_value v, void *arg) {
+  if (lbm_is_cons(v)) {
+    printf("cons\n");
+  } else {
+    char buf[256];
+    lbm_print_value(buf,256, v);
+    printf("atom: %s\n", buf);
+  }
+}
 
+lbm_value ext_rt(lbm_value *args, lbm_uint argn) {
+  if (argn == 1) {
+    return lbm_ptr_rev_trav(dummy_f, args[0], NULL) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  } 
+  return ENC_SYM_TERROR;
+}
 
 // ------------------------------------------------------------
 // Init
@@ -704,6 +770,8 @@ int init_exts(void) {
   lbm_dyn_lib_init();
   lbm_ttf_extensions_init();
 
+  lbm_add_extension("rt", ext_rt);
+  
   lbm_add_extension("unsafe-call-system", ext_unsafe_call_system);
   lbm_add_extension("exec", ext_exec);
   lbm_add_extension("fclose", ext_fclose);
@@ -712,10 +780,14 @@ int init_exts(void) {
   lbm_add_extension("fwrite", ext_fwrite);
   lbm_add_extension("fwrite-str", ext_fwrite_str);
   lbm_add_extension("fwrite-value", ext_fwrite_value);
+  lbm_add_extension("fwrite-image", ext_fwrite_image);
   lbm_add_extension("print", ext_print);
   lbm_add_extension("systime", ext_systime);
   lbm_add_extension("secs-since", ext_secs_since);
 
+  // boot images, snapshots, workspaces.... 
+  lbm_add_extension("image-save-const-heap-ix", ext_image_save_const_heap_ix);
+  lbm_add_extension("image-save", ext_image_save);
   // Math
   lbm_add_extension("rand", ext_rand);
   lbm_add_extension("rand-max", ext_rand_max);
@@ -725,10 +797,9 @@ int init_exts(void) {
   lbm_add_extension("bits-dec-int", ext_bits_dec_int);
 
   //displaying to active image
-  lbm_add_extension("set-active-image", ext_set_active_image);
-  lbm_add_extension("save-active-image", ext_save_active_image);
-  lbm_add_extension("display-to-image", ext_display_to_image);
-
+  lbm_add_extension("set-active-img", ext_set_active_image);
+  lbm_add_extension("save-active-img", ext_save_active_image);
+  lbm_add_extension("display-to-img", ext_display_to_image);
 
   if (lbm_get_num_extensions() < lbm_get_max_extensions()) {
     return 1;

@@ -116,13 +116,14 @@ int lbm_undefine(char *symbol);
 int lbm_share_array(lbm_value *value, char *data, lbm_uint num_elt);
 
 /** Share a C array stored in flash with LBM.
+ * Creates lbm_array_header in flash as well.
  *
  * \param value Pointer to a heap-cell allocated in flash.
  * \param data Pointer to the C array.
  * \param num_elt Number of bytes in the array.
  * \return 1 on success otherwise 0.
  */
-int lbm_share_const_array(lbm_value *res, char *flash_ptr, lbm_uint num_elt);
+int lbm_share_array_const(lbm_value *res, char *flash_ptr, lbm_uint num_elt);
 /** Create an array to access from both LBM and C. This function should be called while the evaluator
  * is paused and the array should be bound to something before un-pausing. Send the array in
  * a message with \ref lbm_send_message or define it in the global with \ref lbm_define.
@@ -133,21 +134,21 @@ int lbm_share_const_array(lbm_value *res, char *flash_ptr, lbm_uint num_elt);
  */
 int lbm_create_array(lbm_value *value,lbm_uint num_elt);
 
-/** Clear the global environment.  
+/** Clear the global environment.
  */
 void lbm_clear_env(void);
 
 /** Flattens one of the fields of the environment hash-map.
- * Evaluator should be paused when calling this. All processing 
- * of data and size should be performed before unpausing the evaluator. 
- * Unpausing the evaluator enables reclamation of data by GC. 
+ * Evaluator should be paused when calling this. All processing
+ * of data and size should be performed before unpausing the evaluator.
+ * Unpausing the evaluator enables reclamation of data by GC.
  *
  * \param index Value between 0 and GLOBAL_ENV_ROOTS-1
  * \param data Result data pointer is returned here.
  * \param size Result size is returned here.
  */
 bool lbm_flatten_env(int index, lbm_uint** data, lbm_uint *size);
-  
+
 #ifdef __cplusplus
 }
 #endif

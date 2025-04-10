@@ -79,6 +79,8 @@
    (section 2 "Concrete TODOs"
             (list
              (bullet '(" [ ] flattening and unflattening of a defrag-mem region and the data it contains."
+                       " [ ] Image system for storing and restoring of runtime system state."
+                       " [ ] Uniform built-in printing or string generation and formatting."
                        ))
              )
             )

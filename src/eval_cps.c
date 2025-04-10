@@ -123,6 +123,13 @@ typedef enum {
 #define READ_ERROR_CTX(row, col) read_error_ctx(row, col)
 #endif
 
+// ////////////////////////////////////////////////////////////
+// Local variables used in sort and merge
+lbm_value symbol_x = ENC_SYM_NIL;
+lbm_value symbol_y = ENC_SYM_NIL;
+
+
+
 // Infer canarie
 //
 // In some cases Infer incorrectly complains about null pointer
@@ -380,7 +387,6 @@ void lbm_set_event_handler_pid(lbm_cid pid) {
 bool lbm_event_handler_exists(void) {
   return(lbm_event_handler_pid > 0);
 }
-
 
 static bool event_internal(lbm_event_type_t event_type, lbm_uint parameter, lbm_uint buf_ptr, lbm_uint buf_len) {
   bool r = false;
@@ -812,7 +818,7 @@ void print_environments(char *buf, unsigned int size) {
   }
 }
 
-void print_error_value(char *buf, lbm_uint bufsize, char *pre, lbm_value v, bool lookup) {
+void print_error_value(char *buf, uint32_t bufsize, char *pre, lbm_value v, bool lookup) {
 
   lbm_print_value(buf, bufsize, v);
   printf_callback("%s %s\n",pre, buf);
@@ -2049,7 +2055,7 @@ static void eval_app_cont(eval_context_t *ctx) {
 // Create a named location in an environment to later receive a value.
 // Protects env from GC, other data is the obligation of the called.
 static void create_binding_location(lbm_value key, lbm_value *env) {
-  if (lbm_type_of(key) == LBM_TYPE_SYMBOL) { // default case
+  if (lbm_is_symbol(key)) { // default case
     if (key == ENC_SYM_NIL || key == ENC_SYM_DONTCARE) return;
 #ifdef LBM_ALWAYS_GC
     lbm_gc_mark_phase(*env);
@@ -2138,7 +2144,6 @@ static void eval_var(eval_context_t *ctx) {
       lbm_value new_env = ctx->K.data[sp-4];
       lbm_value args = get_cdr(ctx->curr_exp);
       lbm_value key = get_car(args);
-
       create_binding_location(key, &new_env);
 
       ctx->K.data[sp-4] = new_env;
@@ -3109,7 +3114,7 @@ static void apply_sort(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 }
 
 static void apply_rest_args(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
-  lbm_value res;
+  lbm_value res = ENC_SYM_NIL; //TODO: lbm_env_lookup does not set res in all cases.
   if (lbm_env_lookup_b(&res, ENC_SYM_REST_ARGS, ctx->curr_env)) {
     if (nargs == 1 && lbm_is_number(args[0])) {
       int32_t ix = lbm_dec_as_i32(args[0]);
@@ -3302,7 +3307,6 @@ static void cont_closure_application_args(eval_context_t *ctx) {
   }
 }
 
-
 static void cont_closure_args_rest(eval_context_t *ctx) {
   lbm_uint* sptr = get_stack_ptr(ctx, 5);
   lbm_value arg_env = (lbm_value)sptr[0];
@@ -3326,7 +3330,6 @@ static void cont_closure_args_rest(eval_context_t *ctx) {
   heap[binding_ix].car = ctx->r;
   heap[binding_ix].cdr = ENC_SYM_NIL;
 
-
   lbm_set_cdr(last, binding);
   sptr[4] = binding;
 
@@ -3336,7 +3339,7 @@ static void cont_closure_args_rest(eval_context_t *ctx) {
     ctx->curr_exp = exp;
   } else {
     stack_reserve(ctx,1)[0] = CLOSURE_ARGS_REST;
-    sptr[3] = get_cdr(args);
+    sptr[3] = get_cdr(args);  
     ctx->curr_exp = get_car(args);
     ctx->curr_env = arg_env;
   }
@@ -4160,23 +4163,7 @@ static void cont_read_next_token(eval_context_t *ctx) {
           ERROR_CTX(ENC_SYM_MERROR);
         }
       } else {
-        if (ctx->flags & EVAL_CPS_CONTEXT_FLAG_CONST &&
-            ctx->flags & EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ) {
-          r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id, true); //flash
-          if (!r) {
-            lbm_set_error_reason((char*)lbm_error_str_flash_error);
-            ERROR_CTX(ENC_SYM_FATAL_ERROR);
-          }
-        } else {
-#ifdef LBM_ALWAYS_GC
-          gc();
-#endif
-          r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id,false); //ram
-          if (!r) {
-            gc();
-            r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id,false); //ram
-          }
-        }
+        r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id);
       }
       if (!r) {
         READ_ERROR_CTX(lbm_channel_row(chan), lbm_channel_column(chan));
@@ -4811,7 +4798,7 @@ static void cont_progn_var(eval_context_t* ctx) {
     lbm_set_error_reason("Incorrect type of name/key in let-binding");
     ERROR_AT_CTX(ENC_SYM_TERROR, key);
   }
-
+  ctx->curr_env = env; // evaluating value may build upon local env.
   ctx->app_cont = true;
 }
 
@@ -5607,12 +5594,21 @@ static void process_events(void) {
   }
 }
 
+
+void lbm_add_eval_symbols(void) {
+  lbm_uint x = 0;
+  lbm_uint y = 0;
+  lbm_add_symbol("x", &x);
+  lbm_add_symbol("y", &y);
+  symbol_x = lbm_enc_sym(x);
+  symbol_y = lbm_enc_sym(y);
+}
+
 /* eval_cps_run can be paused
    I think it would be better use a mailbox for
    communication between other threads and the run_eval
    but for now a set of variables will be used. */
 void lbm_run_eval(void){
-
   if (setjmp(critical_error_jmp_buf) > 0) {
     printf_callback("GC stack overflow!\n");
     critical_error_callback();
@@ -5668,6 +5664,7 @@ void lbm_run_eval(void){
     }
     while (true) {
 #ifdef LBM_USE_TIME_QUOTA
+
       // use a fast implementation of timestamp where possible.
       if (timestamp_us_callback() < eval_current_quota && ctx_running) {
         evaluation_step();

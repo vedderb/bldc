@@ -18,6 +18,7 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/lbm_flags.c\
              $(LISPBM)/src/lbm_prof.c\
              $(LISPBM)/src/lbm_defrag_mem.c\
+             $(LISPBM)/src/lbm_image.c\
              $(LISPBM)/src/buffer.c \
              $(LISPBM)/src/extensions/array_extensions.c \
              $(LISPBM)/src/extensions/string_extensions.c \
@@ -52,6 +53,7 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/lbm_types.h \
            $(LISPBM)/include/lbm_utils.h \
            $(LISPBM)/include/lbm_version.h \
+           $(LISPBM)/include/lbm_image.h \
            $(LISPBM)/include/lispbm.h \
            $(LISPBM)/include/print.h \
            $(LISPBM)/include/stack.h \

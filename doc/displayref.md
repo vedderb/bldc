@@ -43,7 +43,7 @@ images are rendered onto a display using the function `disp-render`. `disp-rende
 </td>
 <td>
 
-<img src=./images/img1.png >
+<img src=./images/disp-img1.png >
 
 </td>
 <td>
@@ -66,7 +66,7 @@ t
 </td>
 <td>
 
-<img src=./images/img2.png >
+<img src=./images/disp-img2.png >
 
 </td>
 <td>
@@ -89,7 +89,7 @@ t
 </td>
 <td>
 
-<img src=./images/img3.png >
+<img src=./images/disp-img3.png >
 
 </td>
 <td>
@@ -112,7 +112,7 @@ t
 </td>
 <td>
 
-<img src=./images/img4.png >
+<img src=./images/disp-img4.png >
 
 </td>
 <td>
@@ -135,7 +135,7 @@ t
 </td>
 <td>
 
-<img src=./images/img5.png >
+<img src=./images/disp-img5.png >
 
 </td>
 <td>
@@ -164,7 +164,7 @@ t
 </td>
 <td>
 
-<img src=./images/img6.png >
+<img src=./images/disp-img6.png >
 
 </td>
 <td>
@@ -187,7 +187,7 @@ t
 </td>
 <td>
 
-<img src=./images/img7.png >
+<img src=./images/disp-img7.png >
 
 </td>
 <td>
@@ -210,7 +210,7 @@ t
 </td>
 <td>
 
-<img src=./images/img8.png >
+<img src=./images/disp-img8.png >
 
 </td>
 <td>
@@ -233,7 +233,7 @@ t
 </td>
 <td>
 
-<img src=./images/img9.png >
+<img src=./images/disp-img9.png >
 
 </td>
 <td>
@@ -256,7 +256,7 @@ t
 </td>
 <td>
 
-<img src=./images/img10.png >
+<img src=./images/disp-img10.png >
 
 </td>
 <td>
@@ -279,7 +279,7 @@ t
 </td>
 <td>
 
-<img src=./images/img11.png >
+<img src=./images/disp-img11.png >
 
 </td>
 <td>
@@ -427,7 +427,7 @@ nil
 </td>
 <td>
 
-<img src=./images/img12.png >
+<img src=./images/disp-img12.png >
 
 </td>
 <td>
@@ -450,7 +450,7 @@ t
 </td>
 <td>
 
-<img src=./images/img13.png >
+<img src=./images/disp-img13.png >
 
 </td>
 <td>
@@ -473,7 +473,7 @@ t
 </td>
 <td>
 
-<img src=./images/img14.png >
+<img src=./images/disp-img14.png >
 
 </td>
 <td>
@@ -510,7 +510,7 @@ t
 </td>
 <td>
 
-<img src=./images/img15.png >
+<img src=./images/disp-img15.png >
 
 </td>
 <td>
@@ -533,7 +533,7 @@ t
 </td>
 <td>
 
-<img src=./images/img16.png >
+<img src=./images/disp-img16.png >
 
 </td>
 <td>
@@ -556,7 +556,7 @@ t
 </td>
 <td>
 
-<img src=./images/img17.png >
+<img src=./images/disp-img17.png >
 
 </td>
 <td>
@@ -579,7 +579,7 @@ t
 </td>
 <td>
 
-<img src=./images/img18.png >
+<img src=./images/disp-img18.png >
 
 </td>
 <td>
@@ -602,7 +602,7 @@ t
 </td>
 <td>
 
-<img src=./images/img19.png >
+<img src=./images/disp-img19.png >
 
 </td>
 <td>
@@ -631,7 +631,7 @@ t
 </td>
 <td>
 
-<img src=./images/img20.png >
+<img src=./images/disp-img20.png >
 
 </td>
 <td>
@@ -654,7 +654,7 @@ t
 </td>
 <td>
 
-<img src=./images/img21.png >
+<img src=./images/disp-img21.png >
 
 </td>
 <td>
@@ -691,7 +691,7 @@ t
 </td>
 <td>
 
-<img src=./images/img22.png >
+<img src=./images/disp-img22.png >
 
 </td>
 <td>
@@ -714,7 +714,7 @@ t
 </td>
 <td>
 
-<img src=./images/img23.png >
+<img src=./images/disp-img23.png >
 
 </td>
 <td>
@@ -737,7 +737,7 @@ t
 </td>
 <td>
 
-<img src=./images/img24.png >
+<img src=./images/disp-img24.png >
 
 </td>
 <td>
@@ -760,7 +760,7 @@ t
 </td>
 <td>
 
-<img src=./images/img25.png >
+<img src=./images/disp-img25.png >
 
 </td>
 <td>
@@ -789,7 +789,7 @@ t
 </td>
 <td>
 
-<img src=./images/img26.png >
+<img src=./images/disp-img26.png >
 
 </td>
 <td>
@@ -826,7 +826,7 @@ t
 </td>
 <td>
 
-<img src=./images/img27.png >
+<img src=./images/disp-img27.png >
 
 </td>
 <td>
@@ -849,7 +849,7 @@ t
 </td>
 <td>
 
-<img src=./images/img28.png >
+<img src=./images/disp-img28.png >
 
 </td>
 <td>
@@ -886,7 +886,7 @@ t
 </td>
 <td>
 
-<img src=./images/img29.png >
+<img src=./images/disp-img29.png >
 
 </td>
 <td>
@@ -909,7 +909,7 @@ t
 </td>
 <td>
 
-<img src=./images/img30.png >
+<img src=./images/disp-img30.png >
 
 </td>
 <td>
@@ -946,7 +946,7 @@ t
 </td>
 <td>
 
-<img src=./images/img31.png >
+<img src=./images/disp-img31.png >
 
 </td>
 <td>
@@ -969,7 +969,7 @@ t
 </td>
 <td>
 
-<img src=./images/img32.png >
+<img src=./images/disp-img32.png >
 
 </td>
 <td>
@@ -992,7 +992,7 @@ t
 </td>
 <td>
 
-<img src=./images/img33.png >
+<img src=./images/disp-img33.png >
 
 </td>
 <td>
@@ -1029,7 +1029,7 @@ t
 </td>
 <td>
 
-<img src=./images/img34.png >
+<img src=./images/disp-img34.png >
 
 </td>
 <td>
@@ -1052,7 +1052,7 @@ t
 </td>
 <td>
 
-<img src=./images/img35.png >
+<img src=./images/disp-img35.png >
 
 </td>
 <td>
@@ -1075,7 +1075,7 @@ t
 </td>
 <td>
 
-<img src=./images/img36.png >
+<img src=./images/disp-img36.png >
 
 </td>
 <td>
@@ -1112,7 +1112,7 @@ t
 </td>
 <td>
 
-<img src=./images/img37.png >
+<img src=./images/disp-img37.png >
 
 </td>
 <td>
@@ -1149,7 +1149,7 @@ t
 </td>
 <td>
 
-<img src=./images/img38.png >
+<img src=./images/disp-img38.png >
 
 </td>
 <td>
@@ -1172,7 +1172,7 @@ t
 </td>
 <td>
 
-<img src=./images/img39.png >
+<img src=./images/disp-img39.png >
 
 </td>
 <td>
@@ -1195,7 +1195,7 @@ t
 </td>
 <td>
 
-<img src=./images/img40.png >
+<img src=./images/disp-img40.png >
 
 </td>
 <td>
@@ -1232,7 +1232,7 @@ t
 </td>
 <td>
 
-<img src=./images/img41.png >
+<img src=./images/disp-img41.png >
 
 </td>
 <td>
@@ -1255,7 +1255,7 @@ t
 </td>
 <td>
 
-<img src=./images/img42.png >
+<img src=./images/disp-img42.png >
 
 </td>
 <td>
@@ -1278,7 +1278,7 @@ t
 </td>
 <td>
 
-<img src=./images/img43.png >
+<img src=./images/disp-img43.png >
 
 </td>
 <td>
@@ -1336,7 +1336,7 @@ These examples are leaving out the details on how to setup and initialize any pa
 </td>
 <td>
 
-<img src=./images/img44.png >
+<img src=./images/disp-img44.png >
 
 </td>
 <td>
@@ -1378,7 +1378,7 @@ t
 </td>
 <td>
 
-<img src=./images/img45.png >
+<img src=./images/disp-img45.png >
 
 </td>
 <td>
@@ -1416,7 +1416,7 @@ In the "Desktop" LispBM REPL the rotated llama examples looks as follows.
 </td>
 <td>
 
-<img src=./images/img46.png >
+<img src=./images/disp-img46.png >
 
 </td>
 <td>
@@ -1448,7 +1448,7 @@ t
 </td>
 <td>
 
-<img src=./images/img47.png >
+<img src=./images/disp-img47.png >
 
 </td>
 <td>
@@ -1487,7 +1487,7 @@ t
 </td>
 <td>
 
-<img src=./images/anm1.gif >
+<img src=./images/disp-anm1.gif >
 
 </td>
 </tr>

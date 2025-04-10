@@ -119,6 +119,10 @@ typedef void (*ctx_fun)(eval_context_t *, void*, void*);
  * \return global environment.
  */
 lbm_value eval_cps_get_env(void);
+/** Add symbols used internally by evaluator.
+ *
+ */
+void lbm_add_eval_symbols(void);
 
 /* Concurrent interface */
 /** Initialize the evaluator.

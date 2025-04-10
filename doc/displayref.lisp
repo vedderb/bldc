@@ -1,4 +1,5 @@
 
+(set-pic-prefix "disp")
 
 (define font-file (fopen "font_15_18.bin" "r"))
 (define font (load-file font-file))
@@ -8,9 +9,9 @@
 (define llama-bin (load-file llama-file))
 
 
-(display-to-image)
+(display-to-img)
 (define render-target (img-buffer 'rgb888 320 200))
-(set-active-image render-target)
+(set-active-img render-target)
 (disp-clear)
 
 (define img-rgb888 (img-buffer 'rgb888 320 200))

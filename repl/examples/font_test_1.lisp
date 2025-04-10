@@ -23,7 +23,7 @@
                (renderflake tgt img pz flake)
                }))
 
-(define disp (img-buffer 'indexed4 320 200))
+
 
 (print (type-of font))
 
