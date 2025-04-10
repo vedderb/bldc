@@ -14,18 +14,19 @@
     ];
   in {
     overlays.default = import ./pkgs { inherit self inputs supportedSystems; };
-    
+
     # For debugging
     inherit inputs;
   } // flake-utils.lib.eachSystem supportedSystems (system: let
     pkgs = import nixpkgs { inherit system; overlays = [ self.overlays.default ]; };
   in {
+
     packages = with pkgs.lbm; {
       inherit repl;
       inherit repl64;
       inherit doc;
       inherit c-doc;
       default = repl;
-    };    
+    };
   });
 }

@@ -27,10 +27,13 @@
 #include "lbm_utils.h"
 
 static lbm_uint ext_max    = 0;
-static lbm_uint ext_num    = 0;
 static lbm_uint next_extension_ix = 0;
 
 lbm_extension_t *extension_table = NULL;
+
+void lbm_extensions_set_next(lbm_uint i) {
+  next_extension_ix = i;
+}
 
 lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn) {
   (void)args;
@@ -48,7 +51,6 @@ int lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_s
     extension_storage[i].fptr = lbm_extensions_default;
   }
 
-  ext_num = 0;
   next_extension_ix = 0;
   ext_max = (lbm_uint)extension_storage_size;
 
@@ -60,7 +62,7 @@ lbm_uint lbm_get_max_extensions(void) {
 }
 
 lbm_uint lbm_get_num_extensions(void) {
-  return ext_num;
+  return next_extension_ix;
 }
 
 extension_fptr lbm_get_extension(lbm_uint sym) {
@@ -96,15 +98,17 @@ bool lbm_lookup_extension_id(char *sym_str, lbm_uint *ix) {
 bool lbm_add_extension(char *sym_str, extension_fptr ext) {
   lbm_value symbol;
 
+  // symbol_by_name loops through all symbols. It may be enough
+  // to search only the extension table, but unsure what the effect will
+  // be if adding an extension with same str-name as a built-in or special
+  // form. The extension may override built-in...
+  //
   // Check if symbol already exists.
   if (lbm_get_symbol_by_name(sym_str, &symbol)) {
     if (lbm_is_extension(lbm_enc_sym(symbol))) {
       // update the extension entry.
-      if (str_eq(extension_table[SYMBOL_IX(symbol)].name, sym_str)) {
-        // Do not replace name ptr.
-        extension_table[SYMBOL_IX(symbol)].fptr = ext;
-        return true;
-      }
+      extension_table[SYMBOL_IX(symbol)].fptr = ext;
+      return true;
     }
     return false;
   }
@@ -113,7 +117,6 @@ bool lbm_add_extension(char *sym_str, extension_fptr ext) {
     lbm_uint sym_ix = next_extension_ix ++;
     extension_table[sym_ix].name = sym_str;
     extension_table[sym_ix].fptr = ext;
-    ext_num ++;
     return true;
   }
   return false;

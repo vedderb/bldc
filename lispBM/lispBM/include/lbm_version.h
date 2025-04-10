@@ -24,16 +24,30 @@
 extern "C" {
 #endif
 
+#define STR2(X) #X
+#define STR(X)  STR2(X)
+
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 30u
+#define LBM_MINOR_VERSION 31u
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 3u
+#define LBM_PATCH_VERSION 0u
 
-#define LBM_VERSION_STRING "0.30.3"
+#define LBM_VERSION_STRING STR(LBM_MAJOR_VERSION) "." STR(LBM_MINOR_VERSION) "." STR(LBM_PATCH_VERSION)
 
 /*! \page changelog Changelog
+APR 9 2025: VERSION 0.31.0
+  - Fixes to resuming waiting for timeout.
+  - Built in identity operation.
+  - Buffers, arrays and structs can be allocated in DM.
+  - Time based scheduler added.
+  - Bugfix in create_binding_location.
+  - TTF library based on libschrift.
+  - "Lisp-images" runtime system images. (fastboot).
+  - Bugfix in setassoc.
+  - Pointer reversal algorithms for serialization and deserialization.
+
 JAN 19 2025: Version 0.30.0
   - Loop macros and defun, defunret are part of LBM now.
   - Added "unsafe" variant of callcc for efficiency in cases where it can be used.

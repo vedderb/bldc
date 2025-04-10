@@ -656,7 +656,7 @@ The evaluation strategies explained here are applied to composite expressions of
 
 In LispBM an `(e1 ... eN)` is evaluated by first evaluating `e1`. This is because depending on what kind of function object `e1` evaluates into, the application if evaluated in different ways. 
 
-`e1` sould evaluate into a `closure`, a "fundamental operation" or an "extension". fundamental operations and extensions take their arguments passed on the stack while a closure is applied in an environment extended with the argument value bindings. 
+`e1` should evaluate into a `closure`, a "fundamental operation" or an "extension". fundamental operations and extensions take their arguments passed on the stack while a closure is applied in an environment extended with the argument value bindings. 
 
 Depending on the value of `e1` the arguments are either evaluated left to right and the results are pushed onto the stack, or they are evaluated left to right and used to extend the environment. 
 
@@ -8258,7 +8258,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-4738
+3927
 ```
 
 
@@ -8463,7 +8463,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 191624 kurt-russel)
+(exit-ok 130017 kurt-russel)
 ```
 
 

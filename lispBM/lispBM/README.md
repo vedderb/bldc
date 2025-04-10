@@ -78,6 +78,8 @@ There is also a Nix flake (see details below). You can build and run the repl us
 
 * [vesc_tool](https://vesc-project.com/vesc_tool)
 * [vscode support](https://marketplace.visualstudio.com/items?itemName=rasmus-soderhielm.lispbm-language-support)
+* [zed](https://github.com/cortex/zed-lispbm)
+* [Tree-sitter](https://github.com/cortex/tree-sitter-lispbm)
 
 ## Development
 

@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2021, 2022, 2024 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2021, 2022, 2024, 2025 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 #include "symrepr.h"
 #include "extensions.h"
 #include "lbm_utils.h"
+#include "lbm_image.h"
 
 #define NUM_SPECIAL_SYMBOLS (sizeof(special_symbols) / sizeof(special_sym))
 #define NAME   0
@@ -232,6 +233,7 @@ special_sym const special_symbols[] =  {
   {"list?"          , SYM_IS_LIST},
   {"number?"        , SYM_IS_NUMBER},
   {"string?"        , SYM_IS_STRING},
+  {"constant?"      , SYM_IS_CONSTANT},
 
   // fast access in list
   {"ix"             , SYM_IX},
@@ -260,8 +262,10 @@ static lbm_uint symbol_table_size_list_flash = 0;
 static lbm_uint symbol_table_size_strings = 0;
 static lbm_uint symbol_table_size_strings_flash = 0;
 
-lbm_value symbol_x = ENC_SYM_NIL;
-lbm_value symbol_y = ENC_SYM_NIL;
+// When rebooting an image...
+void lbm_symrepr_set_symlist(lbm_uint *ls) {
+  symlist = ls;
+}
 
 int lbm_symrepr_init(void) {
   symlist = NULL;
@@ -270,13 +274,6 @@ int lbm_symrepr_init(void) {
   symbol_table_size_list_flash = 0;
   symbol_table_size_strings = 0;
   symbol_table_size_strings_flash = 0;
-
-  lbm_uint x = 0;
-  lbm_uint y = 0;
-  lbm_add_symbol("x", &x);
-  lbm_add_symbol("y", &y);
-  symbol_x = lbm_enc_sym(x);
-  symbol_y = lbm_enc_sym(y);
   return 1;
 }
 
@@ -372,8 +369,7 @@ int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
 
 extern lbm_flash_status lbm_write_const_array_padded(uint8_t *data, lbm_uint n, lbm_uint *res);
 
-
-static bool store_symbol_name_flash(char *name, lbm_uint *res) {
+bool store_symbol_name_flash(char *name, lbm_uint *res) {
   size_t n = strlen(name) + 1;
   if (n == 1) return 0; // failure if empty symbol
 
@@ -409,52 +405,15 @@ static bool store_symbol_name_flash(char *name, lbm_uint *res) {
 //       |
 //        [name n-bytes]
 //
-static bool add_symbol_to_symtab(char* name, lbm_uint id) {
-  bool r = false;
-  size_t n = strlen(name) + 1;
-  if (n > 1 && n <= 257) {
-    size_t alloc_size = n + (3 * sizeof(lbm_uint));
-    char *storage = lbm_malloc(alloc_size);
-    if (storage) {
-      memcpy(storage + (3 * sizeof(lbm_uint)), name, n);
-      lbm_uint *m = (lbm_uint*)storage;
 
-      symbol_table_size_list += 3 * sizeof(lbm_uint); // Bytes
-      symbol_table_size_strings += n; // Bytes
-      m[NAME] = (lbm_uint)&m[3];
-      m[NEXT] = (lbm_uint) symlist;
-      symlist = m;
-      m[ID] =id;
-      r = true;
-    }
-  }
-  return r;
-}
-
-static bool add_symbol_to_symtab_flash(lbm_uint name, lbm_uint id) {
-  lbm_uint entry[3];
-  entry[NAME] = name;
-  entry[NEXT] = (lbm_uint) symlist;
-  entry[ID]   = id;
-  lbm_uint entry_addr = 0;
-  if (lbm_write_const_raw(entry,3, &entry_addr) == LBM_FLASH_WRITE_OK) {
-    symlist = (lbm_uint*)entry_addr;
-    symbol_table_size_list_flash += 3;
-    return true;
-  }
-  return false;
-}
-
-int lbm_add_symbol_base(char *name, lbm_uint *id, bool flash) {
+int lbm_add_symbol_base(char *name, lbm_uint *id) {
   lbm_uint symbol_name_storage;
-  if (flash) {
-    if (!store_symbol_name_flash(name, &symbol_name_storage)) return 0;
-    if (!add_symbol_to_symtab_flash(symbol_name_storage, next_symbol_id)) return 0;
-  } else {
-    if (!add_symbol_to_symtab(name, next_symbol_id)) {
-      return 0;
-    }
+  if (!store_symbol_name_flash(name, &symbol_name_storage)) return 0;
+  lbm_uint *new_symlist = lbm_image_add_symbol((char*)symbol_name_storage, next_symbol_id, (lbm_uint)symlist);
+  if (!new_symlist) {
+    return 0;
   }
+  symlist = new_symlist;
   *id = next_symbol_id ++;
   return 1;
 }
@@ -462,7 +421,7 @@ int lbm_add_symbol_base(char *name, lbm_uint *id, bool flash) {
 int lbm_add_symbol(char *name, lbm_uint* id) {
   lbm_uint sym_id;
   if (!lbm_get_symbol_by_name(name, &sym_id)) {
-    return lbm_add_symbol_base(name, id, false);
+    return lbm_add_symbol_base(name, id);
   } else {
     *id = sym_id;
     return 1;
@@ -470,33 +429,31 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
   return 0;
 }
 
-int lbm_add_symbol_flash(char *name, lbm_uint* id) {
-  lbm_uint sym_id;
-  if (!lbm_get_symbol_by_name(name, &sym_id)) {
-    return lbm_add_symbol_base(name, id, true);
+// on Linux, win, etc a const string may not be at
+// the same address between runs.
+int lbm_add_symbol_const_base(char *name, lbm_uint* id, bool link) {
+  lbm_uint symbol_name_storage = (lbm_uint)name;
+#ifdef __PIC__
+  if (!store_symbol_name_flash(name, &symbol_name_storage)) return 0;
+#endif
+  lbm_uint *new_symlist;
+  if (link) {
+    new_symlist = lbm_image_add_and_link_symbol((char*)symbol_name_storage, next_symbol_id, (lbm_uint)symlist, id);
   } else {
-    *id = sym_id;
+    new_symlist = lbm_image_add_symbol((char*)symbol_name_storage, next_symbol_id, (lbm_uint)symlist);
+  }
+  if (new_symlist) {
+    symlist = new_symlist;
+    *id = next_symbol_id ++;
     return 1;
   }
   return 0;
-}
-
-int lbm_add_symbol_const_base(char *name, lbm_uint* id) {
-  lbm_uint *m = lbm_memory_allocate(3);
-  if (m == NULL) return 0;
-  symbol_table_size_list += 3;
-  m[NAME] = (lbm_uint) name;
-  m[NEXT] = (lbm_uint) symlist;
-  symlist = m;
-  m[ID] = next_symbol_id;
-  *id = next_symbol_id ++;
-  return 1;
 }
 
 int lbm_add_symbol_const(char *name, lbm_uint* id) {
   lbm_uint sym_id;
   if (!lbm_get_symbol_by_name(name, &sym_id)) {
-    return lbm_add_symbol_const_base(name, id);
+    return lbm_add_symbol_const_base(name, id, true);
   } else {
     *id = sym_id;
     return 1;

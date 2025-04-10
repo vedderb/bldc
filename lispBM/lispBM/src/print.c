@@ -426,11 +426,15 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
 
       switch(t) {
       case LBM_TYPE_CONS: {
-        lbm_value cont[2] = {curr, START_LIST};
-        int res = push_n(&print_stack, cont, 2);
-        if (!res) {
-          print_emit_string(chan," ...");
-          return EMIT_OK;
+        if (lbm_dec_ptr(curr) == LBM_PTR_NULL) {
+          print_emit_string(chan, " LBM_NULL ");
+        } else {
+          lbm_value cont[2] = {curr, START_LIST};
+          int res = push_n(&print_stack, cont, 2);
+          if (!res) {
+            print_emit_string(chan," ...");
+            return EMIT_OK;
+          }
         }
         break;
       }

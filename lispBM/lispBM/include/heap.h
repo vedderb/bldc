@@ -230,7 +230,7 @@ typedef struct {
 
 extern lbm_heap_state_t lbm_heap_state;
 
-typedef bool (*const_heap_write_fun)(lbm_uint ix, lbm_uint w);
+  typedef bool (*const_heap_write_fun)(lbm_uint w, lbm_uint ix);
 
 typedef struct {
   lbm_uint *heap;
@@ -664,8 +664,7 @@ lbm_uint lbm_size_of(lbm_type t);
 
 int lbm_const_heap_init(const_heap_write_fun w_fun,
                         lbm_const_heap_t *heap,
-                        lbm_uint *addr,
-                        lbm_uint num_words);
+                        lbm_uint *addr);
 
 lbm_flash_status lbm_allocate_const_cell(lbm_value *res);
 lbm_flash_status lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res);
@@ -833,6 +832,11 @@ static inline bool lbm_is_ptr(lbm_value x) {
   return (x & LBM_PTR_BIT);
 }
 
+static inline bool lbm_is_constant(lbm_value x) {
+  return ((x & LBM_PTR_BIT && x & LBM_PTR_TO_CONSTANT_BIT) ||
+          (!(x & LBM_PTR_BIT)));
+}
+
 /**
  * Check if a value is a Read/Writeable cons cell
  * \param x Value to check
@@ -991,6 +995,15 @@ static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
   return &lbm_dec_heap(addr)[lbm_dec_cons_cell_ptr(addr)];
   //return &lbm_heap_state.heap[lbm_dec_ptr(addr)];
 }
+
+
+ /**
+  * \param f pointer to function to execute at each node in tree.
+  * \param v Tree to traverses.
+  * \param arg Extra argument to pass to f when applied.
+  * \return true if successful traversal and false if there is a cycle in the data.
+  */
+bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg);
 
 
 // lbm_uint a = lbm_heaps[0];

@@ -43,7 +43,9 @@ typedef struct {
 #define S_LBM_ARRAY       0x0D
 #define S_I56_VALUE       0x0E
 #define S_U56_VALUE       0x0F
+#define S_CONSTANT_REF    0x10
 #define S_LBM_LISP_ARRAY  0x1F
+
 
 // Maximum number of recursive calls
 #define FLATTEN_VALUE_MAXIMUM_DEPTH 2000
@@ -79,8 +81,9 @@ bool f_u64(lbm_flat_value_t *v, uint64_t w);
 bool f_lbm_array(lbm_flat_value_t *v, uint32_t num_bytes, uint8_t *data);
 lbm_value flatten_value(lbm_value v);
 int flatten_value_c(lbm_flat_value_t *fv, lbm_value v);
-int flatten_value_size(lbm_value v, int depth);
+int flatten_value_size(lbm_value v, bool image);
 void lbm_set_max_flatten_depth(int depth);
+int lbm_get_max_flatten_depth(void);
 
 /** Unflatten a flat value stored in an lbm_memory array onto the heap
  *

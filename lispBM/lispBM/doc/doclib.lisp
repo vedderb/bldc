@@ -1,6 +1,11 @@
 
+(define pic-prefix "")
+
 (define png-count 0)
 (define gif-count 0)
+
+(defun set-pic-prefix (s)
+  (setq pic-prefix s))
 
 (defun leading-zeroes (n)
   (if (< n 10) (str-merge "000" (to-str n))
@@ -16,13 +21,13 @@
 (defun png-file () {
        (var n png-count)
        (setq png-count (+ png-count 1))
-       (str-merge "./images/img" (to-str png-count) ".png")
+       (str-merge "./images/" pic-prefix "-img" (to-str png-count) ".png")
        })
 
 (defun gif-file () {
        (var n gif-count)
        (setq gif-count (+ gif-count 1))
-       (str-merge "./images/anm" (to-str gif-count) ".gif")
+       (str-merge "./images/" pic-prefix "-anm" (to-str gif-count) ".gif")
        })
 
 (defun is-read-eval-txt (x)
@@ -170,7 +175,7 @@
 	     (var res (eval nil x-code))
 	     (var rstr (to-str res))
 	     (disp-render img 0 0 colors) 
-	     (save-active-image png)
+	     (save-active-img png)
              (disp-clear)
 	     (rend "<tr>\n")
 	     (rend "<td>\n\n")
@@ -216,7 +221,7 @@
 	     {
 	     (var res (eval nil x-code))
 	     (var rstr (to-str res))
-	     (save-active-image png)
+	     (save-active-img png)
 	     (rend "<tr>\n")
 	     (rend "<td>\n\n")
 	     (rend "```clj\n")
@@ -324,7 +329,7 @@
                  (rstr (to-str res))
                  (png (png-file)))
              {
-             (save-active-image png)
+             (save-active-img png)
              (rend "<tr>\n")
              (rend "<td>\n\n")
              (rend "\n```clj\n")
@@ -365,7 +370,7 @@
      (progn (var png (gif-frame frame-i))
             (setq frame-i (+ frame-i 1))
             (disp-render ,img ,x ,y ,color)
-            (save-active-image png)))))
+            (save-active-img png)))))
 
 (define frame-i 0)
 (define frame-max 0)

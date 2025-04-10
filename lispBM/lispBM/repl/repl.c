@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2021, 2022, 2024 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2021, 2022, 2024, 2025 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,12 +16,14 @@
 */
 
 #define _POSIX_C_SOURCE 200809L // nanosleep?
+#define _GNU_SOURCE // MAP_ANON
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <sys/mman.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <getopt.h>
@@ -46,6 +48,7 @@
 
 #include "repl_exts.h"
 #include "repl_defines.h"
+#include "lbm_image.h"
 #ifdef CLEAN_UP_CLOSURES
 #include "clean_cl.h"
 #endif
@@ -81,6 +84,23 @@ static lbm_char_channel_t string_tok;
 static lbm_buffered_channel_state_t buffered_tok_state;
 static lbm_char_channel_t buffered_string_tok;
 
+// ////////////////////////////////////////////////////////////
+// Image
+
+#define IMAGE_STORAGE_SIZE              (128 * 1024) // bytes:
+#ifdef LBM64
+#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
+#else
+#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
+#endif
+// todo: is there a good way to pick a fixed virtual address ?
+
+static char *image_input_file = NULL;
+static size_t   image_storage_size = IMAGE_STORAGE_SIZE;
+static uint32_t *image_storage = NULL;
+
+static size_t constants_memory_size = 4096;  // size words
+
 
 // ////////////////////////////////////////////////////////////
 // LBM
@@ -104,9 +124,9 @@ static volatile bool silent_mode = false;
 
 static size_t lbm_memory_size = LBM_MEMORY_SIZE_10K;
 static size_t lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
-static size_t constants_memory_size = 4096;
 
 static lbm_uint *constants_memory = NULL;
+
 static lbm_uint *memory=NULL;
 static lbm_uint *bitmap=NULL;
 
@@ -186,6 +206,25 @@ bool const_heap_write(lbm_uint ix, lbm_uint w) {
   }
   return false;
 }
+
+bool image_write(uint32_t w, int32_t ix, bool const_heap) { // ix >= 0 and ix <= image_size
+  if (image_storage[ix] == 0xffffffff) {
+    image_storage[ix] = w;
+    return true;
+  } else if (image_storage[ix] == w) {
+    return true;
+  } else {
+    printf("image_storage[%u] = %x\n", (uint32_t)ix, image_storage[ix]);
+    printf("when trying to write %x\n", w);
+  }
+  return false;
+}
+
+bool image_clear(void) {
+  memset(image_storage, 0xff, image_storage_size);
+  return true;
+}
+
 
 static volatile bool allow_print = true;
 
@@ -412,9 +451,10 @@ lbm_const_heap_t const_heap;
 #define STORE_RESULT         0x0403
 #define TERMINATE            0x0404
 #define SILENT_MODE          0x0405
-#define VESCTCP              0x0406
-#define VESCTCP_PORT         0x0407
-#define VESCTCP_PROGRAM_FLASH_SIZE   0x0408
+#define LOAD_IMAGE           0x0406
+#define VESCTCP              0x0407
+#define VESCTCP_PORT         0x0408
+#define VESCTCP_PROGRAM_FLASH_SIZE   0x0409
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -427,6 +467,7 @@ struct option options[] = {
   {"store_env", required_argument, NULL, STORE_ENVIRONMENT},
   {"store_res", required_argument, NULL, STORE_RESULT},
   {"terminate", no_argument, NULL, TERMINATE},
+  {"load_image", required_argument, NULL, LOAD_IMAGE},
   {"silent", no_argument, NULL, SILENT_MODE},
   {"vesctcp",no_argument, NULL, VESCTCP},
   {"vesctcp_port",required_argument, NULL, VESCTCP_PORT},
@@ -585,12 +626,15 @@ void parse_opts(int argc, char **argv) {
              "                                      upon exit.\n");
       printf("    --store_res=FILEPATH              Store the result of the last program\n"\
              "                                      specified with the --src/-s options.\n");
+      printf("    --terminate                       Terminate the REPL after evaluating the\n" \
+             "                                      source files specified with --src/-s\n");
+      printf("    --load_image=FILEPATH             load an image-file at startup\n");
+      printf("\n");
       printf("    --vesctcp                         Open a TCP server talking the VESC\n"\
              "                                      protocol on port %d\n", DEFAULT_VESCIF_TCP_PORT);
       printf("    --vesctcp_port=PORT               open the TCP server on this port instead.\n");
       printf("    --vesctcp_program_flash_size=SIZE Size of memory for program storage.\n");
-      printf("    --terminate                       Terminate the REPL after evaluating the\n"\
-             "                                      source files specified with --src/-s\n");
+
       printf("Memory-size-indices: \n"          \
              "Index | Words\n"                  \
              "  1   - %d\n"                     \
@@ -651,6 +695,9 @@ void parse_opts(int argc, char **argv) {
       break;
     case SILENT_MODE:
       silent_mode = true;
+      break;
+    case LOAD_IMAGE:
+      image_input_file = (char*)optarg;
       break;
     case VESCTCP:
       vesctcp = true;
@@ -767,14 +814,6 @@ int init_repl() {
     return 0;
   }
 
-  constants_memory = (lbm_uint*)malloc(constants_memory_size * sizeof(lbm_uint));
-  memset(constants_memory, 0xFF, constants_memory_size * sizeof(lbm_uint));
-  if (!lbm_const_heap_init(const_heap_write,
-                           &const_heap,constants_memory,
-                           constants_memory_size)) {
-    return 0;
-  }
-
   lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_timestamp_us_callback(timestamp);
@@ -782,7 +821,49 @@ int init_repl() {
   lbm_set_dynamic_load_callback(dynamic_loader);
   lbm_set_printf_callback(error_print);
 
-  init_exts();
+
+  //Load an image
+  lbm_image_init(image_storage,
+                 image_storage_size / sizeof(uint32_t), //sizeof(lbm_uint),
+                 image_write);
+
+  if (image_input_file) {
+    FILE *f = fopen(image_input_file, "rb");
+    if (!f) {
+      printf("Error opening file: %s\n", image_input_file);
+      return 0;
+    }
+    fseek(f, 0, SEEK_END);
+    size_t fsize = (size_t)ftell(f);
+    rewind(f);
+    // assume image files <= 128k
+    if (fsize > 0) {
+      // Load file into mapped reqion. Could map file instead.
+      size_t n = fread(image_storage, fsize, 1, f);
+      if ( n == 0) {
+        printf("Error: empty image!\n");
+      }
+    }
+    fclose(f);
+  } else {
+    image_clear();
+    lbm_image_create("bepa_1");
+  }
+
+  if (lbm_image_get_version()) {
+    printf("image version string: %s\n", lbm_image_get_version());
+  }
+
+  lbm_image_boot();
+  
+  // Recreate symbol list from image before adding.
+  // Image must be booted before adding any symbol.
+  lbm_add_eval_symbols();
+  if (!lbm_image_has_extensions()) {
+    init_exts();
+  } else {
+    printf("Image contains extensions\n");
+  }
 
 #ifdef WITH_SDL
   if (!lbm_sdl_init()) {
@@ -798,6 +879,7 @@ int init_repl() {
   }
 #endif
 
+  printf("creating eval thread\n");
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
     return 0;
@@ -1269,7 +1351,6 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
     return 0;
   }
 
-
   if (!lbm_eval_init_events(20)) {
     return 0;
   }
@@ -1277,8 +1358,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   constants_memory = (lbm_uint*)malloc(constants_memory_size * sizeof(lbm_uint));
   memset(constants_memory, 0xFF, constants_memory_size * sizeof(lbm_uint));
   if (!lbm_const_heap_init(const_heap_write,
-                           &const_heap,constants_memory,
-                           constants_memory_size)) {
+                           &const_heap,constants_memory)) {
     return 0;
   }
 
@@ -2080,6 +2160,16 @@ void *vesctcp_client_handler(void *arg) {
 // ////////////////////////////////////////////////////////////
 //
 int main(int argc, char **argv) {
+
+  image_storage = mmap(IMAGE_FIXED_VIRTUAL_ADDRESS,
+                       IMAGE_STORAGE_SIZE,
+                       PROT_READ | PROT_WRITE,
+                       MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+  if (((int)image_storage) == -1) {
+    printf("error mapping fixed location for flash emulation\n");
+    terminate_repl(REPL_EXIT_CRITICAL_ERROR);
+  }
+
   parse_opts(argc, argv);
 
   using_history();
@@ -2176,6 +2266,7 @@ int main(int argc, char **argv) {
         printf("Size: %"PRI_UINT" words\n", const_heap.size);
         printf("Used words: %"PRI_UINT"\n", const_heap.next);
         printf("Free words: %"PRI_UINT"\n", const_heap.size - const_heap.next);
+        printf("image location: %p \n", (void*)image_storage);
         free(str);
       } else if (strncmp(str, ":prof start", 11) == 0) {
         lbm_prof_init(prof_data,

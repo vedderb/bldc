@@ -1,4 +1,6 @@
 
+(set-pic-prefix "lbmref")
+
 (def ch-symbols
      (section 2 "About Symbols"
               ( list
@@ -341,7 +343,7 @@
             (para (list "In LispBM an `(e1 ... eN)` is evaluated by first evaluating `e1`. This is because depending on"
                         "what kind of function object `e1` evaluates into, the application if evaluated in different ways."
                         ))
-            (para (list "`e1` sould evaluate into a `closure`, a \"fundamental operation\" or an \"extension\"."
+            (para (list "`e1` should evaluate into a `closure`, a \"fundamental operation\" or an \"extension\"."
                         "fundamental operations and extensions take their arguments passed on the stack while a closure"
                         "is applied in an environment extended with the argument value bindings."
                         ))

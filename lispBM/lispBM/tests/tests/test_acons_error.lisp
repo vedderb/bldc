@@ -1,4 +1,4 @@
-(define err '(exit-error eval_error))
+(define err '(exit-error type_error))
 
 (define is-error (lambda (x) (eq x err)))
 

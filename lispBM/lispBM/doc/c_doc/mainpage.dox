@@ -35,6 +35,7 @@ Stacks: \ref stack.h \ref stack.c <br>
 channels: \ref lbm_channel.h \ref lbm_channel.c <br>
 Symbol table: \ref symrepr.h \ref symrepr.c <br>
 Tokeniser: \ref tokpar.h \ref tokpar.c <br>
+Image: \ref lbm_image.h \ref lbm_image.c <br>
 
 \image html lispbm_llama_small.png
 
