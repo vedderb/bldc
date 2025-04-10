@@ -33,19 +33,16 @@
 #define HW_NAME					"MKSESC_75_100"
 #endif
 
-
 // HW properties
 #define HW_HAS_3_SHUNTS
 //#define HW_HAS_PHASE_SHUNTS
-
 //#define HW_HAS_PHASE_FILTERS
-
 
 // Macros  
 #define LED_GREEN_GPIO			GPIOB
 #define LED_GREEN_PIN			5
 #define LED_RED_GPIO			GPIOB
-#define LED_RED_PIN			7
+#define LED_RED_PIN			    7
 
 #define LED_GREEN_ON()			palSetPad(LED_GREEN_GPIO, LED_GREEN_PIN)
 #define LED_GREEN_OFF()			palClearPad(LED_GREEN_GPIO, LED_GREEN_PIN)
@@ -60,17 +57,13 @@
 #define PHASE_FILTER_ON()		palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
 #define PHASE_FILTER_OFF()		palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
 #endif
-//#define AUX_GPIO			GPIOC
-//#define AUX_PIN			12
-//#define AUX_ON()			palSetPad(AUX_GPIO, AUX_PIN)
-//#define AUX_OFF()			palClearPad(AUX_GPIO, AUX_PIN)
 
 //MKSESC 75100 is also expected to add a current filter, 
 //but since it is low-test sampling, we set this configuration to off by default, 
 //leaving only the circuit as an expansion function.
 #define CURRENT_FILTER_GPIO		GPIOD
-// #define CURRENT_FILTER_ON()		palSetPad(CURRENT_FILTER_GPIO, 2)
-#define CURRENT_FILTER_OFF()		palClearPad(CURRENT_FILTER_GPIO, 2)
+//#define CURRENT_FILTER_ON()		palSetPad(CURRENT_FILTER_GPIO, 2)
+#define CURRENT_FILTER_OFF()    palClearPad(CURRENT_FILTER_GPIO, 2)
 
 /*
  * ADC Vector
@@ -78,21 +71,21 @@
  * 0  (1):	IN0		SENS1
  * 1  (2):	IN1		SENS2
  * 2  (3):	IN2		SENS3
- * 3  (1):	IN10		CURR1
- * 4  (2):	IN11		CURR2
- * 5  (3):	IN12		CURR3
+ * 3  (1):	IN10    CURR1
+ * 4  (2):	IN11    CURR2
+ * 5  (3):	IN12    CURR3
  * 6  (1):	IN5		ADC_EXT1
  * 7  (2):	IN6		ADC_EXT2
  * 8  (3):	IN3		TEMP_MOS
- * 9  (1):	IN14		TEMP_MOTOR
- * 10 (2):	IN15		ADC_EXT3
- * 11 (3):	IN13		AN_IN
+ * 9  (1):	IN14    TEMP_MOTOR
+ * 10 (2):	IN15    ADC_EXT3
+ * 11 (3):	IN13    AN_IN
  * 12 (1):	Vrefint
  * 13 (2):	IN0		SENS1
  * 14 (3):	IN1		SENS2
- * 15 (1):  	IN8		TEMP_MOS_2
- * 16 (2):  	IN9		TEMP_MOS_3
- * 17 (3):  	IN3		SENS3
+ * 15 (1):  IN8		TEMP_MOS_2
+ * 16 (2):  IN9		TEMP_MOS_3
+ * 17 (3):  IN3		SENS3
  */
 
 #define HW_ADC_CHANNELS			18
@@ -107,7 +100,7 @@
 #define ADC_IND_CURR2			4
 #define ADC_IND_CURR3			5
 #define ADC_IND_VIN_SENS		11
-#define ADC_IND_EXT			6
+#define ADC_IND_EXT             6
 #define ADC_IND_EXT2			7
 #define ADC_IND_EXT3			10
 #define ADC_IND_TEMP_MOS		8
@@ -120,14 +113,14 @@
 
 // Component parameters (can be overridden)
 #ifndef V_REG
-#define V_REG				3.34
+#define V_REG				    3.34
 #endif
 //The voltage dividing acquisition circuit on the Makerbase VESC motherboard is 560K and 21.5K resistors.
 #ifndef VIN_R1
-#define VIN_R1				56000.0 
+#define VIN_R1				    56000.0 
 #endif
 #ifndef VIN_R2
-#define VIN_R2				2200.0 
+#define VIN_R2				    2200.0 
 #endif
 
 #ifndef CURRENT_AMP_GAIN
@@ -144,8 +137,8 @@
 #define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
 #define NTC_TEMP(adc_ind)		(1.0 / ((logf(NTC_RES(ADC_Value[adc_ind]) / 10000.0) / 3435.0) + (1.0 / 298.15)) - 273.15) 
 
-#define NTC_RES_MOTOR(adc_val)		(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
-#define NTC_TEMP_MOTOR(beta)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
+#define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
@@ -169,7 +162,7 @@
 #define HW_ADC_EXT2_PIN			6
 
 // UART Peripheral
-#define HW_UART_DEV			SD3
+#define HW_UART_DEV			    SD3
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
 #define HW_UART_TX_PORT			GPIOB
 #define HW_UART_TX_PIN			10
@@ -185,25 +178,18 @@
 #define HW_UART_P_RX_PORT		GPIOC
 #define HW_UART_P_RX_PIN		11
 
-// Disable, consider upgrading later
-// NRF SWD
-//#define NRF5x_SWDIO_GPIO		GPIOA
-//#define NRF5x_SWDIO_PIN		15
-//#define NRF5x_SWCLK_GPIO		GPIOB
-//#define NRF5x_SWCLK_PIN		3
-
 // ICU Peripheral for servo decoding
 #define HW_USE_SERVO_TIM4
 #define HW_ICU_TIMER			TIM4
 #define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
-#define HW_ICU_DEV			ICUD4
+#define HW_ICU_DEV			    ICUD4
 #define HW_ICU_CHANNEL			ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF			GPIO_AF_TIM4
-#define HW_ICU_GPIO			GPIOB
-#define HW_ICU_PIN			6
+#define HW_ICU_GPIO			    GPIOB
+#define HW_ICU_PIN			    6
 
 // I2C Peripheral
-#define HW_I2C_DEV			I2CD2
+#define HW_I2C_DEV			    I2CD2
 #define HW_I2C_GPIO_AF			GPIO_AF_I2C2
 #define HW_I2C_SCL_PORT			GPIOB
 #define HW_I2C_SCL_PIN			10
@@ -217,7 +203,7 @@
 #define HW_HALL_ENC_PIN2		7
 #define HW_HALL_ENC_GPIO3		GPIOC
 #define HW_HALL_ENC_PIN3		8
-#define HW_ENC_TIM			TIM3
+#define HW_ENC_TIM			    TIM3
 #define HW_ENC_TIM_AF			GPIO_AF_TIM3
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
 #define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOC
@@ -229,7 +215,7 @@
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
 // SPI pins
-#define HW_SPI_DEV			SPID1
+#define HW_SPI_DEV			    SPID1
 #define HW_SPI_GPIO_AF			GPIO_AF_SPI1
 #define HW_SPI_PORT_NSS			GPIOA
 #define HW_SPI_PIN_NSS			4
@@ -241,10 +227,10 @@
 #define HW_SPI_PIN_MISO			6
 
 // Measurement macros
-#define ADC_V_L1			ADC_Value[ADC_IND_SENS1]
-#define ADC_V_L2			ADC_Value[ADC_IND_SENS2]
-#define ADC_V_L3			ADC_Value[ADC_IND_SENS3]
-#define ADC_V_ZERO			(ADC_Value[ADC_IND_VIN_SENS] / 2)
+#define ADC_V_L1			    ADC_Value[ADC_IND_SENS1]
+#define ADC_V_L2			    ADC_Value[ADC_IND_SENS2]
+#define ADC_V_L3			    ADC_Value[ADC_IND_SENS3]
+#define ADC_V_ZERO			    (ADC_Value[ADC_IND_VIN_SENS] / 2)
 
 // Macros
 #define READ_HALL1()			palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)
@@ -266,7 +252,7 @@
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
 #ifndef MCCONF_FOC_F_ZV
-#define MCCONF_FOC_F_ZV				30000.0 
+#define MCCONF_FOC_F_ZV				    30000.0 
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT		150.0	// The maximum absolute current above which a fault is generated
@@ -281,7 +267,6 @@
 #define MCCONF_L_IN_CURRENT_MIN			-20.0	// Input current limit in Amperes (Lower)
 #endif
 
-
 // Setting limits
 #define HW_LIM_CURRENT			-120.0, 120.0 
 #define HW_LIM_CURRENT_IN		-120.0, 120.0 
@@ -293,6 +278,5 @@
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
 // HW-specific functions
-
 
 #endif /* HW_MKSESC_75_100_CORE_H_ */
