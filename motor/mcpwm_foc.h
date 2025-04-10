@@ -99,7 +99,7 @@ int mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *cu
 bool mcpwm_foc_beep(float freq, float time, float voltage);
 bool mcpwm_foc_play_tone(int channel, float freq, float voltage);
 void mcpwm_foc_stop_audio(bool reset);
-bool mcpwm_foc_set_audio_sample_table(int channel, float *samples, int len);
+bool mcpwm_foc_set_audio_sample_table(int channel, const float *samples, int len);
 const float *mcpwm_foc_get_audio_sample_table(int channel);
 bool mcpwm_foc_play_audio_samples(const int8_t *samples, int num_samp, float f_samp, float voltage);
 
@@ -151,6 +151,8 @@ void mcpwm_foc_tim_sample_int_handler(void);
 void mcpwm_foc_adc_int_handler(void *p, uint32_t flags);
 
 // Defines
+#ifndef MCPWM_FOC_CURRENT_SAMP_OFFSET
 #define MCPWM_FOC_CURRENT_SAMP_OFFSET				(2) // Offset from timer top for ADC samples
+#endif
 
 #endif /* MCPWM_FOC_H_ */

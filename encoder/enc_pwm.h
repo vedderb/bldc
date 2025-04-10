@@ -1,5 +1,5 @@
 /*
-	Copyright 2021 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2025 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,11 +17,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MAIN_H_
-#define MAIN_H_
+#ifndef ENC_PWM_H_
+#define ENC_PWM_H_
 
-bool main_init_done(void);
-uint32_t main_calc_hw_crc(void);
-void main_stop_motor_and_reset(void);
+#include "datatypes.h"
 
-#endif /* MAIN_H_ */
+// Functions
+bool enc_pwm_init(bool update_abi);
+void enc_pwm_deinit(void);
+float enc_pwm_read_deg(void);
+uint32_t enc_pwm_update_cnt(void);
+
+#endif /* ENC_PWM_H_ */

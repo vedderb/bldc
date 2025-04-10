@@ -46,8 +46,13 @@
 #include <math.h>
 
 // Settings
+#ifndef FAULT_VEC_LEN
 #define FAULT_VEC_LEN						25
+#endif // FAULT_VEC_LEN
+
+#ifndef CALLBACK_LEN
 #define CALLBACK_LEN						40
+#endif // CALLBACK_LEN
 
 // Private types
 typedef struct _terminal_callback_struct {

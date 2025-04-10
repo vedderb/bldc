@@ -53,12 +53,15 @@ const unsigned short crc16_tab[] = { 0x0000, 0x1021, 0x2042, 0x3063, 0x4084,
 		0x0cc1, 0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8,
 		0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0 };
 
-unsigned short crc16(unsigned char *buf, unsigned int len) {
-	unsigned short cksum = 0;
+unsigned short crc16_rolling(unsigned short cksum, unsigned char *buf, unsigned int len) {
 	for (unsigned int i = 0; i < len; i++) {
 		cksum = crc16_tab[(((cksum >> 8) ^ *buf++) & 0xFF)] ^ (cksum << 8);
 	}
 	return cksum;
+}
+
+unsigned short crc16(unsigned char *buf, unsigned int len) {
+	return crc16_rolling(0, buf, len);
 }
 
 #ifndef NO_STM32

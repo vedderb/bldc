@@ -1,5 +1,5 @@
 /*
-	Copyright 2021 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2018 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -15,13 +15,13 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+    */
 
-#ifndef MAIN_H_
-#define MAIN_H_
+#ifndef HW_X1_H_
+#define HW_X1_H_
 
-bool main_init_done(void);
-uint32_t main_calc_hw_crc(void);
-void main_stop_motor_and_reset(void);
+#define HW_ITR_X1
 
-#endif /* MAIN_H_ */
+#include "hw_x1_core.h"
+
+#endif /* HW_X1_H_ */

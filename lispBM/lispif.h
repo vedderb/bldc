@@ -50,6 +50,6 @@ void lispif_process_rmsg(int slot, unsigned char *data, unsigned int len);
 
 void lispif_load_vesc_extensions(void);
 char* lispif_print_prefix(void);
-lib_thread lispif_spawn(void (*func)(void*), size_t stack_size, char *name, void *arg);
+lib_thread lispif_spawn(void (*func)(void*), size_t stack_size, const char *name, void *arg);
 
 #endif /* LISPBM_LISPIF_H_ */

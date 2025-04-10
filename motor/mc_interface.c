@@ -129,6 +129,8 @@ static volatile int m_sample_trigger;
 static volatile float m_last_adc_duration_sample;
 static volatile bool m_sample_is_second_motor;
 static volatile gnss_data m_gnss = {0};
+static volatile bool m_wheel_speed_override = false;
+static volatile float m_wheel_speed_override_value = 0.0;
 
 typedef struct {
 	bool is_second_motor;
@@ -1600,13 +1602,17 @@ float mc_interface_get_battery_level(float *wh_left) {
  * Speed, in m/s
  */
 float mc_interface_get_speed(void) {
+	if (m_wheel_speed_override) {
+		return m_wheel_speed_override_value;
+	} else {
 #ifdef HW_HAS_WHEEL_SPEED_SENSOR
-	return hw_get_speed();
+		return hw_get_speed();
 #else
-	const volatile mc_configuration *conf = mc_interface_get_configuration();
-	const float rpm = mc_interface_get_rpm() / (conf->si_motor_poles / 2.0);
-	return (rpm / 60.0) * conf->si_wheel_diameter * M_PI / conf->si_gear_ratio;
+		const volatile mc_configuration *conf = mc_interface_get_configuration();
+		const float rpm = mc_interface_get_rpm() / (conf->si_motor_poles / 2.0);
+		return (rpm / 60.0) * conf->si_wheel_diameter * M_PI / conf->si_gear_ratio;
 #endif
+	}
 }
 
 /**
@@ -1635,6 +1641,11 @@ float mc_interface_get_distance_abs(void) {
 	const float tacho_scale = (conf->si_wheel_diameter * M_PI) / (3.0 * conf->si_motor_poles * conf->si_gear_ratio);
 	return mc_interface_get_tachometer_abs_value(false) * tacho_scale;
 #endif
+}
+
+void mc_interface_override_wheel_speed(bool ovr, float speed) {
+	m_wheel_speed_override = ovr;
+	m_wheel_speed_override_value = speed;
 }
 
 setup_values mc_interface_get_setup_values(void) {
@@ -1742,6 +1753,8 @@ bool mc_interface_wait_for_motor_release_both(float timeout) {
 		mc_interface_select_motor_thread(motor_last);
 		return false;
 	}
+
+	mc_interface_select_motor_thread(motor_last);
 
 	return true;
 }

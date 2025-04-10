@@ -245,6 +245,48 @@ float utils_fast_atan2(float y, float x) {
 	}
 }
 
+float utils_fast_sin(float angle) {
+	while (angle < -M_PI) {
+		angle += 2.0 * M_PI;
+	}
+
+	while (angle >  M_PI) {
+		angle -= 2.0 * M_PI;
+	}
+
+	float res = 0.0;
+
+	if (angle < 0.0) {
+		res = 1.27323954 * angle + 0.405284735 * angle * angle;
+	} else {
+		res = 1.27323954 * angle - 0.405284735 * angle * angle;
+	}
+
+	return res;
+}
+
+float utils_fast_cos(float angle) {
+	angle += 0.5 * M_PI;
+
+	while (angle < -M_PI) {
+		angle += 2.0 * M_PI;
+	}
+
+	while (angle >  M_PI) {
+		angle -= 2.0 * M_PI;
+	}
+
+	float res = 0.0;
+
+	if (angle < 0.0) {
+		res = 1.27323954 * angle + 0.405284735 * angle * angle;
+	} else {
+		res = 1.27323954 * angle - 0.405284735 * angle * angle;
+	}
+
+	return res;
+}
+
 /**
  * Fast sine and cosine implementation.
  *
