@@ -18,7 +18,6 @@
 */
 	
 #ifndef HW_MKSESC_75_100_CORE_H_
-
 #define HW_MKSESC_75_100_CORE_H_
 
 //Makerbase reminds you: When choosing to compile a board, 
