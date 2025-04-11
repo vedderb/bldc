@@ -7,6 +7,10 @@
 	* Added const-heap-erase extension.
 	* Added mutex support.
 	* Added can-ping extension.
+	* LBM Image support
+		* Super fast boot possible
+		* Much easier to use const blocks
+		* Rebuild image and const data when needed
 * New offset calibration modes and options.
 * Automatic offset calibration support.
 * Added HFI ambiguity resolution modes using id injection.

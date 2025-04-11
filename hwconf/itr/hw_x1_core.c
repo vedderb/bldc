@@ -111,19 +111,21 @@ static lbm_value ext_pwr_read(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_i(palReadPad(HW_PWR_GPIO, HW_PWR_PIN) ? 1 : 0);
 }
 
-static void load_extensions(void) {
-	lbm_add_extension("read-brake", ext_read_brake);
-	lbm_add_extension("read-gear", ext_read_gear);
-	lbm_add_extension("read-pas1", ext_read_pas1);
-	lbm_add_extension("read-pas2", ext_read_pas2);
-	lbm_add_extension("read-speed", ext_read_speed);
-	lbm_add_extension("pas-last-time", ext_pas_last_time);
-	lbm_add_extension("pas-age", ext_pas_age);
-	lbm_add_extension("pas-pulse-cnt", ext_pas_pulse_cnt);
-	lbm_add_extension("speed-last-time", ext_speed_last_time);
-	lbm_add_extension("speed-age", ext_speed_age);
-	lbm_add_extension("pwr-hold", ext_pwr_hold);
-	lbm_add_extension("pwr-read", ext_pwr_read);
+static void load_extensions(bool main_found) {
+	if (!main_found) {
+		lbm_add_extension("read-brake", ext_read_brake);
+		lbm_add_extension("read-gear", ext_read_gear);
+		lbm_add_extension("read-pas1", ext_read_pas1);
+		lbm_add_extension("read-pas2", ext_read_pas2);
+		lbm_add_extension("read-speed", ext_read_speed);
+		lbm_add_extension("pas-last-time", ext_pas_last_time);
+		lbm_add_extension("pas-age", ext_pas_age);
+		lbm_add_extension("pas-pulse-cnt", ext_pas_pulse_cnt);
+		lbm_add_extension("speed-last-time", ext_speed_last_time);
+		lbm_add_extension("speed-age", ext_speed_age);
+		lbm_add_extension("pwr-hold", ext_pwr_hold);
+		lbm_add_extension("pwr-read", ext_pwr_read);
+	}
 }
 
 void hw_init_gpio(void) {

@@ -42,6 +42,7 @@ void flash_helper_jump_to_bootloader(void);
 uint8_t* flash_helper_get_sector_address(uint32_t fsector);
 uint32_t flash_helper_verify_flash_memory(void);
 uint32_t flash_helper_verify_flash_memory_chunk(void);
+uint32_t flash_helper_app_crc(void);
 
 // functions used in vesc_c_if.h and therefore accessible to packages
 bool flash_helper_read_nvm(uint8_t *v, unsigned int len, unsigned int address);

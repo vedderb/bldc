@@ -408,6 +408,10 @@ uint32_t flash_helper_verify_flash_memory_chunk(void) {
 	return res;
 }
 
+uint32_t flash_helper_app_crc(void) {
+	return *APP_CRC_ADDRESS;
+}
+
 static uint16_t erase_sector(uint32_t sector) {
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
@@ -486,7 +490,7 @@ static void qmlui_check(int ind) {
 	code_checks[ind].check_done = true;
 }
 
-#define VESC_IF_NVM_REGION_SIZE	(ADDR_FLASH_SECTOR_9 - ADDR_FLASH_SECTOR_8)
+#define VESC_IF_NVM_REGION_SIZE	(ADDR_FLASH_SECTOR_11 - ADDR_FLASH_SECTOR_10)
 
 /**
   * @brief  Reads len bytes to v from nvm at address
@@ -500,7 +504,7 @@ bool flash_helper_read_nvm(uint8_t *v, unsigned int len, unsigned int address) {
 		return false;
 	}
 
-	memcpy(v, (uint8_t*)(ADDR_FLASH_SECTOR_8 + address), len);
+	memcpy(v, (uint8_t*)(ADDR_FLASH_SECTOR_11 + address), len);
 
 	return true;
 }
@@ -517,7 +521,7 @@ bool flash_helper_write_nvm(uint8_t *v, unsigned int len, unsigned int address) 
 		return false;
 	}
 
-	uint16_t res = write_data(ADDR_FLASH_SECTOR_8 + address, v, len);
+	uint16_t res = write_data(ADDR_FLASH_SECTOR_11 + address, v, len);
 
 	return (res == FLASH_COMPLETE);
 }
@@ -527,7 +531,7 @@ bool flash_helper_write_nvm(uint8_t *v, unsigned int len, unsigned int address) 
   * @retval Boolean indicating success or failure
   */
 bool flash_helper_wipe_nvm(void) {
-	return (erase_sector(flash_sector[8]) == FLASH_COMPLETE);
+	return (erase_sector(flash_sector[11]) == FLASH_COMPLETE);
 }
 
 #pragma GCC pop_options
