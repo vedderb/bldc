@@ -45,6 +45,16 @@ typedef void (*symrepr_name_iterator_fun)(const char *);
  */
 void lbm_symrepr_set_symlist(lbm_uint *ls);
 
+/** Get the next to be assigned symbol id.
+ * \return id;
+ */
+lbm_uint lbm_symrepr_get_next_id(void);
+
+/** Set the next to be assigned symbol id.
+ * \param id Next id
+ */
+void lbm_symrepr_set_next_id(lbm_uint id);
+
 /** Store a symbol name on the constant heap (flash).
  * \param name Symbol name.
  * \param res Pointer where result address in flash is returned.
