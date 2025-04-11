@@ -5264,8 +5264,6 @@ lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 
 	bool r = lbm_image_save_global_env();
-	commands_printf_lisp("Save env: %d", r);
-
 	lbm_uint main_sym = ENC_SYM_NIL;
 	if (lbm_get_symbol_by_name("main", &main_sym)) {
 		lbm_value binding;
