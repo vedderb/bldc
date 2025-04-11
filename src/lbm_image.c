@@ -641,23 +641,21 @@ bool lbm_image_save_global_env(void) {
           write_lbm_value(name_field, &write_index, DOWNWARDS);
           write_lbm_value(val_field, &write_index, DOWNWARDS);
         } else {
-
           int fv_size = image_flatten_size(val_field);
           if (fv_size > 0) {
             fv_size = (fv_size % 4 == 0) ? (fv_size / 4) : (fv_size / 4) + 1; // num 32bit words
-            int tot_size =  fv_size; //+ 1 + (int)(sizeof(lbm_uint) / 4);
 
-            if (write_index + tot_size >= (int32_t)image_size) {
+            if ((write_index - fv_size) >= (int32_t)image_const_heap.next) {
               return false;
             }
             write_u32(BINDING_FLAT, &write_index, DOWNWARDS);
             write_u32((uint32_t)fv_size , &write_index, DOWNWARDS);
             write_lbm_value(name_field, &write_index, DOWNWARDS);
-            write_index = write_index - fv_size; // subtract fv_size
-            if (image_flatten_value(val_field)) {      // adds fv_size back
-	      // TODO: What error handling makes sense?
-	      fv_write_flush();
-	    }
+            write_index = write_index - fv_size;  // subtract fv_size
+            if (image_flatten_value(val_field)) { // adds fv_size backq
+              // TODO: What error handling makes sense?
+              fv_write_flush();
+            }
             write_index = write_index - fv_size - 1; // subtract fv_size
           } else {
             return false;
