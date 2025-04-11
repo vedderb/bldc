@@ -267,6 +267,15 @@ void lbm_symrepr_set_symlist(lbm_uint *ls) {
   symlist = ls;
 }
 
+
+lbm_uint lbm_symrepr_get_next_id(void) {
+  return next_symbol_id;
+}
+
+void lbm_symrepr_set_next_id(lbm_uint id) {
+  next_symbol_id = id;
+}
+
 int lbm_symrepr_init(void) {
   symlist = NULL;
   next_symbol_id = RUNTIME_SYMBOLS_START;
