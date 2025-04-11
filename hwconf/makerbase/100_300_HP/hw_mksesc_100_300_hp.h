@@ -31,7 +31,7 @@
 #define LED_GREEN_GPIO			GPIOB
 #define LED_GREEN_PIN			5
 #define LED_RED_GPIO			GPIOB
-#define LED_RED_PIN				7
+#define LED_RED_PIN			    7
 
 #define LED_GREEN_ON()			palSetPad(LED_GREEN_GPIO, LED_GREEN_PIN)
 #define LED_GREEN_OFF()			palClearPad(LED_GREEN_GPIO, LED_GREEN_PIN)
@@ -52,12 +52,12 @@
 
 // Hold shutdown pin early to wake up on short pulses
 #define HW_EARLY_INIT()			palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
-								HW_SHUTDOWN_HOLD_ON();      
+					            HW_SHUTDOWN_HOLD_ON();      
 
-#define AUX_GPIO				GPIOC
-#define AUX_PIN					12
-#define AUX_ON()				palSetPad(AUX_GPIO, AUX_PIN)
-#define AUX_OFF()				palClearPad(AUX_GPIO, AUX_PIN)
+#define AUX_GPIO			    GPIOC
+#define AUX_PIN				    12
+#define AUX_ON()			    palSetPad(AUX_GPIO, AUX_PIN)
+#define AUX_OFF()			    palClearPad(AUX_GPIO, AUX_PIN)
 
 #define CURRENT_FILTER_ON()		palSetPad(GPIOD, 2)
 #define CURRENT_FILTER_OFF()	palClearPad(GPIOD, 2)
@@ -97,7 +97,7 @@
 #define ADC_IND_CURR2			4
 #define ADC_IND_CURR3			5
 #define ADC_IND_VIN_SENS		11
-#define ADC_IND_EXT				6
+#define ADC_IND_EXT			    6
 #define ADC_IND_EXT2			7
 #define ADC_IND_SHUTDOWN		10
 #define ADC_IND_TEMP_MOS		8
@@ -110,15 +110,15 @@
 
 // Component parameters (can be overridden)
 #ifndef V_REG
-#define V_REG					3.34
+#define V_REG				    3.30
 #endif
 
 //The voltage dividing acquisition circuit on the Makerbase VESC motherboard is 220K and 4.7K resistors.
 #ifndef VIN_R1
-#define VIN_R1					220000.0 
+#define VIN_R1				    220000.0 
 #endif
 #ifndef VIN_R2
-#define VIN_R2					4700.0 
+#define VIN_R2				    4700.0 
 #endif
 
 #ifndef CURRENT_AMP_GAIN
@@ -160,7 +160,7 @@
 #define HW_ADC_EXT2_PIN			6
 
 // UART Peripheral
-#define HW_UART_DEV				SD3
+#define HW_UART_DEV			    SD3
 #define HW_UART_GPIO_AF			GPIO_AF_USART3
 #define HW_UART_TX_PORT			GPIOB
 #define HW_UART_TX_PIN			10
@@ -188,14 +188,14 @@
 #define HW_USE_SERVO_TIM4
 #define HW_ICU_TIMER			TIM4
 #define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
-#define HW_ICU_DEV				ICUD4
+#define HW_ICU_DEV			    ICUD4
 #define HW_ICU_CHANNEL			ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF			GPIO_AF_TIM4
-#define HW_ICU_GPIO				GPIOB
-#define HW_ICU_PIN				6
+#define HW_ICU_GPIO			    GPIOB
+#define HW_ICU_PIN			    6
 
 // I2C Peripheral
-#define HW_I2C_DEV				I2CD2
+#define HW_I2C_DEV			    I2CD2
 #define HW_I2C_GPIO_AF			GPIO_AF_I2C2
 #define HW_I2C_SCL_PORT			GPIOB
 #define HW_I2C_SCL_PIN			10
@@ -209,7 +209,7 @@
 #define HW_HALL_ENC_PIN2		7
 #define HW_HALL_ENC_GPIO3		GPIOC
 #define HW_HALL_ENC_PIN3		8
-#define HW_ENC_TIM				TIM3
+#define HW_ENC_TIM			    TIM3
 #define HW_ENC_TIM_AF			GPIO_AF_TIM3
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
 #define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOC
@@ -221,7 +221,7 @@
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
 // SPI pins
-#define HW_SPI_DEV				SPID1
+#define HW_SPI_DEV			    SPID1
 #define HW_SPI_GPIO_AF			GPIO_AF_SPI1
 #define HW_SPI_PORT_NSS			GPIOA
 #define HW_SPI_PIN_NSS			4
@@ -233,10 +233,10 @@
 #define HW_SPI_PIN_MISO			6
 
 // Measurement macros
-#define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
-#define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
-#define ADC_V_L3				ADC_Value[ADC_IND_SENS3]
-#define ADC_V_ZERO				(ADC_Value[ADC_IND_VIN_SENS] / 2)
+#define ADC_V_L1			    ADC_Value[ADC_IND_SENS1]
+#define ADC_V_L2			    ADC_Value[ADC_IND_SENS2]
+#define ADC_V_L3			    ADC_Value[ADC_IND_SENS3]
+#define ADC_V_ZERO			    (ADC_Value[ADC_IND_VIN_SENS] / 2)
 
 // Macros
 #define READ_HALL1()			palReadPad(HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1)
@@ -253,33 +253,31 @@
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE			110.0	// Maximum input voltage
 #endif
-#endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
 #ifndef MCCONF_FOC_F_ZV
-#define MCCONF_FOC_F_ZV					30000.0 
+#define MCCONF_FOC_F_ZV				    30000.0 
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT		650.0	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
 #define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
-
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
 #define MCCONF_L_IN_CURRENT_MAX			300.0	// Input current limit in Amperes (Upper)
+#endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
 #define MCCONF_L_IN_CURRENT_MIN			-30.0	// Input current limit in Amperes (Lower)
 #endif
-
 
 // Setting limits
 #define HW_LIM_CURRENT			-500.0, 500.0 
 #define HW_LIM_CURRENT_IN		-500.0, 500.0 
 #define HW_LIM_CURRENT_ABS		0.0, 650 
-#define HW_LIM_VIN				6.0, 120.0 
-#define HW_LIM_ERPM				-200e3, 200e3 
+#define HW_LIM_VIN			    6.0, 120.0 
+#define HW_LIM_ERPM			    -200e3, 200e3 
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
@@ -287,4 +285,5 @@
 // HW-specific functions
 float hw100_300_get_temp(void);
 bool hw_sample_shutdown_button(void);
+
 #endif /* HW_MKSESC_100_300_HP_H_ */
