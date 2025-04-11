@@ -433,9 +433,6 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
 // the same address between runs.
 int lbm_add_symbol_const_base(char *name, lbm_uint* id, bool link) {
   lbm_uint symbol_name_storage = (lbm_uint)name;
-#ifdef __PIC__
-  if (!store_symbol_name_flash(name, &symbol_name_storage)) return 0;
-#endif
   lbm_uint *new_symlist;
   if (link) {
     new_symlist = lbm_image_add_and_link_symbol((char*)symbol_name_storage, next_symbol_id, (lbm_uint)symlist, id);
