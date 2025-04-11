@@ -644,8 +644,7 @@ bool lbm_image_save_global_env(void) {
           int fv_size = image_flatten_size(val_field);
           if (fv_size > 0) {
             fv_size = (fv_size % 4 == 0) ? (fv_size / 4) : (fv_size / 4) + 1; // num 32bit words
-
-            if ((write_index - fv_size) >= (int32_t)image_const_heap.next) {
+            if ((write_index - fv_size) <= (int32_t)image_const_heap.next) {
               return false;
             }
             write_u32(BINDING_FLAT, &write_index, DOWNWARDS);
@@ -714,8 +713,7 @@ bool lbm_image_save_extensions(void) {
       r = r && write_u32((uint32_t)name_ptr, &write_index, DOWNWARDS);
       r = r && write_u32((uint32_t)extension_table[i].fptr, &write_index, DOWNWARDS);
 #endif
-    }
-  }
+    }  }
   return true;
 }
 
@@ -724,6 +722,7 @@ static uint32_t last_const_heap_ix = 0;
 bool lbm_image_save_constant_heap_ix(void) {
   bool r = true; // saved or no need to save it.
   if (image_const_heap.next != last_const_heap_ix) {
+    last_const_heap_ix = image_const_heap.next;
     r = write_u32(CONSTANT_HEAP_IX, &write_index, DOWNWARDS);
     r = r && write_u32((uint32_t)image_const_heap.next, &write_index, DOWNWARDS);
   }
