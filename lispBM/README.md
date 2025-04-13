@@ -5641,6 +5641,48 @@ Change the stack size for the garbage collector. If the GC stack is too small th
 
 ---
 
+#### image-save
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.06+ |
+
+```clj
+(image-save)
+```
+
+Save everything in the global environment in an image. Returns true on success and nil on failure. This function can fail if defrag memory pools are present in the global environment as these cannot be flattened. Instead, they should be created in the main-function of the program. This function will also fail if a main-function is missing.
+
+After calling image-save, the next time lbm is started (such as at the next boot) the environment at the point where image-save was called will be re-created and the main-function will be called. This bypasses the reader on the next boot, which speeds up the boot-time greatly (on large programs from several seconds to a few milliseconds). It also makes it much easier to use const-blocks as one does not have to take care for the reader to always create everything in the same order.
+
+One has to take care to move everything that alters the external state of the hardware, such as initializing drivers and io-pins, into the main-function as this state won't be restored when loading the image. This might sound strange in this context, but keep in mind that it is what you always do when writing regular C-programs on embedded hardware - when you enter main you initialize everything and start your threads and main loop.
+
+When building something battery-powered like a BMS that wakes up from sleep regularly to check things image-save is very useful as it is critical to boot fast to conserve power. A fast boot also improves the user experience in general.
+
+Example:
+
+```clj
+(defun test (a) {
+        (print (list "Arg:" a))
+})
+
+(defun main () {
+        (loopwhile t {
+                (test 123)
+                (sleep 1)
+        })
+})
+
+(image-save)
+
+; This is only needed in order to start the program before rebooting. Without
+; calling main here one has to reboot or restart lbm after stream or upload in
+; order to call main.
+(main)
+```
+
+---
+
 ## Mutexes
 
 Mutexes can be used to lock resources from other contexts. Example:
