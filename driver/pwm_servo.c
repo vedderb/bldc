@@ -76,9 +76,9 @@ void pwm_servo_init_servo(void) {
 void pwm_servo_stop(void) {
 	if (m_is_running) {
 		palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT);
+		TIM_DeInit(HW_ICU_TIMER);
 	}
 
-	TIM_DeInit(HW_ICU_TIMER);
 	m_is_running = false;
 }
 
