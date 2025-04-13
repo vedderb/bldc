@@ -743,6 +743,7 @@ void lbm_image_init(uint32_t* image_mem_address,
   write_index = (int32_t)image_size_words -1;
   image_has_extensions = false;
   image_version = NULL;
+  last_const_heap_ix = 0;
 }
 
 void lbm_image_create(char *version_str) {
