@@ -68,7 +68,7 @@ static volatile int fault_vec_write = 0;
 static terminal_callback_struct callbacks[CALLBACK_LEN];
 static int callback_write = 0;
 
-void terminal_process_string(char *str) {
+__attribute__((section(".text2"))) void terminal_process_string(char *str) {
 	// Echo command so user can see what they previously ran
 	commands_printf("-> %s \n", str);
 
