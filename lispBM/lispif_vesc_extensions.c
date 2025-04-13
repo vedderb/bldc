@@ -18,7 +18,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "lispif.h"
@@ -5844,5 +5843,3 @@ char* lispif_print_prefix(void) {
 	print_prefix[sizeof(print_prefix) - 1] = 0;
 	return print_prefix;
 }
-
-#pragma GCC pop_options

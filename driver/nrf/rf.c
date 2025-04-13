@@ -18,7 +18,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "rf.h"
@@ -360,5 +359,3 @@ char rf_read_reg_byte(int reg) {
 	rf_read_reg(reg, &result, 1);
 	return result;
 }
-
-#pragma GCC pop_options

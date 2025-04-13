@@ -18,7 +18,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "lispif.h"
@@ -871,5 +870,3 @@ static THD_FUNCTION(eval_thread, arg) {
 	lbm_run_eval();
 	lisp_thd_running = false;
 }
-
-#pragma GCC pop_options

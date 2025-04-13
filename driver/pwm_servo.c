@@ -23,7 +23,6 @@
 #include "conf_general.h"
 #include "utils.h"
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 // Settings
@@ -122,5 +121,3 @@ void pwm_servo_set_servo_out(float output) {
 bool pwm_servo_is_running(void) {
 	return m_is_running;
 }
-
-#pragma GCC pop_options

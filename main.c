@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "ch.h"
@@ -405,5 +404,3 @@ void main_stop_motor_and_reset(void) {
 
 	NVIC_SystemReset();
 }
-
-#pragma GCC pop_options

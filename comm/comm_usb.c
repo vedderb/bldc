@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "ch.h"
@@ -137,5 +136,3 @@ void comm_usb_send_packet(unsigned char *data, unsigned int len) {
 unsigned int comm_usb_get_write_timeout_cnt(void) {
 	return write_timeout_cnt;
 }
-
-#pragma GCC pop_options

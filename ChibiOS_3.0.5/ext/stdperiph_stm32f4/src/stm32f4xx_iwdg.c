@@ -81,7 +81,6 @@
   ******************************************************************************
   */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 /* Includes ------------------------------------------------------------------*/
@@ -249,8 +248,6 @@ FlagStatus IWDG_GetFlagStatus(uint16_t IWDG_FLAG)
   /* Return the flag status */
   return bitstatus;
 }
-
-#pragma GCC pop_options
 
 /**
   * @}

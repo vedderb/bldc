@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "flash_helper.h"
@@ -533,5 +532,3 @@ bool flash_helper_write_nvm(uint8_t *v, unsigned int len, unsigned int address) 
 bool flash_helper_wipe_nvm(void) {
 	return (erase_sector(flash_sector[11]) == FLASH_COMPLETE);
 }
-
-#pragma GCC pop_options

@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include <string.h>
@@ -2281,5 +2280,3 @@ static void set_timing(int brp, int ts1, int ts2) {
 	canStart(&HW_CAN_DEV, &cancfg);
 #endif
 }
-
-#pragma GCC pop_options

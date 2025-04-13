@@ -24,7 +24,6 @@
  * this module to interpret CAN-messages from it properly.
  */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "bms.h"
@@ -696,5 +695,3 @@ void bms_send_status_can(void) {
 	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_STATUS_4 << 8), (uint8_t*)m_values.status + 24, send_index);
 	comm_can_transmit_eid(id | ((uint32_t)CAN_PACKET_BMS_STATUS_5 << 8), (uint8_t*)m_values.status + 32, send_index);
 }
-
-#pragma GCC pop_options

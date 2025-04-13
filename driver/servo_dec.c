@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "servo_dec.h"
@@ -207,5 +206,3 @@ float servodec_get_last_pulse_len(int servo_num) {
 bool servodec_is_running(void) {
 	return is_running;
 }
-
-#pragma GCC pop_options
