@@ -18,6 +18,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
+
 #include "encoder.h"
 #include "encoder_datatype.h"
 #include "encoder_cfg.h"
@@ -393,6 +396,8 @@ void encoder_set_custom_callbacks (
 	}
 }
 
+#pragma GCC pop_options
+
 float encoder_read_deg(void) {
 	if (m_encoder_type_now == ENCODER_TYPE_AS504x) {
 		return AS504x_LAST_ANGLE(&encoder_cfg_as504x);
@@ -491,6 +496,16 @@ void encoder_reset_errors(void) {
 		enc_ad2s1205_reset_errors(&encoder_cfg_ad2s1205);
 	}
 }
+
+void encoder_pin_isr(void) {
+	enc_abi_pin_isr(&encoder_cfg_ABI);
+}
+
+void encoder_tim_isr(void) {
+	// Use thread. Maybe use this one for encoders with a higher rate.
+}
+
+#pragma GCC optimize ("Os")
 
 float encoder_get_error_rate(void) {
 	float res = -1.0;
@@ -654,14 +669,6 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 			break;
 		}
 	}
-}
-
-void encoder_pin_isr(void) {
-	enc_abi_pin_isr(&encoder_cfg_ABI);
-}
-
-void encoder_tim_isr(void) {
-	// Use thread. Maybe use this one for encoders with a higher rate.
 }
 
 static void terminal_encoder(int argc, const char **argv) {
