@@ -458,6 +458,12 @@ This is the ADC-channel that the motor temperature sensor goes to. Note: if you 
 **Channel 4+:**  
 Some hardware has additional ADC-channels which also can be read with this function. If they are missing the voltage on ADC1 is returned instead.
 
+**Channel 20 (FW6.06+):**  
+Sin/Cos encoder SIN channel
+
+**Channel 21 (FW6.06+):**  
+Sin/Cos encoder COS channel
+
 ---
 
 #### override-temp-motor

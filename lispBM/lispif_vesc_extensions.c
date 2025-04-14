@@ -997,26 +997,19 @@ static lbm_value ext_get_adc(lbm_value *args, lbm_uint argn) {
 		return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT));
 	} else if (argn == 1) {
 		lbm_int channel = lbm_dec_as_i32(args[0]);
-		if (channel == 0) {
-			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT));
-		} else if (channel == 1) {
-			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT2));
-		} else if (channel == 2) {
-			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT3));
-		} else if (channel == 3) {
-			return lbm_enc_float(ADC_VOLTS(ADC_IND_TEMP_MOTOR));
-		} else if (channel == 4) {
-			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT4));
-		} else if (channel == 5) {
-			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT5));
-		} else if (channel == 6) {
-			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT6));
-		} else if (channel == 7) {
-			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT7));
-		} else if (channel == 8) {
-			return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT8));
-		} else {
-			return ENC_SYM_EERROR;
+		switch (channel) {
+		case 0: return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT));
+		case 1: return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT2));
+		case 2: return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT3));
+		case 3: return lbm_enc_float(ADC_VOLTS(ADC_IND_TEMP_MOTOR));
+		case 4: return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT4));
+		case 5: return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT5));
+		case 6: return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT6));
+		case 7: return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT7));
+		case 8: return lbm_enc_float(ADC_VOLTS(ADC_IND_EXT8));
+		case 20: return lbm_enc_float(ENCODER_SIN_VOLTS);
+		case 21: return lbm_enc_float(ENCODER_COS_VOLTS);
+		default: return ENC_SYM_EERROR;
 		}
 	} else {
 		return ENC_SYM_EERROR;
