@@ -195,6 +195,8 @@ typedef struct {
 	lbm_uint m_out_aux_mode;
 	lbm_uint m_motor_temp_sens_type;
 	lbm_uint m_ntc_motor_beta;
+	lbm_uint m_encoder_counts;
+	lbm_uint m_sensor_port_mode;
 	lbm_uint si_motor_poles;
 	lbm_uint si_gear_ratio;
 	lbm_uint si_wheel_diameter;
@@ -521,6 +523,10 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("m-motor-temp-sens-type", comp);
 		} else if (comp == &syms_vesc.m_ntc_motor_beta) {
 			lbm_add_symbol_const("m-ntc-motor-beta", comp);
+		} else if (comp == &syms_vesc.m_encoder_counts) {
+			lbm_add_symbol_const("m-encoder-counts", comp);
+		} else if (comp == &syms_vesc.m_sensor_port_mode) {
+			lbm_add_symbol_const("m-sensor-port-mode", comp);
 		} else if (comp == &syms_vesc.si_motor_poles) {
 			lbm_add_symbol_const("si-motor-poles", comp);
 		} else if (comp == &syms_vesc.si_gear_ratio) {
@@ -3699,6 +3705,12 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.foc_fw_duty_start)) {
 			mcconf->foc_fw_duty_start = lbm_dec_as_float(args[1]);
 			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.m_encoder_counts)) {
+			mcconf->m_encoder_counts = lbm_dec_as_float(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.m_sensor_port_mode)) {
+			mcconf->m_sensor_port_mode = lbm_dec_as_i32(args[1]);
+			changed_mc = 2;
 		} else if (compare_symbol(name, &syms_vesc.can_baud_rate)) {
 			appconf->can_baud_rate = lbm_dec_as_i32(args[1]);
 			changed_app = 2;
@@ -4010,6 +4022,10 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_i(mcconf->m_motor_temp_sens_type);
 	} else if (compare_symbol(name, &syms_vesc.m_ntc_motor_beta)) {
 		res = lbm_enc_float(mcconf->m_ntc_motor_beta);
+	} else if (compare_symbol(name, &syms_vesc.m_encoder_counts)) {
+		res = lbm_enc_float(mcconf->m_encoder_counts);
+	} else if (compare_symbol(name, &syms_vesc.m_sensor_port_mode)) {
+		res = lbm_enc_i(mcconf->m_sensor_port_mode);
 	} else if (compare_symbol(name, &syms_vesc.si_motor_poles)) {
 		res = lbm_enc_i(mcconf->si_motor_poles);
 	} else if (compare_symbol(name, &syms_vesc.si_gear_ratio)) {
@@ -4409,6 +4425,35 @@ static lbm_value ext_conf_dc_cal_set(lbm_value *args, lbm_uint argn) {
 	}
 
 	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_conf_enc_sincos(lbm_value *args, lbm_uint argn) {
+	volatile mc_configuration *conf = (volatile mc_configuration*)mc_interface_get_configuration();
+
+	for (lbm_uint i = 0;i < argn;i++) {
+		if (lbm_is_number(args[i])) {
+			float val = lbm_dec_as_float(args[i]);
+
+			switch (i) {
+				case 0: conf->m_encoder_sin_amp = val; break;
+				case 1: conf->m_encoder_cos_amp = val; break;
+				case 2: conf->m_encoder_sin_offset = val; break;
+				case 3: conf->m_encoder_cos_offset = val; break;
+				case 4: conf->m_encoder_sincos_filter_constant = val; break;
+				case 5: conf->m_encoder_sincos_phase_correction = val; break;
+				default: break;
+			}
+		}
+	}
+
+	lbm_value res = ENC_SYM_NIL;
+	res = lbm_cons(lbm_enc_float(conf->m_encoder_sincos_phase_correction), res);
+	res = lbm_cons(lbm_enc_float(conf->m_encoder_sincos_filter_constant), res);
+	res = lbm_cons(lbm_enc_float(conf->m_encoder_cos_offset), res);
+	res = lbm_cons(lbm_enc_float(conf->m_encoder_sin_offset), res);
+	res = lbm_cons(lbm_enc_float(conf->m_encoder_cos_amp), res);
+	res = lbm_cons(lbm_enc_float(conf->m_encoder_sin_amp), res);
+	return res;
 }
 
 static lbm_value ext_conf_get_limits(lbm_value *args, lbm_uint argn) {
@@ -5563,6 +5608,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("conf-restore-app", ext_conf_restore_app);
 		lbm_add_extension("conf-dc-cal", ext_conf_dc_cal);
 		lbm_add_extension("conf-dc-cal-set", ext_conf_dc_cal_set);
+		lbm_add_extension("conf-enc-sincos", ext_conf_enc_sincos);
 		lbm_add_extension("conf-get-limits", ext_conf_get_limits);
 
 		// Native libraries

@@ -3665,6 +3665,23 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    7: FOC_SENSOR_MODE_HFI_V4
                         ;    8: FOC_SENSOR_MODE_HFI_V5
 'm-ntc-motor-beta       ; Beta Value for Motor Thermistor
+'m_encoder_counts       ; ABI encoder counts (FW 6.06)
+'m_sensor_port_mode     ; Sensor port mode (FW 6.06)
+                        ;    0: SENSOR_PORT_MODE_HALL
+                        ;    1: SENSOR_PORT_MODE_ABI
+                        ;    2: SENSOR_PORT_MODE_AS5047_SPI
+                        ;    3: SENSOR_PORT_MODE_AD2S1205
+                        ;    4: SENSOR_PORT_MODE_SINCOS
+                        ;    5: SENSOR_PORT_MODE_TS5700N8501
+                        ;    6: SENSOR_PORT_MODE_TS5700N8501_MULTITURN
+                        ;    7: SENSOR_PORT_MODE_MT6816_SPI_HW
+                        ;    8: SENSOR_PORT_MODE_AS5x47U_SPI
+                        ;    9: SENSOR_PORT_MODE_BISSC
+                        ;    10: SENSOR_PORT_MODE_TLE5012_SSC_SW
+                        ;    11: SENSOR_PORT_MODE_TLE5012_SSC_HW
+                        ;    12: SENSOR_PORT_MODE_CUSTOM_ENCODER
+                        ;    13: SENSOR_PORT_MODE_PWM
+                        ;    14: SENSOR_PORT_MODE_PWM_ABI
 'si-motor-poles         ; Number of motor poles, must be multiple of 2
 'si-gear-ratio          ; Gear ratio (Added in FW 6.05)
 'si-wheel-diameter      ; Wheel diameter in meters (Added in FW 6.05)
@@ -4043,6 +4060,30 @@ Manually set the offsets on the selected motor. Arguments that are set to nil wi
 ; Set the i2-offset to 1.1 ADC counts and the v2-offset to 2.3 V. Leave the rest unchanged.
 (conf-dc-cal-set nil nil 1.1 nil nil 2.3)
 ```
+
+---
+
+#### conf-enc-sincos
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06+ |
+
+```clj
+(conf-enc-sincos optSinAmp optCosAmp optSinOfs optCosOfs optFilter optPhaseCorr)
+```
+
+Configure Sin/Cos encoder. Arguments that are set to nil will leave the corresponding parameter unchanged. If not all arguments are given the ones left out will not be updated. The resulting configuration is returned. If no arguments are given the resulting configuration is returned. Example:
+
+```clj
+(conf-enc-sincos 1.0 1.0 1.65 1.65 0.5 0.0)
+;> (1.0 1.0 1.65 1.65 0.5 0.0)
+
+(conf-enc-sincos)
+;> (1.0 1.0 1.65 1.65 0.5 0.0)
+```
+
+The update will be applied until reboot. To store it permanently conf-store can be used.
 
 ---
 
