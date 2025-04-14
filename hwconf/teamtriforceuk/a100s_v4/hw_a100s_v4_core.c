@@ -94,6 +94,12 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 14, PAL_MODE_OUTPUT_OPENDRAIN);
 	PHASE_FILTER_OFF();
 	
+	// AUX pin
+	AUX_OFF();
+	palSetPadMode(AUX_GPIO, AUX_PIN,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);
+	
 	// Current filter
 	palSetPadMode(GPIOB, 2, PAL_MODE_OUTPUT_OPENDRAIN);
 	palSetPadMode(GPIOB, 3, PAL_MODE_OUTPUT_OPENDRAIN);
