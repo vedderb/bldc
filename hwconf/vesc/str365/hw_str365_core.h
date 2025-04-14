@@ -166,6 +166,9 @@
 #define CURRENT_SHUNT_RES		(0.00025 / 3.0)//990A range
 #endif
 
+#define ENCODER_SIN_VOLTS		ADC_VOLTS(ADC_IND_EXT3)
+#define ENCODER_COS_VOLTS		ADC_VOLTS(ADC_IND_EXT4)
+
 // Input voltage
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
