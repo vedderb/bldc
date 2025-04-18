@@ -7513,9 +7513,39 @@ Check if any client (e.g. VESC Tool) is connected over usb. Returns true when co
 
 ---
 
-## Non-Volatile Storage (NVS) on QML Partition
+## Non-Volatile Storage (NVS) 
 
-The QML-partition on the ESP32 can be used to store non-volatile data as key-values. Note that QML-data cannot be stored as usual when using the QML-partition as NVS.
+The `nvs` and `qml` partition on the ESP32 can be used to store non-volatile data as key-values using [Espressifs NVS library](
+https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html).
+
+A key is a string of maximum of 15 characters. 
+
+Functions operating on QML partition are named `nvs-qml-*`
+
+Note that QML-data cannot be stored as usual when using the QML-partition as NVS.
+
+Functions using nvs partition are named `nvs-*`. 
+
+On the nvs partition, storage is shared wth `eeprom-*`.
+
+---
+
+
+#### nvs-erase
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(nvs-erase)
+```
+Erase all nvs keys on nvs partition. 
+
+```clj
+(nvs-erase "key")
+```
+Erase a specific key on nvs partition.
 
 ---
 
@@ -7529,7 +7559,13 @@ The QML-partition on the ESP32 can be used to store non-volatile data as key-val
 (nvs-qml-erase)
 ```
 
-Erase all data on QML-partition.
+Erase all nvs keys on qml partition.
+
+```clj
+(nvs-qml-erase "key")
+```
+
+Erase a specific key on qml partition.
 
 ---
 
@@ -7547,6 +7583,23 @@ Initialize the QML-partition with the NVS-module. This has to be done before fur
 
 ---
 
+#### nvs-read
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(nvs-read key)
+```
+
+Read key from nvs-partition, return the content as a byte array.
+
+Returns `nil` if a key has not been written to previously.
+
+---
+
+
 #### nvs-qml-read
 
 | Platforms | Firmware |
@@ -7557,7 +7610,27 @@ Initialize the QML-partition with the NVS-module. This has to be done before fur
 (nvs-qml-read key)
 ```
 
-Read key from QML-partition, return the content as a byte array. This can fail if key does not exist or if (nvs-qml-init) has not been run.
+Read key from QML-partition, return the content as a byte array.
+
+Returns `nil` if a key has not been written to previously.
+
+---
+
+#### nvs-write
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(nvs-write key data)
+```
+
+Write data to key on nvs-partition. 
+
+If key already exists the old data will be replaced. 
+
+This can fail if there is not enough space. The space on the nvs partition is shared with eeprom-* commands. 
 
 ---
 
@@ -7575,17 +7648,31 @@ Write data to key on QML-partition. If key already exists the old data will be r
 
 ---
 
-#### nvs-qml-erase-key
+#### nvs-qml-erase-partition
 
 | Platforms | Firmware |
 |---|---|
 | Express | 6.06+ |
 
 ```clj
-(nvs-qml-erase-key key)
+(nvs-qml-erase-partition)
 ```
 
-Erase single key from QML-partition. This can fail if key does not exist or if (nvs-qml-init) has not been run.
+Erase all nvs data from qml partition and deinitialize. This allows the QML partition to be used for QML if it was previously used for nvs storage.
+
+---
+
+#### nvs-list
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(nvs-list)
+```
+
+Return a list with all existing NVS keys on the nvs partition.
 
 ---
 
@@ -7599,7 +7686,9 @@ Erase single key from QML-partition. This can fail if key does not exist or if (
 (nvs-qml-list)
 ```
 
-Returns a list with all existing NVS keys. If (nvs-qml-init) has not been run this always returns nil.
+Return a list with all existing NVS keys on the `qml` partition.
+
+If (nvs-qml-init) has not been run this always returns `nil`.
 
 ---
 
