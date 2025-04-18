@@ -17,8 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_X1_CORE_H_
-#define HW_X1_CORE_H_
+#ifndef HW_ITR_X1_CORE_H_
+#define HW_ITR_X1_CORE_H_
 
 #ifdef HW_ITR_X1
   #define HW_NAME			"ITR_X1"
@@ -244,4 +244,4 @@
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
-#endif /* HW_X1_CORE_H_ */
+#endif /* HW_ITR_X1_CORE_H_ */

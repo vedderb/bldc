@@ -17,11 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_X1_H_
-#define HW_X1_H_
+#ifndef HW_ITR_X1_H_
+#define HW_ITR_X1_H_
 
 #define HW_ITR_X1
 
-#include "hw_x1_core.h"
+#include "hw_itr_x1_core.h"
 
-#endif /* HW_X1_H_ */
+#endif /* HW_ITR_X1_H_ */
