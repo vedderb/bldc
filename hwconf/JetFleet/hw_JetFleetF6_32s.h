@@ -1,0 +1,36 @@
+/*
+	Copyright 2022 Benjamin Vedder	benjamin@vedder.se
+
+	This file is part of the VESC firmware.
+
+	The VESC firmware is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    The VESC firmware is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    */
+
+#ifndef HW_JetFleetF6_32s_H_
+
+#define HW_JetFleetF6_32s_H_
+
+#define HW_NAME					"JetFleetF6_32s"
+#define HW_JetFleetF6_32s
+
+#define VIN_R2				    3300.0
+#define MCCONF_L_MAX_VOLTAGE			140.0	// Maximum input voltage
+#define MCCONF_L_MAX_ABS_CURRENT		180.0	// The maximum absolute current above which a fault is generated
+#define HW_LIM_CURRENT			-180.0, 180.0
+#define HW_LIM_CURRENT_ABS		0.0, 270.0
+#define HW_LIM_VIN			    18.0, 140.0
+
+#include "hw_JetFleetF6_core.h"
+
+#endif /* HW_JetFleetF6_32s_H_ */
