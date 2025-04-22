@@ -1644,6 +1644,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
+	case COMM_MOTOR_ESTOP: {
+		int32_t ind = 0;
+		mc_interface_ignore_input_both(buffer_get_uint16(data, &ind));
+		mc_interface_release_motor_override_both();
+	} break;
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.
