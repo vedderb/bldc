@@ -25,7 +25,7 @@
 (define font-ttf-prepare
   (ref-entry "ttf-prepare"
              (list
-              (para (list "`ttf-prepare` intializes font and prerenders glyphs."
+              (para (list "`ttf-prepare` initializes font and prerenders glyphs."
                           "The result of `ttf-prepare` is a binary blob conaining"
                           "all the information needed to print text using the prepared glyphs"
                           "The form of a `ttf-prepare` expression is: `(ttf-prepare font-data scale img-format utf8-str)`."
@@ -36,6 +36,7 @@
                         "utf8-str : A string containing the UTF8 characters to prerender."))
               (para (list "Note that only characters mentioned in the `utf-string` will be usable."
                           ))
+              ; spell-checker: disable-next-line
               (code '((define b (ttf-prepare font 32 'indexed4 "helo wrd!"))
                       ))
               (para (list "Note try to not put duplicate characters in the utf8-str."
@@ -147,6 +148,7 @@
              (list
               (code '((img-clear disp)))
               (program-disp '(((import "Roboto-Regular.ttf" 'roboto)
+                               ; spell-checker: disable-next-line
                                (define ft (ttf-prepare roboto 32 'indexed4 "helo wrd"))
                                (define aa-green '(0x000000 0x004400 0x009900 0x00FF00))
                                (ttf-text disp 40 40 aa-green ft "hello world")
@@ -172,7 +174,7 @@
                          "prepare and it prerenders selected glyphs into a custom binary format that we feel"
                          "are more suitable for small embedded systems."
                          "This prerendering can be done offline and then only the binary blob be uploaded to the"
-                         "embedded system or it can be used on-demand if there is resourses and a need for that."
+                         "embedded system or it can be used on-demand if there is resources and a need for that."
                          ))
              (para (list "The binary format starts with a preamble"
                          ))

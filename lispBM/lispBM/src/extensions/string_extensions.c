@@ -1,7 +1,7 @@
 /*
-    Copyright 2022, 2023, 2024 Joel Svensson        svenssonjoel@yahoo.se
-    Copyright 2022, 2023       Benjamin Vedder
-    Copyright             2024 Rasmus Söderhielm    rasmus.soderhielm@gmail.com
+    Copyright 2022, 2023 - 2025 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2022, 2023        Benjamin Vedder
+    Copyright              2024 Rasmus Söderhielm    rasmus.soderhielm@gmail.com
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -26,6 +26,13 @@
 #include "print.h"
 
 #include <ctype.h>
+
+#ifdef LBM_OPT_STRING_EXTENSIONS_SIZE
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_STRING_EXTENSIONS_SIZE_AGGRESSIVE
+#pragma GCC optimize ("-Oz")
+#endif
 
 #ifndef MIN
 #define MIN(a,b) (((a)<(b))?(a):(b))

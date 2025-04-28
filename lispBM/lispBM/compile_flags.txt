@@ -1,0 +1,3 @@
+-I./include
+-I./include/extensions
+-I./platform/linux/include

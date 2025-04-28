@@ -1,8 +1,6 @@
 
 ;; Promotion of i32 type
 
-(defun apply (f x) (eval (cons f x)))
-
 (if (is-64bit) {
   (define a1 (eq (type-of (+ 1i32 1b)) type-i32))
   (define a2 (eq (type-of (+ 1i32 1)) type-i))

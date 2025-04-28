@@ -1,5 +1,6 @@
 /*
     Copyright 2022 Joel Svensson  svenssonjoel@yahoo.se
+              2025 Rasmus Söderhielm rasmus.soderhielm@gmail.com
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -29,4 +30,6 @@ extern const char* lbm_error_str_forbidden_in_atomic;
 extern const char* lbm_error_str_no_number;
 extern const char* lbm_error_str_not_a_boolean;
 extern const char* lbm_error_str_incorrect_arg;
+extern const char* lbm_error_str_not_applicable;
+
 #endif

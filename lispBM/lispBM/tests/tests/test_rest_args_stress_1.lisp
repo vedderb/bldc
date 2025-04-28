@@ -1,7 +1,3 @@
-
-(defun apply (f args)
-  (eval (cons f args)))
-
 (defun test-it (n c res)
   (if (= n 0) t
     (progn

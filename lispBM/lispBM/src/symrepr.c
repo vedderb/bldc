@@ -1,5 +1,6 @@
 /*
     Copyright 2018, 2021, 2022, 2024, 2025 Joel Svensson  svenssonjoel@yahoo.se
+              2025 Rasmus Söderhielm rasmus.soderhielm@gmail.com
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -83,6 +84,7 @@ special_sym const special_symbols[] =  {
   {"rest-args"    , SYM_REST_ARGS},
   {"rotate"       , SYM_ROTATE},
   {"call-cc-unsafe", SYM_CALL_CC_UNSAFE},
+  {"apply"        , SYM_APPLY},
 
   // pattern matching
   {"?"          , SYM_MATCH_ANY},

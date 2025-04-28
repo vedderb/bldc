@@ -1,5 +1,5 @@
 /*
-    Copyright 2023, 2024 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2023, 2024, 2025 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,6 +22,14 @@
 #include <lbm_utils.h>
 #include <lbm_version.h>
 #include <env.h>
+
+#ifdef LBM_OPT_RUNTIME_EXTENSIONS_SIZE
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_RUNTIME_EXTENSIONS_SIZE_AGGRESSIVE
+#pragma GCC optimize ("-Oz")
+#endif
+
 
 #ifdef FULL_RTS_LIB
 static lbm_uint sym_heap_size;

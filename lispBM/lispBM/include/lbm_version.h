@@ -30,13 +30,18 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 31u
+#define LBM_MINOR_VERSION 32u
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0u
 
 #define LBM_VERSION_STRING STR(LBM_MAJOR_VERSION) "." STR(LBM_MINOR_VERSION) "." STR(LBM_PATCH_VERSION)
 
 /*! \page changelog Changelog
+APR 14 2025: VERSION 0.32.0
+  - Fix image space calculation for flat value.
+  - Fix symbol numbering restoration after image boot.
+  - Initialize last_const_heap_ix to 0 in image_init.
+
 APR 9 2025: VERSION 0.31.0
   - Fixes to resuming waiting for timeout.
   - Built in identity operation.

@@ -34,7 +34,7 @@
 (define create_image1
   (ref-entry "img-buffer"
              (list
-              (para (list "Allocate an image buffer from lbm memory or from a compactible region."
+              (para (list "Allocate an image buffer from lbm memory or from a compactable region."
                           "The form of an `img-buffer` expression is `(img-buffer opt-dm format width height)`."
                           ))
               (code '((define my-img (img-buffer 'indexed2 320 200))
@@ -156,15 +156,40 @@
 (define blitting
   (ref-entry "img-blit"
              (list
+              (para (list "```clj\n (img-blit dest src x y transparent ..option)\n```"))
+              (para (list "Copy pixels from `src` to `dest`. " 
+                          " `x` and `y` are coordinates in `dest`."
+                          "Pixels colored `transparent` in `src` will be skipped"
+                          "`transparent` can be set to `-1` to indicate no transparency"))
+              (para (list "|Options||\n"
+                          "|----|----|\n"
+                          "`'(rotate x y deg)` | Rotate `deg` degrees around `x` `y`\n"
+                          "`'(scale s)` | Scale by `s`\n"
+                          "`'(tile)` | Tile to fill `dest`\n"
+                          "`'(clip x y w h)`  | Clip output in destination coords"))
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-blit my-img llama-bin 10 10 -1)
-                          (img-blit my-img llama-bin 10 10 -1 '(rotate 128 128 45))
-                          (img-blit my-img llama-bin 10 10 -1 '(scale 0.5))
-                          ))
+                          (img-blit my-img llama-bin 10 10 -1 
+                            '(rotate 128 128 45))
+                          (img-blit my-img llama-bin 10 10 -1 
+                            '(scale 0.5))
+                          (img-blit my-img llama-bin 10 10 -1 
+                            '(tile) 
+                            '(scale 0.2))
+                          (img-blit my-img llama-bin 10 10 -1 
+                            '(tile) 
+                            '(scale 0.2) 
+                            '(rotate 10 10 45))
+                          (img-blit my-img llama-bin 10 10 -1 
+                            '(tile) 
+                            '(scale 0.2) 
+                            '(rotate 10 10 45) 
+                            '(clip 50 50 250 150))
+                        ))
               end)))
 
-(define sierpinsky
-  (ref-entry "Example: Sierpinsky triangle"
+(define sierpinski
+  (ref-entry "Example: Sierpinski triangle"
              (list
               (program-disp '(((define w 320)
                                (define h 200)
@@ -262,7 +287,7 @@
 		       "rgb565 : 16bit color"
 		       "rgb888 : 24bit color"
 		       ))
-	     (para (list "Note that the RAM requirenment of a 100x100 image is;"
+	     (para (list "Note that the RAM requirement of a 100x100 image is;"
 			 ))
 	     (bullet '("at indexed2: 1250 Bytes"
 		       "at indexed4: 2500 Bytes"
@@ -283,7 +308,7 @@
 	     (para (list "the display library is specifically designed to allow for using many"
 			 "colors simultaneously on screen, without needing to use full screen high-color"
 			 "buffers."
-			 "This is done by delaying the choice of collor mapping in the `indexed2`, `indexed4` and `indexed16`"
+			 "This is done by delaying the choice of color mapping in the `indexed2`, `indexed4` and `indexed16`"
 			 "images until they are presented on screen."
 			 ))
 	     (para (list "images are rendered onto a display using the function `disp-render`."
@@ -332,7 +357,7 @@
                          "see [vesc_express display documentation](https://github.com/vedderb/vesc_express/tree/main/main/display)."
                          ))
              
-             sierpinsky
+             sierpinski
              rotated-llama))
    info
    )
