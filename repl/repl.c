@@ -65,6 +65,17 @@
 
 typedef void (*send_func_t)(unsigned char *, unsigned int);
 
+// ////////////////////////////////////////////////////////////
+// General
+
+static char *history_file_path = NULL;
+
+void exit_on_alloc_failure(const void *mem) {
+  if (mem == NULL) {
+    fprintf(stderr, "ERROR: Malloc failed.\n");
+    exit(1);
+  }
+}
 
 // ////////////////////////////////////////////////////////////
 // VESCTCP
@@ -226,18 +237,16 @@ bool image_clear(void) {
 }
 
 
-static volatile bool allow_print = true;
-
 static lbm_char_channel_t string_tok;
 static lbm_string_channel_state_t string_tok_state;
 
-void new_prompt() {
+void new_prompt(void) {
   printf("\33[2K\r");
   printf("# ");
   fflush(stdout);
 }
 
-void erase() {
+void erase(void) {
   printf("\33[2K\r");
   fflush(stdout);
 }
@@ -455,6 +464,7 @@ lbm_const_heap_t const_heap;
 #define VESCTCP              0x0407
 #define VESCTCP_PORT         0x0408
 #define VESCTCP_PROGRAM_FLASH_SIZE   0x0409
+#define HISTORY_FILE         0x0410
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -472,6 +482,7 @@ struct option options[] = {
   {"vesctcp",no_argument, NULL, VESCTCP},
   {"vesctcp_port",required_argument, NULL, VESCTCP_PORT},
   {"vesctcp_program_flash_size", required_argument, NULL, VESCTCP_PROGRAM_FLASH_SIZE},
+  {"history_file", required_argument, NULL, HISTORY_FILE},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -634,8 +645,12 @@ void parse_opts(int argc, char **argv) {
              "                                      protocol on port %d\n", DEFAULT_VESCIF_TCP_PORT);
       printf("    --vesctcp_port=PORT               open the TCP server on this port instead.\n");
       printf("    --vesctcp_program_flash_size=SIZE Size of memory for program storage.\n");
+      printf("\n");
+      printf("    --history_file=FILEPATH           Path to file used for the repl history.\n");
+      printf("                                      An empty string disables loading or\n");
+      printf("                                      writing the history. (see HISTORY FILE)\n");
 
-      printf("Memory-size-indices: \n"          \
+      printf("memory-size-indices: \n"          \
              "Index | Words\n"                  \
              "  1   - %d\n"                     \
              "  2   - %d\n"                     \
@@ -662,12 +677,20 @@ void parse_opts(int argc, char **argv) {
              );
       printf("Default is marked with a *.\n");
       printf("\n");
-      printf("Multiple sourcefiles and expressions can be added with multiple uses\n" \
-             "of the --src/-s and --eval/-e flags.\n" \
-             "Sources and expressions are evaluated in sequence in the order they are\n" \
-             "specified on the command-line, and all source files are evaluated before\n" \
-             "expressions. Source file N will not start evaluating until after\n" \
-             "source file (N-1) has terminated, for N larger than 1.\n");
+      printf("SOURCE FILES\n" \
+             "  Multiple sourcefiles and expressions can be added with multiple uses\n" \
+             "  of the --src/-s and --eval/-e flags.\n" \
+             "  Sources and expressions are evaluated in sequence in the order they are\n" \
+             "  specified on the command-line, and all source files are evaluated before\n" \
+             "  expressions. Source file N will not start evaluating until after\n" \
+             "  source file (N-1) has terminated, for N larger than 1.\n");
+      printf("\n");
+      printf("HISTORY FILE\n" \
+             "  The REPL history is saved to '~/.lbm_history' by default. If the environment\n" \
+             "  variable LBM_HISTORY_FILE is set, the history will instead be written to the\n" \
+             "  path it points to. The path can also be overidden by the --history_file flag.\n" \
+             "  If the path is set to the empty string, then writing the history is disabled.\n");
+      printf("\n");
       terminate_repl(REPL_EXIT_SUCCESS);
     case 's':
       if (!src_list_add((char*)optarg)) {
@@ -709,6 +732,12 @@ void parse_opts(int argc, char **argv) {
     case VESCTCP_PROGRAM_FLASH_SIZE:
       vescif_program_flash_size= (unsigned int)atoi((char *)optarg);
       break;
+    case HISTORY_FILE: {
+      size_t len = strlen(optarg);
+      history_file_path = malloc(len + 1);
+      exit_on_alloc_failure(history_file_path);
+      memcpy(history_file_path, optarg, len + 1);
+    } break;
     default:
       break;
     }
@@ -775,7 +804,7 @@ bool load_flat_library(unsigned char *lib, unsigned int size) {
   return true;
 }
 
-int init_repl() {
+int init_repl(void) {
 
   if (lispbm_thd && lbm_get_eval_state() != EVAL_CPS_STATE_DEAD) {
     int thread_r = 0;
@@ -855,7 +884,7 @@ int init_repl() {
   }
 
   lbm_image_boot();
-  
+
   // Recreate symbol list from image before adding.
   // Image must be booted before adding any symbol.
   lbm_add_eval_symbols();
@@ -908,10 +937,8 @@ bool evaluate_sources(void) {
     }
     lbm_continue_eval();
 
-    int counter = 0;
     while (startup_cid != -1) {
       sleep_callback(10);
-      counter++;
     }
     curr = curr->next;
   }
@@ -939,10 +966,8 @@ bool evaluate_expressions(void) {
     }
     lbm_continue_eval();
 
-    int counter = 0;
     while (startup_cid != -1) {
       sleep_callback(10);
-      counter++;
     }
     curr = curr->next;
   }
@@ -1195,7 +1220,7 @@ int commands_printf_lisp(const char* format, ...) {
 
   va_list arg;
   va_start(arg, format);
-  
+
   len = vsnprintf(
                   print_buffer + offset, (size_t)(PRINT_BUFFER_SIZE - offset), format, arg
                   );
@@ -2160,19 +2185,48 @@ void *vesctcp_client_handler(void *arg) {
 // ////////////////////////////////////////////////////////////
 //
 int main(int argc, char **argv) {
-
   image_storage = mmap(IMAGE_FIXED_VIRTUAL_ADDRESS,
                        IMAGE_STORAGE_SIZE,
                        PROT_READ | PROT_WRITE,
-                       MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+                       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
   if (((int)image_storage) == -1) {
     printf("error mapping fixed location for flash emulation\n");
     terminate_repl(REPL_EXIT_CRITICAL_ERROR);
+  } else if (image_storage != IMAGE_FIXED_VIRTUAL_ADDRESS) {
+    printf("Warning: Image is located at nonstandard address %p\n", (void*)image_storage);
   }
 
   parse_opts(argc, argv);
 
+  if (history_file_path == NULL) {
+    const char *path_env = getenv("LBM_HISTORY_FILE");
+    if (path_env != NULL) {
+      size_t len = strlen(path_env);
+      history_file_path = calloc(len + 1, sizeof(char));
+      exit_on_alloc_failure(history_file_path);
+      memcpy(history_file_path, path_env, len + 1);
+    } else {
+      static const char *suffix = "/.lbm_history";
+      const char *home_path = getenv("HOME");
+      if (home_path != NULL) {
+        history_file_path = calloc(strlen(home_path) + strlen(suffix) + 1, sizeof(char));
+        exit_on_alloc_failure(history_file_path);
+        strcat(history_file_path, home_path);
+        strcat(history_file_path, suffix);
+      } else {
+        fprintf(stderr, "Warning: $HOME not set, disabling history file\n");
+        // history_file_path is already NULL.
+      }
+    }
+  }
+  if (history_file_path != NULL && history_file_path[0] == '\0') {
+    history_file_path = NULL;
+  }
+
   using_history();
+  if (history_file_path != NULL) {
+    read_history(history_file_path);
+  }
 
   if (!init_repl()) {
     terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
@@ -2237,8 +2291,30 @@ int main(int argc, char **argv) {
         str = readline("# ");
       }
       if (str == NULL) terminate_repl(REPL_EXIT_SUCCESS);
-      add_history(str);
       size_t n = strlen(str);
+
+      HISTORY_STATE *state = history_get_history_state();
+      // Don't save history if command is empty or is repeat of last command.
+      if (n > 0 && !(state->length > 0 && strcmp(state->entries[state->length - 1]->line, str) == 0)) {
+        add_history(str);
+        if (history_file_path != NULL) {
+          int result = append_history(1, history_file_path);
+          if (result != 0) {
+            // History file probably doesn't exist yet.
+            int result = write_history(history_file_path);
+            if (result != 0) {
+              fprintf(
+                stderr,
+                "Couldn't write to history file '%s': %s (%d)\n",
+                history_file_path,
+                strerror(result),
+                result
+              );
+              exit(1);
+            }
+          }
+        }
+      }
 
       if (n >= 5 && strncmp(str, ":info", 5) == 0) {
         printf("--(LISP HEAP)-----------------------------------------------\n");

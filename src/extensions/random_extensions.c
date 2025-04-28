@@ -1,5 +1,5 @@
 /*
-    Copyright 2023 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2023, 2025 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,6 +17,14 @@
 
 #include <extensions.h>
 #include <lbm_utils.h>
+
+#ifdef LBM_OPT_RANDOM_EXTENSIONS_SIZE
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_RANDOM_EXTENSIONS_SIZE_AGGRESSIVE
+#pragma GCC optimize ("-Oz")
+#endif
+
 
 #define M 268435183 //(1 << 28)
 #define A 268435043

@@ -16,7 +16,7 @@
                          "Mainly this has been set up to releave the stress of the \"core team of devs doing the implementation work\" ;)."
                          "The contents of this document is open for discussion and the happiest the \"core team of devs\" will be if a"
                          "an understanding for it's motivations and desires is reached and respected. However, Nothing in this document"
-                         "is holy, and good ideas or insighs may change the entire vision. However, it is expected that this document is"
+                         "is holy, and good ideas or insights may change the entire vision. However, it is expected that this document is"
                          "more dynamic the further into it you read."
                          ))
              )
@@ -24,7 +24,7 @@
    (section 2 "Vision"
             (list
              (para (list "Our vision is for LispBM to be a scripting language very well suited for microcontrollers an embedded in general"
-                         "and, specifically, for VESC devices (motorcontrollers and auxiliery)."
+                         "and, specifically, for VESC devices (motorcontrollers and auxiliary)."
                          "Ideally LispBM should be usable in all areas including safety or security critical applications."
                          ))
              (para (list "We identity the following key properties of a scripting language for our target platforms."
@@ -71,7 +71,7 @@
              ))
    (section 2 "Continuosly ongoing work"
             (list
-             (bullet '("Code size optimisations - do more with less (and add space for fun additions)."
+             (bullet '("Code size optimizations - do more with less (and add space for fun additions)."
                        "Improving upon testing frameworks and tests."
                        "Improving and expanding on documentation."
                      ))

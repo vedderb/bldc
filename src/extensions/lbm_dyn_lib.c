@@ -1,6 +1,7 @@
 /*
     Copyright 2023, 2025 Joel Svensson        svenssonjoel@yahoo.se
               2022       Benjamin Vedder      benjamin@vedder.se
+              2025       Rasmus Söderhielm rasmus.soderhielm@gmail.com
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -29,8 +30,6 @@ static const char* lbm_dyn_fun[] = {
 
   "(defun foldr (f init lst)"
   "(if (eq lst nil) init (f (car lst) (foldr f init (cdr lst)))))",
-
-  "(defun apply (f lst) (eval (cons f lst)))",
 
   "(defun zipwith (f xs ys) "
   "(let (( zip-acc (lambda (acc xs ys) "

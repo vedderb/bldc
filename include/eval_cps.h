@@ -1,5 +1,6 @@
 /*
     Copyright 2018, 2020 - 2025 Joel Svensson  svenssonjoel@yahoo.se
+              2025 Rasmus Söderhielm rasmus.soderhielm@gmail.com
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -69,7 +70,7 @@ typedef struct eval_context_s{
   uint32_t  num_mail;    /* Number of messages in mailbox */
   uint32_t  flags;
   lbm_value r;
-  char *error_reason;
+  const char *error_reason;
   bool  app_cont;
   lbm_stack_t K;
   lbm_uint timestamp;
@@ -258,7 +259,7 @@ uint32_t lbm_get_eval_state(void);
  *  that errored is removed.
  * \param error_str
  */
-void lbm_set_error_reason(char *error_str);
+void lbm_set_error_reason(const char *error_str);
 /** Provide the expression that is most suspicious
  *  in relation to the error at hand.
  * \param lbm_value

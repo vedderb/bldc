@@ -20,6 +20,14 @@
 #include "extensions.h"
 #include "eval_cps.h"
 
+#ifdef LBM_OPT_MUTEX_EXTENSIONS_SIZE
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_MUTEX_EXTENSIONS_SIZE_AGGRESSIVE
+#pragma GCC optimize ("-Oz")
+#endif
+
+
 // This file provides a mutual exclusion feature based on the block_from_extension
 // mechanism present in LBM.
 //

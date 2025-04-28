@@ -21,6 +21,12 @@
 
 #include "schrift.h"
 
+#ifdef LBM_OPT_TTF_EXTENSIONS_SIZE
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_TTF_EXTENSIONS_SIZE_AGGRESSIVE
+#pragma GCC optimize ("-Oz")
+#endif
 
 static bool mk_font_raw(SFT_Font *ft, lbm_value font_val) {
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(font_val);
@@ -351,7 +357,7 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
       if (kern_tab_bytes <=  0) {
         lbm_free(unique_utf32);
         return ENC_SYM_EERROR;
-      } 
+      }
 
       int glyph_gfx_size = glyphs_img_data_size(&sft, fmt, unique_utf32, n);
       if (glyph_gfx_size <= 0) {
@@ -680,18 +686,18 @@ lbm_value ttf_text_bin(lbm_value *args, lbm_uint argn) {
 
       uint32_t num_colors = 1 << src.fmt;
       for (int j = 0; j < src.height; j++) {
-        for (int i = 0; i < src.width; i ++) {
+        for (int k = 0; k < src.width; k ++) {
           // the bearing should not be accumulated into the advances
 
-          uint32_t p = getpixel(&src, i, j);
+          uint32_t p = getpixel(&src, k, j);
           if (p) { // only draw colored
             uint32_t c = colors[p & (num_colors-1)]; // ceiled
             if (up) {
-              putpixel(&tgt, x_pos + (j + (int)y_n), y_pos - (i + (int)(x_n + left_side_bearing)), c);
+              putpixel(&tgt, x_pos + (j + (int)y_n), y_pos - (k + (int)(x_n + left_side_bearing)), c);
             } else if (down) {
-              putpixel(&tgt, x_pos - (j + (int)y_n), y_pos + (i + (int)(x_n + left_side_bearing)), c);
+              putpixel(&tgt, x_pos - (j + (int)y_n), y_pos + (k + (int)(x_n + left_side_bearing)), c);
             } else {
-              putpixel(&tgt, x_pos + (i + (int)(x_n + left_side_bearing)), y_pos + (j + (int)y_n), c);
+              putpixel(&tgt, x_pos + (k + (int)(x_n + left_side_bearing)), y_pos + (j + (int)y_n), c);
             }
           }
         }

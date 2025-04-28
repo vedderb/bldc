@@ -30,6 +30,29 @@ These should be added as a -D... flag to the C compiler for the LispBM compilati
 <li>LBM_USE_ERROR_LINENO - Reports the line in eval_cps.c where the error was triggered. For debug use.</li>
 </ul>
 
+The following preprocessor flags control code size optimizions on a per subsystem basis.
+<ul>
+<li>LBM_OPT_FUNDAMENTALS_SIZE</li>
+<li>LBM_OPT_FUNDAMENTALS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_ARRAY_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_ARRAY_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_DISPLAY_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_DISPLAY_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_MATH_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_MATH_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_MUTEX_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_MUTEX_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_RANDOM_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_RANDOM_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_RUNTIME_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_RUNTIME_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_SET_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_SET_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_STRING_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_STRING_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_TTF_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_TTF_EXTENSIONS_SIZE_AGGRESSIVE</li>
+
 <h2>Build on Linux</h2>
 
 <p> Start by cloning the LispBM repository. Open a terminal and issue command</p>

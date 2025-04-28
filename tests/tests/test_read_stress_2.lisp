@@ -1,8 +1,3 @@
-
-(defun apply (f args)
-  (eval (cons f args)))
-
-
 (defun f ()
   (apply + (rest-args)))
 

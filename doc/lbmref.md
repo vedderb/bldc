@@ -362,7 +362,7 @@ All Values in LBM are encoded in one way or another. The encoded value holds add
 
 The chart below shows the time it takes to perform 10 million additions on the x86 architecture (a i7-6820HQ) in 32 and 64 Bit mode. 
 
-![Perfomance of 10 million additions at various types on X86](./images/lbm_arith_pc.png "Perfomance of 10 million additions at various types on X86")
+![Performance of 10 million additions at various types on X86](./images/lbm_arith_pc.png "Performance of 10 million additions at various types on X86")
 
 In 64Bit mode the x86 version of LBM shows negligible differences in cost of additions at different types. 
 
@@ -383,23 +383,23 @@ Opinions on Lisp syntax varies widely depending on a persons programming experie
 
 Lisp programs are written using S-expressions, a notation introduced by [McCarthy](http://www-formal.stanford.edu/jmc/recursive.pdf). An S-expression describes a tree in an unambiguous way. An example of an S-expression is `(+ 1 2)` and the tree it represents is shown below: 
 
-![Graph representaion of s-expression](./images/add_one_two.png)
+![Graph representation of s-expression](./images/add_one_two.png)
 
 Another example `(+ (* a a) (* b b))` which as a lisp program means $a^2 + b^2$: 
 
-![Graph representaion of s-expression](./images/sum_of_squares.png)
+![Graph representation of s-expression](./images/sum_of_squares.png)
 
 In Lisp, which stands for "LISt Processor", a list is a right leaning tree ending in the symbol "nil". By convention these right leaning expressions are easy to write and requires only a few parentheses. The example below shows how the list created by lisp program `(list 1 2 3 4)` is represented as a tree: 
 
-![Graph representaion of s-expression](./images/list_1234.png)
+![Graph representation of s-expression](./images/list_1234.png)
 
 A left leaning structure requires full parenthesization and can be expressed in lisp as `(cons (cons (cons (cons nil 4) 3) 2) 1)`. 
 
-![Graph representaion of s-expression](./images/snoc_1234.png)
+![Graph representation of s-expression](./images/snoc_1234.png)
 
 The conventions strongly favor the right leaning case. 
 
-There are no two different trees that correspond to a given S-expression and thus parsing of S-expressions is unambiguous. The unambiguous nature of S-expressions is useful in areas other than lisp programming as well. [KiCad](https://dev-docs.kicad.org/en/file-formats/sexpr-intro/) uses S-expressions to represent tree data in some of its file formats. Apperantly [WebAssembly](https://developer.mozilla.org/en-US/docs/WebAssembly/Understanding_the_text_format) uses S-expressions as well to describe WebAssembly modules 
+There are no two different trees that correspond to a given S-expression and thus parsing of S-expressions is unambiguous. The unambiguous nature of S-expressions is useful in areas other than lisp programming as well. [KiCad](https://dev-docs.kicad.org/en/file-formats/sexpr-intro/) uses S-expressions to represent tree data in some of its file formats. Apparently [WebAssembly](https://developer.mozilla.org/en-US/docs/WebAssembly/Understanding_the_text_format) uses S-expressions as well to describe WebAssembly modules 
 
 
 S-expressions are built from two things, **Atoms** and **Pairs** of S-expressions. So an S-expression is either: 
@@ -469,7 +469,9 @@ In LispBM the distinction between expressions and values is often blurred. For e
 <td>
 
 ```clj
-(closure (x) (append (quote (+)) (list x) (quote (1))) nil)
+(closure (x) 
+  (append '(+) (list x) '(1))
+  nil)
 ```
 
 
@@ -597,7 +599,7 @@ Some atoms, such as Numbers, Strings and byte arrays cannot be further evaluated
 <td>
 
 ```clj
-hello world
+"hello world"
 ```
 
 
@@ -643,7 +645,7 @@ Below are a selection of basic special-forms in lispBM together with their evalu
    - **and**: `(and e1 e2 ... eN)` evaluates the `eI` expressions from left to right as long as they result in a non-nil value.
    - **or**: `(or e1 e2 ... eN)` evaluates the `eI` expressions from left to right until there is a non-nil result.
 
-`and`, `or`, `progn` and `if` evaluates expressions in sequence. `if` evaluates first the condition expression and then either the true or false branch. `progn` evaluates all of the expressions in sequence. In the case of `and`, `or`, `progn` and `if`, the constituent expressions are all evaluated in the same local environment. Any extensions to the local environment performed by an expresison in the sequence is only visible within that expression itself. 
+`and`, `or`, `progn` and `if` evaluates expressions in sequence. `if` evaluates first the condition expression and then either the true or false branch. `progn` evaluates all of the expressions in sequence. In the case of `and`, `or`, `progn` and `if`, the constituent expressions are all evaluated in the same local environment. Any extensions to the local environment performed by an expression in the sequence is only visible within that expression itself. 
 
    - **let**: `(let ((s1 e1) (s2 e2) ... (sN eN) e)` eI are evaluated in order into `vI`. The local environment is extended with `(sI . vI)`. `sI` is visible in `eJ` for `J >= I`. `e` is then evaluated in the extended local environment.
    - **setq**: `(setq s e)` is evaluated by first evaluating `e` into `v`. The environments are then scanned for a bining of `s`. local environment is searched first followed by global. If a binding of `s` is found it is modified into `(s . v)`.
@@ -672,9 +674,9 @@ TODO: Finish section.
 
 To differentiate from Imperative and Functional, think of imperative programs  as sequences of operations that update a state and  functional programs as transformations of values through application  of compositions of functions. Functional programming languages often let functions be values, which means that functions  can be stored in lists, returned from other functions and so on 
 
-LispBM is a multiparadigm programming language. Most languages are a mix of functional and imperative and differ in what style it makes most convenient. At one end of this spectrum we find C which makes imperative easy and functional hard,  and in the other end Haskell with the opposite favouritism. In LispBM we try to not unfairly favour any particular style over the other. 
+LispBM is a multiparadigm programming language. Most languages are a mix of functional and imperative and differ in what style it makes most convenient. At one end of this spectrum we find C which makes imperative easy and functional hard,  and in the other end Haskell with the opposite favoritism. In LispBM we try to not unfairly favour any particular style over the other. 
 
-Picking a functional or an imperative style does have consequences though. Functional LispBM programs have properties such as persistance of data, that can be broken using the imperative part of the language. 
+Picking a functional or an imperative style does have consequences though. Functional LispBM programs have properties such as persistence of data, that can be broken using the imperative part of the language. 
 
 With the imperative features of the language it is also in some  places possible to peek under the hood of the runtime system. you can detect when and how environments are shared or copied for example. Please avoid exploiting the power of destructive updates for evil purposes. 
 
@@ -701,7 +703,7 @@ The list below shows imperative operations from the core of LispBM. In the exten
 
 ### +
 
-Adds up an aribtrary number of values. The form of a `+` expression is `(+ expr1 ... exprN)`. 
+Adds up an arbitrary number of values. The form of a `+` expression is `(+ expr1 ... exprN)`. 
 
 <table>
 <tr>
@@ -1163,7 +1165,7 @@ Integer division operation. Like normal division except if the result is a float
 <td>
 
 ```clj
-1m 2.5s
+"1m 2.5s"
 ```
 
 
@@ -1183,7 +1185,7 @@ Integer division operation. Like normal division except if the result is a float
 
 ### eq
 
-Compare values for equality. The `eq` operation implements structural equiality. The form of an 'eq` expression is `(eq expr1 ... exprN)`. 
+Compare values for equality. The `eq` operation implements structural equality. The form of an 'eq` expression is `(eq expr1 ... exprN)`. 
  Structural equality means that the values must have the identical in memory representations to be considered equal. 
 
 <table>
@@ -1914,7 +1916,9 @@ t
 
 ### and
 
-Boolean `and` operation between n arguments. The form of an `and` expression is `(and expr1 ... exprN)`.  This operation treats all non-nil values as true. Boolean `and` is "shirt-circuiting" and only evaluates until a false is encountered. 
+> ***Special form***
+
+Boolean `and` operation between n arguments. The form of an `and` expression is `(and expr1 ... exprN)`.  This operation treats all non-nil values as true. Boolean `and` is "short-circuiting" and only evaluates until a false is encountered. 
 
 <table>
 <tr>
@@ -1983,6 +1987,8 @@ nil
 
 
 ### or
+
+> ***Special form***
 
 Boolean `or` operation between n arguments. The form of an `or` expression is `(or expr1 ... exprN)`.  This operation treats all non-nil values as true. Boolean `or` is "short-circuiting" and only evaluates until a true is encountered. 
 
@@ -2986,7 +2992,9 @@ Code and data share the same representation, it is only a matter of how you look
 
 ### quote
 
-Usages of the `'` quote symbol in input code is replaced with the symbol quote by the reader.  Evaluating a quoted expression, (quote a), results in a unevaluated. 
+> ***Special form***
+
+When the `'` quote operator is encountered by the reader it is removed and the code to the right is wrapped in `(quote ...)`. Evaluating a quoted expression `(quote a)` results in `a` unevaluated. 
 
 <table>
 <tr>
@@ -3110,7 +3118,7 @@ kurt
 
 ### `
 
-The backwards tick `` ` `` is called the quasiquote. It is similar to the `'` but allows splicing in results of computations using the <a href="#,">,</a> and the <a href="#commaat">,@</a> operators. 
+The backwards tick operator `` ` `` is called the quasiquote. It is similar to `'` but allows splicing in results of computations using the [`,`](#comma) and the [`,@`](#commaat) operators. 
 
 The result of `'(+ 1 2)` and `` `(+ 1 2)`` are similar in effect. Both result in the result value of `(+ 1 2)`, that is a list containing +, 1 and 2.  When `` `(+ 1 2)`` is read into the heap it is expanded into the expression `(append (quote (+)) (append (quote (1)) (append (quote (2)) (quote nil))))` which evaluates to the list `(+ 1 2)`. 
 
@@ -3180,7 +3188,7 @@ The result of `'(+ 1 2)` and `` `(+ 1 2)`` are similar in effect. Both result in
 ---
 
 
-### ,
+### , <a name="comma"></a>
 
 The comma is used to splice the result of a computation into a quasiquotation. 
 
@@ -3216,7 +3224,7 @@ The expression `` `(+ 1 ,(+ 1 1))`` is expanded by the reader into `(append (quo
 ---
 
 
-### ,@
+### ,@ <a name="commaat"></a>
 
 The comma-at operation is used to splice in the result of a computation (that returns a list) into a list when quasiquoting. 
 
@@ -3375,7 +3383,8 @@ kurt-russel
 <td>
 
 ```clj
-(defun my-fun (x y opt) (if opt (+ x y opt) (+ x y)))
+(defun my-fun (x y opt)
+  (if opt (+ x y opt) (+ x y)))
 ```
 
 
@@ -3383,7 +3392,9 @@ kurt-russel
 <td>
 
 ```clj
-(closure (x y opt) (if opt (+ x y opt) (+ x y)) nil)
+(closure (x y opt) 
+  (if opt (+ x y opt) (+ x y))
+  nil)
 ```
 
 
@@ -3439,7 +3450,8 @@ Functions you create, using lambda or defun, do actually take an arbitrary numbe
 <td>
 
 ```clj
-(defun my-fun (x y) (+ x y))
+(defun my-fun (x y)
+  (+ x y))
 ```
 
 
@@ -3447,7 +3459,9 @@ Functions you create, using lambda or defun, do actually take an arbitrary numbe
 <td>
 
 ```clj
-(closure (x y) (+ x y) nil)
+(closure (x y) 
+  (+ x y)
+  nil)
 ```
 
 
@@ -3501,7 +3515,8 @@ all of those extra arguments, `100 200 300 400 500` passed into my-fun are ignor
 <td>
 
 ```clj
-(defun my-fun (x y) (apply + (cons x (cons y (rest-args)))))
+(defun my-fun (x y)
+  (apply + (cons x (cons y (rest-args)))))
 ```
 
 
@@ -3509,7 +3524,9 @@ all of those extra arguments, `100 200 300 400 500` passed into my-fun are ignor
 <td>
 
 ```clj
-(closure (x y) (apply + (cons x (cons y (rest-args)))) nil)
+(closure (x y) 
+  (apply + (cons x (cons y (rest-args))))
+  nil)
 ```
 
 
@@ -3565,7 +3582,8 @@ One was to explicitly carry the semantics of an optional argument into the funct
 <td>
 
 ```clj
-(defun my-fun (x) (assoc (rest-args) x))
+(defun my-fun (x)
+  (assoc (rest-args) x))
 ```
 
 
@@ -3573,7 +3591,9 @@ One was to explicitly carry the semantics of an optional argument into the funct
 <td>
 
 ```clj
-(closure (x) (assoc (rest-args) x) nil)
+(closure (x) 
+  (assoc (rest-args) x)
+  nil)
 ```
 
 
@@ -3645,7 +3665,8 @@ The `rest-args` operation also, itself, takes an optional numerical argument tha
 <td>
 
 ```clj
-(defun my-fun (i) (rest-args i))
+(defun my-fun (i)
+  (rest-args i))
 ```
 
 
@@ -3653,7 +3674,9 @@ The `rest-args` operation also, itself, takes an optional numerical argument tha
 <td>
 
 ```clj
-(closure (i) (rest-args i) nil)
+(closure (i) 
+  (rest-args i)
+  nil)
 ```
 
 
@@ -3714,6 +3737,147 @@ The `rest-args` operation also, itself, takes an optional numerical argument tha
 </td>
 </tr>
 </table>
+
+
+
+---
+
+
+### set
+
+The `set` form is used to change the value of some variable in an environment. You can use `set` to change the value of a global definition or a local definition. An application of the `set` form looks like `(set var-expr val-expr)` where `var-expr` should evaluate to a symbol. The `val-expr` is evaluated before rebinding the variable. `set` returns the value that `val-expr` evaluates to. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define a 10)
+(set 'a 20)
+a
+```
+
+
+</td>
+<td>
+
+
+```clj
+20
+```
+
+
+</td>
+</tr>
+</table>
+
+`set` works in local environments too such as in the body of a `let` or in a `progn`-local variable created using `var`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(progn 
+    (var a 10)
+    (set 'a 20)
+    a)
+```
+
+
+</td>
+<td>
+
+
+```clj
+20
+```
+
+
+</td>
+</tr>
+</table>
+
+See  [`setq`](#setq)  for a version which does't evaluate `var-expr`, similarly to  [`define`](#define). 
+
+
+
+
+---
+
+
+### setvar
+
+`setvar` is an alias of  [`set`](#set). 
+
+
+
+
+---
+
+
+### undefine
+
+A definition in the global environment can be removed using undefine.  The form of an undefine expression is `(undefine name-expr)` where `name-expr` should evaluate to a symbol (for example `'apa`). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(undefine 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+It is also possible to undefine several bindings at the same time by providing a list of names. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(undefine '(apa bepa cepa))
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
 
 
 
@@ -3812,7 +3976,7 @@ Evaluate data as an expression. The data must represent a valid expression. The 
 
 Evaluate a list of data where each element represents an expression. The form of an `eval-program` expression is `(eval-program program-expr)`. A `program-expr` is a list of expressions where each element in the list can be evaluated by `eval`. 
 
-An optional environment can be passed in as the first arguement: `(eval-program env-expr program-expr)`. 
+An optional environment can be passed in as the first argument: `(eval-program env-expr program-expr)`. 
 
 <table>
 <tr>
@@ -3885,6 +4049,397 @@ An optional environment can be passed in as the first arguement: `(eval-program 
 
 ```clj
 11
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### apply
+
+An apply expression has the form `(apply fun-expr args-expr)`, and it  applies `args-expr` to `fun-expr`. It can loosely be emulated by  `(eval (cons fun-expr args-expr))`, except for the property that the elements of `args-expr` aren't evaluated when you use `apply`.  `args-expr` itself is of course evaluated, but given the emulated form, the individual elements of the list would be evaluated again. This is a problem when your argument list may include symbols or any other values which change when evaluated. 
+
+Note that `fun-expr` doesn't necessarily have to be a user defined function, but can be any value which can be applied, that is, a value which can be the first item in a list expression: `(fun ...)`. This includes (but is not limited to) user define functions (which end up as [`closure`](#closure) values), built-in functions, extensions, [`macro`](#macro)s, and even special forms  (but see **Footgun: Special forms** below). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(defun my-fun (arg1 arg2)
+  (str-join (list (to-str arg1) (to-str arg2)) " "))
+```
+
+
+</td>
+<td>
+
+```clj
+(closure (arg1 arg2) 
+  (str-join (list (to-str arg1) (to-str arg2)) " ")
+  nil)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(apply my-fun '(a b))
+```
+
+
+</td>
+<td>
+
+```clj
+"a b"
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(apply + (list 1 2 3 4 5))
+```
+
+
+</td>
+<td>
+
+```clj
+15
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(apply list '(a b c))
+```
+
+
+</td>
+<td>
+
+```clj
+(a b c)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(trap (eval (cons my-fun '(symbol-a symbol-b))))
+```
+
+
+</td>
+<td>
+
+```clj
+(exit-error variable_not_bound)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(call-cc (lambda (return)
+           (apply return '(return-through-apply))))
+```
+
+
+</td>
+<td>
+
+```clj
+return-through-apply
+```
+
+
+</td>
+</tr>
+</table>
+
+**Footgun: Special forms**  
+[Special forms](#special-forms) are built in functions which control how their arguments are evaluated. This means that their implementations has custom logic for how to evaluate the arguments, which has the unfortunate consequence that to apply a list of arguments to them "without evaluating" said arguments would require specific logic for each special form's implementation. Given LispBM's nature of running in an embedded environment where binary size is a luxury this becomes highly impractical. Therefore the argument list is passed on unmodified to special forms. So `(apply def '(a 'symbol))` is *precisely* equivalent to `(eval (cons def '(a 'symbol)))`, `'symbol` will be evaluated!. 
+
+This is most noticeable with `and` and `or`. They are special forms due to their short-circuiting behavior, where later arguments may not be evaluated depending on the previous arguments. Given that you only given them the symbol `t` or `nil` their special form status isn't a problem when it comes to `apply` since those symbols evaluate to themselves. The problem appears when you give `and` or `or` other "unstable" values like arbitrary symbols. Since they're special forms they will evaluate them another time. 
+
+This behavior may be changed in the future, so please avoid writing programs which depend on this behavior. For the case of `and` and `or` you can define your own function which re-implement their behavior, which would be subject to `apply`'s non-evaluating property (see example below). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(apply or '(nil t))
+```
+
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(trap (apply and '(symbol-a symbol-b)))
+```
+
+
+</td>
+<td>
+
+
+```clj
+(exit-error variable_not_bound)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(trap (apply or '(nil symbol-b)))
+```
+
+
+</td>
+<td>
+
+
+```clj
+(exit-error variable_not_bound)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(defun safe-and nil
+  (foldl (lambda (acc x)
+           (and acc x)) t (rest-args)))
+(apply safe-and '(symbol-a symbol-b))
+```
+
+
+</td>
+<td>
+
+
+```clj
+symbol-b
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### read
+
+Parses a string resulting in either an expression or the <a href="#read_error">read_error</a> in case the string can not be parsed into an expression. The form of a read expression is `(read string)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(read "1")
+```
+
+
+</td>
+<td>
+
+```clj
+1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(read "(+ 1 2)")
+```
+
+
+</td>
+<td>
+
+```clj
+(+ 1 2)
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(read "(lambda (x) (+ x 1))")
+```
+
+
+</td>
+<td>
+
+```clj
+(lambda (x)
+  (+ x 1))
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### read-program
+
+Parses a string containing multiple sequenced expressions. The resulting list of expressions can be evaluated as a program using <a href="#eval-program">eval-program</a>. The form of a read-program expression is `(read-program string)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(read-program "(define apa 1) (+ 2 apa)")
+```
+
+
+</td>
+<td>
+
+```clj
+((define apa 1) (+ 2 apa))
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### read-eval-program
+
+Parses and evaluates a program incrementally. `read-eval-program` reads a top-level expression then evaluates it before reading the next. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(read-eval-program "(define a 10) (+ a 10)")
+```
+
+
+</td>
+<td>
+
+```clj
+20
+```
+
+
+</td>
+</tr>
+</table>
+
+`read-eval-program` supports the  [`@const-start`](#const-start) and [`@const-end`](#const-end) annotations which move all global definitions created in the program to constant memory (flash). 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(read-eval-program "@const-start (define a 10) (+ a 10) @const-end")
+```
+
+
+</td>
+<td>
+
+```clj
+20
 ```
 
 
@@ -4114,7 +4669,7 @@ The `sym2str` function converts a symbol to its string representation. The resul
 <td>
 
 ```clj
-lambda
+"lambda"
 ```
 
 
@@ -4132,7 +4687,7 @@ lambda
 <td>
 
 ```clj
-lambda
+"lambda"
 ```
 
 
@@ -4286,7 +4841,7 @@ lambda
 
 ### gc
 
-The `gc` function runs the garbage collector so that it can reclaim values from the heap and LBM memory that are nolonger needed. 
+The `gc` function runs the garbage collector so that it can reclaim values from the heap and LBM memory that are no longer needed. 
 
 **Note** that one should not need to run this function. GC is run automatically when needed. 
 
@@ -4321,7 +4876,21 @@ t
 
 ## Special forms
 
-Special forms looks a lot like functions but they are allowed to break the norms when it comes to evaluation order of arguments. a special form may choose to evaluate or not, freely, from its list of arguments. 
+Special forms are like functions except that they choose what arguments are evaluated. This is in contrast to "normal functions", usually referred to as *"forms"* in other Lisps, which always evaluate every argument they are given. 
+
+Note that some special forms are located in other sections to improve the document flow. These are: 
+
+   - [`quote`](#quote)
+   - [`and`](#and)
+   - [`or`](#or)
+   - [`match`](#match)
+   - [`recv`](#recv)
+   - [`recv-to`](#recv-to)
+   - [`call-cc`](#call-cc)
+   - [`call-cc-unsafe`](#call-cc-unsafe)
+   - [`atomic`](#atomic)
+   - [`macro`](#macro)
+   - [`move-to-flash`](#move-to-flash)
 
 
 ---
@@ -4329,7 +4898,9 @@ Special forms looks a lot like functions but they are allowed to break the norms
 
 ### if
 
-Conditionals are written as `(if cond-expr then-expr else-exp)`.  If the cond-expr evaluates to <a href="#nil"> nil </a> the else-expr will be evaluated.  for any other value of cond-expr the then-expr will be evaluated. 
+> ***Special form***
+
+Conditionals are written as `(if cond-expr then-expr else-exp)`. If the `cond-expr` evaluates to [`nil`](#nil) the `else-expr` will be evaluated. For any other value of `cond-expr` the `then-expr` will be evaluated. 
 
 <table>
 <tr>
@@ -4381,6 +4952,8 @@ Conditionals are written as `(if cond-expr then-expr else-exp)`.  If the cond-ex
 
 ### cond
 
+> ***Special form***
+
 `cond` is a generalization of `if` to discern between n different cases based on boolean expressions. The form of a `cond` expression is: `(cond ( cond-expr1 expr1) (cond-expr2 expr2) ... (cond-exprN exprN))`. The conditions are checked from first to last and for the first `cond-exprN` that evaluates to true, the corresponding `exprN` is evaluated. 
 
 If no `cond-exprN` evaluates to true, the result of the entire conditional is `nil`. 
@@ -4394,8 +4967,8 @@ If no `cond-exprN` evaluates to true, the result of the entire conditional is `n
 
 
 ```clj
- (define a 0)
- (cond ((< a 0) 'abrakadabra)
+(define a 0)
+(cond ((< a 0) 'abrakadabra)
       ((> a 0) 'llama)
       ((= a 0) 'hello-world))
 ```
@@ -4417,8 +4990,8 @@ hello-world
 
 
 ```clj
- (define a 5)
- (cond ((= a 1) 'doughnut)
+(define a 5)
+(cond ((= a 1) 'doughnut)
       ((= a 7) 'apple-strudel)
       ((= a 10) 'baklava))
 ```
@@ -4445,6 +5018,8 @@ nil
 
 ### lambda
 
+> ***Special form***
+
 You create an anonymous function with lambda. The function can be given a name by binding the lambda expression using <a href="#define">define</a> or <a href="#let">let</a>. A lambda expression has the form `(lambda param-list body-expr)`. 
 
 <table>
@@ -4455,7 +5030,8 @@ You create an anonymous function with lambda. The function can be given a name b
 <td>
 
 ```clj
-(lambda (x) (+ x 1))
+(lambda (x)
+  (+ x 1))
 ```
 
 
@@ -4463,7 +5039,9 @@ You create an anonymous function with lambda. The function can be given a name b
 <td>
 
 ```clj
-(closure (x) (+ x 1) nil)
+(closure (x) 
+  (+ x 1)
+  nil)
 ```
 
 
@@ -4473,7 +5051,8 @@ You create an anonymous function with lambda. The function can be given a name b
 <td>
 
 ```clj
-((lambda (x) (+ x 1)) 1)
+((lambda (x)
+   (+ x 1)) 1)
 ```
 
 
@@ -4499,7 +5078,8 @@ You can give more arguments to a function created using lambda. The extra argume
 <td>
 
 ```clj
-((lambda (x) (cons x (rest-args))) 1 2 3 4 5 6)
+((lambda (x)
+   (cons x (rest-args))) 1 2 3 4 5 6)
 ```
 
 
@@ -4517,7 +5097,8 @@ You can give more arguments to a function created using lambda. The extra argume
 <td>
 
 ```clj
-((lambda (x) (cons x (rest-args))) 1)
+((lambda (x)
+   (cons x (rest-args))) 1)
 ```
 
 
@@ -4543,7 +5124,8 @@ You can give more arguments to a function created using lambda. The extra argume
 <td>
 
 ```clj
-((lambda (x) (rest-args 0)) 1 2 3 4 5)
+((lambda (x)
+   (rest-args 0)) 1 2 3 4 5)
 ```
 
 
@@ -4561,7 +5143,8 @@ You can give more arguments to a function created using lambda. The extra argume
 <td>
 
 ```clj
-((lambda (x) (rest-args 1)) 1 2 3 4 5)
+((lambda (x)
+   (rest-args 1)) 1 2 3 4 5)
 ```
 
 
@@ -4579,7 +5162,8 @@ You can give more arguments to a function created using lambda. The extra argume
 <td>
 
 ```clj
-((lambda (x) (rest-args 2)) 1 2 3 4 5)
+((lambda (x)
+   (rest-args 2)) 1 2 3 4 5)
 ```
 
 
@@ -4597,7 +5181,8 @@ You can give more arguments to a function created using lambda. The extra argume
 <td>
 
 ```clj
-((lambda (x) (rest-args 3)) 1 2 3 4 5)
+((lambda (x)
+   (rest-args 3)) 1 2 3 4 5)
 ```
 
 
@@ -4621,6 +5206,8 @@ You can give more arguments to a function created using lambda. The extra argume
 
 ### closure
 
+> ***Special form***
+
 A <a href="#lambda"> lambda </a> expression evaluates into a closure which is very similar to a <a href="#lambda">lambda</a> but extended with a captured environment for any names unbound in the param-list appearing in the body-expr.  The form of a closure is `(closure param-list body-exp environment)`. 
 
 <table>
@@ -4631,7 +5218,8 @@ A <a href="#lambda"> lambda </a> expression evaluates into a closure which is ve
 <td>
 
 ```clj
-(lambda (x) (+ x 1))
+(lambda (x)
+  (+ x 1))
 ```
 
 
@@ -4639,7 +5227,9 @@ A <a href="#lambda"> lambda </a> expression evaluates into a closure which is ve
 <td>
 
 ```clj
-(closure (x) (+ x 1) nil)
+(closure (x) 
+  (+ x 1)
+  nil)
 ```
 
 
@@ -4650,7 +5240,8 @@ A <a href="#lambda"> lambda </a> expression evaluates into a closure which is ve
 
 ```clj
 (let ((a 1))
-     (lambda (x) (+ a x)))
+     (lambda (x)
+       (+ a x)))
 ```
 
 
@@ -4658,7 +5249,9 @@ A <a href="#lambda"> lambda </a> expression evaluates into a closure which is ve
 <td>
 
 ```clj
-(closure (x) (+ a x) ((a . 1)))
+(closure (x) 
+  (+ a x)
+  ((a . 1)))
 ```
 
 
@@ -4670,7 +5263,8 @@ A <a href="#lambda"> lambda </a> expression evaluates into a closure which is ve
 ```clj
 (let ((a 1)
       (b 2))
-     (lambda (x) (+ a b x)))
+     (lambda (x)
+       (+ a b x)))
 ```
 
 
@@ -4678,7 +5272,9 @@ A <a href="#lambda"> lambda </a> expression evaluates into a closure which is ve
 <td>
 
 ```clj
-(closure (x) (+ a b x) ((b . 2) (a . 1)))
+(closure (x) 
+  (+ a b x)
+  ((b . 2) (a . 1)))
 ```
 
 
@@ -4693,6 +5289,8 @@ A <a href="#lambda"> lambda </a> expression evaluates into a closure which is ve
 
 
 ### let
+
+> ***Special form***
 
 Local environments are created using let. The let binding in lispbm allows for mutually recursive bindings. The form of a let is `(let list-of-bindings body-expr)` and evaluating this expression means that body-expr is evaluted in an environment extended with the list-of-bindings. 
 
@@ -4724,8 +5322,10 @@ Local environments are created using let. The let binding in lispbm allows for m
 <td>
 
 ```clj
-(let ((f (lambda (x) (if (= x 0) 0 (g (- x 1)))))
-      (g (lambda (x) (if (= x 0) 1 (f (- x 1))))))
+(let ((f (lambda (x)
+           (if (= x 0) 0 (g (- x 1)))))
+      (g (lambda (x)
+           (if (= x 0) 1 (f (- x 1))))))
      (f 11))
 ```
 
@@ -4796,6 +5396,8 @@ You can deconstruct composite values while let binding.
 
 ### loop
 
+> ***Special form***
+
 loop allows to repeatedly evaluate an expression for as long as a condition holds. The form of a loop is `(loop list-of-local-bindings condition-exp body-exp)`. 
 
 The  `list-of-local-bindings` are very similar to how `let` works, just that here the `body-exp` is repeated. 
@@ -4809,13 +5411,13 @@ The  `list-of-local-bindings` are very similar to how `let` works, just that her
 
 
 ```clj
- (define sum 0)
- (loop ((a 0))
+(define sum 0)
+(loop ((a 0))
       (<= a 10)
       (progn 
           (setq sum (+ sum a))
           (setq a (+ a 1))))
- sum
+sum
 ```
 
 
@@ -4840,7 +5442,9 @@ The  `list-of-local-bindings` are very similar to how `let` works, just that her
 
 ### define
 
-You can give names to values in a global scope by using define. The form of define is `(define name expr)`. The expr is evaluated and it is the result of the evaluated expr that is stored in the environment. In lispbm you can redefine already defined values. 
+> ***Special form***
+
+You can give names to values in a global scope by using define. The form of define is `(define name expr)`. The given expression is evaluated and the result is stored in the global environment under `name`. In lispbm you can redefine already defined values. It is also possible to remove bindings from the global environment, see [`undefine`](#undefine). 
 
 <table>
 <tr>
@@ -4872,136 +5476,9 @@ You can give names to values in a global scope by using define. The form of defi
 ---
 
 
-### undefine
-
-A definition in the global can be removed using undefine.  The form of an undefine expression is `(undefine name-expr)` where name-expr should evaluate to a symbol (for example `'apa`). 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(undefine 'apa)
-```
-
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
-</table>
-
-It is also possible to undefine several bindings at the same time by providing a list of names. 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(undefine '(apa bepa cepa))
-```
-
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
-</table>
-
-
-
-
----
-
-
-### set
-
-The `set` form is used to change the value of some variable in an environment. You can use `set` to change the value of a global definition or a local definition. An application of the `set` form looks like `(set var-expr val-expr)` where `var-expr` should evaluate to a symbol. The `val-expr` is evaluated before rebinding the variable. `set` returns the value that `val-expr` evaluates to. 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-
-```clj
- (define a 10)
- (set 'a 20)
- a
-```
-
-
-</td>
-<td>
-
-
-```clj
-20
-```
-
-
-</td>
-</tr>
-</table>
-
-`set` works in local environments too such as in the body of a `let` or in a `progn`-local variable created using `var`. 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-
-```clj
- (progn 
-    (var a 10)
-    (set 'a 20)
-    a)
-```
-
-
-</td>
-<td>
-
-
-```clj
-20
-```
-
-
-</td>
-</tr>
-</table>
-
-
-
-
----
-
-
 ### setq
+
+> ***Special form***
 
 The `setq` special-form is similar to `set` and to `setvar` but expects the first argument to be a symbol. The first argument to `setq` is NOT evaluated. 
 
@@ -5014,9 +5491,9 @@ The `setq` special-form is similar to `set` and to `setvar` but expects the firs
 
 
 ```clj
- (define a 10)
- (setq a 20)
- a
+(define a 10)
+(setq a 20)
+a
 ```
 
 
@@ -5044,7 +5521,7 @@ Just like `set` and `setvar`, `setq` can be used on variables that are bound loc
 
 
 ```clj
- (progn 
+(progn 
     (var a 10)
     (setq a 20)
     a)
@@ -5070,17 +5547,9 @@ Just like `set` and `setvar`, `setq` can be used on variables that are bound loc
 ---
 
 
-### setvar
-
-`setvar` is the exact same thing as `set` 
-
-
-
-
----
-
-
 ### progn
+
+> ***Special form***
 
 The progn special form allows you to sequence a number of expressions. The form of a progn expression is `(progn expr1 ... exprN)`. 
 
@@ -5142,7 +5611,9 @@ The evaluation result of a progn sequence is the value that the last `exprN` eva
 
 ### {
 
-The curlybrace `{` syntax is a short-form (syntactic sugar) for `(progn`. The parser replaces occurrences of `{` with `(progn`. The `{` should be closed with an `}`. 
+> ***Special form***
+
+The curlybrace `{` syntax is a short-form (syntactic sugar) for `(progn`. The reader replaces occurrences of `{` with `(progn`. The `{` should be closed with an `}`. 
 
 These two programs are thus equivalent: 
 
@@ -5173,7 +5644,7 @@ And
 
 ### }
 
-The closing curlybrace `}` should be used to close an opening `{` but purely for esthetical reasons. The `}` is treated identically to a regular closing parenthesis `)`. 
+The closing curlybrace `}` should be used to close an opening `{` but purely for esthetic reasons. The `}` is treated identically to a regular closing parenthesis `)`. 
 
 The opening `{` and closing `}` curlybraces are used as a short-form for `progn`-blocks of sequences expressions. 
 
@@ -5184,6 +5655,8 @@ The opening `{` and closing `}` curlybraces are used as a short-form for `progn`
 
 
 ### var
+
+> ***Special form***
 
 The var special form allows local bindings in a progn expression. A var expression is of the form (var symbol expr) and the symbol `symbol` is bound to the value that `expr` evaluates to withing the rest of the progn expression. 
 
@@ -5289,173 +5762,11 @@ You can deconstruct composite value while var binding.
 ---
 
 
-### read
-
-Parses a string resulting in either an expression or the <a href="#read_error">read_error</a> in case the string can not be parsed into an expression. The form of a read expression is `(read string)`. 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(read "1")
-```
-
-
-</td>
-<td>
-
-```clj
-1
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-(read "(+ 1 2)")
-```
-
-
-</td>
-<td>
-
-```clj
-(+ 1 2)
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-(read "(lambda (x) (+ x 1))")
-```
-
-
-</td>
-<td>
-
-```clj
-(lambda (x) (+ x 1))
-```
-
-
-</td>
-</tr>
-</table>
-
-
-
-
----
-
-
-### read-program
-
-Parses a string containing multiple sequenced expressions. The resulting list of expressions can be evaluated as a program using <a href="#eval-program">eval-program</a>. The form of a read-program expression is `(read-program string)`. 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(read-program "(define apa 1) (+ 2 apa)")
-```
-
-
-</td>
-<td>
-
-```clj
-((define apa 1) (+ 2 apa))
-```
-
-
-</td>
-</tr>
-</table>
-
-
-
-
----
-
-
-### read-eval-program
-
-Parses and evaluates a program incrementally. `read-eval-program` reads a top-level expression then evaluates it before reading the next. 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(read-eval-program "(define a 10) (+ a 10)")
-```
-
-
-</td>
-<td>
-
-```clj
-20
-```
-
-
-</td>
-</tr>
-</table>
-
-`read-eval-program` supports the `@const-start` and `@const-end` annotations which move all global definitions created in the program to constant memory (flash). 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(read-eval-program "@const-start (define a 10) (+ a 10) @const-end")
-```
-
-
-</td>
-<td>
-
-```clj
-20
-```
-
-
-</td>
-</tr>
-</table>
-
-
-
-
----
-
-
 ### trap
 
-`trap` lets you catch an error rather than have the evaluation context terminate. The form of a trap expression is `(trap expr)`. If expr crashes with an error `e` then `(trap expr)` evaluates to `(exit-error e)`. If expr successfully runs and returns `r`, then `(trap expr)` evaluates to (exit-ok r). 
+> ***Special form***
+
+`trap` lets you catch an error rather than have the evaluation context terminate. The form of a trap expression is `(trap expr)`. If expr crashes with an error `e` then `(trap expr)` evaluates to `(exit-error e)`. If expr successfully runs and returns `r`, then `(trap expr)` evaluates to `(exit-ok r)`. 
 
 <table>
 <tr>
@@ -5518,7 +5829,7 @@ A cons cell can be used to store a pair of values. You create a pair by sticking
 
 A list is a number of cons cells linked together where the car fields hold values and the cdr fields hold pointers (the last cdr field is nil). The list below can be created either as `'(1 2 3)` or as `(list 1 2 3)`. 
 
-![Graph representaion of s-expression](./images/list_1_2_3.png)
+![Graph representation of s-expression](./images/list_1_2_3.png)
 
 
 ### car
@@ -6097,7 +6408,7 @@ Index into a list using the `ix` function. The form of an `ix` expression is `(i
 
 ### setix
 
-Destructively update an element in a list. The form of a `setix` expression is `(setix list-expr index-extr value-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative value -n will update the nth value from the end of the list. 
+Destructively update an element in a list. The form of a `setix` expression is `(setix list-expr index-expr value-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative value -n will update the nth value from the end of the list. 
 
 <table>
 <tr>
@@ -6160,9 +6471,9 @@ The `setcar` is a destructive update of the car field of a cons-cell.
 
 
 ```clj
- (define apa '(1 . 2))
- (setcar apa 42)
- apa
+(define apa '(1 . 2))
+(setcar apa 42)
+apa
 ```
 
 
@@ -6182,9 +6493,9 @@ The `setcar` is a destructive update of the car field of a cons-cell.
 
 
 ```clj
- (define apa (list 1 2 3 4))
- (setcar apa 42)
- apa
+(define apa (list 1 2 3 4))
+(setcar apa 42)
+apa
 ```
 
 
@@ -6220,9 +6531,9 @@ The `setcdr` is a destructive update of the cdr field of a cons-cell.
 
 
 ```clj
- (define apa '(1 . 2))
- (setcdr apa 42)
- apa
+(define apa '(1 . 2))
+(setcdr apa 42)
+apa
 ```
 
 
@@ -6242,9 +6553,9 @@ The `setcdr` is a destructive update of the cdr field of a cons-cell.
 
 
 ```clj
- (define apa (list 1 2 3 4))
- (setcdr apa (list 99 100))
- apa
+(define apa (list 1 2 3 4))
+(setcdr apa (list 99 100))
+apa
 ```
 
 
@@ -6280,8 +6591,8 @@ The `setcdr` is a destructive update of the cdr field of a cons-cell.
 
 
 ```clj
- (define apa (list 1 2 3 4 5 6 7 8 9 10))
- (take apa 5)
+(define apa (list 1 2 3 4 5 6 7 8 9 10))
+(take apa 5)
 ```
 
 
@@ -6317,8 +6628,8 @@ The `setcdr` is a destructive update of the cdr field of a cons-cell.
 
 
 ```clj
- (define apa (list 1 2 3 4 5 6 7 8 9 10))
- (drop apa 5)
+(define apa (list 1 2 3 4 5 6 7 8 9 10))
+(drop apa 5)
 ```
 
 
@@ -6354,8 +6665,8 @@ The `setcdr` is a destructive update of the cdr field of a cons-cell.
 
 
 ```clj
- (define apa (list 1 2 3 4 5 6 7 8 9 10))
- (reverse apa)
+(define apa (list 1 2 3 4 5 6 7 8 9 10))
+(reverse apa)
 ```
 
 
@@ -6501,9 +6812,9 @@ Rotating a list in the negative direction is slightly faster than rotating in th
 
 
 ```clj
- (define a (list 2 4 6 8 10 12))
- (define b (list 1 3 5))
- (merge < a b)
+(define a (list 2 4 6 8 10 12))
+(define b (list 1 3 5))
+(merge < a b)
 ```
 
 
@@ -6539,8 +6850,8 @@ Rotating a list in the negative direction is slightly faster than rotating in th
 
 
 ```clj
- (define a (list 1 9 2 5 1 8 3))
- (sort < a)
+(define a (list 1 9 2 5 1 8 3))
+(sort < a)
 ```
 
 
@@ -6686,8 +6997,8 @@ The `setassoc` function destructively updates a key-value mapping in an alist. T
 
 
 ```clj
- (define apa (list '(1 . horse) '(2 . donkey) '(3 . shark)))
- (setassoc apa 2 'llama)
+(define apa (list '(1 . horse) '(2 . donkey) '(3 . shark)))
+(setassoc apa 2 'llama)
 ```
 
 
@@ -6761,7 +7072,7 @@ Create an array of bytes. The form of a `bufcreate` expression is `(bufcreate si
 </tr>
 </table>
 
-Alternatively a buffer can be allocated from a compactible memory region (defrag mem). 
+Alternatively a buffer can be allocated from a compactable memory region (defrag mem). 
 
 <table>
 <tr>
@@ -7455,7 +7766,7 @@ data
 
 ### Byte buffer literal syntax
 
-Byte buffer literals can be created using the `[` and `]` syntax to enclose values to initialize the array with. The `[` and `]` syntax is complete resolved in the parser and thus cannot contain arbitrary lisp terms. the values listed between the `[` and the `]` must be literals! 
+Byte buffer literals can be created using the `[` and `]` syntax to enclose values to initialize the array with. The `[` and `]` syntax is complete resolved in the reader and thus cannot contain arbitrary lisp terms. the values listed between the `[` and the `]` must be literals! 
 
 The form of the `[` and `]` syntax is `[ val1 ... valN ]`. 
 
@@ -7819,7 +8130,7 @@ Index into an array using the `ix` function. The form of an `ix` expression is `
 
 ### setix
 
-Destructively update an element in an array. The form of a `setix` expression is `(setix arr-expr index-extr value-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative value -n will update the nth value from the end of the list. 
+Destructively update an element in an array. The form of a `setix` expression is `(setix arr-expr index-expr value-expr)`. Indexing starts from 0 and if you index out of bounds the result is nil. A negative value -n will update the nth value from the end of the list. 
 
 <table>
 <tr>
@@ -7870,7 +8181,7 @@ Destructively update an element in an array. The form of a `setix` expression is
 
 ## Defragmentable memory
 
-LBM has two types of memory, the HEAP and the LBM_MEMORY. Lists and pairs are all stored on the heap. Arrays and large values (such as 64bit numbers are stored on LBM_MEMORY. The HEAP has a nice property that all allocations on it are the same size and therefore the HEAP is imune the problems caused by fragmentation. On LBM_MEMORY arbitrarily sized arrays can be allocated and fragmentation can cause an allocation to fail even though there is enough free bytes. 
+LBM has two types of memory, the HEAP and the LBM_MEMORY. Lists and pairs are all stored on the heap. Arrays and large values (such as 64bit numbers are stored on LBM_MEMORY. The HEAP has a nice property that all allocations on it are the same size and therefore the HEAP is immune to the problems caused by fragmentation. On LBM_MEMORY arbitrarily sized arrays can be allocated and fragmentation can cause an allocation to fail even though there is enough free bytes. 
 
 One way to resolve the fragmentation problem is to use a compacting garbage collector. We have opted to not use a compacting garbage collector on the LBM_MEMORY as it is quite complicated. It is extra complicated given how this memory is a shared resource between C extensions and the lisp runtime system. 
 
@@ -7917,7 +8228,7 @@ DM
 
 ### dm-alloc
 
-`dm-alloc` is used to allocate a byte-array from a region of defragmentable memory. The form of a `dm-alloc` expression is `(dm-alloc DM-expr size-expr)`. where `DM-expr` evaluates to the defragmentable region to allocate from and `size-expr` is the number of bytes to allocate. Each allocation uses up 12 extre bytes of header that you do not include in `size-expr`. 
+`dm-alloc` is used to allocate a byte-array from a region of defragmentable memory. The form of a `dm-alloc` expression is `(dm-alloc DM-expr size-expr)`. where `DM-expr` evaluates to the defragmentable region to allocate from and `size-expr` is the number of bytes to allocate. Each allocation uses up 12 extra bytes of header that you do not include in `size-expr`. 
 
 <table>
 <tr>
@@ -7972,6 +8283,8 @@ DM
 
 
 ### match
+
+> ***Special form***
 
 Pattern-matching is expressed using match. The form of a match expression is `(match expr (pat1 expr1) ... (patN exprN))`. Pattern-matching compares the shape of an expression to each of the `pat1` ... `patN` and evaluates the expression `exprM` of the pattern that matches. In a pattern you can use a number of match-binders or wildcards: `_`, `?`, `?i`,`?u`,`?float`. 
 
@@ -8150,7 +8463,7 @@ greater-than-zero
 
 ## Concurrency
 
-The concurrency support in LispBM is provided by the set of functions, `spawn`, `wait`, `yeild` and `atomic` described below.  Concurrency in LispBM is scheduled by a round-robin scheduler that splits the runtime system evaluator fairly (with caveats, below) between all running processes. 
+The concurrency support in LispBM is provided by the set of functions, `spawn`, `wait`, `yield` and `atomic` described below.  Concurrency in LispBM is scheduled by a round-robin scheduler that splits the runtime system evaluator fairly (with caveats, below) between all running processes. 
 
 When a process is scheduled to run, made active, it is given a quota of evaluator "steps" to use up. The process then runs until that quota is exhausted or the process itself has signaled it wants to sleep by yielding or blocking (for example by waiting for a message using the message passing system). 
 
@@ -8189,9 +8502,10 @@ Use `spawn-trap` to spawn a child process and enable trapping of exit conditions
 
 
 ```clj
- (defun thd nil (+ 1 2))
- (spawn-trap thd)
- (recv ((exit-error (? tid) (? e)) 'crash)
+(defun thd nil
+  (+ 1 2))
+(spawn-trap thd)
+(recv ((exit-error (? tid) (? e)) 'crash)
       ((exit-ok (? tid) (? v)) 'ok))
 ```
 
@@ -8212,9 +8526,10 @@ ok
 
 
 ```clj
- (defun thd nil (+ 1 kurt-russel))
- (spawn-trap thd)
- (recv ((exit-error (? tid) (? e)) 'crash)
+(defun thd nil
+  (+ 1 kurt-russel))
+(spawn-trap thd)
+(recv ((exit-error (? tid) (? e)) 'crash)
       ((exit-ok (? tid) (? v)) 'ok))
 ```
 
@@ -8258,7 +8573,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-3927
+4279
 ```
 
 
@@ -8354,7 +8669,9 @@ t
 
 ### atomic
 
-`atomic` can be used to execute a LispBM one or more expression without allowing the runtime system to switch process during that time. `atomic` is similar to progn with the addition of being uninterruptable. 
+> ***Special form***
+
+`atomic` can be used to execute a LispBM one or more expression without allowing the runtime system to switch process during that time. `atomic` is similar to progn with the addition of being uninterruptible. 
 
 <table>
 <tr>
@@ -8390,7 +8707,7 @@ t
 
 ### exit-ok
 
-The `exit-ok` function terminates the thread in a "successful" way and returnes a result specified by the programmer. The form of an `exit-ok` expression is `(exit-ok value)`.  If the process that calls `exit-ok` was created using `spawn-trap` a message of the form `(exit-ok tid value)` is be sent to the parent of this process. 
+The `exit-ok` function terminates the thread in a "successful" way and returns a result specified by the programmer. The form of an `exit-ok` expression is `(exit-ok value)`.  If the process that calls `exit-ok` was created using `spawn-trap` a message of the form `(exit-ok tid value)` is be sent to the parent of this process. 
 
 
 
@@ -8421,9 +8738,10 @@ The `kill` function allows you to force terminate another thread. It has the sig
 
 
 ```clj
- (defun f nil (f))
- (define id (spawn f))
- (kill id nil)
+(defun f nil
+  (f))
+(define id (spawn f))
+(kill id nil)
 ```
 
 
@@ -8451,10 +8769,11 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
- (defun f nil (f))
- (define id (spawn-trap f))
- (kill id 'kurt-russel)
- (recv ((? x) x))
+(defun f nil
+  (f))
+(define id (spawn-trap f))
+(kill id 'kurt-russel)
+(recv ((? x) x))
 ```
 
 
@@ -8463,7 +8782,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 130017 kurt-russel)
+(exit-ok 77020 kurt-russel)
 ```
 
 
@@ -8493,6 +8812,8 @@ Messages can be sent to a process by using `send`. The form of a `send` expressi
 
 ### recv
 
+> ***Special form***
+
 To receive a message use the `recv` command. A process will block on a `recv` until there is a matching message in the mailbox. The `recv` syntax is very similar to [match](#match). 
 
 <table>
@@ -8504,8 +8825,8 @@ To receive a message use the `recv` command. A process will block on a `recv` un
 
 
 ```clj
- (send (self) 28)
- (recv ((? n) (+ n 1)))
+(send (self) 28)
+(recv ((? n) (+ n 1)))
 ```
 
 
@@ -8530,6 +8851,8 @@ To receive a message use the `recv` command. A process will block on a `recv` un
 
 ### recv-to
 
+> ***Special form***
+
 Like [recv](#recv), `recv-to` is used to receive messages but `recv-to` takes an extra timeout argument. It then receives a message containing the symbol `timeout` after the timeout period ends. 
 
 The form of an `recv-to` expression is `(recv-to timeout-secs (pattern1 exp1) ... (patternN expN))` 
@@ -8543,8 +8866,8 @@ The form of an `recv-to` expression is `(recv-to timeout-secs (pattern1 exp1) ..
 
 
 ```clj
- (send (self) 28)
- (recv-to 0.100000f32
+(send (self) 28)
+(recv-to 0.100000f32
          (timeout 'no-message)
          ((? n) (+ n 1)))
 ```
@@ -8572,8 +8895,8 @@ The form of an `recv-to` expression is `(recv-to timeout-secs (pattern1 exp1) ..
 
 
 ```clj
- (send (self) 'not-foo)
- (recv-to 0.100000f32
+(send (self) 'not-foo)
+(recv-to 0.100000f32
          (foo 'got-foo)
          (timeout 'no-message))
 ```
@@ -8890,7 +9213,7 @@ A flat value is a byte-array containing an encoding of the value.
 
 ## Macros
 
-lispBM macros are created using the `macro` keyword. A macro is quite similar to [lambda](#lambda) in lispBM except that arguments are passed in unevaluated. Together with the code-splicing capabilities given by [quasiquotation](#quasiquotation), this provides a powerful code-generation tool. 
+LispBM macros are created using the `macro` keyword. A macro is quite similar to [`lambda`](#lambda) in lispBM except that arguments are passed in unevaluated. Together with the code-splicing capabilities given by [quasiquotation](#quasiquotation), this provides a powerful code-generation tool. 
 
 A macro application is run through the interpreter two times. Once to evaluate the body of the macro on the unevaluated arguments. The result of this first application should be a program. The resulting program then goes through the interpreter again to compute final values. 
 
@@ -8898,6 +9221,8 @@ Given this repeated evaluation, macros are not a performance boost in lispbm.  M
 
 
 ### macro
+
+> ***Special form***
 
 The form of a `macro` expression is: `(macro args body)` 
 
@@ -8918,7 +9243,7 @@ The form of a `macro` expression is: `(macro args body)`
 <td>
 
 ```clj
-(macro (name args body) (append (quote (define)) (list name) (list (append (quote (lambda)) (list args) (list body)))))
+(macro (name args body) (append '(define) (list name) (list (append '(lambda) (list args) (list body)))))
 ```
 
 
@@ -8928,7 +9253,8 @@ The form of a `macro` expression is: `(macro args body)`
 <td>
 
 ```clj
-(defun inc (x) (+ x 1))
+(defun inc (x)
+  (+ x 1))
 ```
 
 
@@ -8936,7 +9262,9 @@ The form of a `macro` expression is: `(macro args body)`
 <td>
 
 ```clj
-(closure (x) (+ x 1) nil)
+(closure (x) 
+  (+ x 1)
+  nil)
 ```
 
 
@@ -8967,7 +9295,7 @@ The form of a `macro` expression is: `(macro args body)`
 
 ---
 
-## Call with current continutation
+## Call with current continuation
 
 "Call with current continuation" is called `call-cc` in LBM. Call with current continuation saves the "current continuation", which encodes what the evaluator will do next, into an object in the language. This encoded continuation object behaves as a function taking one argument. 
 
@@ -9006,6 +9334,8 @@ The example below creates a macro for a `progn` facility that allows returning a
 
 ### call-cc
 
+> ***Special form***
+
 The form of a `call-cc` expression is `(call-cc f)`, where f is a function taking a continuation k. In code most uses of call-cc will have the form `(call-cc (lambda (k) expr ))`. When using `call-cc` the expr above is allowed to bind `k` to a global variable. 
 
 
@@ -9014,6 +9344,8 @@ The form of a `call-cc` expression is `(call-cc f)`, where f is a function takin
 
 
 ### call-cc-unsafe
+
+> ***Special form***
 
 `call-cc-unsafe` is similar to `call-cc` in form. `(call-cc-unsafe f)` and in code usually as `(call-cc-unsafe (lambda (k) expr))`. When using call-cc-unsafe you must NOT let the `k` leak out of the scope created by the enclosing `call-cc-unsafe`! That is, if `k` is used at all, it must be within `expr`. Binding `k` (directly or indirectly) to a global is a violation of the trust I am putting in you. 
 
@@ -9171,6 +9503,8 @@ A `@const-start` opened block should be closed with a `@const-end`. Constant blo
 
 ### move-to-flash
 
+> ***Special form***
+
 A value can be moved to flash storage to save space on the normal evaluation heap or lbm memory.  A `move-to-flash` expression is of the form `(move-to-flash sym opt-sym1 ... opt-symN)`.  The symbols `sym`, `opt-sym1 ... opt-symN` should be globally bound to the values you want moved to flash. After the value has been moved, the environment binding is updated to point into flash memory. **CAUTION** This function should be used carefully. Ideally a value should be moved to flash immediately after it is created so there is no chance that other references to original value exists. 
 
 <table>
@@ -9182,9 +9516,9 @@ A value can be moved to flash storage to save space on the normal evaluation hea
 
 
 ```clj
- (define a [1 2 3 4 5 6])
- (move-to-flash a)
- a
+(define a [1 2 3 4 5 6])
+(move-to-flash a)
+a
 ```
 
 
@@ -9204,9 +9538,9 @@ A value can be moved to flash storage to save space on the normal evaluation hea
 
 
 ```clj
- (define ls '(1 2 3 4 5))
- (move-to-flash ls)
- ls
+(define ls '(1 2 3 4 5))
+(move-to-flash ls)
+ls
 ```
 
 
@@ -9226,9 +9560,10 @@ A value can be moved to flash storage to save space on the normal evaluation hea
 
 
 ```clj
- (defun f (x) (+ x 1))
- (move-to-flash f)
- (f 10)
+(defun f (x)
+  (+ x 1))
+(move-to-flash f)
+(f 10)
 ```
 
 
@@ -9882,5 +10217,5 @@ Convert any numerical value to a double precision floating point value. If the i
 
 ---
 
-This document was generated by LispBM version 0.30.3 
+This document was generated by LispBM version 0.32.0 
 

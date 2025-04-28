@@ -35,10 +35,10 @@
          ( (read-eval . _) true)
          (_ false)))
 
-(defun pretty (toplevel c)
+(defun pretty (toplevel ind c)
   (if (and toplevel (list? c))
       (pretty-toplevel-list c)
-    (pretty-ind 0 c)
+    (pretty-ind ind c)
     ))
 
 (defun ind-spaces (n)
@@ -47,77 +47,87 @@
 (defun pretty-ind (n c)
   (match c
          ( (loopfor (? v) (? init) (? cnd) (? upd) (? body) )
-           (str-merge (ind-spaces n) "(loopfor " (pretty nil v) " " (pretty nil init) " " (pretty nil cnd) " " (pretty nil upd) "\n" (pretty-ind (+ n 6) body) ")"))
+           (str-merge "(loopfor " (pretty nil (+ n 9) v) " " (pretty nil (+ n 9) init) " " (pretty nil (+ n 9) cnd) " " (pretty nil (+ n 9) upd) (pretty-aligned-on-top (+ n 9) (list body)) ")"))
          ( (loopwhile (? cnd) (? body) )
-           (str-merge (ind-spaces n) "(loopwhile " (pretty nil cnd) "\n" (pretty-ind (+ n 6) body) ")"))
+           (str-merge "(loopwhile " (pretty nil (+ n 11) cnd) (pretty-aligned-on-top (+ n 11) (list body)) ")"))
          ( (disp-render-mac (? i) (? x) (? y) (? color))
-           (str-merge (ind-spaces n) "(disp-render " (pretty nil i) " " (pretty nil x) " " (pretty nil y) " " (pretty nil color) ")"))
+           (str-merge "(disp-render " (pretty nil (+ n 13) i) " " (pretty nil (+ n 13) x) " " (pretty nil (+ n 13) y) " " (pretty nil (+ n 13) color) ")"))
          ( (fopen (? f) (? m))
-           (str-merge (ind-spaces n) "(fopen \"" f "\" \"" m "\")"))
+           (str-merge "(fopen \"" f "\" \"" m "\")"))
          ( (import (? txt) (? sym))
-           (str-merge (ind-spaces n) "(import \"" txt "\" '" (to-str (eval sym)) ")"))
+           (str-merge "(import \"" txt "\" '" (to-str (eval sym)) ")"))
          ( (loop (? e) . (? es))
-           (str-merge (ind-spaces n) "(loop " (pretty nil e) (pretty-aligned-ontop (+ n 6) es) ")" ))
+           (str-merge "(loop " (pretty nil (+ n 6) e) (pretty-aligned-on-top (+ n 6) es) ")" ))
          ( (atomic (? e) . (? es))
-           (str-merge (ind-spaces n) "(atomic " (pretty nil e) (pretty-aligned-ontop (+ n 8) es) ")" ))
+           (str-merge "(atomic " (pretty nil (+ n 8) e) (pretty-aligned-on-top (+ n 8) es) ")" ))
          ( (recv  (? e) . (? es))
-           (str-merge (ind-spaces n) "(recv " (pretty nil e) (pretty-aligned-ontop (+ n 6) es) ")" ))
+           (str-merge "(recv " (pretty nil (+ n 6) e) (pretty-aligned-on-top (+ n 6) es) ")" ))
          ( (recv-to  (? e) . (? es))
-           (str-merge (ind-spaces n) "(recv-to " (pretty nil e) (pretty-aligned-ontop (+ n 9) es) ")" ))
+           (str-merge "(recv-to " (pretty nil (+ n 9) e) (pretty-aligned-on-top (+ n 9) es) ")" ))
          ( (match (? e) . (? es))
-           (str-merge (ind-spaces n) "(match " (pretty nil e) (pretty-aligned-ontop (+ n 7) es) ")" ))
+           (str-merge "(match " (pretty nil (+ n 7) e) (pretty-aligned-on-top (+ n 7) es) ")" ))
          ( (progn (? e ) . (? es))
-           (str-merge (ind-spaces n) "(progn " (pretty-aligned-ontop (+ n 4) (cons e es)) ")" ))
-         ( (quote (? e)) (str-merge (ind-spaces n) "'" (pretty nil e)))
+           (str-merge "(progn " (pretty-aligned-on-top (+ n 4) (cons e es)) ")" ))
+         ( (quote (? e)) (str-merge "'" (pretty nil (+ n 1) e)))
          ( (let ((? b0) . (? brest)) (? body)) ;; pattern
-           (str-merge (ind-spaces n)
-                      "(let ("
+           (str-merge "(let ("
 
-                      (pretty nil b0)
-                      (pretty-aligned-ontop (+ n 6) brest)
+                      (pretty nil (+ n 6) b0)
+                      (pretty-aligned-on-top (+ n 6) brest)
                       ")\n"
 
-                      (pretty-ind (+ n 5) body)
+                      (ind-spaces (+ n 5)) (pretty-ind (+ n 5) body)
                       ")"
                       ))
          ( (cond (? x) . (? xs) )
-           (let ( (conds (pretty-aligned-ontop (+ n 6) xs))
-                  (cond0 (pretty nil x)))
-             (str-merge (ind-spaces n) "(cond " cond0 conds ")")
+           (let ( (conds (pretty-aligned-on-top (+ n 6) xs))
+                  (cond0 (pretty nil (+ n 6) x)))
+             (str-merge "(cond " cond0 conds ")")
              )
            )
-         ( ((? x) . (? xs)) (str-merge (ind-spaces n) "(" (pretty nil x) (pretty-list xs) ")" ))
-         ( (? x) (string? x) (str-merge (ind-spaces n) "\"" x "\""))
-         (_ (str-merge (ind-spaces n) (to-str c))))
+         ( (defun (? name) (? args) (? body))
+           (str-merge "(defun " (pretty nil (+ n 7) name) " " (pretty nil (+ n 7) args)
+                      (pretty-aligned-on-top (+ n 2) (list body)) ")"))
+         ( (lambda (? args) (? body))
+           (str-merge "(lambda " (pretty nil (+ n 8) args)
+                      (pretty-aligned-on-top (+ n 2) (list body)) ")"))
+         ( (closure (? args) . (? body-and-env))
+           (str-merge "(closure " (pretty nil (+ n 9) args) " " (pretty-aligned-on-top (+ n 2) body-and-env) ")"))
+        ;  ( (foldl . (? xs))
+        ;    (str-merge (ind-spaces n) ("(foldl " (pretty nil args))))
+         ( ((? x) . (? xs)) (str-merge "(" (pretty-list (+ n 1) (cons x xs)) ")" ))
+         ( (? x) (string? x) (str-merge "\"" x "\""))
+         (_ (to-str c)))
   )
 
-(defun pretty-list (c)
+(defun pretty-list (n c)
   (match c
          ( nil "" )
-         ( ((? x) . nil) (str-merge " " (pretty nil x) ))
+         ( ((? x) . nil) (str-merge (pretty nil n x) ))
          ( ((? x) . (? y))
-           (if (eq (type-of y) type-list)
-               (str-merge " " (pretty nil x) (pretty-list y))
-             (str-merge " " (pretty nil x) "." (pretty nil y)))
+           (let ((first-str (pretty nil n x)))
+             (if (eq (type-of y) type-list)
+                 (str-merge first-str " " (pretty-list (+ n 1 (str-len first-str)) y))
+               (str-merge first-str " . " (pretty nil (+ n 1 (str-len first-str)) y))))
            )
-         ( (? x) (str-merge " . " (pretty nil x)))))
+         ( (? x) (str-merge " . " (pretty nil n x)))))
 
 (defun pretty-toplevel-list (c)
   (match c
          ( nil "" )
-         ( ((? x) . nil) (str-merge " " (pretty nil x) ))
+         ( ((? x) . nil) (str-merge (pretty nil 0 x) ))
          ( ((? x) . (? y))
            (if (eq (type-of y) type-list)
-               (str-merge " " (pretty nil x) "\n" (pretty-toplevel-list y))
-             (str-merge " " (pretty nil x) "." (pretty nil y)))
+               (str-merge (pretty nil 0 x) "\n" (pretty-toplevel-list y))
+             (str-merge (pretty nil 0 x) " . " (pretty nil 0 y)))
            )
-         ( (? x) (str-merge " . " (pretty nil x)))))
+         ( (? x) (str-merge " . " (pretty nil 0 x)))))
 
-(defun pretty-aligned-ontop (n cs)
+(defun pretty-aligned-on-top (n cs)
   (match cs
          (nil "")
          ( ( (? x ) . (? xs))
-           (str-merge "\n" (pretty-ind n x) (pretty-aligned-ontop n xs))))
+           (str-merge "\n" (ind-spaces n) (pretty-ind n x) (pretty-aligned-on-top n xs))))
   )
 
 (defun render-code-res-pairs (rend cs)
@@ -126,12 +136,12 @@
          ( ((? x) . (? xs))
            (let ((x-str (if (is-read-eval-txt x)
                             (ix x 1)
-                          (pretty nil x)))
+                          (pretty nil 0 x)))
                  (x-code (if (is-read-eval-txt x)
                              (read (ix x 1))
                            x))
                  (res (eval nil x-code))
-                 (rstr (to-str res)))
+                 (res-str (pretty nil 0 res)))
              {
              (rend "<tr>\n")
              (rend "<td>\n\n")
@@ -141,7 +151,7 @@
              (rend "\n\n</td>\n")
              (rend "<td>\n\n")
              (rend "```clj\n")
-             (rend rstr)
+             (rend res-str)
              (rend "\n```\n")
              (rend "\n\n</td>\n")
              (rend "</tr>\n")
@@ -158,13 +168,52 @@
     (rend "</table>\n\n")
     })
 
+
+(defun render-code-res-raw-pairs (rend cs)
+  (match cs
+         (nil t)
+         ( ((? x) . (? xs))
+           (let ((x-str (if (is-read-eval-txt x)
+                            (ix x 1)
+                          (pretty nil 0 x)))
+                 (x-code (if (is-read-eval-txt x)
+                             (read (ix x 1))
+                           x))
+                 (res (eval nil x-code))
+                 (res-str (to-str res)))
+             {
+             (rend "<tr>\n")
+             (rend "<td>\n\n")
+             (rend "```clj\n")
+             (rend x-str)
+             (rend "\n```\n")
+             (rend "\n\n</td>\n")
+             (rend "<td>\n\n")
+             (rend "```clj\n")
+             (rend res-str)
+             (rend "\n```\n")
+             (rend "\n\n</td>\n")
+             (rend "</tr>\n")
+             (render-code-res-raw-pairs rend xs)
+             }))))
+
+(defun render-code-raw-table (rend c)
+    {
+    (rend "<table>\n")
+    (rend "<tr>\n")
+    (rend "<td> Example </td> <td> Result </td>\n")
+    (rend "</tr>\n")
+    (render-code-res-raw-pairs rend c)
+    (rend "</table>\n\n")
+    })
+
 (defun render-code-png-pairs (rend img colors cs)
   (match cs
          (nil t)
          ( ((? x) . (? xs))
            (let ((x-str (if (is-read-eval-txt x)
                             (ix x 1)
-                            (pretty nil x)))
+                            (pretty nil 0 x)))
                  (x-code (if (is-read-eval-txt x)
                              (read (ix x 1))
                              x))
@@ -173,7 +222,7 @@
 	     {
 	     (img-clear img 0)
 	     (var res (eval nil x-code))
-	     (var rstr (to-str res))
+	     (var res-str (to-str res))
 	     (disp-render img 0 0 colors) 
 	     (save-active-img png)
              (disp-clear)
@@ -189,7 +238,7 @@
 	     (rend "\n\n</td>\n")	     
 	     (rend "<td>\n\n")
 	     (rend "```clj\n")
-	     (rend rstr)
+	     (rend res-str)
 	     (rend "\n```\n")
 	     (rend "\n\n</td>\n")
 	     (rend "</tr>\n")
@@ -212,7 +261,7 @@
          ( ((? x) . (? xs))
            (let ((x-str (if (is-read-eval-txt x)
                             (ix x 1)
-                            (pretty nil x)))
+                            (pretty nil 0 x)))
                  (x-code (if (is-read-eval-txt x)
                              (read (ix x 1))
                              x))
@@ -220,7 +269,7 @@
 		 )
 	     {
 	     (var res (eval nil x-code))
-	     (var rstr (to-str res))
+	     (var res-str (to-str res))
 	     (save-active-img png)
 	     (rend "<tr>\n")
 	     (rend "<td>\n\n")
@@ -234,7 +283,7 @@
 	     (rend "\n\n</td>\n")	     
 	     (rend "<td>\n\n")
 	     (rend "```clj\n")
-	     (rend rstr)
+	     (rend res-str)
 	     (rend "\n```\n")
 	     (rend "\n\n</td>\n")
 	     (rend "</tr>\n")
@@ -252,15 +301,15 @@
     })
 
 
-(defun intersperse (str strs)
-  (match strs
+(defun intersperse (str strings)
+  (match strings
          ( ((? s) . nil) s)
          ( ((? s) . (? ss))
            (str-merge s str (intersperse str ss)))))
     
 
-(defun tableize (strs)
-  (str-merge "|" (intersperse "|" strs) "|\n" )
+(defun tableize (strings)
+  (str-merge "|" (intersperse "|" strings) "|\n" )
   )
 
 (defun render-table (rend h d)
@@ -279,26 +328,26 @@
          ( ((? x) . (? xs))
            (let ((x-str (if (is-read-eval-txt x)
                             (ix x 1)
-                          (pretty 't x)))
+                          (pretty 't 0 x)))
                  (x-code (if (is-read-eval-txt x)
                              (read-program (ix x 1))
                            x))
                  (res (eval-program nil x-code))
-                 (rstr (to-str res)))
-           ;(let ((cstrs (map (lambda (c) (str-merge (pretty c) "\n"))  x))
+                 (res-str (to-str res)))
+           ;(let ((c-strings (map (lambda (c) (str-merge (pretty c) "\n"))  x))
            ;      (res (eval-program nil x))
-           ;      (rstr (to-str res)))
+           ;      (res-str (to-str res)))
              {
              (rend "<tr>\n")
              (rend "<td>\n\n")
              (rend "\n```clj\n")
-                                        ;(map rend cstrs)
+                                        ;(map rend c-strings)
              (rend x-str)
              (rend "\n```\n")
              (rend "\n\n</td>\n")
              (rend "<td>\n\n")
              (rend "\n```clj\n")
-             (rend rstr)
+             (rend res-str)
              (rend "\n```\n")
              (rend "\n\n</td>\n")
              (rend "</tr>\n")
@@ -321,19 +370,19 @@
          ( ((? x) . (? xs))
            (let ((x-str (if (is-read-eval-txt x)
                             (ix x 1)
-                          (pretty 't x)))
+                          (pretty 't 0 x)))
                  (x-code (if (is-read-eval-txt x)
                              (read-program (ix x 1))
                            x))
                  (res (eval-program nil x-code))
-                 (rstr (to-str res))
+                 (res-str (to-str res))
                  (png (png-file)))
              {
              (save-active-img png)
              (rend "<tr>\n")
              (rend "<td>\n\n")
              (rend "\n```clj\n")
-                                        ;(map rend cstrs)
+                                        ;(map rend c-strings)
              (rend x-str)
              (rend "\n```\n")
              (rend "\n\n</td>\n")
@@ -343,7 +392,7 @@
              (rend "\n\n</td>\n")	     
              (rend "<td>\n\n")
              (rend "\n```clj\n")
-             (rend rstr)
+             (rend res-str)
              (rend "\n```\n")
              (rend "\n\n</td>\n")
              (rend "</tr>\n")
@@ -361,9 +410,9 @@
   })
 
 
-;; assumes existance of frame-i value
-;; assumes existance of frame-max value
-;; assumes existance of yeet continuation 
+;; assumes existence of frame-i value
+;; assumes existence of frame-max value
+;; assumes existence of yeet continuation 
 (define disp-render-mac (macro (img x y color)
   `(if (= frame-i frame-max)
        (glob-yeet nil)
@@ -398,16 +447,16 @@
   (match cs
          (nil t)
          ( ((? x) . (? xs))
-           (let ((x-str (pretty 't (car (cdr x))))
+           (let ((x-str (pretty 't 0 (car (cdr x))))
                  (x-code (car (cdr x)))
                  (gif (gif-file))
                  (res (eval-animation gif x-code (car x)))
-                 (rstr (to-str res)))
+                 (res-str (to-str res)))
              {
              (rend "<tr>\n")
              (rend "<td>\n\n")
              (rend "\n```clj\n")
-                                        ;(map rend cstrs)
+                                        ;(map rend c-strings)
              (rend x-str)
              (rend "\n```\n")
              (rend "\n\n</td>\n")
@@ -417,7 +466,7 @@
              (rend "\n\n</td>\n")	     
              ;;(rend "<td>\n\n")
              ;;(rend "\n```clj\n")
-             ;;(rend rstr)
+             ;;(rend res-str)
              ;;(rend "\n```\n")
              ;;(rend "\n\n</td>\n")
              (rend "</tr>\n")
@@ -436,8 +485,8 @@
 
 
 
-(defun str-merge-list (strs)
-  (match strs
+(defun str-merge-list (strings)
+  (match strings
          ( nil "" )
          ( ((? s) . (? ss)) (str-merge s (str-merge-list ss)))))
 
@@ -454,6 +503,21 @@
            (render rend xs)
            }
            )
+         ( (tagged-section (? i) (? name) (? tags) (? strings))
+           {
+             (match i
+               (1 (rend (str-merge "# " name "\n\n")))
+               (2 (rend (str-merge "## " name "\n\n")))
+               (3 (rend (str-merge "### " name "\n\n")))
+               (4 (rend (str-merge "#### " name "\n\n"))))
+             (rend (str-merge "> "
+                              (str-join (map (fn (x) (str-merge "***" x "***"))
+                                             tags)
+                                        ",")
+                              ; "</sup>"
+                              "\n\n"))
+             (render rend strings)
+           })
          ( (para (? x)) { (map (lambda (s) (rend (str-merge s " "))) x) (rend "\n\n") } )
          ( (verb (? x)) { (map (lambda (s) (rend s)) x) (rend "\n") } )
          ( hline (rend "\n---\n\n"))
@@ -462,6 +526,7 @@
            (rend (str-merge "**" s "**")))
          ( (program (? c)) (render-program-table rend c))
          ( (code (? c)) (render-code-table rend c))
+         ( (code-raw (? c)) (render-code-raw-table rend c))
 	 ( (code-png (? img) (? colors) (? c))
 	   (render-code-png-table rend (eval img) colors c))
 	 ( (code-disp  (? c))
@@ -481,7 +546,7 @@
            (render-dot img-name code)
            (if ra
                (rend (str-merge "![" ra  "](./images/" img-name ".png)\n\n"))
-             (rend (str-merge "![Graph representaion of s-expression](./images/" img-name ".png)\n\n"))
+             (rend (str-merge "![Graph representation of s-expression](./images/" img-name ".png)\n\n"))
              )
              
            })
@@ -508,16 +573,26 @@
 (defun s+ (s ss)
   (cons s ss))
 
-(defun section (i str strs)
-  (list 'section i str strs))
+(defun section (i str strings)
+  (list 'section i str strings))
 
-(defun ref-entry (str strs)
-  (list
-   'newline
-   (section 3 str strs)
-   'newline
-   'hline
-   ))
+(defun tagged-section (i str tags strings)
+  (list 'tagged-section i str tags strings))
+
+; signature: (ref-entry str [tags] strings)
+(defun ref-entry (str strings-or-tags)
+  (let ((tags (and (rest-args 0)
+                   strings-or-tags))
+        (strings (or (rest-args 0)
+                     strings-or-tags)))
+    (list
+     'newline
+     (if tags
+       (tagged-section 3 str tags strings)
+       (section 3 str strings))
+     'newline
+     'hline
+     )))
 
 (defun hline ()
   'hline)
@@ -531,6 +606,9 @@
 (defun code (c)
   (list 'code c))
 
+(defun code-raw (c)
+  (list 'code-raw c))
+
 (defun code-png (img colors c)
   (list 'code-png img colors c))
 
@@ -539,6 +617,9 @@
 
 (defun code-examples (c)
   (list 'code-examples c))
+
+(defun code-entry-ref (code)
+  (str-merge "[`" code "`](#" (or (rest-args 0) code) ")"))
 
 (defun program (c)
   (list 'program c))
