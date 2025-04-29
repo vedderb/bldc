@@ -208,6 +208,9 @@ endef
 clear_option_bytes:
 	$(V1) openocd -f board/stm32f4discovery.cfg -c "init" -c "stm32f2x unlock 0" -c "mww 0x40023C08 0x08192A3B; mww 0x40023C08 0x4C5D6E7F; mww 0x40023C14 0x0fffaaed" -c "exit"
 
+erase_flash:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "stm32f2x mass_erase 0" -c "reset" -c "exit"
+
 #program with olimex arm-usb-tiny-h and jtag-swd adapter board. needs openocd>=0.9
 upload-olimex: fw
 	$(V1) openocd -f interface/ftdi/olimex-arm-usb-tiny-h.cfg -f interface/ftdi/olimex-arm-jtag-swd.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x.cfg -c "program build/$(PROJECT).elf verify reset"
