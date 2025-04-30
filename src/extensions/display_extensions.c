@@ -1,5 +1,5 @@
 /*
-  Copyright 2023, 2024  Benjamin Vedder            benjamin@vedder.se
+  Copyright 2023 - 2025 Benjamin Vedder            benjamin@vedder.se
   Copyright 2023 - 2025 Joel Svensson              svenssonjoel@yahoo.se
   Copyright 2023        Rasmus Söderhielm          rasmus.soderhielm@gmail.com
   Copyright 2025        Joakim Lundborg            joakim.lundborg@gmail.com
@@ -2730,8 +2730,8 @@ static lbm_value ext_blit(lbm_value *args, lbm_uint argn) {
         scale,
         lbm_dec_as_i32(arg_dec.args[2]),
         arg_dec.attr_tile.is_valid,
-        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[0]) : lbm_dec_as_i32(arg_dec.args[0]),
-        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[1]) : lbm_dec_as_i32(arg_dec.args[1]),
+        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[0]) : 0,
+        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[1]) : 0,
         arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[2]) : dest_buf.width,
         arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[3]) : dest_buf.height
     );
