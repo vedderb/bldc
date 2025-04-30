@@ -2419,7 +2419,7 @@ static void cont_wait(eval_context_t *ctx) {
  * @return lbm_value The resulting argument value which should either be
  *   evaluated or passed on directly depending on how you use this.
  */
-static inline __attribute__ ((always_inline)) lbm_value setup_cont(eval_context_t *ctx, lbm_value args) {
+static lbm_value setup_cont(eval_context_t *ctx, lbm_value args) {
   /* Continuation created using call-cc.
    * ((SYM_CONT . cont-array) arg0 )
    */
@@ -2466,7 +2466,7 @@ static inline __attribute__ ((always_inline)) lbm_value setup_cont(eval_context_
  * @return lbm_value The resulting argument value which should either be
  *   evaluated or passed on directly depending on how you use this.
  */
-static inline __attribute__ ((always_inline)) lbm_value setup_cont_sp(eval_context_t *ctx, lbm_value args) {
+static lbm_value setup_cont_sp(eval_context_t *ctx, lbm_value args) {
   // continuation created using call-cc-unsafe
   // ((SYM_CONT_SP . stack_ptr) arg0 )
   lbm_value c = get_cadr(ctx->r); /* should be the stack_ptr*/
