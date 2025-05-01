@@ -852,8 +852,9 @@ static int lbm_unflatten_value_nostack(lbm_flat_value_t *v, lbm_value *res) {
       return UNFLATTEN_MALFORMED;
     } else {
       lbm_value unflattened;
-      if (lbm_unflatten_value_atom(v, &unflattened) != UNFLATTEN_OK) {
-        return UNFLATTEN_MALFORMED;
+      int e_val = lbm_unflatten_value_atom(v, &unflattened);
+      if (e_val != UNFLATTEN_OK) {
+        return e_val;
       }
       lbm_value val0 = unflattened;
       while (lbm_dec_ptr(curr) != LBM_PTR_NULL &&
@@ -896,6 +897,14 @@ static int lbm_unflatten_value_nostack(lbm_flat_value_t *v, lbm_value *res) {
   return UNFLATTEN_OK;
 }
 
+/* lbm_unflatten_value_nostack, does not backtrack
+   upon error to swap pointer to the correct direction
+   and to remove the LBM_PTR_NULL tag.
+
+   unflatten_value_nostack does not alter the GC_FLAG or the GC_MARK,
+   So really only reverse pointers and the NIL tag could be
+   potential problems.
+*/
 bool lbm_unflatten_value(lbm_flat_value_t *v, lbm_value *res) {
   bool b = false;
 #ifdef LBM_ALWAYS_GC
