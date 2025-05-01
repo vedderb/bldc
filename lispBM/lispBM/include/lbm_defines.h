@@ -33,6 +33,7 @@
 #define LBM_PTR_BIT                      0x00000001u
 #define LBM_PTR_VAL_MASK                 0x03FFFFFCu
 #define LBM_PTR_TYPE_MASK                0xFC000000u
+// TODO: Recall why PTR_NULL is given the value (0x03FFFFFCu >> 2)
 #define LBM_PTR_NULL                     (0x03FFFFFCu >> 2)
 
 // The address is an index into the const heap.
