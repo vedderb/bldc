@@ -75,6 +75,7 @@ static volatile bool lisp_thd_running = false;
 static mutex_t lbm_mutex;
 
 static lbm_cid repl_cid = -1;
+static lbm_cid main_cid = -1;
 static lbm_cid repl_cid_for_buffer = -1;
 static char *repl_buffer = 0;
 static volatile systime_t repl_time = 0;
@@ -658,6 +659,11 @@ static void done_callback(eval_context_t *ctx) {
 		lbm_free(repl_buffer);
 		repl_buffer = 0;
 	}
+
+	if (cid == main_cid) {
+		lbm_image_save_constant_heap_ix();
+		main_cid = -1;
+	}
 }
 
 void lispif_stop(void) {
@@ -702,6 +708,7 @@ bool lispif_restart(bool print, bool load_code, bool load_imports) {
 			code_data = (char*)flash_helper_code_data_raw(CODE_IND_LISP);
 		}
 
+		bool new_image_created = false;
 		image_max_ind = 0;
 		image_ptr = (lbm_uint*)flash_helper_code_data_raw(CODE_IND_LISP_CONST);
 
@@ -733,6 +740,7 @@ bool lispif_restart(bool print, bool load_code, bool load_imports) {
 			image_max_ind = 0;
 			lbm_image_create(ver_str);
 			load_imports = load_imports_before;
+			new_image_created = true;
 		}
 
 		lbm_image_boot();
@@ -802,7 +810,15 @@ bool lispif_restart(bool print, bool load_code, bool load_imports) {
 			}
 
 			lbm_create_string_char_channel(&string_tok_state, &string_tok, code_data);
-			lbm_load_and_eval_program_incremental(&string_tok, "main-u");
+			main_cid = lbm_load_and_eval_program_incremental(&string_tok, "main-u");
+
+			// The first time a new image is created we save the const heap ptr after main exits. This makes
+			// it more likely to work with code using const blocks from before there were images. We do
+			// not want to store the const heap pointer each reboot as that will consume more flash with
+			// each boot.
+			if (!new_image_created) {
+				main_cid = -1;
+			}
 		}
 
 		lbm_continue_eval();
