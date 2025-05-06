@@ -80,7 +80,7 @@ void hw_init_gpio(void) {
 
 
 
-// LEDs
+	// LEDs
 	palSetPadMode(GPIOA, 8,
 				  PAL_MODE_OUTPUT_PUSHPULL |
 				  PAL_STM32_OSPEED_HIGHEST);
@@ -88,10 +88,7 @@ void hw_init_gpio(void) {
 				  PAL_MODE_OUTPUT_PUSHPULL |
 				  PAL_STM32_OSPEED_HIGHEST);
 
-	//Temp switches
-	palSetPadMode(ADC_SW_EN_PORT, ADC_SW_EN_PIN,
-				  PAL_MODE_OUTPUT_PUSHPULL |
-				  PAL_STM32_OSPEED_HIGHEST);
+	// Temp switches
 	palSetPadMode(ADC_SW_1_PORT, ADC_SW_1_PIN ,
 				  PAL_MODE_OUTPUT_PUSHPULL |
 				  PAL_STM32_OSPEED_HIGHEST);
@@ -106,7 +103,6 @@ void hw_init_gpio(void) {
 	ENABLE_MOS_TEMP1();
 
 	// GPIOB (DCCAL)
-
 
 	// GPIOA Configuration: Channel 1 to 3 as alternate function push-pull
 	palSetPadMode(GPIOE, 8, PAL_MODE_ALTERNATE(GPIO_AF_TIM1) |
@@ -184,24 +180,24 @@ void hw_setup_adc_channels(void) {
 
 	// ADC1 regular channels
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_9, 1, ADC_SampleTime_15Cycles); //0
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 2, ADC_SampleTime_15Cycles); //3
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_15, 2, ADC_SampleTime_15Cycles); //3
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_5 , 3, ADC_SampleTime_15Cycles); //6
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_9, 4, ADC_SampleTime_15Cycles); //9
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 5, ADC_SampleTime_15Cycles); //12
 
 	// ADC2 regular channels
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_8, 1, ADC_SampleTime_15Cycles); //1
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 2, ADC_SampleTime_15Cycles); //4
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 3, ADC_SampleTime_15Cycles); //7
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 2, ADC_SampleTime_15Cycles); //4
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_14, 3, ADC_SampleTime_15Cycles); //7
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_12, 4, ADC_SampleTime_15Cycles); //10
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 5, ADC_SampleTime_15Cycles); //13
 
 	// ADC3 regular channels
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_10, 1, ADC_SampleTime_15Cycles); //2
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 1, ADC_SampleTime_15Cycles); //2
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 2, ADC_SampleTime_15Cycles); //5
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 3, ADC_SampleTime_15Cycles); //8
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_11, 4, ADC_SampleTime_15Cycles); //11
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 5, ADC_SampleTime_15Cycles); //14
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_10, 5, ADC_SampleTime_15Cycles); //14
 
 	// Injected channels
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_9, 1, ADC_SampleTime_15Cycles);
@@ -386,7 +382,6 @@ void smart_switch_shut_down(void) {
 	mc_interface_lock();
 	switch_state = SWITCH_SHUTTING_DOWN;
 	palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
-	palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
 	return;
 }
 
@@ -574,8 +569,6 @@ void smart_switch_pin_init(void) {
 	palSetPadMode(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(SWITCH_LED_2_GPIO,SWITCH_LED_2_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-	palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
 	palSetPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
 	LED_SWITCH_B_ON();
 	LED_SWITCH_R_OFF();
