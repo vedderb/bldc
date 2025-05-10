@@ -59,17 +59,14 @@
 #define PHASE_FILTER_OFF_M2()	palSetPad(GPIOE, 0); palSetPad(GPIOE, 1); palSetPad(GPIOE, 2);
 #define PHASE_FILTER_ON_M2()	palClearPad(GPIOE, 0); palClearPad(GPIOE, 1); palClearPad(GPIOE, 2);
 
-// Output1
-#define OUT_1_GPIO		    GPIOE
-#define OUT_1_PIN			14
-#define OUT_1_ON()		    palSetPad(OUT_1_GPIO, OUT_1_PIN)
-#define OUT_1_OFF()		    palClearPad(OUT_1_GPIO, OUT_1_PIN)
-
-// Output2
-#define OUT_2_GPIO			GPIOE
-#define OUT_2_PIN			15
-#define OUT_2_ON()			palSetPad(OUT_2_GPIO, OUT_2_PIN)
-#define OUT_2_OFF()		    palClearPad(OUT_2_GPIO, OUT_2_PIN)
+#define AUX_GPIO				GPIOE
+#define AUX_PIN					14
+#define AUX_ON()				palSetPad(AUX_GPIO, AUX_PIN)
+#define AUX_OFF()				palClearPad(AUX_GPIO, AUX_PIN)
+#define AUX2_GPIO				GPIOE
+#define AUX2_PIN				15
+#define AUX2_ON()				palSetPad(AUX2_GPIO, AUX2_PIN)
+#define AUX2_OFF()				palClearPad(AUX2_GPIO, AUX2_PIN)
 
 #define HW_SHUTDOWN_HOLD_ON();
 #define HW_SAMPLE_SHUTDOWN()		1

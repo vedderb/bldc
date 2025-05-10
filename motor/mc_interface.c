@@ -2571,73 +2571,75 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	update_override_limits(motor, &motor->m_conf);
 
 	// Update auxiliary output
-	switch (motor->m_conf.m_out_aux_mode) {
-	case OUT_AUX_MODE_UNUSED:
-		break;
+	if (is_motor_1) {
+		switch (motor->m_conf.m_out_aux_mode) {
+		case OUT_AUX_MODE_UNUSED:
+			break;
 
-	case OUT_AUX_MODE_OFF:
-		AUX_OFF();
-		break;
-
-	case OUT_AUX_MODE_ON_AFTER_2S:
-		if (chVTGetSystemTimeX() >= MS2ST(2000)) {
-			AUX_ON();
-		}
-		break;
-
-	case OUT_AUX_MODE_ON_AFTER_5S:
-		if (chVTGetSystemTimeX() >= MS2ST(5000)) {
-			AUX_ON();
-		}
-		break;
-
-	case OUT_AUX_MODE_ON_AFTER_10S:
-		if (chVTGetSystemTimeX() >= MS2ST(10000)) {
-			AUX_ON();
-		}
-		break;
-
-	case OUT_AUX_MODE_ON_WHEN_RUNNING:
-		if (mc_interface_get_state() == MC_STATE_RUNNING) {
-			AUX_ON();
-		} else {
+		case OUT_AUX_MODE_OFF:
 			AUX_OFF();
+			break;
+
+		case OUT_AUX_MODE_ON_AFTER_2S:
+			if (chVTGetSystemTimeX() >= MS2ST(2000)) {
+				AUX_ON();
+			}
+			break;
+
+		case OUT_AUX_MODE_ON_AFTER_5S:
+			if (chVTGetSystemTimeX() >= MS2ST(5000)) {
+				AUX_ON();
+			}
+			break;
+
+		case OUT_AUX_MODE_ON_AFTER_10S:
+			if (chVTGetSystemTimeX() >= MS2ST(10000)) {
+				AUX_ON();
+			}
+			break;
+
+		case OUT_AUX_MODE_ON_WHEN_RUNNING:
+			if (mc_interface_get_state() == MC_STATE_RUNNING) {
+				AUX_ON();
+			} else {
+				AUX_OFF();
+			}
+			break;
+
+		case OUT_AUX_MODE_ON_WHEN_NOT_RUNNING:
+			if (mc_interface_get_state() == MC_STATE_RUNNING) {
+				AUX_OFF();
+			} else {
+				AUX_ON();
+			}
+			break;
+
+		case OUT_AUX_MODE_MOTOR_50:
+			if (mc_interface_temp_motor_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
+			break;
+
+		case OUT_AUX_MODE_MOSFET_50:
+			if (mc_interface_temp_fet_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
+			break;
+
+		case OUT_AUX_MODE_MOTOR_70:
+			if (mc_interface_temp_motor_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
+			break;
+
+		case OUT_AUX_MODE_MOSFET_70:
+			if (mc_interface_temp_fet_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
+			break;
+
+		case OUT_AUX_MODE_MOTOR_MOSFET_50:
+			if (mc_interface_temp_motor_filtered() > 50.0 ||
+					mc_interface_temp_fet_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
+			break;
+
+		case OUT_AUX_MODE_MOTOR_MOSFET_70:
+			if (mc_interface_temp_motor_filtered() > 70.0 ||
+					mc_interface_temp_fet_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
+			break;
 		}
-		break;
-
-	case OUT_AUX_MODE_ON_WHEN_NOT_RUNNING:
-		if (mc_interface_get_state() == MC_STATE_RUNNING) {
-			AUX_OFF();
-		} else {
-			AUX_ON();
-		}
-		break;
-
-	case OUT_AUX_MODE_MOTOR_50:
-		if (mc_interface_temp_motor_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
-		break;
-
-	case OUT_AUX_MODE_MOSFET_50:
-		if (mc_interface_temp_fet_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
-		break;
-
-	case OUT_AUX_MODE_MOTOR_70:
-		if (mc_interface_temp_motor_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
-		break;
-
-	case OUT_AUX_MODE_MOSFET_70:
-		if (mc_interface_temp_fet_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
-		break;
-
-	case OUT_AUX_MODE_MOTOR_MOSFET_50:
-		if (mc_interface_temp_motor_filtered() > 50.0 ||
-				mc_interface_temp_fet_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
-		break;
-
-	case OUT_AUX_MODE_MOTOR_MOSFET_70:
-		if (mc_interface_temp_motor_filtered() > 70.0 ||
-				mc_interface_temp_fet_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
-		break;
 	}
 
 	encoder_check_faults(&motor->m_conf, !is_motor_1);
