@@ -1899,7 +1899,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old->l_current_min = -i_max;
 		float abs_max = i_max * 1.5;
 		utils_truncate_number(&abs_max, HW_LIM_CURRENT_ABS);
-		mcconf_old->l_abs_current_max = abs_max;		
+		// mcconf_old->l_abs_current_max = abs_max;	//The new hardware can handle more current, and this limit is too conservative	
 		mcconf_old->motor_type = MOTOR_TYPE_FOC;
 		mcconf_old->foc_motor_r = r;
 		mcconf_old->foc_motor_l = l;
