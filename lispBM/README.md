@@ -2539,7 +2539,7 @@ Enable or disable decoding of the VESC Protocol on the CAN-bus. By default it is
 
 ---
 
-CAN messages are byte arrays of up to 500 bytes that can be sent between devices over CAN-bus. Together with flat values they are useful for e.g. remote code execution. Each CAN-device has 5 different slots to send messages to.
+CAN messages are byte arrays of up to 500 bytes that can be sent between devices over CAN-bus. Together with flat values they are useful for e.g. remote code execution. Each CAN-device has 8 different slots to send messages to.
 
 ---
 

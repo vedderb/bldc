@@ -745,7 +745,7 @@ bool lispif_restart(bool print, bool load_code, bool load_imports) {
 
 		lbm_image_boot();
 		lbm_add_eval_symbols();
-		lbm_eval_init_events(20);
+		lbm_eval_init_events(30);
 
 		chThdCreateStatic(eval_thread_wa, sizeof(eval_thread_wa), NORMALPRIO - 1, eval_thread, NULL);
 		lisp_thd_running = true;
