@@ -75,21 +75,21 @@ CH_IRQ_HANDLER(PVD_IRQHandler) {
 }
 
 CH_IRQ_HANDLER(NMI_Handler) {
-	main_stop_motor_and_reset();
+	main_fault_handler();
 }
 
 CH_IRQ_HANDLER(HardFault_Handler) {
-	main_stop_motor_and_reset();
+	main_fault_handler();
 }
 
 CH_IRQ_HANDLER(MemManage_Handler) {
-	main_stop_motor_and_reset();
+	main_fault_handler();
 }
 
 CH_IRQ_HANDLER(BusFault_Handler) {
-	main_stop_motor_and_reset();
+	main_fault_handler();
 }
 
 CH_IRQ_HANDLER(UsageFault_Handler) {
-	main_stop_motor_and_reset();
+	main_fault_handler();
 }

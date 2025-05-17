@@ -22,6 +22,33 @@
 
 bool main_init_done(void);
 uint32_t main_calc_hw_crc(void);
-void main_stop_motor_and_reset(void);
+void main_system_halt(const char *reason);
+void main_fault_handler(void);
+
+typedef struct {
+	uint32_t r0;
+	uint32_t r1;
+	uint32_t r2;
+	uint32_t r3;
+	uint32_t r12;
+	uint32_t lr;
+	uint32_t pc;
+	uint32_t psr;
+
+	uint32_t cfsr;
+	uint32_t hfsr;
+	uint32_t mmfar;
+	uint32_t bfar;
+	uint32_t afsr;
+	uint32_t shcsr;
+} CrashRegisters;
+
+typedef struct {
+	const char *halt_reason;
+	CrashRegisters registers;
+	bool registers_stored;
+} CrashInfo;
+
+extern CrashInfo crash_info;
 
 #endif /* MAIN_H_ */

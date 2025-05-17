@@ -91,6 +91,8 @@
 foc_profile g_foc_profile;
 #endif
 
+__attribute__((section(".noinit"))) CrashInfo crash_info;
+
 // Private variables
 static THD_WORKING_AREA(periodic_thread_wa, 256);
 static THD_WORKING_AREA(led_thread_wa, 256);
@@ -367,7 +369,7 @@ int main(void) {
 	}
 }
 
-void main_stop_motor_and_reset(void) {
+static void stop_motor_and_reset(void) {
 	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
 	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
 	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
@@ -407,4 +409,49 @@ void main_stop_motor_and_reset(void) {
 #endif
 
 	NVIC_SystemReset();
+}
+
+void main_system_halt(const char *reason) {
+	crash_info.halt_reason = reason;
+	crash_info.registers_stored = false;
+
+	stop_motor_and_reset();
+}
+
+void main_fault_handler(void) __attribute__((naked));
+void main_fault_handler(void) {
+	// Store the currently-in-use stack pointer to the first function argument
+	// and call fault_handler_c
+	__asm volatile (
+		"TST LR, #4\n"
+		"ITE EQ\n"
+		"MRSEQ R0, MSP\n"
+		"MRSNE R0, PSP\n"
+		"B fault_handler_c\n"
+	);
+}
+
+void fault_handler_c(uint32_t *hardfault_args) {
+	// Store the registers dumped on the stack after a crash
+	crash_info.registers.r0 = hardfault_args[0];
+	crash_info.registers.r1 = hardfault_args[1];
+	crash_info.registers.r2 = hardfault_args[2];
+	crash_info.registers.r3 = hardfault_args[3];
+	crash_info.registers.r12 = hardfault_args[4];
+	crash_info.registers.lr = hardfault_args[5];
+	crash_info.registers.pc = hardfault_args[6];
+	crash_info.registers.psr = hardfault_args[7];
+
+	// Store the crash information registers
+	crash_info.registers.cfsr = SCB->CFSR;
+	crash_info.registers.hfsr = SCB->HFSR;
+	crash_info.registers.mmfar = SCB->MMFAR;
+	crash_info.registers.bfar = SCB->BFAR;
+	crash_info.registers.afsr = SCB->AFSR;
+	crash_info.registers.shcsr = SCB->SHCSR;
+
+	crash_info.registers_stored = true;
+	crash_info.halt_reason = NULL;
+
+	stop_motor_and_reset();
 }
