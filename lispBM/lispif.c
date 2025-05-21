@@ -160,6 +160,10 @@ static void prof_thd_wrapper(void *v) {
 }
 
 static bool pause_eval(uint32_t num_free, uint32_t timeout_ms) {
+	if (!lisp_thd_running) {
+		return false;
+	}
+
 	int timeout_cnt = timeout_ms;
 
 	if (num_free > 0) {
@@ -889,4 +893,5 @@ static THD_FUNCTION(eval_thread, arg) {
 	chRegSetThreadName("Lisp Eval");
 	lbm_run_eval();
 	lisp_thd_running = false;
+	eval_tp = 0;
 }
