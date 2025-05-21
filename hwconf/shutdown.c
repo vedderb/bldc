@@ -136,9 +136,17 @@ static THD_FUNCTION(shutdown_thread, arg) {
 
 		switch (conf->shutdown_mode) {
 		case SHUTDOWN_MODE_ALWAYS_OFF:
+#ifdef HW_SHUTDOWN_NO
+			if (m_button_pressed) {
+				HW_SHUTDOWN_HOLD_ON();
+			} else {
+				do_shutdown(false);
+			}
+#else
 			if (m_button_pressed) {
 				gates_disabled_here = do_shutdown(true);
 			}
+#endif
 			break;
 
 		case SHUTDOWN_MODE_ALWAYS_ON:
