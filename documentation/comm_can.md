@@ -207,7 +207,7 @@ There are 6 different status messages available with the following data:
 | CAN_PACKET_STATUS_3 | 15 | Wh Used, Wh Charged |
 | CAN_PACKET_STATUS_4 | 16 | Temp Fet, Temp Motor, Current In, PID position |
 | CAN_PACKET_STATUS_5 | 27 | Tachometer, Voltage In |
-| CAN_PACKET_STATUS_6 | 28 | ADC1, ADC2, ADC3, PPM |
+| CAN_PACKET_STATUS_6 | 58 | ADC1, ADC2, ADC3, PPM |
 
 The content of the status messages is encoded as follows:
 
