@@ -4439,6 +4439,8 @@ static lbm_value ext_conf_enc_sincos(lbm_value *args, lbm_uint argn) {
 		}
 	}
 
+	encoder_update_config(conf);
+
 	lbm_value res = ENC_SYM_NIL;
 	res = lbm_cons(lbm_enc_float(conf->m_encoder_sincos_phase_correction), res);
 	res = lbm_cons(lbm_enc_float(conf->m_encoder_sincos_filter_constant), res);
