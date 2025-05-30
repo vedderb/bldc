@@ -6262,13 +6262,35 @@ Start ESP-NOW. This must be run before further ESP-NOW operations.
 | Express | 6.02+ |
 
 ```clj
-(esp-now-add-peer peer)
+(esp-now-add-peer peer optRate)
 ```
 
 Add peer. The argument is a list with the mac address of the peer to add. This must be run before esp-now-send as it only is possible to send data to peers that have been added. Example:
 
 ```clj
 (esp-now-add-peer '(255 255 255 255 255 255)) ; Add broadcast address as peer
+```
+
+The optional argument optRate (added in FW6.06) sets the wifi bitrate when sending data to this peer. By default it is 1 Mbps. The rate argument is a number between -1 and 15 with the following meaning:
+
+```
+-1: Keep default Rate
+0 : 1 Mbps with long preamble
+1 : 2 Mbps with long preamble
+2 : 5.5 Mbps with long preamble
+3 : 11 Mbps with long preamble
+4 : ???? Missing in ESP doc
+5 : 2 Mbps with short preamble
+6 : 5.5 Mbps with short preamble
+7 : 11 Mbps with short preamble
+8 : 48 Mbps
+9 : 24 Mbps
+10: 12 Mbps
+11: 6 Mbps
+12: 54 Mbps
+13: 36 Mbps
+14: 18 Mbps
+15: 9 Mbps
 ```
 
 ---
