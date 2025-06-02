@@ -17,13 +17,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_MAXIMP_NO_LIMITS_H_
-#define HW_MAXIMP_NO_LIMITS_H_
+#ifndef HW_MAXIM_150_NO_LIMITS_H_
+#define HW_MAXIM_150_NO_LIMITS_H_
 
-#define HWMAXIMP
+#define HWMAXIM_150
 
 #define DISABLE_HW_LIMITS
 
-#include "hw_maximp_core.h"
+#include "hw_maxim_core.h"
 
-#endif /* HW_MAXIMP_NO_LIMITS_H_ */
+#endif /* HW_MAXIM_150_NO_LIMITS_H_ */

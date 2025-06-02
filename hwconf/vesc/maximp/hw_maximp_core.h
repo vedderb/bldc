@@ -20,8 +20,10 @@
 #ifndef HW_MAXIMP_CORE_H_
 #define HW_MAXIMP_CORE_H_
 
-#ifdef HWMAXIMP
-	#define HW_NAME					"Maximp"
+#ifdef HWMAXIMP_150
+	#define HW_NAME					"Maximp_150"
+#elif defined(HWMAXIMP_120)
+	#define HW_NAME					"Maximp_120"
 #else
 	#error "Must define hardware type"
 #endif
@@ -272,8 +274,14 @@
 #ifndef MCCONF_L_MIN_VOLTAGE
 #define MCCONF_L_MIN_VOLTAGE			20.0		// Minimum input voltage
 #endif
+#ifdef HWMAXIMP_120
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE			140.0	// Maximum input voltage
+#endif
+#else
+#ifndef MCCONF_L_MAX_VOLTAGE
+#define MCCONF_L_MAX_VOLTAGE			112.0	// Maximum input voltage
+#endif
 #endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
@@ -298,10 +306,17 @@
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-900.0, 900.0
-#define HW_LIM_CURRENT_IN		-900.0, 900.0
+#ifdef HWMAXIMP_120
+#define HW_LIM_CURRENT			-1000.0, 1000.0
+#define HW_LIM_CURRENT_IN		-1000.0, 1000.0
 #define HW_LIM_CURRENT_ABS		0.0, 1500.0
+#define HW_LIM_VIN				20.0, 115.0
+#else
+#define HW_LIM_CURRENT			-750.0, 750.0
+#define HW_LIM_CURRENT_IN		-750.0, 750.0
+#define HW_LIM_CURRENT_ABS		0.0, 1200.0
 #define HW_LIM_VIN				20.0, 145.0
+#endif
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99

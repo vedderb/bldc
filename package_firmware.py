@@ -209,10 +209,14 @@ package_dict["RSR_DD_V1"] = [['RSR_DD_V1', default_name],
 package_dict["RSR_DD_V2"] = [['RSR_DD_V2', default_name]]
 package_dict["RSR_DD_V2.1"] = [['RSR_DD_V2.1', default_name]]
 package_dict["ITR_X1"] = [['itr_x1', default_name]]
-package_dict["Maxim"] = [['maxim', default_name],
-                    ['maxim_no_limits', no_limits_name]]
-package_dict["Maximp"] = [['maximp', default_name],
-                    ['maximp_no_limits', no_limits_name]]
+package_dict["Maxim_120"] = [['maxim_120', default_name],
+                    ['maxim_120_no_limits', no_limits_name]]
+package_dict["Maximp_120"] = [['maximp_120', default_name],
+                    ['maximp_120_no_limits', no_limits_name]]
+package_dict["Maxim_150"] = [['maxim_150', default_name],
+                    ['maxim_150_no_limits', no_limits_name]]
+package_dict["Maximp_150"] = [['maximp_150', default_name],
+                    ['maximp_150_no_limits', no_limits_name]]
 
 # This is the firmware stub string
 res_firmwares_string = '        <file>TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'
