@@ -15,11 +15,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_FLIPSKY_410_NO_LIMITS_H_
-#define HW_FLIPSKY_410_NO_LIMITS_H_
+#ifndef HW_FLIPSKY_412_NO_LIMITS_H_
+#define HW_FLIPSKY_412_NO_LIMITS_H_
 
 #define DISABLE_HW_LIMITS
 
-#include "hw_flipsky_410.h"
+#include "hw_flipsky_412.h"
 
-#endif /* HW_FLIPSKY_410_NO_LIMITS_H_ */
+#endif /* HW_FLIPSKY_412_NO_LIMITS_H_ */
