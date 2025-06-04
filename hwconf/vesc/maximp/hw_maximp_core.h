@@ -276,11 +276,11 @@
 #endif
 #ifdef HWMAXIMP_120
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			140.0	// Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE			112.0	// Maximum input voltage
 #endif
 #else
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			112.0	// Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE			140.0	// Maximum input voltage
 #endif
 #endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
