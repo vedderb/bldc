@@ -305,8 +305,8 @@
 
 // Setting limits
 #ifdef HWMAXIM_120
-#define HW_LIM_CURRENT			-600.0, 600.0
-#define HW_LIM_CURRENT_IN		-600.0, 600.0
+#define HW_LIM_CURRENT			-650.0, 650.0
+#define HW_LIM_CURRENT_IN		-650.0, 650.0
 #define HW_LIM_CURRENT_ABS		0.0, 900.0
 #define HW_LIM_VIN				20.0, 115.0
 #else
