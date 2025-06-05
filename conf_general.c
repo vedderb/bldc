@@ -1226,7 +1226,7 @@ __attribute__((section(".text2"))) int conf_general_measure_flux_linkage_openloo
  * Send motor configuration if the detection succeeds.
  *
  * @result
- * 2: AS5147 detected successfully
+ * 2: AS5047 detected successfully
  * 1: Hall sensors detected successfully
  * 0: No sensors detected and sensorless mode applied successfully
  * -1: Detection failed
@@ -1863,7 +1863,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old->l_current_min = -i_max;
 		float abs_max = i_max * 1.5;
 		utils_truncate_number(&abs_max, HW_LIM_CURRENT_ABS);
-		mcconf_old->l_abs_current_max = abs_max;		
+		// mcconf_old->l_abs_current_max = abs_max;	//The new hardware can handle more current, and this limit is too conservative	
 		mcconf_old->motor_type = MOTOR_TYPE_FOC;
 		mcconf_old->foc_motor_r = r;
 		mcconf_old->foc_motor_l = l;
@@ -1885,7 +1885,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old_second->l_current_min = -r_l_imax_args.i_max;
 		abs_max = r_l_imax_args.i_max * 1.5;
 		utils_truncate_number(&abs_max, HW_LIM_CURRENT_ABS);
-		mcconf_old_second->l_abs_current_max = abs_max;
+		// mcconf_old_second->l_abs_current_max = abs_max;
 		mcconf_old_second->motor_type = MOTOR_TYPE_FOC;
 		mcconf_old_second->foc_motor_r = r_l_imax_args.r;
 		mcconf_old_second->foc_motor_l = r_l_imax_args.l;
