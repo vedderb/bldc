@@ -27,8 +27,6 @@
 
 // Variables
 static volatile bool i2c_running = false;
-static mutex_t shutdown_mutex;
-static float bt_diff = 0.0;
 static THD_WORKING_AREA(mux_thread_wa, 256);
 static THD_FUNCTION(mux_thread, arg);
 static volatile bool mux_thd_running = false;
@@ -87,8 +85,6 @@ static void load_extensions(bool main_found) {
 }
 
 void hw_init_gpio(void) {
-	chMtxObjectInit(&shutdown_mutex);
-
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -359,28 +355,6 @@ static THD_FUNCTION(mux_thread, arg) {
 		chThdSleepMicroseconds(T_SAMP_US);
 		ADC_Value[ADC_IND_TEMP_DCDC] = ADC_Value[ADC_IND_ADC_MUX];
 	}
-}
-
-bool hw_sample_shutdown_button(void) {
-	chMtxLock(&shutdown_mutex);
-
-	bt_diff = 0.0;
-
-	for (int i = 0;i < 3;i++) {
-		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_INPUT_ANALOG);
-		chThdSleep(5);
-		float val1 = ADC_VOLTS(ADC_IND_SHUTDOWN);
-		chThdSleepMilliseconds(1);
-		float val2 = ADC_VOLTS(ADC_IND_SHUTDOWN);
-		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-		chThdSleepMilliseconds(1);
-
-		bt_diff += (val1 - val2);
-	}
-
-	chMtxUnlock(&shutdown_mutex);
-
-	return (bt_diff > 0.12);
 }
 
 float hw100_400_get_temp(void) {
