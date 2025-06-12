@@ -37,6 +37,7 @@ void lispif_unlock_lbm(void);
 void lispif_stop(void);
 bool lispif_restart(bool print, bool load_code, bool load_imports);
 void lispif_add_ext_load_callback(void (*p_func)(bool));
+bool lispif_is_eval_task(void);
 lbm_uint lispif_const_heap_max_ind(void);
 void lispif_disable_all_events(void);
 bool lispif_symbol_to_io(lbm_uint sym, stm32_gpio_t **port, uint32_t *pin);

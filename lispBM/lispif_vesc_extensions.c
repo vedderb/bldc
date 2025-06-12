@@ -60,6 +60,7 @@
 #include "app.h"
 #include "comm_usb.h"
 #include "flash_helper.h"
+#include "packet.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -661,6 +662,27 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 
 static bool is_symbol_true_false(lbm_value v) {
 	return lbm_is_symbol_true(v) || lbm_is_symbol_nil(v);;
+}
+
+static bool start_flatten_with_gc(lbm_flat_value_t *v, size_t buffer_size) {
+	if (lispif_is_eval_task()) {
+		return lbm_start_flatten(v, buffer_size);
+	}
+
+	if (lbm_start_flatten(v, buffer_size)) {
+		return true;
+	}
+
+	int timeout = 3;
+	uint32_t gc_last = lbm_heap_state.gc_num;
+	lbm_request_gc();
+
+	while (lbm_heap_state.gc_num <= gc_last && timeout > 0) {
+		chThdSleepMilliseconds(1);
+		timeout--;
+	}
+
+	return lbm_start_flatten(v, buffer_size);
 }
 
 // Various commands
@@ -2752,12 +2774,14 @@ static volatile bool event_data_rx_en = false;
 static volatile bool event_shutdown_en = false;
 static volatile bool event_icu_width_en = false;
 static volatile bool event_icu_period_en = false;
+static volatile bool event_cmds_data_tx_en = false;
 static lbm_uint sym_event_can_sid;
 static lbm_uint sym_event_can_eid;
 static lbm_uint sym_event_data_rx;
 static lbm_uint sym_event_shutdown;
 static lbm_uint sym_event_icu_width;
 static lbm_uint sym_event_icu_period;
+static lbm_uint sym_event_cmds_data_tx = 0;
 
 static lbm_value ext_enable_event(lbm_value *args, lbm_uint argn) {
 	if (argn != 1 && argn != 2) {
@@ -2787,6 +2811,8 @@ static lbm_value ext_enable_event(lbm_value *args, lbm_uint argn) {
 		event_icu_width_en = en;
 	} else if (name == sym_event_icu_period) {
 		event_icu_period_en = en;
+	} else if (name == sym_event_cmds_data_tx) {
+		event_cmds_data_tx_en = en;
 	} else {
 		return ENC_SYM_EERROR;
 	}
@@ -5322,6 +5348,134 @@ lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
 	return r ? ENC_SYM_TRUE : ENC_SYM_NIL;
 }
 
+// Commands interface
+static PACKET_STATE_t *cmds_packet_state = 0;
+static volatile thread_t *cmds_task = 0;
+
+typedef struct {
+	unsigned char buffer[PACKET_MAX_PL_LEN + 8];
+	unsigned int len;
+} cmds_send_data;
+
+static void cmds_send_raw(unsigned char *buffer, unsigned int len) {
+	if (event_cmds_data_tx_en) {
+		lbm_flat_value_t v;
+		if (start_flatten_with_gc(&v, len + 30)) {
+			f_cons(&v);
+			f_sym(&v, sym_event_cmds_data_tx);
+			f_cons(&v);
+			f_lbm_array(&v, len, buffer);
+			f_sym(&v, ENC_SYM_NIL);
+			lbm_finish_flatten(&v);
+
+			int timeout = 500;
+			while (!lbm_event(&v)) {
+				if (timeout == 0 || lispif_is_eval_task()) {
+					lbm_free(v.buf);
+					return;
+				}
+
+				chThdSleepMilliseconds(1);
+				timeout--;
+			}
+		}
+	}
+}
+
+static void cmds_send_packet(unsigned char *buffer, unsigned int len) {
+	if (cmds_packet_state) {
+		packet_send_packet(buffer, len, cmds_packet_state);
+	}
+}
+
+static void cmds_send_task(void *arg) {
+	cmds_send_data *sd = (cmds_send_data*)arg;
+	commands_process_packet(sd->buffer, sd->len, cmds_send_packet);
+	lbm_free(sd);
+	cmds_task = 0;
+}
+
+static void cmds_proc(unsigned char *data, unsigned int len) {
+	if (cmds_task != 0) {
+		return;
+	}
+
+	cmds_send_data *sd = lbm_malloc_reserve(sizeof(cmds_send_data));
+
+	if (!sd) {
+		return;
+	}
+
+	memcpy(sd->buffer, data, len);
+	sd->len = len;
+
+	cmds_task = (thread_t*)lispif_spawn(cmds_send_task, 2048, "lbm_cmds", sd);
+
+	if (!cmds_task) {
+		lbm_free(sd);
+	}
+}
+
+static lbm_value ext_cmds_start_stop(lbm_value *args, lbm_uint argn) {
+	if (argn != 0 && argn != 1) {
+		lbm_set_error_reason(lbm_error_str_num_args);
+		return ENC_SYM_TERROR;
+	}
+
+	bool start = true;
+	if (argn >= 1) {
+		if (!is_symbol_true_false(args[0])) {
+			return ENC_SYM_TERROR;
+		}
+
+		start = lbm_is_symbol_true(args[0]);
+	}
+
+	if (cmds_packet_state) {
+		lbm_free(cmds_packet_state);
+		cmds_packet_state = 0;
+	}
+
+	if (start) {
+		cmds_packet_state = lbm_malloc(sizeof(PACKET_STATE_t));
+
+		if (!cmds_packet_state) {
+			return ENC_SYM_MERROR;
+		}
+
+		packet_init(cmds_send_raw, cmds_proc, cmds_packet_state);
+	}
+
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_cmds_proc(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN(1);
+
+	lbm_array_header_t *arr = lbm_dec_array_header(args[0]);
+
+	if (!arr) {
+		lbm_set_error_reason(lbm_error_str_incorrect_arg);
+		return ENC_SYM_TERROR;
+	}
+
+	if (!cmds_packet_state) {
+		lbm_set_error_reason("Cmds not started");
+		return ENC_SYM_EERROR;
+	}
+
+	// There isn't enough memory to spawn process thread
+	// and store package data. Run GC and retry.
+	if (lbm_memory_longest_free() < (2100 + sizeof(cmds_send_data))) {
+		return ENC_SYM_MERROR;
+	}
+
+	for (unsigned int i = 0;i < arr->size;i++) {
+		packet_process_byte(((unsigned char *)arr->data)[i],cmds_packet_state);
+	}
+	return ENC_SYM_TRUE;
+}
+
 static const char* dyn_functions[] = {
 		"(defun uart-read-bytes (buffer n ofs)"
 		"(let ((rd (uart-read buffer n ofs)))"
@@ -5380,6 +5534,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_symbol_const("event-shutdown", &sym_event_shutdown);
 		lbm_add_symbol_const("event-icu-width", &sym_event_icu_width);
 		lbm_add_symbol_const("event-icu-period", &sym_event_icu_period);
+		lbm_add_symbol_const("event-cmds-data-tx", &sym_event_cmds_data_tx);
 
 		memset(&syms_vesc, 0, sizeof(syms_vesc));
 
@@ -5657,6 +5812,10 @@ void lispif_load_vesc_extensions(bool main_found) {
 		// Image
 		lbm_add_extension("image-save", ext_image_save);
 
+		// Commands
+		lbm_add_extension("cmds-start-stop", ext_cmds_start_stop);
+		lbm_add_extension("cmds-proc", ext_cmds_proc);
+
 		// Extension libraries
 		lbm_array_extensions_init();
 		lbm_math_extensions_init();
@@ -5666,23 +5825,6 @@ void lispif_load_vesc_extensions(bool main_found) {
 	}
 
 	lbm_set_dynamic_load_callback(dynamic_loader);
-}
-
-static bool start_flatten_with_gc(lbm_flat_value_t *v, size_t buffer_size) {
-	if (lbm_start_flatten(v, buffer_size)) {
-		return true;
-	}
-
-	int timeout = 3;
-	uint32_t gc_last = lbm_heap_state.gc_num;
-	lbm_request_gc();
-
-	while (lbm_heap_state.gc_num <= gc_last && timeout > 0) {
-		chThdSleepMilliseconds(1);
-		timeout--;
-	}
-
-	return lbm_start_flatten(v, buffer_size);
 }
 
 void lispif_process_can(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
@@ -5818,6 +5960,7 @@ void lispif_disable_all_events(void) {
 	event_shutdown_en = false;
 	event_icu_width_en = false;
 	event_icu_period_en = false;
+	event_cmds_data_tx_en = false;
 	// Give thread a chance to stop
 	chThdSleepMilliseconds(5);
 }

@@ -37,7 +37,7 @@
 #define LBM_MEMORY_BITMAP_SIZE_28K LBM_MEMORY_BITMAP_SIZE(448)
 
 #ifndef EXTENSION_STORAGE_SIZE
-#define EXTENSION_STORAGE_SIZE		304
+#define EXTENSION_STORAGE_SIZE		306
 #endif
 
 #ifndef ADC_SAMPLE_MAX_LEN
@@ -845,6 +845,10 @@ void lispif_add_ext_load_callback(void (*p_func)(bool)) {
 			break;
 		}
 	}
+}
+
+bool lispif_is_eval_task(void) {
+	return eval_tp == chThdGetSelfX();
 }
 
 lbm_uint lispif_const_heap_max_ind(void)  {

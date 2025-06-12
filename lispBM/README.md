@@ -5171,6 +5171,7 @@ Possible events to register are
 (event-enable 'event-can-sid)  ; -> (event-can-sid . (id . data)), where id is U32 and data is a byte array
 (event-enable 'event-can-eid)  ; -> (event-can-eid . (id . data)), where id is U32 and data is a byte array
 (event-enable 'event-data-rx)  ; -> (event-data-rx . data), where data is a byte array
+(event-enable 'event-cmds-data-tx)  ; -> (event-cmds-data-tx data), where data is a byte array
 
 ; ESC Only
 (event-enable 'event-shutdown) ; -> event-shutdown
@@ -5200,6 +5201,9 @@ This event is sent when extended id CAN-frames are received.
 
 **event-data-rx**  
 This event is sent when custom app data is sent from VESC Tool or other connected devices. This works using all communication ports including USB, UART and CAN-bus.
+
+**event-cmds-data-tx**  
+This event is sent when the commands interface has a response packet to send. See the commands chapter for more details.
 
 **event-shutdown**  
 This event is sent when the ESC is about to shut down. Note that this event currently only works on hardware with a power switch. If that is not the case you could try to, for example, monitor the input voltage and simulate this event when it drops below a set level.
@@ -6232,6 +6236,66 @@ Re-initializes the ublox gnss-module. Returns true on success and nil on failure
 The optional argument optRateMs can be used to set the navigation rate in milliseconds. By default 500 ms us used. Not any navigation rate is possible, it depends on the ublox module in use. Common rates that can work are 100, 200, 500, 1000 and 2000 ms.
 
 The optional arguments optUartNum, optPinRx and optPinTx can be used to specify the UART peripheral and pins. optUartNum can be 0 or 1 and the pins can be any valid ESP-pins.
+
+---
+
+## Commands
+
+The VESC commands interface can be accessed from LispBM. This can be used to execute all commands supported by VESC Tool or to create a bridge to VESC Tool.
+
+---
+
+#### cmds-start-stop
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.06+ |
+
+```clj
+(cmds-start-stop optStart)
+```
+
+Start or stop commands interface. The commands interface needs to be started for the extensions and related events to work. This will allocate around 1k of memory for the packet interface. When stopping the allocated memory will be freed. The optional argument optStart can be set to true for start or to false for stop. If it is left out the commands interface will be started.
+
+---
+
+#### cmds-proc
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 6.06+ |
+
+```clj
+(cmds-proc data)
+```
+
+Process data byte array with the packet decoder. If a full command is decoded a C thread will be spawned that executes the command. If the command has a response to send this is done using the event-cmds-data-tx event. Spawning the thread will require around 2.6k of free memory (ESC) or 4k of memory (Express).
+
+The best way to illustrate how to use this is with an example. The following code uses TCP sockets on VESC Express to connect to the VESC TCP hub. VESC Tool can then connect to this express using the TCP Hub and run all commands as usual. It should be fairly simple to adapt this example to for example interface with an LTE modem.
+
+```clj
+; Connect to VESC TCP hub
+(def socket (tcp-connect "veschub.vedder.se" 65101))
+
+; Register with username user11 and password pass11
+(tcp-send socket "VESC:user11:pass11\n")
+
+(defun event-handler () {
+        (set-mailbox-size 3) ; Use small mailbox to avoid filling RAM with too many unsent packets
+        (loopwhile t
+            (recv
+                ((event-cmds-data-tx (? data)) (tcp-send socket data))
+                (_ nil)
+})))
+
+(event-register-handler (spawn event-handler))
+(event-enable 'event-cmds-data-tx)
+
+(cmds-start-stop true)
+(loopwhile t {
+        (cmds-proc (tcp-recv socket 512 100 false))
+})
+```
 
 ---
 
