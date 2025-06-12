@@ -196,7 +196,7 @@
 #define CURRENT_AMP_GAIN        20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES       0.0001 // TODO: Correct after replacing with correct part
+#define CURRENT_SHUNT_RES       0.00025
 #endif
 
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
