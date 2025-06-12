@@ -220,6 +220,8 @@ package_dict["Maxim_150"] = [['maxim_150', default_name],
                     ['maxim_150_no_limits', no_limits_name]]
 package_dict["Maximp_150"] = [['maximp_150', default_name],
                     ['maximp_150_no_limits', no_limits_name]]
+package_dict["Duet"] = [['duet', default_name],
+                    ['duet_no_limits', no_limits_name]]
 
 # This is the firmware stub string
 res_firmwares_string = '        <file>TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'

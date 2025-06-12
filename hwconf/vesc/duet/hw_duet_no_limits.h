@@ -17,8 +17,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_DUET_H_
-#define HW_DUET_H_
+#ifndef HW_DUET_NO_LIMITS_H_
+#define HW_DUET_NO_LIMITS_H_
+
+#define DISABLE_HW_LIMITS
 
 #include "hw_duet_core.h"
 
