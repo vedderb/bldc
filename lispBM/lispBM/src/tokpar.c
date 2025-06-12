@@ -38,7 +38,8 @@ typedef struct {
 } matcher;
 
 /*
-  \#\a -> 7                 ; control-g
+  \#\0 -> 0                 ; NUL
+  \#\a -> 7                 ; bell character, BEL
   \#\b -> 8                 ; backspace, BS
   \#\t -> 9                 ; tab, TAB
   \#\n -> 10                ; newline
@@ -47,23 +48,29 @@ typedef struct {
   \#\r -> 13                ; carriage return, RET
   \#\e -> 27                ; escape character, ESC
   \#\s -> 32                ; space character, SPC
+  \#\" -> 34                ; double quote
   \#\\ -> 92                ; backslash character, \
   \#\d -> 127               ; delete character, DEL
 */
 
-#define NUM_SPECIAL_CHARS 11
-const char special_chars[NUM_SPECIAL_CHARS][2] =
-  {{'a', '\a'},
-   {'b', '\b'},
-   {'t', '\t'},
-   {'n', '\n'},
-   {'v', '\v'},
-   {'f', '\f'},
-   {'r', '\r'},
-   {'e', 27},
-   {'s', 32},
-   {'\\', '\\'},
-   {'d', 127}};
+static inline signed char translate_escape_char(char c) {
+  switch (c) {
+    case '0': return '\0';
+    case 'a': return '\a';
+    case 'b': return '\b';
+    case 't': return '\t';
+    case 'n': return '\n';
+    case 'v': return '\v';
+    case 'f': return '\f';
+    case 'r': return '\r';
+    case 'e': return 27;
+    case 's': return 32;
+    case '"': return '\"';
+    case '\\': return '\\';
+    case 'd': return 127;
+    default: return -1;
+  }
+}
 
 #define NUM_FIXED_SIZE_TOKENS 18
 const matcher fixed_size_tokens[NUM_FIXED_SIZE_TOKENS] = {
@@ -193,18 +200,6 @@ int tok_symbol(lbm_char_channel_t *chan) {
   return len;
 }
 
-static char translate_escape_char(char c) {
-  switch(c) {
-  case '\\': return '\\';
-  case 'n': return '\n';
-  case 'r': return '\r';
-  case 't': return '\t';
-  case '0': return '\0';
-  case '\"': return '\"';
-  default: return '\\';
-  }
-}
-
 int tok_string(lbm_char_channel_t *chan, unsigned int *string_len) {
 
   unsigned int n = 0;
@@ -229,7 +224,16 @@ int tok_string(lbm_char_channel_t *chan, unsigned int *string_len) {
     if (c == '\\' && !encode) {
       encode = true;
     } else {
-      tokpar_sym_str[len] = encode ? translate_escape_char(c) : c ;
+      if (encode) {
+        signed char result = translate_escape_char(c);
+        if (result == -1) {
+          return TOKENIZER_STRING_ERROR;
+        } else {
+          tokpar_sym_str[len] = result; 
+        }
+      } else {
+        tokpar_sym_str[len] = c;
+      }
       len++;
       encode = false;
     }
@@ -270,15 +274,10 @@ int tok_char(lbm_char_channel_t *chan, char *res) {
     r = lbm_channel_peek(chan, 3, &c);
     if (r == CHANNEL_MORE) return TOKENIZER_NEED_MORE;
     if (r == CHANNEL_END)  return TOKENIZER_NO_TOKEN;
-
-    bool ok = false;
-    for (int i = 0; i < NUM_SPECIAL_CHARS; i ++) {
-      if (c == special_chars[i][0]) {
-        *res = special_chars[i][1];
-        ok = true;
-      }
-    }
-    if (ok) {
+    
+    signed char result = translate_escape_char(c);
+    if (result != -1) {
+      *res = result;
       return 4;
     } else {
       return TOKENIZER_CHAR_ERROR;

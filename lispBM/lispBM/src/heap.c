@@ -1547,7 +1547,25 @@ lbm_uint lbm_flash_memory_usage(void) {
 //     - NOT suitable for flattening in general, but should be
 //       a perfect fit for the flattening we do into images.
 
-bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
+// May 3 2025
+//  * It may be impossible to detect all kinds of cycles
+//    if attempting to use and restore the GC in a single pass
+//    over the tree. To detect cycles all visited nodes must
+//    remain detectable when traversing all branches!
+//
+//  * Potential fix is to run GC after a complete traversal of the
+//    entire value in order to restore the GC bits.
+//
+//  * If we leave GC bits set when traversing values, we can use this
+//    to detect cycles that happen in multiple steps accross values
+//    in the environment.
+//
+//  * lbm_ptr_rev_trav with the "do_nothing" travfun is the same thing
+//    as a GC mark phase! Maybe utilize this for code-size purposes,
+//    atleast in the ptr_rev_gc version. This also increases the amount
+//    of testing the ptr_rev_trav function is subjected to.
+
+bool lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
 
   bool cyclic = false;
   lbm_value curr = v;
@@ -1564,19 +1582,20 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       if (lbm_is_cons(curr)) {
         gc_mark(curr);
         // In-order traversal
-        f(curr, arg);
+        f(curr, false, arg);
         lbm_value next = 0;
         value_assign(&next, cell->car);
         value_assign(&cell->car, prev);
         value_assign(&prev, curr);
         value_assign(&curr, next);
       } else { // it is an array
+        gc_mark(curr);
         lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
         lbm_value *arr_data = (lbm_value *)arr->data;
         uint32_t index = arr->index;
         if (arr->size == 0) break;
         if (index == 0) { // index should only be 0 or there is a potential cycle
-          f(curr, arg);
+          f(curr, false, arg);
           arr->index = 1;
 
           lbm_value next = 0;
@@ -1591,12 +1610,13 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
       }
     }
 
-    if (!lbm_is_cons(curr) || // Found a leaf
-        (curr & LBM_PTR_TO_CONSTANT_BIT)) {
-      f(curr, arg);
-    } else if (gc_marked(curr)) {
+    if (lbm_is_ptr(curr) && gc_marked(curr)) {
+      f(curr, true, arg); // run on shared node as well.
       cyclic = true;
-      gc_clear_mark(curr);
+    } else if (!lbm_is_cons(curr) || // Found a leaf
+        (curr & LBM_PTR_TO_CONSTANT_BIT)) {
+      if (lbm_is_ptr(curr) && !(curr & LBM_PTR_TO_CONSTANT_BIT)) gc_mark(curr); // Mark it so that the mandatory GC does not swipe it.
+      f(curr, false, arg);
     }
 
     // Now either prev has the "flag" set or it doesnt.
@@ -1618,7 +1638,7 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
         // =>
         // prev = [ a , b ][flag = 0]
 
-        gc_clear_mark(prev);
+        //gc_clear_mark(prev);
         cell->car = lbm_clr_gc_flag(cell->car);
         // Move on downwards until
         //   finding a cons cell without flag or NULL
@@ -1660,7 +1680,7 @@ bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg) {
     if (lbm_is_ptr(prev) &&
         lbm_dec_ptr(prev) == LBM_PTR_NULL) {
       if (lbm_is_cons(curr)) {
-        gc_clear_mark(curr);
+        //gc_clear_mark(curr);
       }
       //done = true;
       break;

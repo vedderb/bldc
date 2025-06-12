@@ -50,12 +50,13 @@ The byte and the char value have identical representation and type, thus char is
 
 An integer literal is interpreted to be of type `i`, a 28/56bit signed integer value.  A literal with decimal point is interpreted to be a type `f32` or float value. 
 
-To specify literals of the other types, the value must be postfixed with a qualifier string.  The qualifiers available in LBM are: `b`, `i`, `u`, `i32`, `u32`, `i64`, `u64`, `f32` and `f63`.  The `i` and `f32` qualifiers are never strictly needed but can be added if one so wishes. 
+To specify literals of the other types, the value must be postfixed with a qualifier string.  The qualifiers available in LBM are: `b`, `i`, `u`, `i32`, `u32`, `i64`, `u64`, `f32` and `f63`.  The `i` and `f32` qualifiers are never strictly needed but can be added if one so wishes. An alternative way of writing byte literals is using [Character literals](#character-literals) (e.g. `\#a`). 
 
 So for example: 
 
    - `1b`     - Specifies a byte typed value of 1
    - `1.0f64` - Specifies a 64bit float with value 1.0.
+   - `\#a`   - Specifies a byte type value of 97.
 
 **Note** that it is an absolute requirement to include a decimal when writing a floating point literal in LBM. 
 
@@ -373,6 +374,151 @@ For addition performance on embedded systems, we use the the EDU VESC motorcontr
 In general, on 32Bit platforms, the cost of operations on numerical types that are 32Bit or less are about equal in cost. The costs presented here was created by timing a large number of 2 argument additions. Do not see these measurements as the "truth carved in stone", LBM performance keeps changing over time as we make improvements, but use them as a rough guiding principle. 
 
 
+## Strings
+
+LBM supports string literals, consisting of a pair of double quotes (`"`) with a string of characters in between. These evaluate to a byte array containing the bytes of these characters (in the source code's encoding), followed by a zero byte. 
+
+Special characters can be written using escape sequences. They take the form of a backslash character (`\`) followed by some character from the list below and are replaced with their corresponding character at read time. A backslash followed by any other character is a read error. 
+
+
+|Escape sequence|ASCII value|C equivalent|Character represented|
+|:----:|:----:|:----:|:----:|
+|`\0`|0x0|`\0`|Zero byte|
+|`\a`|0x7|`\a`|[Bell character](https://en.wikipedia.org/wiki/Bell_character)|
+|`\b`|0x8|`\b`|[Backspace](https://en.wikipedia.org/wiki/Backspace#^H)|
+|`\t`|0x9|`\t`|[Horizontal Tab](https://en.wikipedia.org/wiki/Horizontal_Tab)|
+|`\n`|0xA|`\n`|[Newline](https://en.wikipedia.org/wiki/Newline)|
+|`\v`|0xB|`\v`|[Vertical tab](https://en.wikipedia.org/wiki/Vertical_Tab)|
+|`\f`|0xC|`\f`|[Form feed](https://en.wikipedia.org/wiki/Formfeed)|
+|`\r`|0xD|`\r`|[Carriage return](https://en.wikipedia.org/wiki/Carriage_Return)|
+|`\e`|0x1B|`\e`|[Escape character](https://en.wikipedia.org/wiki/Escape_character#ASCII_escape_character)|
+|`\s`|0x20|-|Space ` `|
+|`\"`|0x22|`\"`|Double quote `"`|
+|`\\`|0x5C|`\\`|[Backslash](https://en.wikipedia.org/wiki/Backslash) `\`|
+|`\d`|0x7F|-|[Delete character](https://en.wikipedia.org/wiki/Delete_character)|
+
+Note that unlike other languages, single quotes (`'`) can't be used to form string literals as it's busy being used for [quoting](#quotes-and-quasiquotation)! Therefore it doesn't need to be escaped within string literals. 
+
+
+### Character literals
+
+Individual characters can be written using character literals. They take the form of `\#` followed by any ASCII character (e.g. `\#a` or `\#X`), and evaluate to their corresponding numerical byte value (note the type!). Like strings, character literals also support escape sequences, in which case they evaluate to its value from the above table, and any invalid characters result in a read error. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+\#a
+```
+
+
+</td>
+<td>
+
+```clj
+97b
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+\#A
+```
+
+
+</td>
+<td>
+
+```clj
+65b
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+\# 
+```
+
+
+</td>
+<td>
+
+```clj
+32b
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+\#\n
+```
+
+
+</td>
+<td>
+
+```clj
+10b
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+\#\\
+```
+
+
+</td>
+<td>
+
+```clj
+92b
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+\#\0
+```
+
+
+</td>
+<td>
+
+```clj
+0b
+```
+
+
+</td>
+</tr>
+</table>
+
+
 ## Syntax and semantics
 
 Opinions on Lisp syntax varies widely depending on a persons programming experience and preferences. If you look around, or ask around you could find any of the following, and probably more views on lisp syntax: 
@@ -410,10 +556,10 @@ S-expressions are built from two things, **Atoms** and **Pairs** of S-expression
 
 In LispBM the set of atoms consist of: 
 
-   - Numbers: Such as `1`, `2`, `3.14`, `65b`, `2u32`
-   - Strings: Such as "hello world", "door" ...
+   - [Numbers](#numbers-and-numerical-types): Such as `1`, `2`, `3.14`, `65b`, `2u32`
+   - [Strings](#strings): Such as "hello world", "door" ...
    - Byte Arrays: Such as [1 2 3 4 5]
-   - Symbols: Such as `a`, `lambda`, `define`, `kurt-russel` ...
+   - [Symbols](#about-symbols): Such as `a`, `lambda`, `define`, `kurt-russel` ...
 
 In LispBM a pair of S-expressions is created by an application of `cons` as `(cons a b)` which creates the pair `(a . b)`. Convention is that `(e0 e1 ... eN)` = `(e0 . ( e1 . ... ( eN . nil)))`. 
 
@@ -8782,7 +8928,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 77020 kurt-russel)
+(exit-ok 79659 kurt-russel)
 ```
 
 

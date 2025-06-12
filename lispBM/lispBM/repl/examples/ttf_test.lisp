@@ -22,11 +22,10 @@
 ;;(define font-file (fopen "HelveticaNeue-Bold.ttf" "r"))
 (define font-file (fopen "Ubuntu-Regular.ttf" "r"))
 (define font (load-file font-file))
-(define ttf (ttf-font 32 32 font))
-(setq ttf (ttf-prepare ttf 'rgb332 "TTF Font"))
-(ttf-text disp 10 80 ttf "TTF Font")
+(define ttf (ttf-prepare font 32 'indexed4 "TTF Font"))
+(define aa-green '(0 17408 39168 65280))
+(ttf-text disp 10 80 aa-green ttf "TTF Font")
 
-(disp-render disp 0 0 (list 0x000000
-                            0xFFFFFF))
+(disp-render disp 0 0 (list ))
 
 

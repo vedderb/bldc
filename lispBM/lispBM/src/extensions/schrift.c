@@ -252,8 +252,8 @@ sft_gmetrics(const SFT *sft, SFT_Glyph glyph, SFT_GMetrics *metrics)
 
   if (hor_metrics(sft->font, glyph, &adv, &lsb) < 0)
     return -1;
-  metrics->advanceWidth    = adv * xScale;
-  metrics->leftSideBearing = lsb * xScale + sft->xOffset;
+  metrics->advanceWidth    = (float)adv * xScale;
+  metrics->leftSideBearing = (float)lsb * xScale + sft->xOffset;
 
   if (outline_offset(sft->font, glyph, &outline) < 0)
     return -1;
@@ -383,117 +383,6 @@ bool sft_gpos_kerning(const SFT *sft, SFT_Glyph leftGlyph, SFT_Glyph rightGlyph,
   return false;
 }
 
-/* int */
-/* sft_gpos_kerning(const SFT *sft, SFT_Glyph leftGlyph, SFT_Glyph rightGlyph, */
-/*                   SFT_Kerning *kerning) */
-/* { */
-/*   void *match; */
-/*   uint_fast32_t offset; */
-/*   unsigned int numTables, numPairs, length, format, flags; */
-/*   int value; */
-/*   uint8_t key[4]; */
-
-/*   memset(kerning, 0, sizeof *kerning); */
-/*   if (gettable(sft->font, "GPOS", &offset) < 0) */
-/*     return 0; */
-
-/*   printf("Offset: %x\n", offset); */
-
-/*   if (!is_safe_offset(sft->font, offset, 10)) // jump into header at pos */
-/*     return -1; */
-/*   uint16_t major = getu16(sft->font, offset); */
-/*   uint16_t minor = getu16(sft->font, offset + 2); */
-/*   uint16_t sl = getu16(sft->font, offset + 4); */
-/*   uint16_t fl = getu16(sft->font, offset + 6); */
-/*   uint16_t ll = getu16(sft->font, offset + 8); */
-
-/*   printf("GPOS:\n"); */
-/*   printf("  version: %d %d\n", major, minor); */
-/*   printf("  scriptList offset: %u\n", sl); */
-/*   printf("  featureList offset: %u\n", fl); */
-/*   printf("  lookupList offset: %u\n", ll); */
-/*   offset+=ll; */
-
-/*   uint16_t lookupListCount = getu16(sft->font, offset); */
-
-/*   printf("LOOKUP LIST:\n"); */
-/*   printf(" num lookups %d\n", lookupListCount); */
-
-/*   while (lookupListCount) { */
-/*     uint_fast32_t tmp_offs = offset + 2; */
-
-/*     uint16_t table = getu16(sft->font, tmp_offs); */
-/*     printf(" offset to table %d\n", table); */
-
-/*     uint32_t loffset = offset + table; */
-/*     uint16_t lookupType = getu16(sft->font, loffset );  */
-/*     uint16_t lookupFlag = getu16(sft->font, loffset + 2); */
-/*     uint16_t subTableCount = getu16(sft->font, loffset + 4); */
-
-/*     if (lookupType == PAIR_ADJUSTMENT) { */
-/*       printf("PAIR ADJUSTMENT table found\n"); */
-/*       if (!is_safe_offset(sft->font, loffset, 6)) {  */
-/*         printf("fail lookuplist\n"); */
-/*         return -1; */
-/*       } */
-
-/*       printf("Offset: %x\n", loffset); */
-/*       printf("Subtables:\n"); */
-/*       printf("  lookup type: %x\n", lookupType); */
-/*       printf("  lookup flag: %x\n", lookupFlag); */
-/*       printf("  Subtables  : %d\n", subTableCount); */
-
-/*       if (!is_safe_offset(sft->font, loffset, (subTableCount * sizeof(uint16_t)))) {  */
-/*         printf("fail subtables\n"); */
-/*         return -1; */
-/*       } */
-/*       uint16_t subtableOffset = getu16(sft->font, loffset + 6); */
-/*       printf("  Subtable offset %d\n", subtableOffset); */
-
-/*       loffset += subtableOffset; */
-
-/*       if (!is_safe_offset(sft->font, loffset, 10)) {  */
-/*         printf("fail subtables\n"); */
-/*         return -1; */
-/*       } */
-
-/*       uint16_t subTableFormat = getu16(sft->font, loffset); */
-/*       uint16_t coverageOffset = getu16(sft->font, loffset + 2); */
-/*       uint16_t valueFormat1 = getu16(sft->font, loffset + 4);; */
-/*       uint16_t valueFormat2 = getu16(sft->font, loffset + 6);; */
-/*       uint16_t pairSetCount = getu16(sft->font, loffset + 8);; */
-
-/*       printf("Offset: %x\n", loffset); */
-/*       printf("SUBTABLE 1:\n"); */
-/*       printf("  subTableFormat: %d\n", subTableFormat); */
-/*       printf("  coverageoffset: %d\n", coverageOffset); */
-/*       printf("  valueFormat1: %d\n", valueFormat1); */
-/*       printf("  valueFormat2: %d\n", valueFormat2); */
-/*       printf("  pairSetCount: %d\n", pairSetCount); */
-
-
-/*       // valueFormat1 applies to glyph 1 */
-/*       // valueFormat2 applies to glyph 2 */
-
-/*       int glyph_cover = is_glyph_covered(sft, loffset + coverageOffset, leftGlyph); */
-/*       if (glyph_cover >= 0) { */
-/*         printf("glyph cover id: %d\n", glyph_cover); */
-/*         uint16_t pairSetOffset = getu16(sft->font, loffset + 10 + (glyph_cover * 2)); */
-/*         uint32_t coffset = loffset + pairSetOffset; */
-
-/*         get_pair_x_adjustment(sft,coffset, rightGlyph);         */
-
-/*       } */
-/*       else if (glyph_cover < 0) { */
-/*         printf("NOT COVERED\n"); */
-/*       } */
-
-/*     } */
-/*     lookupListCount--; */
-/*   } */
-/*   return 0; */
-/* } */
-
 int
 sft_kerning(const SFT *sft, SFT_Glyph leftGlyph, SFT_Glyph rightGlyph,
             SFT_Kerning *kerning)
@@ -542,9 +431,9 @@ sft_kerning(const SFT *sft, SFT_Glyph leftGlyph, SFT_Glyph rightGlyph,
 
         value = geti16(sft->font, (uint_fast32_t) ((uint8_t *) match - sft->font->memory + 4));
         if (flags & CROSS_STREAM_KERNING) {
-          kerning->yShift += value;
+          kerning->yShift += (float)value;
         } else {
-          kerning->xShift += value;
+          kerning->xShift += (float)value;
         }
       }
 
@@ -581,13 +470,13 @@ sft_render(const SFT *sft, SFT_Glyph glyph, image_buffer_t * image)
   transform[0] = sft->xScale / sft->font->unitsPerEm;
   transform[1] = 0.0f;
   transform[2] = 0.0f;
-  transform[4] = sft->xOffset - bbox[0];
+  transform[4] = sft->xOffset - (float)bbox[0];
   if (sft->flags & SFT_DOWNWARD_Y) {
     transform[3] = -sft->yScale / sft->font->unitsPerEm;
-    transform[5] = bbox[3] - sft->yOffset;
+    transform[5] = (float)bbox[3] - sft->yOffset;
   } else {
     transform[3] = +sft->yScale / sft->font->unitsPerEm;
-    transform[5] = sft->yOffset - bbox[1];
+    transform[5] = sft->yOffset - (float)bbox[1];
   }
 
   memset(&outl, 0, sizeof outl);
@@ -1110,10 +999,10 @@ glyph_bbox(const SFT *sft, uint_fast32_t outline, int box[4])
   /* Transform the bounding box into SFT coordinate space. */
   xScale = sft->xScale / sft->font->unitsPerEm;
   yScale = sft->yScale / sft->font->unitsPerEm;
-  box[0] = (int) floor(box[0] * xScale + sft->xOffset);
-  box[1] = (int) floor(box[1] * yScale + sft->yOffset);
-  box[2] = (int) ceil (box[2] * xScale + sft->xOffset);
-  box[3] = (int) ceil (box[3] * yScale + sft->yOffset);
+  box[0] = (int) floor((float)box[0] * xScale + sft->xOffset);
+  box[1] = (int) floor((float)box[1] * yScale + sft->yOffset);
+  box[2] = (int) ceil ((float)box[2] * xScale + sft->xOffset);
+  box[3] = (int) ceil ((float)box[3] * yScale + sft->yOffset);
   return 0;
 }
 
@@ -1575,24 +1464,24 @@ draw_line(Raster buf, Point origin, Point goal)
   } else {
     if (dir.x > 0) {
       pixel.x = fast_floor(origin.x);
-      nextCrossing.x = (origin.x - pixel.x) * crossingIncr.x;
+      nextCrossing.x = (origin.x - (float)pixel.x) * crossingIncr.x;
       nextCrossing.x = crossingIncr.x - nextCrossing.x;
       numSteps += fast_ceil(goal.x) - fast_floor(origin.x) - 1;
     } else {
       pixel.x = fast_ceil(origin.x) - 1;
-      nextCrossing.x = (origin.x - pixel.x) * crossingIncr.x;
+      nextCrossing.x = (origin.x - (float)pixel.x) * crossingIncr.x;
       numSteps += fast_ceil(origin.x) - fast_floor(goal.x) - 1;
     }
   }
 
   if (dir.y > 0) {
     pixel.y = fast_floor(origin.y);
-    nextCrossing.y = (origin.y - pixel.y) * crossingIncr.y;
+    nextCrossing.y = (origin.y - (float)pixel.y) * crossingIncr.y;
     nextCrossing.y = crossingIncr.y - nextCrossing.y;
     numSteps += fast_ceil(goal.y) - fast_floor(origin.y) - 1;
   } else {
     pixel.y = fast_ceil(origin.y) - 1;
-    nextCrossing.y = (origin.y - pixel.y) * crossingIncr.y;
+    nextCrossing.y = (origin.y - (float)pixel.y) * crossingIncr.y;
     numSteps += fast_ceil(origin.y) - fast_floor(goal.y) - 1;
   }
 

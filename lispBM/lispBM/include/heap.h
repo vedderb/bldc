@@ -230,7 +230,7 @@ typedef struct {
 
 extern lbm_heap_state_t lbm_heap_state;
 
-  typedef bool (*const_heap_write_fun)(lbm_uint w, lbm_uint ix);
+typedef bool (*const_heap_write_fun)(lbm_uint w, lbm_uint ix);
 
 typedef struct {
   lbm_uint *heap;
@@ -822,7 +822,7 @@ static inline int32_t lbm_dec_i32(lbm_value x) {
  * \return decoded int64_t.
  */
 extern int64_t lbm_dec_i64(lbm_value x);
-  
+
 /**
  * Check if a value is a heap pointer
  * \param x Value to check
@@ -881,7 +881,9 @@ static inline bool lbm_heap_array_valid(lbm_value arr) {
  */
 static inline bool lbm_is_array_r(lbm_value x) {
   lbm_type t = lbm_type_of(x);
-  return (((t & LBM_PTR_TO_CONSTANT_MASK) == LBM_TYPE_ARRAY) && lbm_heap_array_valid(x)) ;
+  bool t_ok = ((t & LBM_PTR_TO_CONSTANT_MASK) == LBM_TYPE_ARRAY);
+  bool t_valid = lbm_heap_array_valid(x);
+  return ( t_ok && t_valid ) ;
 }
 
 static inline bool lbm_is_array_rw(lbm_value x) {
@@ -996,14 +998,15 @@ static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
   //return &lbm_heap_state.heap[lbm_dec_ptr(addr)];
 }
 
+typedef void (*trav_fun)(lbm_value, bool, void*);
 
- /**
-  * \param f pointer to function to execute at each node in tree.
-  * \param v Tree to traverses.
-  * \param arg Extra argument to pass to f when applied.
-  * \return true if successful traversal and false if there is a cycle in the data.
-  */
-bool lbm_ptr_rev_trav(void (*f)(lbm_value, void*), lbm_value v, void* arg);
+/**
+ * \param f pointer to function to execute at each node in tree.
+ * \param v Tree to traverses.
+ * \param arg Extra argument to pass to f when applied.
+ * \return true if successful traversal and false if there is a cycle in the data.
+ */
+bool lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg);
 
 
 // lbm_uint a = lbm_heaps[0];
