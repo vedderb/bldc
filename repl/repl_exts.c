@@ -21,8 +21,12 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <dirent.h>
+
+#ifndef LBM_WIN
 #include <sys/time.h>
 #include <sys/wait.h>
+#endif
+
 #include "extensions/array_extensions.h"
 #include "extensions/string_extensions.h"
 #include "extensions/math_extensions.h"
@@ -38,6 +42,37 @@
 
 #include <png.h>
 
+#ifdef LBM_WIN
+#include <windows.h>
+#endif
+
+// ////////////////////////////////////////////////////////////
+// Utility
+#ifdef LBM_WIN
+
+int gettimeofday(struct timeval * tp, struct timezone * tzp)
+{
+    // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
+    // This magic number is the number of 100 nanosecond intervals since January 1, 1601 (UTC)
+    // until 00:00:00 January 1, 1970 
+    static const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
+
+    SYSTEMTIME  system_time;
+    FILETIME    file_time;
+    uint64_t    time;
+
+    GetSystemTime( &system_time );
+    SystemTimeToFileTime( &system_time, &file_time );
+    time =  ((uint64_t)file_time.dwLowDateTime )      ;
+    time += ((uint64_t)file_time.dwHighDateTime) << 32;
+
+    tp->tv_sec  = (long) ((time - EPOCH) / 10000000L);
+    tp->tv_usec = (long) (system_time.wMilliseconds * 1000);
+    return 0;
+}
+#endif
+
+// ////////////////////////////////////////////////////////////
 // Math
 
 static lbm_value ext_rand(lbm_value *args, lbm_uint argn) {
@@ -380,6 +415,7 @@ static bool all_arrays(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
+#ifndef LBM_WIN
 static lbm_value ext_exec(lbm_value *args, lbm_uint argn) {
 
   lbm_value res = ENC_SYM_TERROR;
@@ -403,6 +439,7 @@ static lbm_value ext_exec(lbm_value *args, lbm_uint argn) {
   }
   return res;
 }
+#endif
 
 static lbm_value ext_unsafe_call_system(lbm_value *args, lbm_uint argn) {
 
@@ -627,7 +664,6 @@ static lbm_value ext_save_active_image(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
-
 static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, color_t *colors) {
 
   bool r = false;
@@ -738,7 +774,10 @@ lbm_value ext_image_save_const_heap_ix(lbm_value *args, lbm_uint argn) {
 }
 
 
-void dummy_f(lbm_value v, void *arg) {
+void dummy_f(lbm_value v, bool shared, void *arg) {
+  if (shared) {
+    printf("shared node detected\n");
+  }
   if (lbm_is_cons(v)) {
     printf("cons\n");
   } else {
@@ -773,7 +812,9 @@ int init_exts(void) {
   lbm_add_extension("rt", ext_rt);
   
   lbm_add_extension("unsafe-call-system", ext_unsafe_call_system);
+#ifndef LBM_WIN
   lbm_add_extension("exec", ext_exec);
+#endif
   lbm_add_extension("fclose", ext_fclose);
   lbm_add_extension("fopen", ext_fopen);
   lbm_add_extension("load-file", ext_load_file);

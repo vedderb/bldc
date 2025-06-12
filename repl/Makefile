@@ -69,6 +69,11 @@ sdl: LIBS += $(shell pkg-config --libs libpng sdl2 SDL2_image)
 sdl: REPL_SRC += lbm_sdl.c
 sdl: repl
 
+sdl_old: CCFLAGS += -DWITH_SDL -m32
+sdl_old: LIBS += -lSDL2 -lSDL2_image
+sdl_old: REPL_SRC += lbm_sdl.c
+sdl_old: repl
+
 
 clean_cl.h: ./scripts/clean.lisp
 	./repl --store_env="clean_cl.env" --src=./scripts/clean.lisp --terminate

@@ -675,7 +675,7 @@ lbm_value ttf_text_bin(lbm_value *args, lbm_uint argn) {
       }
       x_n += x_shift;
       y_n += y_shift;
-      y_n += y_offset;
+      y_n += (float)y_offset;
 
       image_buffer_t src;
       src.width = (uint16_t)width;

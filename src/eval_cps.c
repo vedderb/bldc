@@ -106,7 +106,8 @@ static jmp_buf critical_error_jmp_buf;
 #define RECV_TO_RETRY              CONTINUATION(48)
 #define READ_START_ARRAY           CONTINUATION(49)
 #define READ_APPEND_ARRAY          CONTINUATION(50)
-#define NUM_CONTINUATIONS          51
+#define LOOP_ENV_PREP              CONTINUATION(51)
+#define NUM_CONTINUATIONS          52
 
 #define FM_NEED_GC       -1
 #define FM_NO_MATCH      -2
@@ -155,7 +156,12 @@ const char* lbm_error_str_not_applicable = "Value is not applicable.";
 
 static lbm_value lbm_error_suspect;
 static bool lbm_error_has_suspect = false;
-#ifdef LBM_ALWAYS_GC
+
+
+// ////////////////////////////////////////////////////////////
+// Prototypes for locally used functions (static)
+static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid);
+static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx);
 
 // TODO: Optimize, In a large number of cases
 // where WITH_GC is used, it is not really required to check is_symbol_merror.
@@ -163,7 +169,7 @@ static bool lbm_error_has_suspect = false;
 // Given the number of calls to WITH_GC this could save some code
 // space and potentially also be a slight speedup.
 // TODO: profile.
-
+#ifdef LBM_ALWAYS_GC
 #define WITH_GC(y, x)                           \
   gc();                                         \
   (y) = (x);                                    \
@@ -358,6 +364,18 @@ static mutex_t      lbm_events_mutex;
 static bool         lbm_events_mutex_initialized = false;
 static volatile lbm_cid  lbm_event_handler_pid = -1;
 
+static unsigned int lbm_event_queue_item_count(void) {
+  unsigned int res = lbm_events_max;
+  if (!lbm_events_full) {
+    if (lbm_events_head >= lbm_events_tail) {
+      res = lbm_events_head - lbm_events_tail;
+    } else {
+      res = lbm_events_max - lbm_events_tail + lbm_events_head;
+    }
+  }
+  return res;
+}
+
 lbm_cid lbm_get_event_handler_pid(void) {
   return lbm_event_handler_pid;
 }
@@ -405,6 +423,9 @@ bool lbm_event_unboxed(lbm_value unboxed) {
       t == LBM_TYPE_U ||
       t == LBM_TYPE_CHAR) {
     if (lbm_event_handler_pid > 0) {
+      if (lbm_mailbox_free_space_for_cid(lbm_event_handler_pid) <= lbm_event_queue_item_count()) {
+        return false;
+      }
       return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)unboxed, 0);
     }
   }
@@ -413,6 +434,9 @@ bool lbm_event_unboxed(lbm_value unboxed) {
 
 bool lbm_event(lbm_flat_value_t *fv) {
   if (lbm_event_handler_pid > 0) {
+    if (lbm_mailbox_free_space_for_cid(lbm_event_handler_pid) <= lbm_event_queue_item_count()) {
+      return false;
+    }
     return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)fv->buf, fv->buf_size);
   }
   return false;
@@ -1047,14 +1071,15 @@ static void finish_ctx(void) {
   if (!ctx_running) {
     return;
   }
+  if (ctx_running->id == lbm_event_handler_pid) {
+    lbm_event_handler_pid = -1;
+  }
   /* Drop the continuation stack immediately to free up lbm_memory */
   lbm_stack_free(&ctx_running->K);
   ctx_done_callback(ctx_running);
 
   lbm_free(ctx_running->name); //free name if in LBM_MEM
-  // It's technically a bit iffy to cast away the const attribute, but we only
-  // treat the string as non-const if it came from LBM_MEM (by eventually
-  // freeing it), in which case it's definitely not actually const.
+
   lbm_memory_free((lbm_uint*)ctx_running->error_reason); //free error_reason if in LBM_MEM
 
   lbm_memory_free((lbm_uint*)ctx_running->mailbox);
@@ -1547,6 +1572,38 @@ void lbm_undo_block_ctx_from_extension(void) {
   mutex_unlock(&blocking_extension_mutex);
 }
 
+// TODO: very similar iteration patterns.
+//       Try to break out common part from free_space and from find_and_send
+/** mailbox_free_space_for_cid is used to get the available
+ * space in a given context's mailbox.
+ */
+static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid) {
+  eval_context_t *found = NULL;
+  uint32_t res = 0;
+
+  mutex_lock(&qmutex);
+
+  found = lookup_ctx_nm(&blocked, cid);
+  if (!found) {
+    found = lookup_ctx_nm(&queue, cid);
+  }
+  if (!found && ctx_running && ctx_running->id == cid) {
+    found = ctx_running;
+  }
+
+  if (found) {
+    res = found->mailbox_size - found->num_mail;
+  }
+
+  mutex_unlock(&qmutex);
+
+  return res;
+}
+
+/** find_receiver_and_send is used for message passing where
+ * the semantics is that the oldest message is dropped if the
+ * receiver mailbox is full.
+ */
 bool lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
   mutex_lock(&qmutex);
   eval_context_t *found = NULL;
@@ -2164,10 +2221,11 @@ static void eval_loop(eval_context_t *ctx) {
   lbm_value env              = ctx->curr_env;
   lbm_value parts[3];
   extract_n(get_cdr(ctx->curr_exp), parts, 3);
-  lbm_value *sptr = stack_reserve(ctx, 3);
+  lbm_value *sptr = stack_reserve(ctx, 4);
   sptr[0] = parts[LOOP_BODY];
   sptr[1] = parts[LOOP_COND];
-  sptr[2] = LOOP_CONDITION;
+  sptr[2] = ENC_SYM_NIL;
+  sptr[3] = LOOP_ENV_PREP;
   let_bind_values_eval(parts[LOOP_BINDS], parts[LOOP_COND], env, ctx);
 }
 
@@ -3285,8 +3343,6 @@ static void apply_rotate(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   ERROR_CTX(ENC_SYM_EERROR);
 }
 
-static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx);
-
 /***************************************************/
 /* Application lookup table                        */
 
@@ -3711,22 +3767,30 @@ static void cont_terminate(eval_context_t *ctx) {
 }
 
 static void cont_loop(eval_context_t *ctx) {
-  lbm_value *sptr = get_stack_ptr(ctx, 2);
+  lbm_value *sptr = get_stack_ptr(ctx, 3);
   stack_reserve(ctx,1)[0] = LOOP_CONDITION;
+  ctx->curr_env = sptr[2];
   ctx->curr_exp = sptr[1];
 }
 
 static void cont_loop_condition(eval_context_t *ctx) {
   if (lbm_is_symbol_nil(ctx->r)) {
-    lbm_stack_drop(&ctx->K, 2);
+    lbm_stack_drop(&ctx->K, 3);
     ctx->app_cont = true;  // A loop returns nil? Makes sense to me... but in general?
     return;
   }
-  lbm_value *sptr = get_stack_ptr(ctx, 2);
+  lbm_value *sptr = get_stack_ptr(ctx, 3);
   stack_reserve(ctx,1)[0] = LOOP;
+  ctx->curr_env = sptr[2];
   ctx->curr_exp = sptr[0];
 }
 
+static void cont_loop_env_prep(eval_context_t *ctx) {
+  lbm_value *sptr = get_stack_ptr(ctx, 3);
+  sptr[2] = ctx->curr_env;
+  stack_reserve(ctx,1)[0] = LOOP_CONDITION;
+}
+ 
 static void cont_merge_rest(eval_context_t *ctx) {
   lbm_uint *sptr = get_stack_ptr(ctx, 9);
 
@@ -5416,6 +5480,7 @@ static const cont_fun continuations[NUM_CONTINUATIONS] =
     cont_recv_to_retry,
     cont_read_start_array,
     cont_read_append_array,
+    cont_loop_env_prep,
   };
 
 /*********************************************************/
@@ -5710,6 +5775,10 @@ static lbm_value get_event_value(lbm_event_t *e) {
   return v;
 }
 
+// In a scenario where C is enqueuing events and other LBM threads
+// are sendind mail to event handler concurrently, old events will
+// be dropped as the backpressure mechanism wont detect this scenario.
+// TODO: Low prio pondering on robust solutions.
 static void process_events(void) {
 
   if (!lbm_events) {
@@ -5728,6 +5797,9 @@ static void process_events(void) {
       break;
     case LBM_EVENT_FOR_HANDLER:
       if (lbm_event_handler_pid >= 0) {
+        //If multiple events for handler, this is wasteful!
+        // TODO: Find the event_handler once and send all mails.
+        // However, do it with as little new code as possible.
         lbm_find_receiver_and_send(lbm_event_handler_pid, event_val);
       }
       break;
@@ -5737,7 +5809,6 @@ static void process_events(void) {
     }
   }
 }
-
 
 void lbm_add_eval_symbols(void) {
   lbm_uint x = 0;

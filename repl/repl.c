@@ -14,28 +14,44 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#ifndef LBM_WIN
 
-#define _POSIX_C_SOURCE 200809L // nanosleep?
 #define _GNU_SOURCE // MAP_ANON
+#define _POSIX_C_SOURCE 200809L // nanosleep?
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
+
+
+#ifndef LBM_WIN
 #include <pthread.h>
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#endif
+
 #include <ctype.h>
 #include <getopt.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
+#ifdef LBM_WIN
+#include <winsock2.h>
+#include <windows.h>
+#include <memoryapi.h>
+#include <ws2tcpip.h>
+#endif
+
 //network
+#ifndef LBM_WIN
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#endif
 
 //lispbm
 #include "lispbm.h"
@@ -64,6 +80,38 @@
 #include "crc.h"
 
 typedef void (*send_func_t)(unsigned char *, unsigned int);
+
+// ////////////////////////////////////////////////////////////
+// win util
+
+#ifdef LBM_WIN
+
+#define G 1000000000L
+
+
+int nanosleep(const struct timespec* ts, struct timespec* rem){
+  HANDLE timer = CreateWaitableTimer(NULL, TRUE, NULL);
+  if(!timer)
+    return -1;
+
+  // SetWaitableTimer() defines interval in 100ns units.
+  // negative is to indicate relative time.
+  time_t sec = ts->tv_sec + ts->tv_nsec / G;
+  long nsec = ts->tv_nsec % G;
+
+  LARGE_INTEGER delay;
+  delay.QuadPart = -(sec * G + nsec) / 100;
+  BOOL ok = SetWaitableTimer(timer, &delay, 0, NULL, NULL, FALSE) &&
+    WaitForSingleObject(timer, INFINITE) == WAIT_OBJECT_0;
+
+  CloseHandle(timer);
+
+  if(!ok)
+    return -1;
+
+  return 0;
+}
+#endif
 
 // ////////////////////////////////////////////////////////////
 // General
@@ -118,7 +166,6 @@ static size_t constants_memory_size = 4096;  // size words
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
 #define EXTENSION_STORAGE_SIZE 1024
-#define WAIT_TIMEOUT 2500
 #define STR_SIZE 1024
 #define PROF_DATA_NUM 100
 
@@ -141,7 +188,11 @@ static lbm_uint *constants_memory = NULL;
 static lbm_uint *memory=NULL;
 static lbm_uint *bitmap=NULL;
 
+#ifndef LBM_WIN
 static pthread_t prof_thread;
+#else
+static HANDLE prof_thread;
+#endif
 
 struct read_state_s {
   char *str;   // String being read.
@@ -251,6 +302,21 @@ void erase(void) {
   fflush(stdout);
 }
 
+#ifdef LBM_WIN
+DWORD WINAPI eval_thd_wrapper_win(LPVOID lpParam) {
+  if (!silent_mode) {
+    printf("Lisp REPL started! (LBM Version: %u.%u.%u)\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
+#ifdef WITH_SDL
+    printf("With SDL extensions\n");
+#endif
+    printf("Type :quit to exit.\n");
+    printf("     :info for statistics.\n");
+    printf("     :load [filename] to load lisp source.\n");
+  }
+  lbm_run_eval();
+  return 0;
+} 
+#else
 void *eval_thd_wrapper(void *v) {
   if (!silent_mode) {
     printf("Lisp REPL started! (LBM Version: %u.%u.%u)\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
@@ -264,6 +330,7 @@ void *eval_thd_wrapper(void *v) {
   lbm_run_eval();
   return NULL;
 }
+#endif
 
 void critical(void) {
   printf("CRITICAL ERROR\n");
@@ -340,6 +407,15 @@ void sleep_callback(uint32_t us) {
 
 static bool prof_running = false;
 
+#ifdef LBM_WIN
+DWORD WINAPI prof_thd(LPVOID lpParam) {
+  while (prof_running) {
+    lbm_prof_sample();
+    sleep_callback(200);
+  }
+  return 0;
+}
+#else
 void *prof_thd(void *v) {
   while (prof_running) {
     lbm_prof_sample();
@@ -347,6 +423,7 @@ void *prof_thd(void *v) {
   }
   return NULL;
 }
+#endif
 
 /* load a file, caller is responsible for freeing the returned string */
 char * load_file(char *filename) {
@@ -445,7 +522,12 @@ void sym_it(const char *str) {
          str);
 }
 
+#ifndef LBM_WIN
 pthread_t lispbm_thd = 0;
+#else
+HANDLE lispbm_thd;
+#endif
+
 unsigned int heap_size = 2048; // default
 lbm_cons_t *heap_storage = NULL;
 lbm_heap_state_t heap_state;
@@ -807,9 +889,14 @@ bool load_flat_library(unsigned char *lib, unsigned int size) {
 int init_repl(void) {
 
   if (lispbm_thd && lbm_get_eval_state() != EVAL_CPS_STATE_DEAD) {
-    int thread_r = 0;
+    
     lbm_kill_eval();
+#ifdef LBM_WIN
+    WaitForSingleObject(lispbm_thd, INFINITE);
+#else
+    int thread_r = 0;
     pthread_join(lispbm_thd, (void*)&thread_r);
+#endif 
     lispbm_thd = 0;
   }
 
@@ -909,10 +996,20 @@ int init_repl(void) {
 #endif
 
   printf("creating eval thread\n");
+#ifdef LBM_WIN
+  lispbm_thd = CreateThread( 
+                           NULL,                   // default security attributes
+                           0,                      // use default stack size
+                           eval_thd_wrapper_win,   // thread function name
+                           NULL,                   // argument to thread function
+                           0,                      // use default creation flags
+                           NULL);                  // returns the thread identifier
+#else 
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
     return 0;
   }
+#endif
   return 1;
 }
 
@@ -1106,67 +1203,67 @@ void startup_procedure(void) {
 
 
 int store_env(char *filename) {
-    FILE *fp = fopen(env_output_file, "w");
-    if (!fp) {
-      terminate_repl(REPL_EXIT_UNABLE_TO_OPEN_ENV_FILE);
-    }
-    lbm_value* env = lbm_get_global_env();
-    for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
-      lbm_value curr = env[i];
-      while(lbm_is_cons(curr)) {
-        lbm_value name_field = lbm_caar(curr);
-        lbm_value val_field  = lbm_cdr(lbm_car(curr));
-        char *name = (char*)lbm_get_name_by_symbol(lbm_dec_sym(name_field));
-        if (!name) return REPL_EXIT_UNABLE_TO_ACCESS_SYMBOL_STRING;
-        int32_t fv_size = flatten_value_size(val_field, 0);
-        if (fv_size > 0) {
-          lbm_flat_value_t fv;
-          fv.buf = malloc((uint32_t)fv_size);
-          if (!fv.buf) {
-            return REPL_EXIT_ERROR_FLATTEN_NO_MEM;
-          }
-          fv.buf_size = (uint32_t)fv_size;
-          fv.buf_pos = 0;
-          int r = flatten_value_c(&fv, val_field);
-          if (r == FLATTEN_VALUE_OK) {
-            size_t name_len = strlen(name);
-            if (name_len > 0) {
-              fwrite(&name_len, 1, sizeof(int32_t),fp);
-              fwrite(name, 1, strlen(name), fp);
-              fwrite(&fv_size, 1, sizeof(int32_t),fp);
-              fwrite(fv.buf,1,(size_t)fv_size,fp);
-            } else {
-              return REPL_EXIT_INVALID_KEY_IN_ENVIRONMENT;
-            }
-          } else {
-            switch (r) {
-            case FLATTEN_VALUE_ERROR_CANNOT_BE_FLATTENED:
-              return REPL_EXIT_VALUE_CANNOT_BE_FLATTENED;
-              break;
-            case FLATTEN_VALUE_ERROR_BUFFER_TOO_SMALL:
-              return REPL_EXIT_FLAT_VALUE_BUFFER_TOO_SMALL;
-              break;
-            case FLATTEN_VALUE_ERROR_FATAL:
-              return REPL_EXIT_FATAL_ERROR_WHILE_FLATTENING;
-              break;
-            case FLATTEN_VALUE_ERROR_CIRCULAR:
-              return REPL_EXIT_CIRCULAR_VALUE;
-              break;
-            case FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH:
-              return REPL_EXIT_FLATTENING_MAXIMUM_DEPTH;
-              break;
-            case FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY:
-              return REPL_EXIT_OUT_OF_MEMORY_WHILE_FLATTENING;
-              break;
-            }
-          }
-          free(fv.buf);
+  FILE *fp = fopen(env_output_file, "w");
+  if (!fp) {
+    terminate_repl(REPL_EXIT_UNABLE_TO_OPEN_ENV_FILE);
+  }
+  lbm_value* env = lbm_get_global_env();
+  for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+    lbm_value curr = env[i];
+    while(lbm_is_cons(curr)) {
+      lbm_value name_field = lbm_caar(curr);
+      lbm_value val_field  = lbm_cdr(lbm_car(curr));
+      char *name = (char*)lbm_get_name_by_symbol(lbm_dec_sym(name_field));
+      if (!name) return REPL_EXIT_UNABLE_TO_ACCESS_SYMBOL_STRING;
+      int32_t fv_size = flatten_value_size(val_field, 0);
+      if (fv_size > 0) {
+        lbm_flat_value_t fv;
+        fv.buf = malloc((uint32_t)fv_size);
+        if (!fv.buf) {
+          return REPL_EXIT_ERROR_FLATTEN_NO_MEM;
         }
-        curr = lbm_cdr(curr);
+        fv.buf_size = (uint32_t)fv_size;
+        fv.buf_pos = 0;
+        int r = flatten_value_c(&fv, val_field);
+        if (r == FLATTEN_VALUE_OK) {
+          size_t name_len = strlen(name);
+          if (name_len > 0) {
+            fwrite(&name_len, 1, sizeof(int32_t),fp);
+            fwrite(name, 1, strlen(name), fp);
+            fwrite(&fv_size, 1, sizeof(int32_t),fp);
+            fwrite(fv.buf,1,(size_t)fv_size,fp);
+          } else {
+            return REPL_EXIT_INVALID_KEY_IN_ENVIRONMENT;
+          }
+        } else {
+          switch (r) {
+          case FLATTEN_VALUE_ERROR_CANNOT_BE_FLATTENED:
+            return REPL_EXIT_VALUE_CANNOT_BE_FLATTENED;
+            break;
+          case FLATTEN_VALUE_ERROR_BUFFER_TOO_SMALL:
+            return REPL_EXIT_FLAT_VALUE_BUFFER_TOO_SMALL;
+            break;
+          case FLATTEN_VALUE_ERROR_FATAL:
+            return REPL_EXIT_FATAL_ERROR_WHILE_FLATTENING;
+            break;
+          case FLATTEN_VALUE_ERROR_CIRCULAR:
+            return REPL_EXIT_CIRCULAR_VALUE;
+            break;
+          case FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH:
+            return REPL_EXIT_FLATTENING_MAXIMUM_DEPTH;
+            break;
+          case FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY:
+            return REPL_EXIT_OUT_OF_MEMORY_WHILE_FLATTENING;
+            break;
+          }
+        }
+        free(fv.buf);
       }
+      curr = lbm_cdr(curr);
     }
-    fclose(fp);
-    return REPL_EXIT_SUCCESS;
+  }
+  fclose(fp);
+  return REPL_EXIT_SUCCESS;
 }
 
 void shutdown_procedure(void) {
@@ -1189,7 +1286,11 @@ void shutdown_procedure(void) {
 #define SEND_MAX_RETRY 10
 
 static send_func_t send_func = 0;
+#ifdef LBM_WIN
+static SOCKET connected_socket = 0;
+#else
 static int connected_socket = 0;
+#endif
 
 
 char *lispif_print_prefix(void) {
@@ -1337,9 +1438,9 @@ static void vescif_sym_it(const char *str) {
   bool sym_name_flash = lbm_symbol_in_flash((char *)str);
   bool sym_entry_flash = lbm_symbol_list_entry_in_flash((char *)str);
   commands_printf_lisp("[%s, %s]: %s\n",
-         sym_name_flash ? "FLASH" : "LBM_MEM",
-         sym_entry_flash ? "FLASH" : "LBM_MEM",
-         str);
+                       sym_name_flash ? "FLASH" : "LBM_MEM",
+                       sym_entry_flash ? "FLASH" : "LBM_MEM",
+                       str);
 }
 
 
@@ -1347,14 +1448,22 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   bool res = false;
   if (prof_running) {
     prof_running = false;
+#ifdef LBM_WIN
+    WaitForSingleObject(lispbm_thd, INFINITE);
+#else
     void *a;
     pthread_join(prof_thread, &a);
+#endif
   }
 
   if (lispbm_thd) {
-    int thread_r = 0;
     lbm_kill_eval();
+#ifdef LBM_WIN
+    WaitForSingleObject(lispbm_thd, INFINITE);
+#else
+    int thread_r = 0;
     pthread_join(lispbm_thd, (void *)&thread_r);
+#endif
     lispbm_thd = 0;
   }
 
@@ -1412,10 +1521,20 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   }
 #endif
 
+#ifdef LBM_WIN
+  lispbm_thd = CreateThread( 
+                            NULL,                   // default security attributes
+                            0,                      // use default stack size
+                            eval_thd_wrapper_win,   // thread function name
+                            NULL,                   // argument to thread function
+                            0,                      // use default creation flags
+                            NULL);                  // returns the thread identifier
+#else
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
     return 0;
   }
+#endif
 
   lbm_pause_eval();
   while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
@@ -1500,6 +1619,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
 unsigned int get_cpu_last_time = 1;
 long unsigned int get_cpu_last_ticks = 1;
 
+#ifndef LBM_WIN
 float get_cpu_usage(void) {
 
   int ticks_per_s = (int)sysconf(_SC_CLK_TCK);
@@ -1530,7 +1650,7 @@ float get_cpu_usage(void) {
   }
   return cpu_usage ;
 }
-
+#endif
 
 
 void repl_process_cmd(unsigned char *data, unsigned int len,
@@ -1616,7 +1736,10 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
   } break;
 
   case COMM_LISP_GET_STATS: {
-    float cpu_use = get_cpu_usage();
+    float cpu_use = 0;
+#ifndef LBM_WIN
+    cpu_use  = get_cpu_usage();
+#endif
     float heap_use = 0.0f;
     float mem_use = 0.0f;
 
@@ -1750,7 +1873,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         commands_printf_lisp("Memory size: %u bytes\n", lbm_memory_num_words() * 4);
         commands_printf_lisp("Memory free: %u bytes\n", lbm_memory_num_free() * 4);
         commands_printf_lisp("Longest block free: %u bytes\n", lbm_memory_longest_free() * 4);
-	commands_printf_lisp("Maximum usage %f%%\n", 100.0  * ((float)lbm_memory_maximum_used() / (float)lbm_memory_num_words()));
+        commands_printf_lisp("Maximum usage %f%%\n", 100.0  * ((float)lbm_memory_maximum_used() / (float)lbm_memory_num_words()));
         commands_printf_lisp("Allocated arrays: %u\n", lbm_heap_state.num_alloc_arrays);
         commands_printf_lisp("Symbol table size: %u Bytes\n", lbm_get_symbol_table_size());
         commands_printf_lisp("Symbol table size flash: %u Bytes\n", lbm_get_symbol_table_size_flash());
@@ -1768,22 +1891,41 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
       } else if (strncmp(str, ":prof start", 11) == 0) {
         if (prof_running) {
           prof_running = false;
+#ifdef LBM_WIN
+          WaitForSingleObject(prof_thread, INFINITE);
+#else
           void *a;
           pthread_join(prof_thread,&a);
+#endif
         }
         lbm_prof_init(prof_data, PROF_DATA_NUM);
-        prof_running = true;
+          
+#ifdef LBM_WIN
+        prof_thread = CreateThread(
+                                   NULL,
+                                   0,
+                                   prof_thd,
+                                   NULL,
+                                   0,
+                                   NULL);
+#else
         if (pthread_create(&prof_thread, NULL, prof_thd, NULL)) {
+          prof_running = true;
           commands_printf_lisp("Error creating profiler thread\n");
         } else {
           commands_printf_lisp("Profiler started\n");
         }
+#endif
       } else if (strncmp(str, ":prof stop", 10) == 0) {
-        void *a;
         commands_printf_lisp("TODO :prof stop\n");
         if (prof_running) {
           prof_running = false;
+#ifdef LBM_WIN
+          WaitForSingleObject(prof_thread, INFINITE);
+#else
+          void *a;
           pthread_join(prof_thread,&a);
+#endif
         }
         commands_printf_lisp("Profiler stopped. Issue command ':prof report' for statistics\n");
       } else if (strncmp(str, ":prof report", 12) == 0) {
@@ -1793,14 +1935,14 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
         lbm_uint tot_gc = 0;
         commands_printf_lisp("CID\tName\tSamples\t%%Load\t%%GC");
         for (int i = 0; i < PROF_DATA_NUM; i ++) {
-         if (prof_data[i].cid == -1) break;
-         tot_gc += prof_data[i].gc_count;
-         commands_printf_lisp("%d\t%s\t%u\t%.3f\t%.3f",
-                              prof_data[i].cid,
-                              prof_data[i].name,
-                              prof_data[i].count,
-                              (double)(100.0 * ((float)prof_data[i].count) / (float) tot_samples),
-                              (double)(100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count));
+          if (prof_data[i].cid == -1) break;
+          tot_gc += prof_data[i].gc_count;
+          commands_printf_lisp("%d\t%s\t%u\t%.3f\t%.3f",
+                               prof_data[i].cid,
+                               prof_data[i].name,
+                               prof_data[i].count,
+                               (double)(100.0 * ((float)prof_data[i].count) / (float) tot_samples),
+                               (double)(100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count));
         }
         commands_printf_lisp(" ");
         commands_printf_lisp("GC:\t%u\t%f%%\n", tot_gc, (double)(100.0 * ((float)tot_gc / (float)tot_samples)));
@@ -2083,7 +2225,40 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
 
 // ////////////////////////////////////////////////////////////
 //
+#ifdef LBM_WIN
+DWORD WINAPI udp_broadcast_task(LPVOID lpParam) {
+   SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
+   char hostbuffer[256];
+   char *ip;
+   gethostname(hostbuffer, sizeof(hostbuffer));
+   struct hostent *host_entry;
+
+   host_entry = gethostbyname(hostbuffer);
+
+   ip = inet_ntoa(*((struct in_addr*)
+                   host_entry->h_addr_list[0]));
+   int bc = 1;
+   setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &bc, sizeof(bc));
+
+   struct sockaddr_in sDestAddr;
+   memset(&sDestAddr, 0, sizeof(sDestAddr));
+   sDestAddr.sin_family = AF_INET;
+   sDestAddr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+   sDestAddr.sin_port = htons(65109);
+
+   char sendbuf[50];
+   int ind = sprintf(sendbuf, "%s::%s::%u", "LBM-REPL",  ip, vesctcp_port) + 1;
+
+   if (ind > 0) {
+     for (;;) {
+       sendto(sock, sendbuf, ind, 0, (struct sockaddr *)&sDestAddr, sizeof(sDestAddr));
+       Sleep(2000);
+     }
+   }
+   return 0;
+}
+#else
 void *udp_broadcast_task(void *arg) {
   (void)arg;
 
@@ -2097,7 +2272,7 @@ void *udp_broadcast_task(void *arg) {
   host_entry = gethostbyname(hostbuffer);
 
   ip = inet_ntoa(*((struct in_addr*)
-                         host_entry->h_addr_list[0]));
+                   host_entry->h_addr_list[0]));
 
 
   int bc = 1;
@@ -2120,13 +2295,19 @@ void *udp_broadcast_task(void *arg) {
   }
   return (void*)0;
 }
+#endif
 
 void send_tcp_bytes(unsigned char *buffer, unsigned int len) {
   int to_write = (int)len;
   int error_cnt = 0;
 
   while (to_write > 0) {
+#ifdef LBM_WIN
+    ssize_t written = send(connected_socket,(const char *)(buffer + ((int)len - to_write)), to_write, 0);
+#else
     ssize_t written = write(connected_socket, buffer + ((int)len - to_write), (size_t)to_write);
+#endif
+    
     if (written < 0) {
       error_cnt ++;
       if (error_cnt > SEND_MAX_RETRY) {
@@ -2148,8 +2329,39 @@ void process_packet_local(unsigned char *data, unsigned int len) {
   repl_process_cmd(data,len, send_packet_local);
 }
 
+#ifdef LBM_WIN
+DWORD WINAPI vesctcp_client_handler(LPVOID lpParam) {
+  char buffer[1024];
+  packet_init(send_tcp_bytes, process_packet_local,&packet);
+  send_func = send_packet_local;
+  ssize_t len;
+
+  struct sockaddr_in addr;
+  ssize_t addr_size = sizeof(struct sockaddr_in);
+  getpeername(connected_socket, (struct sockaddr *)&addr, &addr_size);
+  char ip[256];
+  memset(ip,0,256);
+  strncpy(ip, inet_ntoa(addr.sin_addr), 255);
+
+  printf("Client %s connected\n",ip);
+ 
+  vescif_restart(false,false,false);
+
+  do {
+    len = recv(connected_socket, buffer, 1024,0);
+    for (int i = 0; i < len; i ++) {
+      packet_process_byte((uint8_t)buffer[i], &packet);
+    }
+  } while (len > 0);
+
+  closesocket(connected_socket);
+  send_func = NULL;
+  printf("Client %s disconnected\n",ip);
+  vesctcp_server_in_use = false;
+  return 0;
+}
+#else
 void *vesctcp_client_handler(void *arg) {
-  connected_socket = (int)arg;
   uint8_t buffer[1024];
   packet_init(send_tcp_bytes, process_packet_local,&packet);
   send_func = send_packet_local;
@@ -2179,12 +2391,27 @@ void *vesctcp_client_handler(void *arg) {
   vesctcp_server_in_use = false;
   return (void*)0;
 }
-
+#endif
 
 
 // ////////////////////////////////////////////////////////////
 //
 int main(int argc, char **argv) {
+
+#ifdef LBM_WIN
+  LPVOID image_address = VirtualAlloc((LPVOID)IMAGE_FIXED_VIRTUAL_ADDRESS,
+                                      IMAGE_STORAGE_SIZE,
+                                      MEM_COMMIT | MEM_RESERVE,
+                                      PAGE_READWRITE);
+
+  if (image_address) {
+    printf("Image storage successfully allocated at %p\n", image_address);
+  } else {
+    printf("error mapping fixed location for flash emulation\n");
+    terminate_repl(REPL_EXIT_CRITICAL_ERROR);
+  }
+  image_storage = (uint32_t *)image_address;
+#else 
   image_storage = mmap(IMAGE_FIXED_VIRTUAL_ADDRESS,
                        IMAGE_STORAGE_SIZE,
                        PROT_READ | PROT_WRITE,
@@ -2195,10 +2422,14 @@ int main(int argc, char **argv) {
   } else if (image_storage != IMAGE_FIXED_VIRTUAL_ADDRESS) {
     printf("Warning: Image is located at nonstandard address %p\n", (void*)image_storage);
   }
+#endif
 
   parse_opts(argc, argv);
 
   if (history_file_path == NULL) {
+#ifdef LBM_WIN
+    history_file_path = "lbm_history";
+#else
     const char *path_env = getenv("LBM_HISTORY_FILE");
     if (path_env != NULL) {
       size_t len = strlen(path_env);
@@ -2218,6 +2449,7 @@ int main(int argc, char **argv) {
         // history_file_path is already NULL.
       }
     }
+#endif
   }
   if (history_file_path != NULL && history_file_path[0] == '\0') {
     history_file_path = NULL;
@@ -2235,6 +2467,102 @@ int main(int argc, char **argv) {
   startup_procedure();
 
   if (vesctcp) {
+#ifdef LBM_WIN
+    HANDLE broadcast_thread;
+    HANDLE client_thread;
+    WSADATA wsaData;
+
+    int r;
+
+    // Initialize Winsock
+    r = WSAStartup(MAKEWORD(2,2), &wsaData);
+    if (r != 0) {
+      printf("WSAStartup failed: %d\n", r);
+      exit(1);
+    }
+
+    broadcast_thread = CreateThread(
+                                    NULL,
+                                    0,
+                                    udp_broadcast_task,
+                                    NULL,
+                                    0,
+                                    NULL);
+
+    vescif_program_flash_code_len = 0;
+    vescif_program_flash=(uint8_t*)malloc(vescif_program_flash_size);
+    if (vescif_program_flash == NULL) return 0;
+
+    struct addrinfo *result = NULL;
+    struct addrinfo hints;
+
+    ZeroMemory(&hints, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_flags = AI_PASSIVE;
+
+    char vesctcp_port_str[30];
+    ZeroMemory(vesctcp_port_str, 30);
+    snprintf(vesctcp_port_str, 30, "%u", vesctcp_port);
+    printf("Starting server on port: %s\n", vesctcp_port_str);
+
+    // Resolve the server address and port
+    int addr_r = getaddrinfo(NULL, vesctcp_port_str, &hints, &result);
+    if ( addr_r != 0 ) {
+        printf("getaddrinfo failed with error: %d\n", addr_r);
+        return 1;
+    }
+
+    // Create a SOCKET for the server to listen for client connections.
+    SOCKET ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+    if (ListenSocket == INVALID_SOCKET) {
+        printf("socket failed with error: %d\n", WSAGetLastError());
+        freeaddrinfo(result);
+        WSACleanup();
+        return 1;
+    }
+
+    // Setup the TCP listening socket
+    int bind_r = bind( ListenSocket, result->ai_addr, (int)result->ai_addrlen);
+    if (bind_r == SOCKET_ERROR) {
+        printf("bind failed with error: %d\n", WSAGetLastError());
+        freeaddrinfo(result);
+        closesocket(ListenSocket);
+        WSACleanup();
+        return 1;
+    }
+
+    int listen_r = listen(ListenSocket, SOMAXCONN);
+    if (listen_r == SOCKET_ERROR) {
+        printf("listen failed with error: %d\n", WSAGetLastError());
+        closesocket(ListenSocket);
+        WSACleanup();
+        return 1;
+    }
+    
+      
+    for (;;) {
+      SOCKET client_socket = accept(ListenSocket, NULL, NULL);
+
+      if (client_socket >= 0 && !vesctcp_server_in_use ) {
+        printf("Connected, spawning handler\n");
+        vesctcp_server_in_use = true;
+        // TODO: is this cast really ok?
+        connected_socket = client_socket;
+        client_thread = CreateThread(NULL, 0, vesctcp_client_handler, NULL, 0, NULL);
+      } else if (client_socket >= 0) {
+        char ip[256];
+        memset(ip,0,256);
+        //strncpy(ip, inet_ntoa(client_sockaddr_in.sin_addr), 255);
+        printf("Refusing connection from\n");
+        ssize_t r = send(client_socket, vesctcp_in_use, (int)strlen(vesctcp_in_use), 0);
+        if (r < 0) {
+          printf("Unable to write to refused client\n");
+        }
+      }
+    }
+#else
     pthread_t broadcast_thread;
     pthread_t client_thread;
     pthread_create(&broadcast_thread, NULL, udp_broadcast_task, NULL);
@@ -2265,7 +2593,8 @@ int main(int argc, char **argv) {
       if (client_socket >= 0 && !vesctcp_server_in_use ) {
         vesctcp_server_in_use = true;
         // TODO: is this cast really ok?
-        pthread_create(&client_thread, NULL, vesctcp_client_handler, (void*)client_socket);
+        connected_socket = client_socket;
+        pthread_create(&client_thread, NULL, vesctcp_client_handler, NULL);
 
       } else if (client_socket >= 0) {
         char ip[256];
@@ -2278,6 +2607,7 @@ int main(int argc, char **argv) {
         }
       }
     }
+#endif
   } else {
 
     char output[1024];
@@ -2304,12 +2634,12 @@ int main(int argc, char **argv) {
             int result = write_history(history_file_path);
             if (result != 0) {
               fprintf(
-                stderr,
-                "Couldn't write to history file '%s': %s (%d)\n",
-                history_file_path,
-                strerror(result),
-                result
-              );
+                      stderr,
+                      "Couldn't write to history file '%s': %s (%d)\n",
+                      history_file_path,
+                      strerror(result),
+                      result
+                      );
               exit(1);
             }
           }
@@ -2332,7 +2662,7 @@ int main(int argc, char **argv) {
         printf("--(Symbol and Array memory)---------------------------------\n");
         printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());
         printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
-	printf("Maximum usage %f%%\n", 100.0  * ((float)lbm_memory_maximum_used() / (float)lbm_memory_num_words()));
+        printf("Maximum usage %f%%\n", 100.0  * ((float)lbm_memory_maximum_used() / (float)lbm_memory_num_words()));
         printf("Allocated arrays: %"PRI_UINT"\n", heap_state.num_alloc_arrays);
         printf("Symbol table size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
         printf("Symbol names size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names());
@@ -2347,6 +2677,7 @@ int main(int argc, char **argv) {
       } else if (strncmp(str, ":prof start", 11) == 0) {
         lbm_prof_init(prof_data,
                       PROF_DATA_NUM);
+#ifndef LBM_WIN
         pthread_t thd; // just forget this id.
         prof_running = true;
         if (pthread_create(&thd, NULL, prof_thd, NULL)) {
@@ -2355,6 +2686,9 @@ int main(int argc, char **argv) {
           continue;
         }
         printf("Profiler started\n");
+#else
+        printf("Profiler not supported on windows\n");
+#endif
         free(str);
       } else if (strncmp(str, ":prof stop", 10) == 0) {
         prof_running = false;

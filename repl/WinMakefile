@@ -1,0 +1,81 @@
+
+$(shell mkdir -p windows/build)
+
+CC64 = x86_64-w64-mingw32-gcc
+CC32 = i686-w64-mingw32-gcc
+
+LISPBM := ../
+include $(LISPBM)/lispbm.mk
+
+PLATFORM_INCLUDE = -I$(LISPBM)/platform/windows/include
+PLATFORM_SRC     = $(LISPBM)/platform/windows/src/platform_mutex.c
+
+LBMFLAGS = -DFULL_RTS_LIB \
+	   -DLBM_USE_DYN_MACROS \
+           -DLBM_USE_DYN_LOOPS \
+           -DLBM_USE_DYN_FUNS \
+           -DLBM_USE_DYN_ARRAYS \
+           -DLBM_USE_DYN_DEFSTRUCT \
+           -DLBM_USE_TIME_QUOTA \
+           -DLBM_USE_ERROR_LINENO
+
+LIBS = -lws2_32 \
+	windows/SDL2/lib/libSDL2main.a \
+	windows/SDL2/lib/libSDL2.dll.a \
+	windows/SDL2_image/lib/libSDL2_image.dll.a \
+	windows/libpng/lib/libpng.dll.a \
+	windows/readline/lib/libhistory.dll.a \
+	windows/readline/lib/libreadline.dll.a
+
+DLLS = windows/build/SDL2.dll \
+       windows/build/SDL2_image.dll \
+       windows/build/history.dll \
+       windows/build/readline.dll \
+       windows/build/libpng16-16.dll
+
+INC = -Iwindows/readline/include \
+      -Iwindows/libpng/include \
+      -Iwindows/SDL2/include \
+      -Iwindows/SDL2/include/SDL2 \
+      -Iwindows/SDL2_image/include
+
+CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -fno-pie -no-pie
+
+LISPBM_SRC += $(LISPBM_EVAL_CPS_SRC)
+
+REPL_SRC= repl.c \
+	  repl_exts.c \
+          crc.c \
+          packet.c \
+	  lbm_sdl.c
+
+
+all:  windows/build/lbm32.exe
+
+windows/build/lbm32.exe: $(DLLS) $(REPL_SRC) $(LISPBM_SRC) $(LISPBM_DEPS) $(LISPBM_H)
+	$(CC32) -DLBM_WIN -DWITH_SDL $(CCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(REPL_SRC) -o windows/build/lbm32.exe $(PLATFORM_INCLUDE) $(LISPBM_INC) $(INC) $(LIBS)
+
+windows/build/SDL2.dll:
+	cp windows/SDL2/bin/*.dll windows/build
+
+windows/build/SDL2_image.dll:
+	cp windows/SDL2_image/bin/*.dll windows/build
+
+windows/build/history.dll:
+	cp windows/readline/bin/*.dll windows/build
+
+windows/build/readline.dll:
+	cp windows/readline/bin/*.dll windows/build
+
+windows/build/libpng16-16.dll:
+	cp windows/libpng/bin/*.dll windows/build
+
+# Think this may need 64bit variant of libreadline.
+# TODO: Try to build libreadline for 64bit windows.
+#windows/build/lbm64.exe: repl_win.c
+#	$(CC64) -DLBM_WIN -DLBM64 $(CCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(REPL_SRC) -o windows/build/lbm64.exe $(PLATFORM_INCLUDE) $(LISPBM_INC) $(INC) $(LIBS)
+
+
+clean:
+	rm -f windows/build/lbm32.exe
+	rm -f windows/build/lbm64.exe
