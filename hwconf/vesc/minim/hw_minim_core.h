@@ -42,9 +42,6 @@
 #define LED_RED_ON()			palSetPad(LED_RED_GPIO, LED_RED_PIN)
 #define LED_RED_OFF()			palClearPad(LED_RED_GPIO, LED_RED_PIN)
 
-#define PHASE_FILTER_GPIO		GPIOC
-#define PHASE_FILTER_PIN		15
-
 // Phase filter
 #define PHASE_FILTER_OFF()			palSetPad(GPIOC, 13); palSetPad(GPIOC, 14); palSetPad(GPIOC, 15)
 #define PHASE_FILTER_ON()			palClearPad(GPIOC, 13); palClearPad(GPIOC, 14); palClearPad(GPIOC, 15)

@@ -28,9 +28,10 @@
 
 // HW properties
 #define HW_HAS_3_SHUNTS
-#define INVERTED_SHUNT_POLARITY
 #define HW_HAS_PHASE_FILTERS
 #define HW_HAS_PHASE_SHUNTS
+
+#define COMM_USE_USB				0
 
 // Macros
 #define LED_GREEN_GPIO			GPIOC
@@ -43,10 +44,13 @@
 #define LED_RED_ON()			palSetPad(LED_RED_GPIO, LED_RED_PIN)
 #define LED_RED_OFF()			palClearPad(LED_RED_GPIO, LED_RED_PIN)
 
-#define PHASE_FILTER_GPIO		GPIOB
-#define PHASE_FILTER_PIN		12
-#define PHASE_FILTER_ON()		palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
-#define PHASE_FILTER_OFF()		palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define PHASE_FILTER_OFF()		palSetPad(GPIOB, 12); palSetPad(GPIOA, 11); palSetPad(GPIOA, 12)
+#define PHASE_FILTER_ON()		palClearPad(GPIOB, 12); palClearPad(GPIOA, 11); palClearPad(GPIOA, 12)
+
+#define CURRENT_FILTER_GPIO		GPIOC
+#define CURRENT_FILTER_PIN		5
+#define CURRENT_FILTER_ON()		palSetPad(CURRENT_FILTER_GPIO, CURRENT_FILTER_PIN)
+#define CURRENT_FILTER_OFF()	palClearPad(CURRENT_FILTER_GPIO, CURRENT_FILTER_PIN)
 
 // ADC Mux
 #define ADC_SW_1_PORT			GPIOC
@@ -135,13 +139,13 @@
 #define VIN_R1					150000.0
 #endif
 #ifndef VIN_R2
-#define VIN_R2					3300.0
+#define VIN_R2					4700.0
 #endif
 #ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN		20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES		(0.00025 / 3.0)
+#define CURRENT_SHUNT_RES		0.00025
 #endif
 
 #define ENCODER_SIN_VOLTS		ADC_VOLTS(ADC_IND_EXT4)
