@@ -3304,7 +3304,7 @@ Stop IMU-driver and put IMU in sleep mode.
 
 ### GPIO
 
-These functions allow using GPIO-pins from lispBM. The UART and SWD pins can currently be used. NOTE: If you are using the SWD-pins a SWD-programmer won't work after that until the next reset. If you are using the hall sensor pins make sure that sensor port mode is not set to anything that will communicate with encoders using those pins. Leaving the sensor port in hall sensor mode should be fine.
+These functions allow using GPIO-pins from lispBM. NOTE: If you are using the SWD-pins a SWD-programmer won't work after that until the next reset. If you are using the hall sensor pins make sure that sensor port mode is not set to anything that will communicate with encoders using those pins. Leaving the sensor port in hall sensor mode should be fine.
 
 The gpio-extension are also available on the express-platform. There the pins are a number (e.g. 1, 2) instead of a symbol.
 
@@ -3335,6 +3335,8 @@ Configure GPIO pin to mode. Example:
 'pin-hall3  ; Sensor port hall3
 'pin-adc1   ; ADC1-pin on COMM-port
 'pin-adc2   ; ADC2-pin on COMM-port
+'pin-adc3   ; ADC3-pin on COMM-port (if available)
+'pin-adc4   ; ADC4-pin on COMM-port (if available)
 'pin-ppm    ; Signal-pin on PPM-port
 
 ; On express the pins are a number and not a symbol.
