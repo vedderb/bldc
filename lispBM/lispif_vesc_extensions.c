@@ -114,8 +114,18 @@ typedef struct {
 	lbm_uint pin_hall1;
 	lbm_uint pin_hall2;
 	lbm_uint pin_hall3;
+#ifdef HW_ADC_EXT_GPIO
 	lbm_uint pin_adc1;
+#endif
+#ifdef HW_ADC_EXT2_GPIO
 	lbm_uint pin_adc2;
+#endif
+#ifdef HW_ADC_EXT3_GPIO
+	lbm_uint pin_adc3;
+#endif
+#ifdef HW_ADC_EXT4_GPIO
+	lbm_uint pin_adc4;
+#endif
 	lbm_uint pin_ppm;
 #ifdef PIN_HW_1
 	lbm_uint pin_hw_1;
@@ -364,11 +374,28 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("pin-hall2", comp);
 		} else if (comp == &syms_vesc.pin_hall3) {
 			lbm_add_symbol_const("pin-hall3", comp);
-		} else if (comp == &syms_vesc.pin_adc1) {
+		}
+#ifdef HW_ADC_EXT_GPIO
+		else if (comp == &syms_vesc.pin_adc1) {
 			lbm_add_symbol_const("pin-adc1", comp);
-		} else if (comp == &syms_vesc.pin_adc2) {
+		}
+#endif
+#ifdef HW_ADC_EXT2_GPIO
+		else if (comp == &syms_vesc.pin_adc2) {
 			lbm_add_symbol_const("pin-adc2", comp);
-		} else if (comp == &syms_vesc.pin_ppm) {
+		}
+#endif
+#ifdef HW_ADC_EXT3_GPIO
+		else if (comp == &syms_vesc.pin_adc3) {
+			lbm_add_symbol_const("pin-adc3", comp);
+		}
+#endif
+#ifdef HW_ADC_EXT4_GPIO
+		else if (comp == &syms_vesc.pin_adc4) {
+			lbm_add_symbol_const("pin-adc4", comp);
+		}
+#endif
+		else if (comp == &syms_vesc.pin_ppm) {
 			lbm_add_symbol_const("pin-ppm", comp);
 		} 
 #ifdef PIN_HW_1
@@ -5992,22 +6019,37 @@ bool lispif_symbol_to_io(lbm_uint sym, stm32_gpio_t **port, uint32_t *pin) {
 	} else if (compare_symbol(sym, &syms_vesc.pin_hall3)) {
 		*port = HW_HALL_ENC_GPIO3; *pin = HW_HALL_ENC_PIN3;
 		return true;
-	} else if (compare_symbol(sym, &syms_vesc.pin_adc1)) {
+	}
 #ifdef HW_ADC_EXT_GPIO
+	else if (compare_symbol(sym, &syms_vesc.pin_adc1)) {
 		*port = HW_ADC_EXT_GPIO; *pin = HW_ADC_EXT_PIN;
 		return true;
+	}
 #endif
-	} else if (compare_symbol(sym, &syms_vesc.pin_adc2)) {
 #ifdef HW_ADC_EXT2_GPIO
+	else if (compare_symbol(sym, &syms_vesc.pin_adc2)) {
 		*port = HW_ADC_EXT2_GPIO; *pin = HW_ADC_EXT2_PIN;
 		return true;
+	}
 #endif
-	} else if (compare_symbol(sym, &syms_vesc.pin_ppm)) {
+#ifdef HW_ADC_EXT3_GPIO
+	else if (compare_symbol(sym, &syms_vesc.pin_adc3)) {
+		*port = HW_ADC_EXT3_GPIO; *pin = HW_ADC_EXT3_PIN;
+		return true;
+	}
+#endif
+#ifdef HW_ADC_EXT4_GPIO
+	else if (compare_symbol(sym, &syms_vesc.pin_adc4)) {
+		*port = HW_ADC_EXT4_GPIO; *pin = HW_ADC_EXT4_PIN;
+		return true;
+	}
+#endif
 #ifdef HW_ICU_GPIO
+	else if (compare_symbol(sym, &syms_vesc.pin_ppm)) {
 		*port = HW_ICU_GPIO; *pin = HW_ICU_PIN;
 		return true;
-#endif
 	}
+#endif
 #ifdef PIN_HW_1
 	else if (compare_symbol(sym, &syms_vesc.pin_hw_1)) {
 		*port = PIN_HW_1_GPIO; *pin = PIN_HW_1;
