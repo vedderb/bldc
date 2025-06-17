@@ -247,9 +247,9 @@
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-100.0, 100.0
-#define HW_LIM_CURRENT_IN		-100.0, 100.0
-#define HW_LIM_CURRENT_ABS		0.0, 130.0
+#define HW_LIM_CURRENT			-80.0, 80.0
+#define HW_LIM_CURRENT_IN		-80.0, 80.0
+#define HW_LIM_CURRENT_ABS		0.0, 120.0
 #define HW_LIM_VIN				11.0, 94.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
