@@ -5377,7 +5377,7 @@ lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
 
 // Commands interface
 static PACKET_STATE_t *cmds_packet_state = 0;
-static volatile thread_t *cmds_task = 0;
+static volatile bool cmds_running = false;
 
 typedef struct {
 	unsigned char buffer[PACKET_MAX_PL_LEN + 8];
@@ -5419,11 +5419,11 @@ static void cmds_send_task(void *arg) {
 	cmds_send_data *sd = (cmds_send_data*)arg;
 	commands_process_packet(sd->buffer, sd->len, cmds_send_packet);
 	lbm_free(sd);
-	cmds_task = 0;
+	cmds_running = false;
 }
 
 static void cmds_proc(unsigned char *data, unsigned int len) {
-	if (cmds_task != 0) {
+	if (cmds_running) {
 		return;
 	}
 
@@ -5436,7 +5436,8 @@ static void cmds_proc(unsigned char *data, unsigned int len) {
 	memcpy(sd->buffer, data, len);
 	sd->len = len;
 
-	cmds_task = (thread_t*)lispif_spawn(cmds_send_task, 2048, "lbm_cmds", sd);
+	cmds_running = true;
+	thread_t *cmds_task = (thread_t*)lispif_spawn(cmds_send_task, 2048, "lbm_cmds", sd);
 
 	if (!cmds_task) {
 		lbm_free(sd);
