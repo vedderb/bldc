@@ -5441,6 +5441,7 @@ static void cmds_proc(unsigned char *data, unsigned int len) {
 
 	if (!cmds_task) {
 		lbm_free(sd);
+		cmds_running = false;
 	}
 }
 
