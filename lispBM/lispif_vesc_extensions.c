@@ -5364,13 +5364,15 @@ lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
 }
 
 // Commands interface
-static PACKET_STATE_t *cmds_packet_state = 0;
-static volatile bool cmds_running = false;
-
 typedef struct {
+	PACKET_STATE_t cmds_packet_state;
 	unsigned char buffer[PACKET_MAX_PL_LEN + 8];
 	unsigned int len;
+	uint8_t cmds_thd_stack[2048];
 } cmds_send_data;
+
+static cmds_send_data *cmds_state = 0;
+static thread_t *cmds_thread = 0;
 
 static void cmds_send_raw(unsigned char *buffer, unsigned int len) {
 	if (event_cmds_data_tx_en) {
@@ -5398,39 +5400,31 @@ static void cmds_send_raw(unsigned char *buffer, unsigned int len) {
 }
 
 static void cmds_send_packet(unsigned char *buffer, unsigned int len) {
-	if (cmds_packet_state) {
-		packet_send_packet(buffer, len, cmds_packet_state);
+	if (cmds_state) {
+		packet_send_packet(buffer, len, &(cmds_state->cmds_packet_state));
 	}
 }
 
-static void cmds_send_task(void *arg) {
-	cmds_send_data *sd = (cmds_send_data*)arg;
-	commands_process_packet(sd->buffer, sd->len, cmds_send_packet);
-	lbm_free(sd);
-	cmds_running = false;
+static THD_FUNCTION(cmds_send_task, arg) {
+	(void)arg;
+	chRegSetThreadName("lbm_cmds");
+	commands_process_packet(cmds_state->buffer, cmds_state->len, cmds_send_packet);
+	cmds_thread = 0;
 }
 
 static void cmds_proc(unsigned char *data, unsigned int len) {
-	if (cmds_running) {
+	if (cmds_thread) {
 		return;
 	}
 
-	cmds_send_data *sd = lbm_malloc_reserve(sizeof(cmds_send_data));
-
-	if (!sd) {
+	if (!cmds_state) {
 		return;
 	}
 
-	memcpy(sd->buffer, data, len);
-	sd->len = len;
+	memcpy(cmds_state->buffer, data, len);
+	cmds_state->len = len;
 
-	cmds_running = true;
-	thread_t *cmds_task = (thread_t*)lispif_spawn(cmds_send_task, 2048, "lbm_cmds", sd);
-
-	if (!cmds_task) {
-		lbm_free(sd);
-		cmds_running = false;
-	}
+	cmds_thread = chThdCreateStatic(cmds_state->cmds_thd_stack, sizeof(cmds_state->cmds_thd_stack), NORMALPRIO - 1, cmds_send_task, 0);
 }
 
 static lbm_value ext_cmds_start_stop(lbm_value *args, lbm_uint argn) {
@@ -5448,19 +5442,23 @@ static lbm_value ext_cmds_start_stop(lbm_value *args, lbm_uint argn) {
 		start = lbm_is_symbol_true(args[0]);
 	}
 
-	if (cmds_packet_state) {
-		lbm_free(cmds_packet_state);
-		cmds_packet_state = 0;
+	if (cmds_thread) {
+		chThdWait(cmds_thread);
+	}
+
+	if (cmds_state) {
+		lbm_free(cmds_state);
+		cmds_state = 0;
 	}
 
 	if (start) {
-		cmds_packet_state = lbm_malloc(sizeof(PACKET_STATE_t));
+		cmds_state = lbm_malloc(sizeof(cmds_state));
 
-		if (!cmds_packet_state) {
+		if (!cmds_state) {
 			return ENC_SYM_MERROR;
 		}
 
-		packet_init(cmds_send_raw, cmds_proc, cmds_packet_state);
+		packet_init(cmds_send_raw, cmds_proc, &(cmds_state->cmds_packet_state));
 	}
 
 	return ENC_SYM_TRUE;
@@ -5476,20 +5474,15 @@ static lbm_value ext_cmds_proc(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_TERROR;
 	}
 
-	if (!cmds_packet_state) {
+	if (!cmds_state) {
 		lbm_set_error_reason("Cmds not started");
 		return ENC_SYM_EERROR;
 	}
 
-	// There isn't enough memory to spawn process thread
-	// and store package data. Run GC and retry.
-	if (lbm_memory_longest_free() < (2100 + sizeof(cmds_send_data))) {
-		return ENC_SYM_MERROR;
+	for (unsigned int i = 0;i < arr->size;i++) {
+		packet_process_byte(((unsigned char *)arr->data)[i], &(cmds_state->cmds_packet_state));
 	}
 
-	for (unsigned int i = 0;i < arr->size;i++) {
-		packet_process_byte(((unsigned char *)arr->data)[i],cmds_packet_state);
-	}
 	return ENC_SYM_TRUE;
 }
 
@@ -5964,6 +5957,10 @@ void lispif_disable_all_events(void) {
 			rmsg_slots[i].cid = -1;
 		}
 		chMtxUnlock(&rmsg_mutex);
+	}
+
+	if (cmds_thread) {
+		chThdWait(cmds_thread);
 	}
 
 	lispif_stop_lib();
