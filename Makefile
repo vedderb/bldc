@@ -233,6 +233,18 @@ read_lbm_image:
 read_lbm_code:
 	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "flash read_bank 0 001_lbm_code.bin 0xC0000 0x20000" -c "reset" -c "exit"
 
+erase_lbm_image:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "flash erase_sector 0 8 8" -c "reset" -c "exit"
+
+erase_lbm_code:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "flash erase_sector 0 10 10" -c "reset" -c "exit"
+
+read_qml:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "flash read_bank 0 001_qml.bin 0xA0000 0x20000" -c "reset" -c "exit"
+
+erase_qml:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "flash erase_sector 0 9 9" -c "reset" -c "exit"
+
 # Generate the targets for whatever boards are in each list
 FW_TARGETS := $(addprefix fw_, $(ALL_BOARD_NAMES))
 
