@@ -873,22 +873,6 @@ Hold shutdown. When hold is true hardware shutdown will be delayed until hold is
 
 ---
 
-#### const-heap-erase
-
-| Platforms | Firmware |
-|---|---|
-| ESC | 6.06+ |
-
-```clj
-(const-heap-erase)
-```
-
-Erase constant heap. This can be used in the beginning of the application to erase the constant memory of the application. That is useful for applications that do not always write the same things to constant memory in the same order after starting. Situations where that can occur is when the application takes different execution paths depending on external events or when writing variables to constant memory that differ based on external events.
-
-Running this command in the beginning of the application should prevent any write-to-flash errors, but the command takes a few seconds to execute and puts some wear on the flash memory. The reader will become slightly slower in const blocks after running this command compared to an application where constant memory already has been written in previous runs.
-
----
-
 #### reboot
 
 | Platforms | Firmware |
