@@ -227,6 +227,12 @@ debug-start:
 size: build/$(PROJECT).elf
 	@$(SZ) $<
 
+read_lbm_image:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "flash read_bank 0 001_lbm_image.bin 0x80000 0x20000" -c "reset" -c "exit"
+
+read_lbm_code:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "flash read_bank 0 001_lbm_code.bin 0xC0000 0x20000" -c "reset" -c "exit"
+
 # Generate the targets for whatever boards are in each list
 FW_TARGETS := $(addprefix fw_, $(ALL_BOARD_NAMES))
 
