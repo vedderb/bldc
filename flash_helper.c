@@ -184,7 +184,7 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 uint16_t flash_helper_erase_code(int ind) {
 #ifdef USE_LISPBM
 	if (ind == CODE_IND_LISP || ind == CODE_IND_LISP_CONST) {
-		lispif_stop_lib();
+		lispif_stop();
 	}
 #endif
 

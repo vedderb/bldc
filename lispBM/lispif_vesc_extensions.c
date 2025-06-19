@@ -5231,18 +5231,6 @@ static lbm_value ext_shutdown_hold(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
-static lbm_value ext_const_heap_erase(lbm_value *args, lbm_uint argn) {
-	(void)args; (void)argn;
-
-	if (lispif_const_heap_max_ind() > 0) {
-		lbm_set_error_reason("Const heap already in use");
-		return ENC_SYM_EERROR;
-	}
-
-	flash_helper_erase_code(CODE_IND_LISP_CONST);
-	return ENC_SYM_TRUE;
-}
-
 static lbm_value ext_override_speed(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(2);
 	mc_interface_override_wheel_speed(lbm_dec_as_i32(args[0]), lbm_dec_as_float(args[1]));
@@ -5617,7 +5605,6 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("crc32", ext_crc32);
 		lbm_add_extension("buf-resize", ext_buf_resize);
 		lbm_add_extension("shutdown-hold", ext_shutdown_hold);
-		lbm_add_extension("const-heap-erase", ext_const_heap_erase);
 		lbm_add_extension("override-speed", ext_override_speed);
 
 		// APP commands
