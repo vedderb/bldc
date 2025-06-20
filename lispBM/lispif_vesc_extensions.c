@@ -5453,6 +5453,8 @@ static lbm_value ext_cmds_start_stop(lbm_value *args, lbm_uint argn) {
 
 	if (cmds_running && cmds_thd) {
 		chThdWait(cmds_thd);
+		cmds_thd = 0;
+		cmds_running = false;
 	}
 
 	if (cmds_state) {
@@ -5982,7 +5984,14 @@ void lispif_disable_all_events(void) {
 		chThdWait(cmds_thd);
 	}
 
+	if (cmds_state) {
+		lbm_free(cmds_state->cmds_thd_stack);
+		lbm_free(cmds_state);
+	}
+
 	cmds_state = 0;
+	cmds_thd = 0;
+	cmds_running = false;
 
 	lispif_stop_lib();
 	event_can_sid_en = false;

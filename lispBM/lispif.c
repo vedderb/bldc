@@ -192,7 +192,6 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 	case COMM_LISP_SET_RUNNING: {
 		bool ok = false;
 		bool running = data[0];
-		lispif_disable_all_events();
 
 		if (!running) {
 			ok = pause_eval(0, 2000);
