@@ -5366,16 +5366,20 @@ lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
 // Commands interface
 typedef struct {
 	PACKET_STATE_t cmds_packet_state;
+	void *cmds_thd_stack;
+	size_t cmds_thd_stack_size;
 	unsigned char buffer[PACKET_MAX_PL_LEN + 8];
 	unsigned int len;
-	uint8_t cmds_thd_stack[2048];
 } cmds_send_data;
 
 static cmds_send_data *cmds_state = 0;
-static thread_t *cmds_thread = 0;
+static thread_t *cmds_thd = 0;
+static volatile bool cmds_running = false;
 
 static void cmds_send_raw(unsigned char *buffer, unsigned int len) {
 	if (event_cmds_data_tx_en) {
+		int restart_cnt = lispif_get_restart_cnt();
+
 		lbm_flat_value_t v;
 		if (start_flatten_with_gc(&v, len + 30)) {
 			f_cons(&v);
@@ -5387,7 +5391,11 @@ static void cmds_send_raw(unsigned char *buffer, unsigned int len) {
 
 			int timeout = 500;
 			while (!lbm_event(&v)) {
-				if (timeout == 0 || lispif_is_eval_task()) {
+				if (restart_cnt != lispif_get_restart_cnt()) {
+					return;
+				}
+
+				if (timeout == 0 || lispif_is_eval_task() || !event_cmds_data_tx_en) {
 					lbm_free(v.buf);
 					return;
 				}
@@ -5409,11 +5417,11 @@ static THD_FUNCTION(cmds_send_task, arg) {
 	(void)arg;
 	chRegSetThreadName("lbm_cmds");
 	commands_process_packet(cmds_state->buffer, cmds_state->len, cmds_send_packet);
-	cmds_thread = 0;
+	cmds_running = false;
 }
 
 static void cmds_proc(unsigned char *data, unsigned int len) {
-	if (cmds_thread) {
+	if (cmds_running) {
 		return;
 	}
 
@@ -5424,7 +5432,8 @@ static void cmds_proc(unsigned char *data, unsigned int len) {
 	memcpy(cmds_state->buffer, data, len);
 	cmds_state->len = len;
 
-	cmds_thread = chThdCreateStatic(cmds_state->cmds_thd_stack, sizeof(cmds_state->cmds_thd_stack), NORMALPRIO - 1, cmds_send_task, 0);
+	cmds_running = true;
+	cmds_thd = chThdCreateStatic(cmds_state->cmds_thd_stack, cmds_state->cmds_thd_stack_size, NORMALPRIO, cmds_send_task, 0);
 }
 
 static lbm_value ext_cmds_start_stop(lbm_value *args, lbm_uint argn) {
@@ -5442,19 +5451,29 @@ static lbm_value ext_cmds_start_stop(lbm_value *args, lbm_uint argn) {
 		start = lbm_is_symbol_true(args[0]);
 	}
 
-	if (cmds_thread) {
-		chThdWait(cmds_thread);
+	if (cmds_running && cmds_thd) {
+		chThdWait(cmds_thd);
 	}
 
 	if (cmds_state) {
+		lbm_free(cmds_state->cmds_thd_stack);
 		lbm_free(cmds_state);
 		cmds_state = 0;
 	}
 
 	if (start) {
-		cmds_state = lbm_malloc(sizeof(cmds_state));
+		cmds_state = lbm_malloc(sizeof(cmds_send_data));
 
 		if (!cmds_state) {
+			return ENC_SYM_MERROR;
+		}
+
+		cmds_state->cmds_thd_stack = lbm_malloc(2048);
+		cmds_state->cmds_thd_stack_size = 2048;
+
+		if (!cmds_state->cmds_thd_stack) {
+			lbm_free(cmds_state);
+			cmds_state = 0;
 			return ENC_SYM_MERROR;
 		}
 
@@ -5959,9 +5978,11 @@ void lispif_disable_all_events(void) {
 		chMtxUnlock(&rmsg_mutex);
 	}
 
-	if (cmds_thread) {
-		chThdWait(cmds_thread);
+	if (cmds_running && cmds_thd) {
+		chThdWait(cmds_thd);
 	}
+
+	cmds_state = 0;
 
 	lispif_stop_lib();
 	event_can_sid_en = false;
