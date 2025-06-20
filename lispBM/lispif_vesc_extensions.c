@@ -5984,11 +5984,6 @@ void lispif_disable_all_events(void) {
 		chThdWait(cmds_thd);
 	}
 
-	if (cmds_state) {
-		lbm_free(cmds_state->cmds_thd_stack);
-		lbm_free(cmds_state);
-	}
-
 	cmds_state = 0;
 	cmds_thd = 0;
 	cmds_running = false;
