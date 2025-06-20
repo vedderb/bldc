@@ -6267,12 +6267,13 @@ The best way to illustrate how to use this is with an example. The following cod
 (tcp-send socket "VESC:user11:pass11\n")
 
 (defun event-handler () {
-        (set-mailbox-size 3) ; Use small mailbox to avoid filling RAM with too many unsent packets
+        (set-mailbox-size 3)
         (loopwhile t
             (recv
                 ((event-cmds-data-tx (? data)) (tcp-send socket data))
                 (_ nil)
-})))
+        ))
+})
 
 (event-register-handler (spawn event-handler))
 (event-enable 'event-cmds-data-tx)
