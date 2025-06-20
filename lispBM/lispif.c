@@ -80,6 +80,7 @@ static lbm_cid repl_cid_for_buffer = -1;
 static char *repl_buffer = 0;
 static volatile systime_t repl_time = 0;
 static int restart_cnt = 0;
+static volatile bool const_write_error = false;
 
 // Private functions
 static uint32_t timestamp_callback(void);
@@ -703,6 +704,11 @@ bool lispif_restart(bool print, bool load_code, bool load_imports) {
 	if (!load_code || (code_data != 0 && code_len > 0)) {
 		lispif_disable_all_events();
 
+		if (const_write_error) {
+			const_write_error = false;
+			flash_helper_erase_code(CODE_IND_LISP_CONST);
+		}
+
 		bool save_heap = lisp_thd_running && lbm_image_exists();
 
 		lispif_stop();
@@ -881,6 +887,7 @@ static bool image_write(uint32_t w, int32_t ix, bool const_heap) {
 
 	if (image_ptr[ix] != 0xffffffff) {
 		commands_printf_lisp("Attempted to write to const heap at %d, but it is already occupied", ix);
+		const_write_error = true;
 		return false;
 	}
 
