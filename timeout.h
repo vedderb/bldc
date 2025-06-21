@@ -49,5 +49,6 @@ bool timeout_had_IWDG_reset(void);
 void timeout_feed_WDT(uint8_t index);
 float timeout_get_brake_current(void);
 KILL_SW_MODE timeout_get_kill_sw_mode(void);
+void timeout_set_kill_sw_ext(bool kill_set);
 
 #endif /* TIMEOUT_H_ */

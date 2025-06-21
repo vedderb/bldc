@@ -1231,6 +1231,20 @@ Run FOC in open loop in phase mode. Phase is the electrical position of the open
 
 ---
 
+#### set-kill-sw
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06+ |
+
+```clj
+(set-kill-sw state)
+```
+
+Set kill switch state. When state is set to 1 the motor is disabled and optionally braking if timeout_brake_current is greater than 0. The kill switch overrides all other inputs and can be used as an emergency stop. The kill switch state here is applied as logic OR with the app settings kill switch input, so as long as any of them is active the motor will be disabled.
+
+---
+
 #### foc-beep
 
 | Platforms | Firmware |

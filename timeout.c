@@ -31,6 +31,7 @@ static volatile float timeout_brake_current;
 static volatile KILL_SW_MODE timeout_kill_sw_mode;
 static volatile bool has_timeout;
 static volatile bool kill_sw_active;
+static volatile bool kill_sw_ext_set = false;
 static volatile uint32_t feed_counter[MAX_THREADS_MONITOR];
 
 // Threads
@@ -114,6 +115,10 @@ float timeout_get_brake_current(void) {
 
 KILL_SW_MODE timeout_get_kill_sw_mode(void) {
 	return timeout_kill_sw_mode;
+}
+
+void timeout_set_kill_sw_ext(bool kill_set) {
+	kill_sw_ext_set = kill_set;
 }
 
 void timeout_feed_WDT(uint8_t index) {
@@ -211,6 +216,10 @@ static THD_FUNCTION(timeout_thread, arg) {
 
 		default:
 			break;
+		}
+
+		if (kill_sw_ext_set) {
+			kill_sw = true;
 		}
 
 		if (kill_sw || (timeout_msec != 0 && chVTTimeElapsedSinceX(last_update_time) > MS2ST(timeout_msec))) {
