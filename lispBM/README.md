@@ -6602,7 +6602,20 @@ Disconnect SD-card or NAND-Flash.
 (f-open path mode)
 ```
 
-Open a file in open-mode mode (r, w or rw). Returns a number that can be used as a handle to the file on success or nil if the file could not be opened. Example:
+Open a file in open-mode mode (r, w, a, r+, w+ and a+). Returns a number that can be used as a handle to the file on success or nil if the file could not be opened.
+
+The modes mean the following
+
+| Mode | Description |
+|---|---|
+| r | Open for reading. The file must exist. |
+| w | Open for writing. Creates an empty file or truncates an existing file. |
+| a | Open for appending. Writes data at the end of the file. Creates the file if it does not exist. |
+| r+ | Open for reading and writing. The file must exist. |
+| w+ | Open for reading and writing. Creates an empty file or truncates an existing file. |
+| a+ | Open for reading and appending. The file is created if it does not exist. |
+
+Example:
 
 ```clj
 (def f (f-open "test.txt" "w")) ; Open test.txt in write-only mode and store the handle as f.
