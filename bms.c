@@ -422,7 +422,7 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 	float i_in_max_bms_vmin = i_in_max_conf;
 	if ((m_conf.limit_mode >> 2) & 1) {
 		if (m_stat_vcell_min.id >= 0) {
-			float vmin = m_stat_vcell_min.soc;
+			float vmin = m_stat_vcell_min.v_cell_min;
 
 			if (vmin > (m_conf.vmin_limit_start - 0.1)) {
 				// OK
@@ -439,7 +439,7 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 	float i_in_min_bms_vmax = i_in_min_conf;
 	if ((m_conf.limit_mode >> 3) & 1) {
 		if (m_stat_vcell_max.id >= 0) {
-			float vmax = m_stat_vcell_max.soc;
+			float vmax = m_stat_vcell_max.v_cell_max;
 
 			if (vmax < (m_conf.vmax_limit_start + 0.1)) {
 				// OK
