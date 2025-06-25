@@ -934,10 +934,21 @@ __attribute__((section(".text2"))) uint8_t conf_general_calculate_deadtime(float
  */
 __attribute__((section(".text2"))) int conf_general_measure_flux_linkage_openloop(float current, float duty,
 		float erpm_per_sec, float res, float ind, float *linkage,
-		float *linkage_undriven, float *undriven_samples, bool *result) {
+		float *linkage_undriven, float *undriven_samples, bool *result,
+		float *enc_offset, float *enc_ratio, bool *enc_inverted) {
 
 	*result = false;
 	int fault = FAULT_CODE_NONE;
+
+	if (enc_offset) {
+		*enc_offset = -1;
+	}
+	if (enc_ratio) {
+		*enc_ratio = -1;
+	}
+	if (enc_inverted) {
+		*enc_inverted = false;
+	}
 
 	// Allow using old values when only measuring the flux linkage undriven
 	if (fabsf(current) <= mc_interface_get_configuration()->cc_min_current) {
@@ -1155,6 +1166,15 @@ __attribute__((section(".text2"))) int conf_general_measure_flux_linkage_openloo
 		*linkage = 0.0;
 	}
 
+	float enc_diff_sin = 0.0;
+	float enc_diff_cos = 0.0;
+	float enc_val_last = encoder_read_deg();
+	float phase_val_last = mcpwm_foc_get_phase_observer();
+	float enc_ratio_sum = 0.0;
+	float enc_samples = 0.0;
+	float enc_travel = 0.0;
+	bool enc_res_set = false;
+
 	float linkage_sum = 0.0;
 	float linkage_samples = 0.0;
 	if (fault == FAULT_CODE_NONE) {
@@ -1173,6 +1193,50 @@ __attribute__((section(".text2"))) int conf_general_measure_flux_linkage_openloo
 			//              float x1, x2;
 			//              mcpwm_foc_get_observer_state(&x1, &x2);
 			//              linkage_sum += sqrtf(SQ(x1) + SQ(x2));
+
+			float diff_encoder = utils_angle_difference(encoder_read_deg(), enc_val_last);
+
+			if (fabsf(diff_encoder) >= 5.0) {
+				float diff_observer = utils_angle_difference(mcpwm_foc_get_phase_observer(), phase_val_last);
+
+				enc_val_last = encoder_read_deg();
+				phase_val_last = mcpwm_foc_get_phase_observer();
+
+				enc_ratio_sum += diff_observer / diff_encoder;
+				enc_samples += 1.0;
+				enc_travel += fabsf(diff_encoder);
+			}
+
+			if (enc_travel >= 20.0) {
+				float ratio = roundf(SIGN(enc_ratio_sum) * enc_ratio_sum / enc_samples);
+				bool inverted = enc_ratio_sum < 0.0;
+
+				float phase_tmp = encoder_read_deg();
+				if (inverted) {
+					phase_tmp = 360.0 - phase_tmp;
+				}
+				phase_tmp *= ratio;
+
+				float s, c;
+				sincosf(DEG2RAD_f(utils_angle_difference(phase_tmp, mcpwm_foc_get_phase_observer())), &s, &c);
+				enc_diff_sin += s;
+				enc_diff_cos += c;
+
+				if (enc_travel >= 380.0 && !enc_res_set) {
+					if (enc_offset) {
+						*enc_offset = RAD2DEG_f(atan2f(enc_diff_sin, enc_diff_cos));
+						utils_norm_angle(enc_offset);
+					}
+					if (enc_ratio) {
+						*enc_ratio = ratio;
+					}
+					if (enc_inverted) {
+						*enc_inverted = inverted;
+					}
+
+					enc_res_set = true;
+				}
+			}
 
 			linkage_samples += 1.0;
 			chThdSleep(1);
@@ -1816,7 +1880,8 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	float lambda_undriven_samples = 0.0;
 	bool res;
 	faultM1 = conf_general_measure_flux_linkage_openloop(i_max / 2.5, 0.3, 1800, r, l,
-														 &lambda, &lambda_undriven, &lambda_undriven_samples, &res);
+														 &lambda, &lambda_undriven, &lambda_undriven_samples, &res,
+														 0, 0, 0);
 
 	if (lambda_undriven_samples > 60) {
 		lambda = lambda_undriven;

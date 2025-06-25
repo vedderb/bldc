@@ -17,6 +17,7 @@
 * Support for coordinated CAN baudrate update.
 * Overmodulation support.
 * Added PWM and PWM+ABI encoder modes.
+* Detect encoder parameters during flux linkage detection.
 
 ### 6.05
 #### 2024-08-19

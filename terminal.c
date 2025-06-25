@@ -531,16 +531,23 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 					erpm_per_sec > 0.0 && duty > 0.02 && duty <= 0.9 && res >= 0.0 && ind >= 0.0) {
 				float linkage = 0.0, linkage_undriven = 0.0, undriven_samples = 0.0;
 				bool result;
+				float enc_offset, enc_ratio;
+				bool enc_inverted;
 
 				int fault = conf_general_measure_flux_linkage_openloop(current, duty, erpm_per_sec, res, ind,
-																	   &linkage, &linkage_undriven, &undriven_samples, &result);
+																	   &linkage, &linkage_undriven, &undriven_samples, &result,
+																	   &enc_offset, &enc_ratio, &enc_inverted);
 				if (fault == FAULT_CODE_NONE) {
 					if (result) {
 						commands_printf(
 									"Flux linkage            : %.7f\n"
 									"Flux Linkage (undriven) : %.7f\n"
 									"Undriven samples        : %.1f\n",
-									(double)linkage, (double)linkage_undriven, (double)undriven_samples);
+									"Encoder Offset          : %.1f\n",
+									"Encoder Ratio           : %.1f\n",
+									"Encoder inverted        : %d\n",
+									(double)linkage, (double)linkage_undriven, (double)undriven_samples,
+									(double)enc_offset, (double)enc_ratio, enc_inverted);
 					} else {
 						commands_printf("Failed to measure flux linkage");
 					}

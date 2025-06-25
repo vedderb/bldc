@@ -188,7 +188,8 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 uint8_t conf_general_calculate_deadtime(float deadtime_ns, float core_clock_freq);
 int conf_general_measure_flux_linkage_openloop(float current, float duty,
 											   float erpm_per_sec, float res, float ind, float *linkage,
-											   float *linkage_undriven, float *undriven_samples, bool *result);
+											   float *linkage_undriven, float *undriven_samples, bool *result,
+											   float *enc_offset, float *enc_ratio, bool *enc_inverted);
 int conf_general_autodetect_apply_sensors_foc(float current,
 											  bool store_mcconf_on_success, bool send_mcconf_on_success, int *result);
 void conf_general_calc_apply_foc_cc_kp_ki_gain(mc_configuration *mcconf, float tc);
