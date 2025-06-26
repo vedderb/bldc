@@ -3670,6 +3670,9 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    6: FOC_SENSOR_MODE_HFI_V3
                         ;    7: FOC_SENSOR_MODE_HFI_V4
                         ;    8: FOC_SENSOR_MODE_HFI_V5
+'foc-encoder-offset     ; Encoder zero and motor zero offset (FW 6.06+)
+'foc-encoder-inverted   ; Encoder vs motor direction inverted (FW 6.06+)
+'foc-encoder-ratio      ; Ratio between electrical and encoder turns (FW 6.06+)
 'm-ntc-motor-beta       ; Beta Value for Motor Thermistor
 'm_encoder_counts       ; ABI encoder counts (FW 6.06)
 'm_sensor_port_mode     ; Sensor port mode (FW 6.06)
@@ -4107,6 +4110,55 @@ Get all overridden current limits from speed, temperature, voltage, wattage etc.
 
 ```clj
 (motor-min motor-max input-min input-max)
+```
+
+---
+
+#### conf-detect-lambda-enc
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06+ |
+
+```clj
+(conf-detect-lambda-enc current duty erpm-per-sec resistance-ohm inductance-uH)
+```
+
+Detect flux linkage as well as encoder parameters if an encoder is configured. The parameters are
+
+| Parameter | Description |
+|---|---|
+| current | Current to spin up the motor with. |
+| duty | Duty cycle to stop at. |
+| erpm-per-sec | Angular rate to spin up at in ERPM per second. |
+| resistance-ohm | Motor resistance in Ohm. Has to be measured before. |
+| inductance-uH | Motor inductance in microhenry. Has to be measured before. |
+
+If the detection fails nil is returned. If a fault occurs during the detection the fault code is returned. Otherwise, the following list with the result is returned:
+
+```clj
+(flux-linkage flux-linkage-undriven undriven-samples enc-offset enc-ratio enc-inverted)
+```
+
+Where the result values are
+
+| Value | Description |
+|---|---|
+| flux-linkage | Flux linkage estimate´ in Wb while the motor is driven. |
+| flux-linkage-undriven | Undriven flux linkage in Wb. **This is the better estimate that you want to use.** |
+| undriven-samples | Samples for the undriven flux linkage measurement. Should be at least 500 or so for an accurate measurement. |
+| enc-offset | Encoder offset in degrees. -1 if the measurement fauiled. |
+| enc-ratio | Encoder ratio. -1 if the measurement failed. |
+| enc-inverted | Encoder is inverted. |
+
+Example:
+
+```clj
+(print (conf-detect-lambda-enc 40 0.3 1500 0.007 70))
+-> (0.017543f32 0.018353f32 2000.000000f32 6.898595f32 4.000000f32 1)
+
+; Use result of resistance and inductance measurement
+(print (conf-detect-lambda-enc 40 0.3 1500 (conf-measure-res 30) (first (conf-measure-ind 20))))
 ```
 
 ---

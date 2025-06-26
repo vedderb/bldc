@@ -11,6 +11,8 @@
 		* Super fast boot possible
 		* Much easier to use const blocks
 		* Rebuild image and const data when needed
+	* Added conf-detect-lambda-enc.
+	* Added many configuration parameters.
 * New offset calibration modes and options.
 * Automatic offset calibration support.
 * Added HFI ambiguity resolution modes using id injection.
