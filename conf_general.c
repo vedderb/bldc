@@ -1642,7 +1642,10 @@ static void measure_flux_linkage_task(void *arg) {
 				&linkage,
 				&linkage_undriven,
 				&undriven_samples,
-				&args->result);
+				&args->result,
+				0,
+				0,
+				0);
 
 	if (undriven_samples > 60) {
 		args->linkage = linkage_undriven;
