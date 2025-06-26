@@ -1642,7 +1642,8 @@ static void measure_flux_linkage_task(void *arg) {
 				&linkage,
 				&linkage_undriven,
 				&undriven_samples,
-				&args->result);
+				&args->result,
+				0, 0, 0);
 
 	if (undriven_samples > 60) {
 		args->linkage = linkage_undriven;
@@ -1879,9 +1880,11 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	float lambda_undriven = 0.0;
 	float lambda_undriven_samples = 0.0;
 	bool res;
+	float enc_offset = 0.0, enc_ratio = 0.0;
+	bool enc_inverted = 0.0;
 	faultM1 = conf_general_measure_flux_linkage_openloop(i_max / 2.5, 0.3, 1800, r, l,
 														 &lambda, &lambda_undriven, &lambda_undriven_samples, &res,
-														 0, 0, 0);
+														 &enc_offset, &enc_ratio, &enc_inverted);
 
 	if (lambda_undriven_samples > 60) {
 		lambda = lambda_undriven;
@@ -1934,6 +1937,12 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old->foc_motor_l = l;
 		mcconf_old->foc_motor_ld_lq_diff = ld_lq_diff;
 		mcconf_old->foc_motor_flux_linkage = lambda;
+
+		if (enc_offset >= 0.0 && enc_ratio >= 0.0) {
+			mcconf_old->foc_encoder_offset = enc_offset;
+			mcconf_old->foc_encoder_ratio = enc_ratio;
+			mcconf_old->foc_encoder_inverted = enc_inverted;
+		}
 
 		if (mc_interface_temp_motor_filtered() > -10) {
 			mcconf_old->foc_temp_comp_base_temp = mc_interface_temp_motor_filtered();
