@@ -2084,10 +2084,14 @@
              (list
               (para (list "The `setassoc` function destructively updates a key-value mapping in an"
                           "alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr value-expr)`."
+                          "If you assign a key which doesn't exist in the original alist, it is"
+                          "left unchanged, while another association pair is added to the returned list."
                           ))
               (program '(((define apa (list '(1 . horse) '(2 . donkey) '(3 . shark)))
                           (setassoc apa 2 'llama)
                           )
+                         ((setassoc apa 4 'mouse))
+                         (apa)
                          ))
               end)))
 

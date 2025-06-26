@@ -7132,7 +7132,7 @@ The `cossa` function looks up the first key in an alist that matches a given val
 
 ### setassoc
 
-The `setassoc` function destructively updates a key-value mapping in an alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr value-expr)`. 
+The `setassoc` function destructively updates a key-value mapping in an alist. The form of a `setassoc` expression is `(setassoc alist-expr key-expr value-expr)`. If you assign a key which doesn't exist in the original alist, it is left unchanged, while another association pair is added to the returned list. 
 
 <table>
 <tr>
@@ -7145,6 +7145,46 @@ The `setassoc` function destructively updates a key-value mapping in an alist. T
 ```clj
 (define apa (list '(1 . horse) '(2 . donkey) '(3 . shark)))
 (setassoc apa 2 'llama)
+```
+
+
+</td>
+<td>
+
+
+```clj
+((1 . horse) (2 . llama) (3 . shark))
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(setassoc apa 4 'mouse)
+```
+
+
+</td>
+<td>
+
+
+```clj
+((4 . mouse) (1 . horse) (2 . llama) (3 . shark))
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+apa
 ```
 
 
@@ -8928,7 +8968,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 79659 kurt-russel)
+(exit-ok 79974 kurt-russel)
 ```
 
 
