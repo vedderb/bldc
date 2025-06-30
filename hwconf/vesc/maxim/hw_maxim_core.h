@@ -306,6 +306,9 @@
 #ifndef APPCONF_SHUTDOWN_MODE
 #define APPCONF_SHUTDOWN_MODE			SHUTDOWN_MODE_ALWAYS_ON
 #endif
+#ifndef APPCONF_APP_TO_USE
+#define APPCONF_APP_TO_USE				APP_NONE
+#endif
 
 // Setting limits
 #ifdef HWMAXIM_120

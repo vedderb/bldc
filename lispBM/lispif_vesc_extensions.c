@@ -180,6 +180,8 @@ typedef struct {
 	lbm_uint foc_motor_r;
 	lbm_uint foc_motor_flux_linkage;
 	lbm_uint foc_observer_gain;
+	lbm_uint foc_observer_type;
+	lbm_uint foc_mtpa_mode;
 	lbm_uint foc_hfi_voltage_start;
 	lbm_uint foc_hfi_voltage_run;
 	lbm_uint foc_hfi_voltage_max;
@@ -502,6 +504,10 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("foc-motor-flux-linkage", comp);
 		} else if (comp == &syms_vesc.foc_observer_gain) {
 			lbm_add_symbol_const("foc-observer-gain", comp);
+		} else if (comp == &syms_vesc.foc_observer_type) {
+			lbm_add_symbol_const("foc-observer-type", comp);
+		} else if (comp == &syms_vesc.foc_mtpa_mode) {
+			lbm_add_symbol_const("foc-mtpa-mode", comp);
 		} else if (comp == &syms_vesc.foc_hfi_voltage_start) {
 			lbm_add_symbol_const("foc-hfi-voltage-start", comp);
 		} else if (comp == &syms_vesc.foc_hfi_voltage_run) {
@@ -3706,6 +3712,12 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.foc_observer_gain)) {
 			mcconf->foc_observer_gain = lbm_dec_as_float(args[1]) * 1e6;
 			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_observer_type)) {
+			mcconf->foc_observer_type = lbm_dec_as_i32(args[1]);
+			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_mtpa_mode)) {
+			mcconf->foc_mtpa_mode = lbm_dec_as_i32(args[1]);
+			changed_mc = 2;
 		} else if (compare_symbol(name, &syms_vesc.foc_hfi_voltage_start)) {
 			mcconf->foc_hfi_voltage_start = lbm_dec_as_float(args[1]);
 			changed_mc = 2;
@@ -4040,6 +4052,10 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->foc_motor_flux_linkage * 1e3);
 	} else if (compare_symbol(name, &syms_vesc.foc_observer_gain)) {
 		res = lbm_enc_float(mcconf->foc_observer_gain * 1e-6);
+	} else if (compare_symbol(name, &syms_vesc.foc_observer_type)) {
+		res = lbm_enc_i(mcconf->foc_observer_type);
+	} else if (compare_symbol(name, &syms_vesc.foc_mtpa_mode)) {
+		res = lbm_enc_i(mcconf->foc_mtpa_mode);
 	} else if (compare_symbol(name, &syms_vesc.foc_hfi_voltage_start)) {
 		res = lbm_enc_float(mcconf->foc_hfi_voltage_start);
 	} else if (compare_symbol(name, &syms_vesc.foc_hfi_voltage_run)) {
