@@ -3674,8 +3674,8 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-encoder-inverted   ; Encoder vs motor direction inverted (FW 6.06+)
 'foc-encoder-ratio      ; Ratio between electrical and encoder turns (FW 6.06+)
 'm-ntc-motor-beta       ; Beta Value for Motor Thermistor
-'m_encoder_counts       ; ABI encoder counts (FW 6.06)
-'m_sensor_port_mode     ; Sensor port mode (FW 6.06)
+'m-encoder-counts       ; ABI encoder counts (FW 6.06)
+'m-sensor-port-mode     ; Sensor port mode (FW 6.06)
                         ;    0: SENSOR_PORT_MODE_HALL
                         ;    1: SENSOR_PORT_MODE_ABI
                         ;    2: SENSOR_PORT_MODE_AS5047_SPI
