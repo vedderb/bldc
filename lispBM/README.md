@@ -3674,6 +3674,9 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-encoder-inverted   ; Encoder vs motor direction inverted (FW 6.06+)
 'foc-encoder-ratio      ; Ratio between electrical and encoder turns (FW 6.06+)
 'm-ntc-motor-beta       ; Beta Value for Motor Thermistor
+'m-ptc-motor-coeff      ; Coefficient for PTC Motor Thermistor. Unit: %/K (FW 6.06+)
+'m-ntcx-ptcx-temp-base  ; Resistance of custom NTC/PTC resistor. (FW 6.06+)
+'m-ntcx-ptcx-res        ; Base temperature of custom NTC/PTC resistor. (FW 6.06+)
 'm-encoder-counts       ; ABI encoder counts (FW 6.06)
 'm-sensor-port-mode     ; Sensor port mode (FW 6.06)
                         ;    0: SENSOR_PORT_MODE_HALL
@@ -4133,7 +4136,7 @@ Get all overridden current limits from speed, temperature, voltage, wattage etc.
 | ESC | 6.06+ |
 
 ```clj
-(conf-detect-lambda-enc current duty erpm-per-sec resistance-ohm inductance-uH)
+(conf-detect-lambda-enc current duty erpm-per-sec resistance-mOhm inductance-uH)
 ```
 
 Detect flux linkage as well as encoder parameters if an encoder is configured. The parameters are
@@ -4143,7 +4146,7 @@ Detect flux linkage as well as encoder parameters if an encoder is configured. T
 | current | Current to spin up the motor with. |
 | duty | Duty cycle to stop at. |
 | erpm-per-sec | Angular rate to spin up at in ERPM per second. |
-| resistance-ohm | Motor resistance in Ohm. Has to be measured before. |
+| resistance-mOhm | Motor resistance in milliohm. Has to be measured before. |
 | inductance-uH | Motor inductance in microhenry. Has to be measured before. |
 
 If the detection fails nil is returned. If a fault occurs during the detection the fault code is returned. Otherwise, the following list with the result is returned:
@@ -4166,7 +4169,7 @@ Where the result values are
 Example:
 
 ```clj
-(print (conf-detect-lambda-enc 40 0.3 1500 0.007 70))
+(print (conf-detect-lambda-enc 40 0.3 1500 7 70))
 -> (0.017543f32 0.018353f32 2000.000000f32 6.898595f32 4.000000f32 1)
 
 ; Use result of resistance and inductance measurement

@@ -211,6 +211,9 @@ typedef struct {
 	lbm_uint m_out_aux_mode;
 	lbm_uint m_motor_temp_sens_type;
 	lbm_uint m_ntc_motor_beta;
+	lbm_uint m_ptc_motor_coeff;
+	lbm_uint m_ntcx_ptcx_temp_base;
+	lbm_uint m_ntcx_ptcx_res;
 	lbm_uint m_encoder_counts;
 	lbm_uint m_sensor_port_mode;
 	lbm_uint si_motor_poles;
@@ -566,6 +569,12 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("m-motor-temp-sens-type", comp);
 		} else if (comp == &syms_vesc.m_ntc_motor_beta) {
 			lbm_add_symbol_const("m-ntc-motor-beta", comp);
+		} else if (comp == &syms_vesc.m_ptc_motor_coeff) {
+			lbm_add_symbol_const("m-ptc-motor-coeff", comp);
+		} else if (comp == &syms_vesc.m_ntcx_ptcx_temp_base) {
+			lbm_add_symbol_const("m-ntcx-ptcx-temp-base", comp);
+		} else if (comp == &syms_vesc.m_ntcx_ptcx_res) {
+			lbm_add_symbol_const("m-ntcx-ptcx-res", comp);
 		} else if (comp == &syms_vesc.m_encoder_counts) {
 			lbm_add_symbol_const("m-encoder-counts", comp);
 		} else if (comp == &syms_vesc.m_sensor_port_mode) {
@@ -3611,6 +3620,15 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.m_ntc_motor_beta)) {
 		mcconf->m_ntc_motor_beta = lbm_dec_as_float(args[1]);
 		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.m_ptc_motor_coeff)) {
+		mcconf->m_ptc_motor_coeff = lbm_dec_as_float(args[1]);
+		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.m_ntcx_ptcx_temp_base)) {
+		mcconf->m_ntcx_ptcx_temp_base = lbm_dec_as_float(args[1]);
+		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.m_ntcx_ptcx_res)) {
+		mcconf->m_ntcx_ptcx_res = lbm_dec_as_float(args[1]);
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.si_motor_poles)) {
 		mcconf->si_motor_poles = lbm_dec_as_i32(args[1]);
 		changed_mc = 1;
@@ -4114,6 +4132,12 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_i(mcconf->m_motor_temp_sens_type);
 	} else if (compare_symbol(name, &syms_vesc.m_ntc_motor_beta)) {
 		res = lbm_enc_float(mcconf->m_ntc_motor_beta);
+	} else if (compare_symbol(name, &syms_vesc.m_ptc_motor_coeff)) {
+		res = lbm_enc_float(mcconf->m_ptc_motor_coeff);
+	} else if (compare_symbol(name, &syms_vesc.m_ntcx_ptcx_temp_base)) {
+		res = lbm_enc_float(mcconf->m_ntcx_ptcx_temp_base);
+	} else if (compare_symbol(name, &syms_vesc.m_ntcx_ptcx_res)) {
+		res = lbm_enc_float(mcconf->m_ntcx_ptcx_res);
 	} else if (compare_symbol(name, &syms_vesc.m_encoder_counts)) {
 		res = lbm_enc_float(mcconf->m_encoder_counts);
 	} else if (compare_symbol(name, &syms_vesc.m_sensor_port_mode)) {
@@ -4636,8 +4660,8 @@ static lbm_value ext_conf_detect_lambda_enc(lbm_value *args, lbm_uint argn) {
 	float current = lbm_dec_as_float(args[0]);
 	float duty = lbm_dec_as_float(args[1]);
 	float erpm_per_sec = lbm_dec_as_float(args[2]);
-	float resistance = lbm_dec_as_float(args[3]);
-	float inductance = lbm_dec_as_float(args[4]) * 1e-6;
+	float resistance = lbm_dec_as_float(args[3]) * 1.0e-3;
+	float inductance = lbm_dec_as_float(args[4]) * 1.0e-6;
 
 	if (!(current > 0.0 && current <= mc_interface_get_configuration()->l_current_max &&
 			erpm_per_sec > 0.0 && duty > 0.02 && duty <= 0.9 && resistance >= 0.0 && inductance >= 0.0)) {
