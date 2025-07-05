@@ -158,6 +158,7 @@ const char* lbm_error_str_variable_not_bound = "Variable not bound.";
 const char* lbm_error_str_read_no_mem = "Out of memory while reading.";
 const char* lbm_error_str_qq_expand = "Quasiquotation expansion error.";
 const char* lbm_error_str_not_applicable = "Value is not applicable.";
+const char* lbm_error_str_built_in = "Cannot redefine built-in.";
 
 static lbm_value lbm_error_suspect;
 static bool lbm_error_has_suspect = false;
@@ -1951,6 +1952,8 @@ static void eval_define(eval_context_t *ctx) {
       }
       ctx->curr_exp = parts[VAL];
       return;
+    } else {
+      lbm_set_error_reason((char*)lbm_error_str_built_in);
     }
   }
   ERROR_AT_CTX(ENC_SYM_EERROR, ctx->curr_exp);
@@ -3582,20 +3585,27 @@ static void cont_or(eval_context_t *ctx) {
   }
 }
 
-static int fill_binding_location(lbm_value key, lbm_value value, lbm_value env) {
+static void fill_binding_location(lbm_value key, lbm_value value, lbm_value env) {
   if (lbm_type_of(key) == LBM_TYPE_SYMBOL) {
-    if (key == ENC_SYM_DONTCARE) return FB_OK;
-    lbm_env_modify_binding(env,key,value);
-    return FB_OK;
+    // NILs dual role makes it hard to detect the difference
+    // between the end of a structural key or an attempt to use NIL as the key
+    // or as part of big key.
+    // NIL has been given the same role as dont care.
+    if (lbm_dec_sym(key) >= RUNTIME_SYMBOLS_START) {
+      lbm_env_modify_binding(env,key,value);
+    } else {
+      if (key == ENC_SYM_DONTCARE || key == ENC_SYM_NIL) return;
+      lbm_set_error_reason((char*)lbm_error_str_built_in);
+      ERROR_AT_CTX(ENC_SYM_EERROR, key);
+    }
   } else if (lbm_is_cons(key) &&
              lbm_is_cons(value)) {
-    int r = fill_binding_location(get_car(key), get_car(value), env);
-    if (r == FB_OK) {
-      r = fill_binding_location(get_cdr(key), get_cdr(value), env);
-    }
-    return r;
+    fill_binding_location(get_car(key), get_car(value), env);
+    fill_binding_location(get_cdr(key), get_cdr(value), env);
+  } else {
+    lbm_set_error_reason("Incorrect type of key in binding");
+    ERROR_AT_CTX(ENC_SYM_TERROR, key);
   }
-  return FB_TYPE_ERROR;
 }
 
 static void cont_bind_to_key_rest(eval_context_t *ctx) {
@@ -3606,10 +3616,7 @@ static void cont_bind_to_key_rest(eval_context_t *ctx) {
   lbm_value env  = sptr[2];
   lbm_value key  = sptr[3];
 
-  if (fill_binding_location(key, ctx->r, env) < 0) {
-    lbm_set_error_reason("Incorrect type of name/key in let-binding");
-    ERROR_AT_CTX(ENC_SYM_TERROR, key);
-  }
+  fill_binding_location(key, ctx->r, env);
 
   if (lbm_is_cons(rest)) {
     lbm_value car_rest = get_car(rest);
@@ -4880,11 +4887,8 @@ static void cont_progn_var(eval_context_t* ctx) {
   lbm_value env;
 
   lbm_pop_2(&ctx->K, &key, &env);
+  fill_binding_location(key, ctx->r, env);
 
-  if (fill_binding_location(key, ctx->r, env) < 0) {
-    lbm_set_error_reason("Incorrect type of name/key in let-binding");
-    ERROR_AT_CTX(ENC_SYM_TERROR, key);
-  }
   ctx->curr_env = env; // evaluating value may build upon local env.
   ctx->app_cont = true;
 }

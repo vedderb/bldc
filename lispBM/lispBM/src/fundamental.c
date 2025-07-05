@@ -1471,6 +1471,25 @@ static lbm_value fundamental_is_constant(lbm_value *args, lbm_uint argn, eval_co
   return res;
 }
 
+static lbm_value fundamental_member(lbm_value *args, lbm_uint argn, eval_context_t *ctx) {
+  (void)ctx;
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 2 && lbm_is_list(args[1])) {
+    res = ENC_SYM_NIL;
+    lbm_value curr = args[1];
+
+    while (lbm_is_cons(curr)) {
+      if (struct_eq(lbm_car(curr), args[0])) {
+        res = args[1];
+        break;
+      }
+      curr = lbm_cdr(curr);
+    }
+  }
+  return res;
+}
+
+
 const fundamental_fun fundamental_table[] =
   {fundamental_add,
    fundamental_sub,
@@ -1539,5 +1558,6 @@ const fundamental_fun fundamental_table[] =
    fundamental_identity,
    fundamental_array,
    fundamental_is_string,
-   fundamental_is_constant
+   fundamental_is_constant,
+   fundamental_member
   };
