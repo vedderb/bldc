@@ -6306,6 +6306,71 @@ The optional arguments optUartNum, optPinRx and optPinTx can be used to specify 
 
 ---
 
+#### nmea-parse
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(nmea-parse str)
+```
+
+Parse NMEA string and updates GNSS state. Supported strings are GGA, GPGSV, GLGSV and RMC. Other strings are ignored. Returns true when something was parsed, nil otherwise.
+
+All of the GNSS-extensions as well as the logging can take advantage of these updates. CAN-messages for GNSS position and time will also be sent out based on the updates.
+
+---
+
+#### set-pos-time
+
+| Platforms | Firmware |
+|---|---|
+| Express | 6.06+ |
+
+```clj
+(set-pos-time lat lon height speed hdop msToday year month day)
+```
+Update position, date and time state. All arguments are optional and nil can be passed for arguments that should not be updated.
+
+The arguments are interpreted as follows:
+
+| Name | Value |
+|---|---|
+| lat | Latitude in degrees |
+| lon | Longitude in degrees |
+| height | Altitude in meters |
+| speed | Ground speed in meters per second |
+| hdop | hdop-value of position |
+| msToday | Time today in milliseconds |
+| year | Year |
+| month | Month |
+| day | day |
+
+All of the GNSS-extensions as well as the logging can take advantage of these updates. CAN-messages for GNSS position and time will also be sent out based on the updates.
+
+Examples
+
+```clj
+(var hh 10)
+(var mm 25)
+(var ss 10)
+(var ms-today (+
+	(* hh 60 60 1000)
+	(* mm 60 1000)
+	(* ss 1000)
+))
+
+; Set time and data only
+(set-pos-time nil nil nil nil nil ms-today 2025 02 02)
+
+
+; Set position only
+(set-pos-time 57.623761 13.091890 10 0.0 2)
+```
+
+---
+
 ## Commands
 
 The VESC commands interface can be accessed from LispBM. This can be used to execute all commands supported by VESC Tool or to create a bridge to VESC Tool.
