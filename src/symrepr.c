@@ -199,6 +199,7 @@ special_sym const special_symbols[] =  {
   {"setix"            , SYM_SET_IX},
   {"length"           , SYM_LIST_LENGTH},
   {"range"            , SYM_RANGE},
+  {"member"           , SYM_MEMBER},
 
   {"assoc"          , SYM_ASSOC}, // lookup an association
   {"cossa"          , SYM_COSSA}, // lookup an association "backwards"

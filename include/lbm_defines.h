@@ -345,6 +345,7 @@
 #define SYM_ARRAY               0x20041
 #define SYM_IS_STRING           0x20042
 #define SYM_IS_CONSTANT         0x20043
+#define SYM_MEMBER              0x20044
 
 // Apply funs:
 // Get their arguments in evaluated form on the stack.

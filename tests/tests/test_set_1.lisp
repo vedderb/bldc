@@ -1,5 +1,5 @@
 
 (define myset nil)
 
-(check (eq (member myset 1) nil))
+(check (eq (member 1 myset) nil))
 
