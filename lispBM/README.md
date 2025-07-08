@@ -6387,7 +6387,7 @@ The VESC commands interface can be accessed from LispBM. This can be used to exe
 (cmds-start-stop optStart)
 ```
 
-Start or stop commands interface. The commands interface needs to be started for the extensions and related events to work. This will allocate around 1k of memory for the packet interface. When stopping the allocated memory will be freed. The optional argument optStart can be set to true for start or to false for stop. If it is left out the commands interface will be started.
+Start or stop commands interface. The commands interface needs to be started for the extensions and related events to work. This will allocate around 4k (Express) or 3k (ESC) of memory for the packet interface and for the commands processing thread stack. When stopping the allocated memory will be freed. The optional argument optStart can be set to true for start or to false for stop. If it is left out the commands interface will be started.
 
 ---
 
@@ -6401,7 +6401,7 @@ Start or stop commands interface. The commands interface needs to be started for
 (cmds-proc data)
 ```
 
-Process data byte array with the packet decoder. If a full command is decoded a C thread will be spawned that executes the command. If the command has a response to send this is done using the event-cmds-data-tx event. Spawning the thread will require around 2.6k of free memory (ESC) or 4k of memory (Express).
+Process data byte array with the packet decoder. If a full command is decoded a C thread will be spawned that executes the command. If the command has a response to send this is done using the event-cmds-data-tx event.
 
 The best way to illustrate how to use this is with an example. The following code uses TCP sockets on VESC Express to connect to the VESC TCP hub. VESC Tool can then connect to this express using the TCP Hub and run all commands as usual. It should be fairly simple to adapt this example to for example interface with an LTE modem.
 
