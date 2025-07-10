@@ -23,18 +23,19 @@
 	    ((sam (? x)) (setq recv-cnt (+ recv-cnt 1)))
 	    (_ (setq test-ok nil))
 	    )
-      (if (< sent-cnt send-cnt) 
+      (if (< recv-cnt send-cnt) 
 	  (receiver)
 	  ())
       }))
 
 (define pid (spawn receiver))
-(sleep 0.01)
+(sleep 0.1)
 
 (loopwhile (< sent-cnt send-cnt)
  {
- (send pid (list (rnd-sym) (random)))
+ (define send-ok (send pid (list (rnd-sym) (random))))
  (setq sent-cnt (+ 1 sent-cnt))
+ (sleep 0.01) ;; Give up some quota for receiver (or mailbox overflows)
  }
  )
 
