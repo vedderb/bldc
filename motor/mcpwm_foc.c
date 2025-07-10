@@ -59,6 +59,7 @@ static void stop_pwm_hw(motor_all_state_t *motor);
 static void start_pwm_hw(motor_all_state_t *motor);
 static void full_brake_hw(motor_all_state_t *motor);
 static void terminal_plot_hfi(int argc, const char **argv);
+static void terminal_cmd_calibrate(int argc, const char** argv);
 static void timer_update(motor_all_state_t *motor, float dt);
 static void hfi_update(volatile motor_all_state_t *motor, float dt);
 
@@ -354,6 +355,143 @@ static void init_audio_state(volatile mc_audio_state *s) {
 	}
 }
 
+// Simple current sensor calibration method
+// To use this connect a power supply to the phase outputs (can be connected in parallel)
+// Set the power supply to give a specific current, enough that you get good amount of resolution on the current sense
+// You can put a calibrated current measurement device inline.
+//
+// E.g. I used 10A with 132A (+-66) measurement range. 
+// 4096 ADC Counts
+// 0.5mOhm shunts
+// 50x gain
+// 3.3v reference 
+// =3.3/0.0005/50/4096 = 0.0322A per ADC Count
+//
+// This function gave 1704 ADC Counts and the offsets page shows 2051. So 347 ADC Counts away from 0A = 11.182A
+// 10A / 11.182A = 0.894 calibration factor
+// 
+// To apply the calibration use the defines as below in your hardware config
+// #define CURRENT_CAL1				0.894
+// #define CURRENT_CAL2				0.894
+// #define CURRENT_CAL3				0.894
+static void terminal_cmd_calibrate(int argc, const char** argv)
+{
+	(void)argc;
+	(void)argv;		
+	float current_injected;
+	
+	if (argc < 2) {
+		commands_printf("Usage: calibrate <current_injected>");
+		commands_printf("	current_injected: Current supplied into phase inputs");		
+		return;
+	}
+	sscanf(argv[1], "%f", &current_injected);
+	
+	
+	// Disable timeout
+	systime_t tout = timeout_get_timeout_msec();
+	float tout_c = timeout_get_brake_current();
+	KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
+	timeout_reset();
+	timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
+
+	const float samples = 10000.0;
+	float current_sum[3] = {0.0, 0.0, 0.0};
+
+	TIMER_UPDATE_DUTY_M1(TIM1->ARR, TIM1->ARR, TIM1->ARR);
+
+	// Start low side PWM on phase 1
+	stop_pwm_hw((motor_all_state_t*)&m_motor_1);
+	PHASE_FILTER_ON();
+	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_PWM1);
+	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Disable);
+	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Enable);
+	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+
+	chThdSleepMilliseconds(1000);
+
+	for (float i = 0;i < samples;i++) {
+		current_sum[0] += m_motor_1.m_currents_adc[0];		
+		chThdSleep(1);
+	}
+
+	// Start low side PWM on phase 2
+	stop_pwm_hw((motor_all_state_t*)&m_motor_1);
+	PHASE_FILTER_ON();
+	TIM_SelectOCxM(TIM1, TIM_Channel_2, TIM_OCMode_PWM1);
+	TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Disable);
+	TIM_CCxNCmd(TIM1, TIM_Channel_2, TIM_CCxN_Enable);
+	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+
+	chThdSleepMilliseconds(1000);
+
+	for (float i = 0;i < samples;i++) {
+		current_sum[1] += m_motor_1.m_currents_adc[1];
+		chThdSleep(1);
+	}	
+
+	// Start low side PWM on phase 3
+	stop_pwm_hw((motor_all_state_t*)&m_motor_1);
+	PHASE_FILTER_ON();
+	TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_PWM1);
+	TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Disable);
+	TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Enable);
+	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
+
+	chThdSleepMilliseconds(1000);
+
+	for (float i = 0;i < samples;i++) {
+		current_sum[2] += m_motor_1.m_currents_adc[2];
+		chThdSleep(1);
+	}
+
+	stop_pwm_hw((motor_all_state_t*)&m_motor_1);	
+
+	float raw_measured_current_1 = current_sum[0] / samples;
+	float raw_measured_current_2 = current_sum[1] / samples;
+	float raw_measured_current_3 = current_sum[2] / samples;
+
+	commands_printf("Raw Current1 : %f", (double)raw_measured_current_1);	
+	commands_printf("Raw Current2 : %f", (double)raw_measured_current_2);	
+	commands_printf("Raw Current3 : %f\n", (double)raw_measured_current_3);
+		
+	// Don't use calibrated FAC_CURRENT here, for now only supports motor 1
+	// Negative because this is injected side
+	float current1 = -(raw_measured_current_1 - m_motor_1.m_conf->foc_offsets_current[0]) * FAC_CURRENT;
+	float current2 = -(raw_measured_current_2 - m_motor_1.m_conf->foc_offsets_current[1]) * FAC_CURRENT;
+	float current3 = -(raw_measured_current_3 - m_motor_1.m_conf->foc_offsets_current[2]) * FAC_CURRENT;
+	
+	commands_printf("Scale : %fA / ADC Count", (double)FAC_CURRENT);
+	
+	
+	commands_printf("\nSpecified Injected current : %f", (double)current_injected);
+	
+	
+	commands_printf("Current1 : %f", (double)current1);	
+	commands_printf("Current2 : %f", (double)current2);	
+	commands_printf("Current3 : %f", (double)current3);
+	
+	
+	
+	commands_printf("\nAdd the following lines to HW Config\n");	
+	commands_printf("#define CURRENT_CAL1 %f", (double)(current_injected / current1));	
+	commands_printf("#define CURRENT_CAL2 %f", (double)(current_injected / current2));	
+	commands_printf("#define CURRENT_CAL3 %f\n\n", (double)(current_injected / current3));
+	
+	commands_printf("Previous settings");
+	commands_printf("Cal1: %f", (double)CURRENT_CAL1);
+	commands_printf("Cal2: %f", (double)CURRENT_CAL2);
+	commands_printf("Cal3: %f", (double)CURRENT_CAL3);
+	
+		
+	// Enable timeout
+	timeout_configure(tout, tout_c, tout_ksw);
+	mc_interface_unlock();	
+	
+	return;
+}
+
+
 void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	utils_sys_lock_cnt();
 
@@ -586,6 +724,13 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 			"Enable HFI plotting. 0: off, 1: DFT, 2: Raw",
 			"[en]",
 			terminal_plot_hfi);
+			
+					//register terminal callbacks	
+	terminal_register_command_callback(
+		"calibrate",
+		"Calibrate Current Measurements",
+		0,
+		terminal_cmd_calibrate);	
 
 	m_init_done = true;
 }
