@@ -5882,9 +5882,14 @@ void lbm_run_eval(void){
     }
     while (true) {
 #ifdef LBM_USE_TIME_QUOTA
-
-      // use a fast implementation of timestamp where possible.
-      if (timestamp_us_callback() < eval_current_quota && ctx_running) {
+      // Is "negative" (closer to max value) when the quota timestamp is "ahead
+      // of" the current timestamp. It handles the quota being very large while
+      // the current timestamp has overflowed back to being small, giving a
+      // "positive" (closer to min value) result, meaning the context will be
+      // switched.
+      uint32_t unsigned_difference = timestamp_us_callback() - eval_current_quota;
+      bool is_negative = unsigned_difference & (1u << 31); 
+      if (is_negative && ctx_running) {
         evaluation_step();
       } else {
         if (eval_cps_state_changed) break;
