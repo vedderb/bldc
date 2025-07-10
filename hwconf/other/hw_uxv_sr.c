@@ -265,7 +265,7 @@ THD_FUNCTION(dac_thread, arg) {
 	chRegSetThreadName("DAC");
 	chThdSleepMilliseconds(3000);
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
-	DAC->CR |= DAC_CR_EN2;
+	DAC->CR |= DAC_CR_EN2 | DAC_CR_BOFF2;
 	//DAC->CR |= DAC_CR_BOFF2;
 	
 
