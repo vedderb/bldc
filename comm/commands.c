@@ -1888,6 +1888,7 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 	utils_truncate_number(&mcconf->l_current_max_scale, 0.0, 1.0);
 	utils_truncate_number(&mcconf->l_current_min_scale, 0.0, 1.0);
 	utils_truncate_number(&mcconf->l_erpm_start, 0.0, 1.0);
+	utils_truncate_number(&mcconf->foc_overmod_factor, 1.0, 1.5);
 
 	float ctrl_loop_freq = 0.0;
 
