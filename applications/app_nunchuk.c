@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "app.h"
@@ -43,9 +42,9 @@
 
 // Threads
 static THD_FUNCTION(chuk_thread, arg);
-static THD_WORKING_AREA(chuk_thread_wa, 512);
+__attribute__((section(".ram4"))) static THD_WORKING_AREA(chuk_thread_wa, 512);
 static THD_FUNCTION(output_thread, arg);
-static THD_WORKING_AREA(output_thread_wa, 512);
+__attribute__((section(".ram4"))) static THD_WORKING_AREA(output_thread_wa, 512);
 
 // Private variables
 static volatile bool stop_now = true;
@@ -528,5 +527,3 @@ static THD_FUNCTION(output_thread, arg) {
 		}
 	}
 }
-
-#pragma GCC pop_options

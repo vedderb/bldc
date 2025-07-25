@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2025 Benjamin Vedder	benjamin@vedder.se
 	Copyright 2022 Jakub Tomczak
 
 	This file is part of the VESC firmware.
@@ -17,6 +17,9 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+#pragma GCC push_options
+#pragma GCC optimize ("Os")
 
 #include "encoder.h"
 #include "encoder_datatype.h"
@@ -255,7 +258,37 @@ bool encoder_init(volatile mc_configuration *conf) {
 
 	case SENSOR_PORT_MODE_CUSTOM_ENCODER:
 		m_encoder_type_now = ENCODER_TYPE_CUSTOM;
+		res = true;
 		break;
+
+	case SENSOR_PORT_MODE_PWM: {
+		if (!enc_pwm_init(false)) {
+			m_encoder_type_now = ENCODER_TYPE_NONE;
+			return false;
+		}
+
+		m_encoder_type_now = ENCODER_TYPE_PWM;
+		res = true;
+	} break;
+
+	case SENSOR_PORT_MODE_PWM_ABI: {
+		SENSOR_PORT_5V();
+
+		encoder_cfg_ABI.counts = conf->m_encoder_counts;
+
+		if (!enc_abi_init(&encoder_cfg_ABI)) {
+			m_encoder_type_now = ENCODER_TYPE_NONE;
+			return false;
+		}
+
+		if (!enc_pwm_init(true)) {
+			m_encoder_type_now = ENCODER_TYPE_NONE;
+			return false;
+		}
+
+		m_encoder_type_now = ENCODER_TYPE_PWM_ABI;
+		res = true;
+	} break;
 
 	default:
 		SENSOR_PORT_5V();
@@ -295,7 +328,8 @@ void encoder_update_config(volatile mc_configuration *conf) {
 		sincosf(DEG2RAD_f(conf->m_encoder_sincos_phase_correction), &encoder_cfg_sincos.sph, &encoder_cfg_sincos.cph);
 	} break;
 
-	case SENSOR_PORT_MODE_ABI: {
+	case SENSOR_PORT_MODE_ABI:
+	case SENSOR_PORT_MODE_PWM_ABI: {
 		encoder_cfg_ABI.counts = conf->m_encoder_counts;
 		TIM_SetAutoreload(encoder_cfg_ABI.timer, encoder_cfg_ABI.counts - 1);
 	} break;
@@ -328,6 +362,11 @@ void encoder_deinit(void) {
 		enc_as5x47u_deinit(&encoder_cfg_as5x47u);
 	} else if (m_encoder_type_now == ENCODER_TYPE_BISSC) {
 		enc_bissc_deinit(&encoder_cfg_bissc);
+	} else if (m_encoder_type_now == ENCODER_TYPE_PWM) {
+		enc_pwm_deinit();
+	} else if (m_encoder_type_now == ENCODER_TYPE_PWM_ABI) {
+		enc_pwm_deinit();
+		enc_abi_deinit(&encoder_cfg_ABI);
 	}
 
 	m_encoder_type_now = ENCODER_TYPE_NONE;
@@ -357,6 +396,8 @@ void encoder_set_custom_callbacks (
 	}
 }
 
+#pragma GCC pop_options
+
 float encoder_read_deg(void) {
 	if (m_encoder_type_now == ENCODER_TYPE_AS504x) {
 		return AS504x_LAST_ANGLE(&encoder_cfg_as504x);
@@ -382,6 +423,15 @@ float encoder_read_deg(void) {
 		} else {
 			return m_enc_custom_pos;
 		}
+	} else if (m_encoder_type_now == ENCODER_TYPE_PWM) {
+		return enc_pwm_read_deg();
+	} else if (m_encoder_type_now == ENCODER_TYPE_PWM_ABI) {
+		if (enc_pwm_update_cnt() >= 2) {
+			encoder_cfg_ABI.state.index_found = true;
+			enc_pwm_deinit();
+		}
+
+		return enc_abi_read_deg(&encoder_cfg_ABI);
 	}
 	return 0.0;
 }
@@ -420,6 +470,13 @@ encoder_type_t encoder_is_configured(void) {
 bool encoder_index_found(void) {
 	if (m_encoder_type_now == ENCODER_TYPE_ABI) {
 		return encoder_cfg_ABI.state.index_found;
+	} else if (m_encoder_type_now == ENCODER_TYPE_PWM_ABI) {
+		if (enc_pwm_update_cnt() >= 2) {
+			encoder_cfg_ABI.state.index_found = true;
+			enc_pwm_deinit();
+		}
+
+		return encoder_cfg_ABI.state.index_found;
 	} else {
 		return true;
 	}
@@ -439,6 +496,16 @@ void encoder_reset_errors(void) {
 		enc_ad2s1205_reset_errors(&encoder_cfg_ad2s1205);
 	}
 }
+
+void encoder_pin_isr(void) {
+	enc_abi_pin_isr(&encoder_cfg_ABI);
+}
+
+void encoder_tim_isr(void) {
+	// Use thread. Maybe use this one for encoders with a higher rate.
+}
+
+#pragma GCC optimize ("Os")
 
 float encoder_get_error_rate(void) {
 	float res = -1.0;
@@ -604,14 +671,6 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 	}
 }
 
-void encoder_pin_isr(void) {
-	enc_abi_pin_isr(&encoder_cfg_ABI);
-}
-
-void encoder_tim_isr(void) {
-	// Use thread. Maybe use this one for encoders with a higher rate.
-}
-
 static void terminal_encoder(int argc, const char **argv) {
 	(void)argc; (void)argv;
 
@@ -717,6 +776,15 @@ static void terminal_encoder(int argc, const char **argv) {
 				(double)encoder_cfg_ad2s1205.state.resolver_VELread_peak_error_rate * (double)100.0);
 		commands_printf("\n");
 
+		break;
+
+	case SENSOR_PORT_MODE_PWM_ABI:
+		commands_printf("Index found: %d", encoder_index_found());
+		commands_printf("PWM Update Cnt: %d", enc_pwm_update_cnt());
+		break;
+
+	case SENSOR_PORT_MODE_PWM:
+		commands_printf("PWM Update Cnt: %d", enc_pwm_update_cnt());
 		break;
 
 	case SENSOR_PORT_MODE_ABI:

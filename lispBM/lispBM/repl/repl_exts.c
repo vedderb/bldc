@@ -1,5 +1,5 @@
 /*
-  Copyright 2024 Joel Svensson  svenssonjoel@yahoo.se
+  Copyright 2024 2025 Joel Svensson  svenssonjoel@yahoo.se
             2022 Benjamin Vedder benjamin@vedder.se
 
   This program is free software: you can redistribute it and/or modify
@@ -21,221 +21,58 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <dirent.h>
+
+#ifndef LBM_WIN
 #include <sys/time.h>
 #include <sys/wait.h>
+#endif
+
 #include "extensions/array_extensions.h"
 #include "extensions/string_extensions.h"
 #include "extensions/math_extensions.h"
 #include "extensions/runtime_extensions.h"
 #include "extensions/set_extensions.h"
+#include "extensions/display_extensions.h"
+#include "extensions/mutex_extensions.h"
+#include "extensions/lbm_dyn_lib.h"
+#include "extensions/ttf_extensions.h"
 
-// Macro expanders
+#include "lbm_image.h"
+#include "lbm_flat_value.h"
 
-static lbm_value make_list(int num, ...) {
-  va_list arguments;
-  va_start (arguments, num);
-  lbm_value res = ENC_SYM_NIL;
-  for (int i = 0; i < num; i++) {
-    res = lbm_cons(va_arg(arguments, lbm_value), res);
-  }
-  va_end (arguments);
-  return lbm_list_destructive_reverse(res);
+#include <png.h>
+
+#ifdef LBM_WIN
+#include <windows.h>
+#endif
+
+// ////////////////////////////////////////////////////////////
+// Utility
+#ifdef LBM_WIN
+
+int gettimeofday(struct timeval * tp, struct timezone * tzp)
+{
+    // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
+    // This magic number is the number of 100 nanosecond intervals since January 1, 1601 (UTC)
+    // until 00:00:00 January 1, 1970 
+    static const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
+
+    SYSTEMTIME  system_time;
+    FILETIME    file_time;
+    uint64_t    time;
+
+    GetSystemTime( &system_time );
+    SystemTimeToFileTime( &system_time, &file_time );
+    time =  ((uint64_t)file_time.dwLowDateTime )      ;
+    time += ((uint64_t)file_time.dwHighDateTime) << 32;
+
+    tp->tv_sec  = (long) ((time - EPOCH) / 10000000L);
+    tp->tv_usec = (long) (system_time.wMilliseconds * 1000);
+    return 0;
 }
+#endif
 
-static lbm_uint sym_res;
-static lbm_uint sym_loop;
-static lbm_uint sym_break;
-static lbm_uint sym_brk;
-static lbm_uint sym_rst;
-static lbm_uint sym_return;
-
-static lbm_value ext_me_defun(lbm_value *argsi, lbm_uint argn) {
-  if (argn != 3) {
-    return ENC_SYM_EERROR;
-  }
-
-  lbm_value name = argsi[0];
-  lbm_value args = argsi[1];
-  lbm_value body = argsi[2];
-
-  // (define name (lambda args body))
-
-  return make_list(3,
-                   lbm_enc_sym(SYM_DEFINE),
-                   name,
-                   make_list(3,
-                             lbm_enc_sym(SYM_LAMBDA),
-                             args,
-                             body));
-}
-
-static lbm_value ext_me_defunret(lbm_value *argsi, lbm_uint argn) {
-  if (argn != 3) {
-    return ENC_SYM_EERROR;
-  }
-
-  lbm_value name = argsi[0];
-  lbm_value args = argsi[1];
-  lbm_value body = argsi[2];
-
-  // (def name (lambda args (call-cc (lambda (return) body))))
-
-  return make_list(3,
-                   lbm_enc_sym(SYM_DEFINE),
-                   name,
-                   make_list(3,
-                             lbm_enc_sym(SYM_LAMBDA),
-                             args,
-                             make_list(2,
-                                       lbm_enc_sym(SYM_CALLCC),
-                                       make_list(3,
-                                                 lbm_enc_sym(SYM_LAMBDA),
-                                                 make_list(1, lbm_enc_sym(sym_return)),
-                                                 body))));
-}
-
-static lbm_value ext_me_loopfor(lbm_value *args, lbm_uint argn) {
-  if (argn != 5) {
-    return ENC_SYM_EERROR;
-  }
-
-  lbm_value it = args[0];
-  lbm_value start = args[1];
-  lbm_value cond = args[2];
-  lbm_value update = args[3];
-  lbm_value body = args[4];
-
-  // (let ((loop (lambda (it res break) (if cond (loop update body break) res)))) (call-cc (lambda (brk) (loop start nil brk))))
-
-  return make_list(3,
-                   lbm_enc_sym(SYM_LET),
-                   make_list(1,
-                             make_list(2,
-                                       lbm_enc_sym(sym_loop),
-                                       make_list(3,
-                                                 lbm_enc_sym(SYM_LAMBDA),
-                                                 make_list(3, it, lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
-                                                 make_list(4,
-                                                           lbm_enc_sym(SYM_IF),
-                                                           cond,
-                                                           make_list(4, lbm_enc_sym(sym_loop), update, body, lbm_enc_sym(sym_break)),
-                                                           lbm_enc_sym(sym_res))))),
-                   make_list(2,
-                             lbm_enc_sym(SYM_CALLCC),
-                             make_list(3,
-                                       lbm_enc_sym(SYM_LAMBDA),
-                                       make_list(1, lbm_enc_sym(sym_brk)),
-                                       make_list(4, lbm_enc_sym(sym_loop), start, ENC_SYM_NIL, lbm_enc_sym(sym_brk)))));
-}
-
-static lbm_value ext_me_loopwhile(lbm_value *args, lbm_uint argn) {
-  if (argn != 2) {
-    return ENC_SYM_EERROR;
-  }
-
-  lbm_value cond = args[0];
-  lbm_value body = args[1];
-
-  // (let ((loop (lambda (res break) (if cond (loop body break) res)))) (call-cc (lambda (brk) (loop nil brk))))
-
-  return make_list(3,
-                   lbm_enc_sym(SYM_LET),
-                   make_list(1,
-                             make_list(2,
-                                       lbm_enc_sym(sym_loop),
-                                       make_list(3,
-                                                 lbm_enc_sym(SYM_LAMBDA),
-                                                 make_list(2, lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
-                                                 make_list(4,
-                                                           lbm_enc_sym(SYM_IF),
-                                                           cond,
-                                                           make_list(3, lbm_enc_sym(sym_loop), body, lbm_enc_sym(sym_break)),
-                                                           lbm_enc_sym(sym_res))))),
-                   make_list(2,
-                             lbm_enc_sym(SYM_CALLCC),
-                             make_list(3,
-                                       lbm_enc_sym(SYM_LAMBDA),
-                                       make_list(1, lbm_enc_sym(sym_brk)),
-                                       make_list(3, lbm_enc_sym(sym_loop), ENC_SYM_NIL, lbm_enc_sym(sym_brk)))));
-}
-
-static lbm_value ext_me_looprange(lbm_value *args, lbm_uint argn) {
-  if (argn != 4) {
-    return ENC_SYM_EERROR;
-  }
-
-  lbm_value it = args[0];
-  lbm_value start = args[1];
-  lbm_value end = args[2];
-  lbm_value body = args[3];
-
-  // (let ((loop (lambda (it res break) (if (< it end) (loop (+ it 1) body break) res)))) (call-cc (lambda (brk) (loop start nil brk))))
-
-  return make_list(3,
-                   lbm_enc_sym(SYM_LET),
-                   make_list(1,
-                             make_list(2,
-                                       lbm_enc_sym(sym_loop),
-                                       make_list(3,
-                                                 lbm_enc_sym(SYM_LAMBDA),
-                                                 make_list(3, it, lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
-                                                 make_list(4,
-                                                           lbm_enc_sym(SYM_IF),
-                                                           make_list(3, lbm_enc_sym(SYM_LT), it, end),
-                                                           make_list(4, lbm_enc_sym(sym_loop), make_list(3, lbm_enc_sym(SYM_ADD), it, lbm_enc_i(1)), body, lbm_enc_sym(sym_break)),
-                                                           lbm_enc_sym(sym_res))))),
-                   make_list(2,
-                             lbm_enc_sym(SYM_CALLCC),
-                             make_list(3,
-                                       lbm_enc_sym(SYM_LAMBDA),
-                                       make_list(1, lbm_enc_sym(sym_brk)),
-                                       make_list(4, lbm_enc_sym(sym_loop), start, ENC_SYM_NIL, lbm_enc_sym(sym_brk)))));
-}
-
-static lbm_value ext_me_loopforeach(lbm_value *args, lbm_uint argn) {
-  if (argn != 3) {
-    return ENC_SYM_EERROR;
-  }
-
-  lbm_value it = args[0];
-  lbm_value lst = args[1];
-  lbm_value body = args[2];
-
-  // (let ((loop (lambda (it rst res break) (if (eq it nil) res (loop (car rst) (cdr rst) body break))))) (call-cc (lambda (brk) (loop (car lst) (cdr lst) nil brk))))
-
-  return make_list(3,
-                   lbm_enc_sym(SYM_LET),
-                   make_list(1,
-                             make_list(2,
-                                       lbm_enc_sym(sym_loop),
-                                       make_list(3,
-                                                 lbm_enc_sym(SYM_LAMBDA),
-                                                 make_list(4, it, lbm_enc_sym(sym_rst), lbm_enc_sym(sym_res), lbm_enc_sym(sym_break)),
-                                                 make_list(4,
-                                                           lbm_enc_sym(SYM_IF),
-                                                           make_list(3, lbm_enc_sym(SYM_EQ), it, ENC_SYM_NIL),
-                                                           lbm_enc_sym(sym_res),
-                                                           make_list(5,
-                                                                     lbm_enc_sym(sym_loop),
-                                                                     make_list(2, lbm_enc_sym(SYM_CAR), lbm_enc_sym(sym_rst)),
-                                                                     make_list(2, lbm_enc_sym(SYM_CDR), lbm_enc_sym(sym_rst)),
-                                                                     body,
-                                                                     lbm_enc_sym(sym_break))
-                                                           )))),
-                   make_list(2,
-                             lbm_enc_sym(SYM_CALLCC),
-                             make_list(3,
-                                       lbm_enc_sym(SYM_LAMBDA),
-                                       make_list(1, lbm_enc_sym(sym_brk)),
-                                       make_list(5,
-                                                 lbm_enc_sym(sym_loop),
-                                                 make_list(2, lbm_enc_sym(SYM_CAR), lst),
-                                                 make_list(2, lbm_enc_sym(SYM_CDR), lst),
-                                                 ENC_SYM_NIL,
-                                                 lbm_enc_sym(sym_brk)))));
-}
-
-
+// ////////////////////////////////////////////////////////////
 // Math
 
 static lbm_value ext_rand(lbm_value *args, lbm_uint argn) {
@@ -388,8 +225,25 @@ static bool file_handle_destructor(lbm_uint value) {
   return true;
 }
 
-static bool is_file_handle(lbm_value h) {
-  return ((lbm_uint)lbm_get_custom_descriptor(h) == (lbm_uint)lbm_file_handle_desc);
+// A filehandle is only a filehandle unless it has been explicitly closed.
+static bool is_file_handle(lbm_value arg) {
+  if ((lbm_uint)lbm_get_custom_descriptor(arg) == (lbm_uint)lbm_file_handle_desc) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(arg);
+    if (h->fp) return true;
+  }
+  return false;
+}
+
+static lbm_value ext_fclose(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      is_file_handle(args[0])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    fclose(h->fp);
+    h->fp = NULL;
+    res = ENC_SYM_TRUE;
+  }
+  return res;
 }
 
 static lbm_value ext_fopen(lbm_value *args, lbm_uint argn) {
@@ -418,6 +272,44 @@ static lbm_value ext_fopen(lbm_value *args, lbm_uint argn) {
                              &res);
     } else {
       return ENC_SYM_NIL;
+    }
+  }
+  return res;
+}
+
+static lbm_value ext_load_file(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      is_file_handle(args[0])) {
+
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    res = ENC_SYM_EERROR;
+    if (fseek(h->fp, 0, SEEK_END) >= 0) {
+      res = ENC_SYM_MERROR;
+
+      long int  size = ftell(h->fp);
+      rewind(h->fp);
+
+      if (size > 0) {
+        uint8_t *data = lbm_malloc((size_t)size);
+        if (data) {
+
+          lbm_value val;
+          lbm_lift_array(&val, (char*)data, (lbm_uint)size);
+          if (!lbm_is_symbol(val)) {
+            size_t n = fread(data, 1, (size_t)size, h->fp);
+            if ( n > 0) {
+              res = val;
+            } else {
+              res = ENC_SYM_NIL; // or some empty indicator?
+            }
+          }
+        } else {
+          res = ENC_SYM_MERROR;
+        }
+      } else {
+        res = ENC_SYM_NIL;
+      }
     }
   }
   return res;
@@ -496,6 +388,24 @@ static lbm_value ext_fwrite_value(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+static lbm_value ext_fwrite_image(lbm_value *args, lbm_uint argn) {
+
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      is_file_handle(args[0])) {
+    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
+    uint32_t *image_data = lbm_image_get_image();
+    if (image_data) {
+      size_t size = (size_t)lbm_image_get_size();
+      fwrite((uint8_t*)image_data, 1, size * sizeof(uint32_t), h->fp);
+      fflush(h->fp);
+      res = ENC_SYM_TRUE;
+    } else {
+      res = ENC_SYM_NIL;
+    }
+  }
+  return res;
+}
 
 static bool all_arrays(lbm_value *args, lbm_uint argn) {
   bool r = true;
@@ -505,10 +415,10 @@ static bool all_arrays(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
+#ifndef LBM_WIN
 static lbm_value ext_exec(lbm_value *args, lbm_uint argn) {
 
   lbm_value res = ENC_SYM_TERROR;
-  int pid;
 
   if (all_arrays(args, argn) && argn >= 1) {
     char **strs = malloc(argn * sizeof(char*) + 1);
@@ -518,7 +428,7 @@ static lbm_value ext_exec(lbm_value *args, lbm_uint argn) {
     strs[argn] = NULL;
     fflush(stdout);
     int status = 0;
-    pid = fork();
+    int pid = fork();
     if (pid == 0) {
       execvp(strs[0], &strs[1]);
       exit(0);
@@ -529,6 +439,7 @@ static lbm_value ext_exec(lbm_value *args, lbm_uint argn) {
   }
   return res;
 }
+#endif
 
 static lbm_value ext_unsafe_call_system(lbm_value *args, lbm_uint argn) {
 
@@ -544,44 +455,380 @@ static lbm_value ext_unsafe_call_system(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+
+// ------------------------------------------------------------
+// image to png
+
+// a display driver for displaying images onto an image RGB888
+
+// blit into a buffer that is guaranteed large enough.
+static void buffer_blast_indexed2(uint8_t *dest, uint8_t *img, color_t *colors) {
+  uint8_t *data = image_buffer_data(img);
+  uint16_t w    = image_buffer_width(img);
+  uint16_t h    = image_buffer_height(img);
+  int num_pix = w * h;
+
+  uint32_t t_pos = 0;
+  for (int i = 0; i < num_pix; i ++) {
+    int byte = i >> 3;
+    int bit  = 7 - (i & 0x7);
+    int color_ind = (data[byte] & (1 << bit)) >> bit;
+
+    uint32_t color = (uint32_t)COLOR_TO_RGB888(colors[color_ind],
+                                     i % w, i / w);
+    dest[t_pos++] = (uint8_t)(color >> 16);
+    dest[t_pos++] = (uint8_t)(color >> 8);
+    dest[t_pos++] = (uint8_t)(color);
+  }
+}
+
+static void buffer_blast_indexed4(uint8_t *dest, uint8_t *img, color_t *colors) {
+  uint8_t *data = image_buffer_data(img);
+  uint16_t w    = image_buffer_width(img);
+  uint16_t h    = image_buffer_height(img);
+  int num_pix = w * h;
+
+  uint32_t t_pos = 0;
+  for (int i = 0; i < num_pix; i ++) {
+    int byte = i >> 2;
+    int bit = (3 - (i & 0x03)) * 2;
+    int color_ind = (data[byte] & (0x03 << bit)) >> bit;
+
+    uint32_t color = COLOR_TO_RGB888(colors[color_ind],
+                                     i % w, i / w);
+    dest[t_pos++] = (uint8_t)(color >> 16);
+    dest[t_pos++] = (uint8_t)(color >> 8);
+    dest[t_pos++] = (uint8_t)(color);
+  }
+}
+
+static void buffer_blast_indexed16(uint8_t *dest, uint8_t *img, color_t *colors) {
+  uint8_t *data = image_buffer_data(img);
+  uint16_t w    = image_buffer_width(img);
+  uint16_t h    = image_buffer_height(img);
+  int num_pix = w * h;
+
+  uint32_t t_pos = 0;
+  for (int i = 0; i < num_pix; i ++) {
+    int byte = i >> 1;    // byte to access is pix / 2
+    int bit = (1 - (i & 0x01)) * 4; // bit position to access within byte
+    int color_ind = (data[byte] & (0x0F << bit)) >> bit; // extract 4 bit value.
+
+    uint32_t color = COLOR_TO_RGB888(colors[color_ind],
+                                     i % w, i / w);
+    dest[t_pos++] = (uint8_t)(color >> 16);
+    dest[t_pos++] = (uint8_t)(color >> 8);
+    dest[t_pos++] = (uint8_t)(color);
+  }
+}
+
+static void buffer_blast_rgb332(uint8_t *dest, uint8_t *img) {
+  uint8_t *data = image_buffer_data(img);
+  uint16_t w    = image_buffer_width(img);
+  uint16_t h    = image_buffer_height(img);
+  int num_pix = w * h;
+
+  uint32_t t_pos = 0;
+  for (int i = 0; i < num_pix; i ++) {
+    uint8_t pix = data[i];
+    uint32_t r = (uint32_t)((pix >> 5) & 0x7);
+    uint32_t g = (uint32_t)((pix >> 2) & 0x7);
+    uint32_t b = 2 * (uint32_t)(pix & 0x3) +1;
+    r = (r == 7) ? 255 : 36 * r;
+    g = (g == 7) ? 255 : 36 * g;
+    b = (b == 7) ? 255 : 36 * b;
+    dest[t_pos++] = (uint8_t)r;
+    dest[t_pos++] = (uint8_t)g;
+    dest[t_pos++] = (uint8_t)b;
+  }
+}
+
+static void buffer_blast_rgb565(uint8_t *dest, uint8_t *img) {
+  uint8_t *data = image_buffer_data(img);
+  uint16_t w    = image_buffer_width(img);
+  uint16_t h    = image_buffer_height(img);
+  int num_pix = w * h;
+
+  uint32_t t_pos = 0;
+  for (int i = 0; i < num_pix; i ++) {
+    uint16_t pix = (uint16_t)((uint16_t)(data[2 * i] << 8) | ((uint16_t)data[2 * i + 1]));
+
+    uint32_t r = (uint32_t)(pix >> 11);
+    uint32_t g = (uint32_t)((pix >> 5) & 0x3F);
+    uint32_t b = (uint32_t)(pix & 0x1F);
+    dest[t_pos++] = (uint8_t)r;
+    dest[t_pos++] = (uint8_t)g;
+    dest[t_pos++] = (uint8_t)b;
+  }
+}
+
+static void buffer_blast_rgb888(uint8_t *dest, uint8_t *img) {
+  uint8_t *data = image_buffer_data(img);
+  uint16_t w    = image_buffer_width(img);
+  uint16_t h    = image_buffer_height(img);
+  int num_pix = w * h;
+  memcpy(dest, data, (size_t)num_pix * 3);
+}
+
+void copy_image_area(uint8_t*target, uint16_t tw, uint16_t th, uint16_t x, uint16_t y, uint8_t * buffer, uint16_t w, uint16_t h) {
+
+  if (x < tw && y < th) {  // if at all on screen
+    int end_y = y + h > th ? th : y + h;
+    int start_y = y;
+
+    int len = (x + w > tw) ? w - (tw - (x + w)) : w;
+    int read_y = 0;
+    for (int i = start_y; i < end_y; i ++){
+      memcpy(target + (i * tw * 3) + (x * 3), buffer + (read_y * w * 3), (size_t)(len * 3));
+      read_y++;
+    }
+  }
+}
+
+lbm_value active_image = ENC_SYM_NIL;
+
+static lbm_value ext_set_active_image(lbm_value *args, lbm_uint argn) {
+
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 1 && lbm_is_array_r(args[0])){
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(args[0]);
+    if (image_buffer_is_valid((uint8_t*)arr->data, arr->size) &&
+        image_buffer_format((uint8_t*)arr->data) == rgb888) {
+      active_image = args[0];
+      r = ENC_SYM_TRUE;
+    }
+  }
+  return r;
+}
+
+static lbm_value ext_save_active_image(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  if (argn == 1 &&
+      lbm_is_array_r(args[0]) &&
+      lbm_is_array_r(active_image)) {
+
+    FILE *fp = NULL;
+
+    char *filename = lbm_dec_str(args[0]);
+
+    fp = fopen(filename, "w");
+    if (fp) {
+      png_structp png_ptr = NULL;
+      png_infop info_ptr = NULL;
+      png_bytep* row_pointers = NULL;
+
+      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(active_image);
+
+      uint8_t *img_buf = (uint8_t*)arr->data;
+      uint8_t *data = image_buffer_data(img_buf);
+      uint32_t w = image_buffer_width(img_buf);
+      uint32_t h = image_buffer_height(img_buf);
+
+
+      png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+      info_ptr = png_create_info_struct(png_ptr);
+
+      png_set_IHDR(png_ptr,
+                   info_ptr,
+                   w,
+                   h,
+                   8, // per channel
+                   PNG_COLOR_TYPE_RGB,
+                   PNG_INTERLACE_NONE,
+                   PNG_COMPRESSION_TYPE_BASE,
+                   PNG_FILTER_TYPE_BASE);
+
+      row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * h);
+
+      if (row_pointers) {
+        for (uint32_t i = 0; i < h; ++i) {
+          row_pointers[i] = data + (i * w * 3);
+        }
+
+        png_init_io(png_ptr, fp);
+        png_set_rows(png_ptr, info_ptr, row_pointers);
+        png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
+      }
+
+      fclose(fp);
+
+      png_destroy_write_struct(&png_ptr, &info_ptr);
+      png_ptr = NULL;
+      info_ptr = NULL;
+      free(row_pointers);
+      res = ENC_SYM_TRUE;
+    } else {
+      return ENC_SYM_NIL;
+    }
+  }
+  return res;
+}
+
+static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, color_t *colors) {
+
+  bool r = false;
+
+  if (lbm_is_array_r(active_image)) {
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(active_image);
+    uint8_t *target_image = (uint8_t*)arr->data;
+
+    uint16_t w = img->width;
+    uint16_t h = img->height;
+    uint8_t* data = img->mem_base;
+
+    uint8_t *buffer = malloc((size_t)(w * h * 3)); // RGB 888
+    if (buffer) {
+      uint8_t  bpp = img->fmt;
+      switch(bpp) {
+      case indexed2:
+        buffer_blast_indexed2(buffer, data, colors);
+        break;
+      case indexed4:
+        buffer_blast_indexed4(buffer, data, colors);
+        break;
+      case indexed16:
+        buffer_blast_indexed16(buffer, data, colors);
+        break;
+      case rgb332:
+        buffer_blast_rgb332(buffer, data);
+        break;
+      case rgb565:
+        buffer_blast_rgb565(buffer, data);
+        break;
+      case rgb888:
+        buffer_blast_rgb888(buffer, data);
+        break;
+      default:
+        break;
+      }
+      uint16_t t_w = image_buffer_width(target_image);
+      uint16_t t_h = image_buffer_height(target_image);
+      if (t_w == w && t_h == h) {
+        memcpy(image_buffer_data(target_image), buffer, (size_t)w * h * 3);
+      } else {
+        copy_image_area(image_buffer_data(target_image), t_w, t_h, x, y, buffer, w, h);
+      }
+      free(buffer);
+      r = true;
+    }
+  }
+  return r;
+}
+
+static void image_renderer_clear(uint32_t color) {
+  if (lbm_is_array_r(active_image)) {
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(active_image);
+    image_buffer_t img;
+    img.fmt = image_buffer_format((uint8_t*)arr->data);
+    img.width = image_buffer_width((uint8_t*)arr->data);
+    img.height = image_buffer_height((uint8_t*)arr->data);
+    img.data = image_buffer_data((uint8_t*)arr->data);
+    image_buffer_clear(&img, color);
+  }
+}
+
+static void image_renderer_reset(void) {
+  return;
+}
+
+static lbm_value ext_display_to_image(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  lbm_display_extensions_set_callbacks(
+                                       image_renderer_render,
+                                       image_renderer_clear,
+                                       image_renderer_reset);
+
+
+  return ENC_SYM_TRUE;
+}
+// boot images, snapshots, workspaces....
+
+lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+
+  bool r = lbm_image_save_global_env();
+
+  lbm_uint main_sym = ENC_SYM_NIL;
+  if (lbm_get_symbol_by_name("main", &main_sym)) {
+    lbm_value binding;
+    if ( lbm_global_env_lookup(&binding, lbm_enc_sym(main_sym))) {
+      if (lbm_is_cons(binding) && lbm_car(binding) == ENC_SYM_CLOSURE) {
+        goto image_has_main;
+      }
+    }
+  }
+  lbm_set_error_reason("No main function in image\n");
+  return ENC_SYM_EERROR;
+ image_has_main:
+  r = r && lbm_image_save_extensions();
+  r = r && lbm_image_save_constant_heap_ix();
+  return r ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+lbm_value ext_image_save_const_heap_ix(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  return lbm_image_save_constant_heap_ix() ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+
+void dummy_f(lbm_value v, bool shared, void *arg) {
+  if (shared) {
+    printf("shared node detected\n");
+  }
+  if (lbm_is_cons(v)) {
+    printf("cons\n");
+  } else {
+    char buf[256];
+    lbm_print_value(buf,256, v);
+    printf("atom: %s\n", buf);
+  }
+}
+
+lbm_value ext_rt(lbm_value *args, lbm_uint argn) {
+  if (argn == 1) {
+    return lbm_ptr_rev_trav(dummy_f, args[0], NULL) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  } 
+  return ENC_SYM_TERROR;
+}
+
 // ------------------------------------------------------------
 // Init
 
 int init_exts(void) {
 
-  if (!lbm_array_extensions_init()) {
-    return 0;
-  }
-  if (!lbm_string_extensions_init()) {
-    return 0;
-  }
-  if (!lbm_math_extensions_init()) {
-    return 0;
-  }
-  if (!lbm_runtime_extensions_init(false)) {
-    return 0;
-  }
-  if (!lbm_set_extensions_init()) {
-    return 0;
-  }
+  lbm_array_extensions_init();
+  lbm_string_extensions_init();
+  lbm_math_extensions_init();
+  lbm_runtime_extensions_init();
+  lbm_set_extensions_init();
+  lbm_display_extensions_init();
+  lbm_mutex_extensions_init();
+  lbm_dyn_lib_init();
+  lbm_ttf_extensions_init();
 
-  lbm_add_symbol_const("a01", &sym_res);
-  lbm_add_symbol_const("a02", &sym_loop);
-  lbm_add_symbol_const("break", &sym_break);
-  lbm_add_symbol_const("a03", &sym_brk);
-  lbm_add_symbol_const("a04", &sym_rst);
-  lbm_add_symbol_const("return", &sym_return);
-
+  lbm_add_extension("rt", ext_rt);
+  
   lbm_add_extension("unsafe-call-system", ext_unsafe_call_system);
+#ifndef LBM_WIN
   lbm_add_extension("exec", ext_exec);
+#endif
+  lbm_add_extension("fclose", ext_fclose);
   lbm_add_extension("fopen", ext_fopen);
+  lbm_add_extension("load-file", ext_load_file);
   lbm_add_extension("fwrite", ext_fwrite);
   lbm_add_extension("fwrite-str", ext_fwrite_str);
   lbm_add_extension("fwrite-value", ext_fwrite_value);
+  lbm_add_extension("fwrite-image", ext_fwrite_image);
   lbm_add_extension("print", ext_print);
   lbm_add_extension("systime", ext_systime);
   lbm_add_extension("secs-since", ext_secs_since);
 
+  // boot images, snapshots, workspaces.... 
+  lbm_add_extension("image-save-const-heap-ix", ext_image_save_const_heap_ix);
+  lbm_add_extension("image-save", ext_image_save);
   // Math
   lbm_add_extension("rand", ext_rand);
   lbm_add_extension("rand-max", ext_rand_max);
@@ -590,99 +837,20 @@ int init_exts(void) {
   lbm_add_extension("bits-enc-int", ext_bits_enc_int);
   lbm_add_extension("bits-dec-int", ext_bits_dec_int);
 
-  // Macro expanders
-  lbm_add_extension("me-defun", ext_me_defun);
-  lbm_add_extension("me-defunret", ext_me_defunret);
-  lbm_add_extension("me-loopfor", ext_me_loopfor);
-  lbm_add_extension("me-loopwhile", ext_me_loopwhile);
-  lbm_add_extension("me-looprange", ext_me_looprange);
-  lbm_add_extension("me-loopforeach", ext_me_loopforeach);
+  //displaying to active image
+  lbm_add_extension("set-active-img", ext_set_active_image);
+  lbm_add_extension("save-active-img", ext_save_active_image);
+  lbm_add_extension("display-to-img", ext_display_to_image);
 
-  return 1;
+  if (lbm_get_num_extensions() < lbm_get_max_extensions()) {
+    return 1;
+  }
+  return 0;
 }
 
 
 // Dynamic loader
 
-static const char* functions[] = {
-  "(defun iota (n) (range n))",
-
-  "(defun foldl (f init lst)"
-  "(if (eq lst nil) init (foldl f (f init (car lst)) (cdr lst))))",
-
-  "(defun foldr (f init lst)"
-  "(if (eq lst nil) init (f (car lst) (foldr f init (cdr lst)))))",
-
-  "(defun apply (f lst) (eval (cons f lst)))",
-
-  "(defun zipwith (f x y)"
-  "(let ((map-rec (lambda (f res lst ys)"
-  "(if (eq lst nil)"
-  "(reverse res)"
-  "(map-rec f (cons (f (car lst) (car ys)) res) (cdr lst) (cdr ys))))))"
-  "(map-rec f nil x y)))",
-
-  "(defun filter (f lst)"
-  "(let ((filter-rec (lambda (f lst ys)"
-  "(if (eq lst nil)"
-  "(reverse ys)"
-  "(if (f (car lst))"
-  "(filter-rec f (cdr lst) (cons (car lst) ys))"
-  "(filter-rec f (cdr lst) ys))))))"
-  "(filter-rec f lst nil)"
-  "))",
-
-  "(defun str-cmp-asc (a b) (< (str-cmp a b) 0))",
-  "(defun str-cmp-dsc (a b) (> (str-cmp a b) 0))",
-
-  "(defun second (x) (car (cdr x)))",
-  "(defun third (x) (car (cdr (cdr x))))",
-
-  "(defun abs (x) (if (< x 0) (- x) x))",
-};
-
-static const char* macros[] = {
-  "(define defun (macro (name args body) (me-defun name args body)))",
-  "(define defunret (macro (name args body) (me-defunret name args body)))",
-  "(define loopfor (macro (it start cnd update body) (me-loopfor it start cnd update body)))",
-  "(define loopwhile (macro (cnd body) (me-loopwhile cnd body)))",
-  "(define looprange (macro (it start end body) (me-looprange it start end body)))",
-  "(define loopforeach (macro (it lst body) (me-loopforeach it lst body)))",
-  "(define loopwhile-thd (macro (stk cnd body) `(spawn ,stk (fn () (loopwhile ,cnd ,body)))))",
-};
-
-static bool strmatch(const char *str1, const char *str2) {
-  size_t len = strlen(str1);
-
-  if (str2[len] != ' ') {
-    return false;
-  }
-
-  bool same = true;
-  for (unsigned int i = 0;i < len;i++) {
-    if (str1[i] != str2[i]) {
-      same = false;
-      break;
-    }
-  }
-
-  return same;
-}
-
 bool dynamic_loader(const char *str, const char **code) {
-  for (unsigned int i = 0; i < (sizeof(macros) / sizeof(macros[0]));i++) {
-    if (strmatch(str, macros[i] + 8)) {
-      *code = macros[i];
-      return true;
-    }
-  }
-
-  for (unsigned int i = 0; i < (sizeof(functions) / sizeof(functions[0]));i++) {
-    if (strmatch(str, functions[i] + 7)) {
-      *code = functions[i];
-      return true;
-    }
-  }
-
-  return false;
+  return lbm_dyn_lib_find(str, code);
 }

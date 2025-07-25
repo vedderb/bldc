@@ -1,5 +1,5 @@
 /*
-    Copyright 2023, 2024 Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2023, 2024, 2025 Joel Svensson    svenssonjoel@yahoo.se
               2023       Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -29,22 +29,20 @@ int lbm_perform_gc(void);
 
 // ------------------------------------------------------------
 // Flatteners
-
 bool lbm_start_flatten(lbm_flat_value_t *v, size_t buffer_size) {
-
+  bool res = false;
   uint8_t *data = lbm_malloc_reserve(buffer_size);
-  if (!data) return false;
-
-  v->buf = data;
-  v->buf_size = buffer_size;
-  v->buf_pos = 0;
-  return true;
+  if (data) {
+    v->buf = data;
+    v->buf_size = buffer_size;
+    v->buf_pos = 0;
+    res = true;
+  }
+  return res;
 }
 
 bool lbm_finish_flatten(lbm_flat_value_t *v) {
-
   lbm_uint size_words;
-
   if (v->buf_pos % sizeof(lbm_uint) == 0) {
     size_words = v->buf_pos / sizeof(lbm_uint);
   } else {
@@ -56,26 +54,38 @@ bool lbm_finish_flatten(lbm_flat_value_t *v) {
 }
 
 static bool write_byte(lbm_flat_value_t *v, uint8_t b) {
+  bool res = false;
   if (v->buf_size >= v->buf_pos + 1) {
     v->buf[v->buf_pos++] = b;
-    return true;
+    res = true;
   }
-  return false;
+  return res;
+}
+
+static bool write_bytes(lbm_flat_value_t *v, uint8_t *data,lbm_uint num_bytes) {
+  bool res = false;
+  if (v->buf_size >= v->buf_pos + num_bytes) {
+    memcpy(v->buf + v->buf_pos, data, num_bytes);
+    v->buf_pos += num_bytes;
+    res = true;
+  }
+  return res;
 }
 
 static bool write_word(lbm_flat_value_t *v, uint32_t w) {
-
+  bool res = false;
   if (v->buf_size >= v->buf_pos + 4) {
     v->buf[v->buf_pos++] = (uint8_t)(w >> 24);
     v->buf[v->buf_pos++] = (uint8_t)(w >> 16);
     v->buf[v->buf_pos++] = (uint8_t)(w >> 8);
     v->buf[v->buf_pos++] = (uint8_t)w;
-    return true;
+    res = true;
   }
-  return false;
+  return res;
 }
 
 static bool write_dword(lbm_flat_value_t *v, uint64_t w) {
+  bool res = false;
   if (v->buf_size >= v->buf_pos + 8) {
     v->buf[v->buf_pos++] = (uint8_t)(w >> 56);
     v->buf[v->buf_pos++] = (uint8_t)(w >> 48);
@@ -85,17 +95,18 @@ static bool write_dword(lbm_flat_value_t *v, uint64_t w) {
     v->buf[v->buf_pos++] = (uint8_t)(w >> 16);
     v->buf[v->buf_pos++] = (uint8_t)(w >> 8);
     v->buf[v->buf_pos++] = (uint8_t)w;
-    return true;
+    res = true;
   }
-  return false;
+  return res;
 }
 
 bool f_cons(lbm_flat_value_t *v) {
+  bool res = false;
   if (v->buf_size >= v->buf_pos + 1) {
     v->buf[v->buf_pos++] = S_CONS;
-    return true;
+    res = true;
   }
-  return false;
+  return res;
 }
 
 bool f_lisp_array(lbm_flat_value_t *v, uint32_t size) {
@@ -118,33 +129,30 @@ bool f_sym(lbm_flat_value_t *v, lbm_uint sym_id) {
 }
 
 bool f_sym_string(lbm_flat_value_t *v, char *str) {
-  bool res = true;
+  bool res = false;
   if (str) {
     lbm_uint sym_bytes = strlen(str) + 1;
-    res = res && write_byte(v, S_SYM_STRING);
-    if (res && v->buf_size >= v->buf_pos + sym_bytes) {
-      for (lbm_uint i = 0; i < sym_bytes; i ++) {
-        res = res && write_byte(v, (uint8_t)str[i]);
-      }
-      return res;
+    if (write_byte(v, S_SYM_STRING) &&
+        write_bytes(v, (uint8_t*)str, sym_bytes)) {
+      res = true;
     }
   }
-  return false;
+  return res;
 }
 
 // Potentially a difference between 32/64 bit version.
 // strlen returns size_t which is different on 32/64 bit platforms.
 int f_sym_string_bytes(lbm_value sym) {
-  char *sym_str;
+  int res = FLATTEN_VALUE_ERROR_FATAL;
   if (lbm_is_symbol(sym)) {
     lbm_uint s = lbm_dec_sym(sym);
-    sym_str = (char*)lbm_get_name_by_symbol(s);
+    char *sym_str = (char*)lbm_get_name_by_symbol(s);
     if (sym_str) {
       lbm_uint sym_bytes = strlen(sym_str) + 1;
-      return (int)sym_bytes;
+      res = (int)sym_bytes;
     }
   }
-  return FLATTEN_VALUE_ERROR_FATAL;
+  return res;
 }
 
 bool f_i(lbm_flat_value_t *v, lbm_int i) {
@@ -226,15 +234,9 @@ bool f_u64(lbm_flat_value_t *v, uint64_t w) {
 
 // num_bytes is specifically an uint32_t
 bool f_lbm_array(lbm_flat_value_t *v, uint32_t num_bytes, uint8_t *data) {
-  bool res = true;
-  res = res && write_byte(v, S_LBM_ARRAY);
+  bool res = write_byte(v, S_LBM_ARRAY);
   res = res && write_word(v, num_bytes);
-  if (res && v->buf_size >= v->buf_pos + num_bytes) {
-    memcpy(v->buf + v->buf_pos, data, num_bytes);
-    v->buf_pos += num_bytes;
-  } else {
-    res = false;
-  }
+  res = res && write_bytes(v, data, num_bytes);
   return res;
 }
 
@@ -244,11 +246,15 @@ void lbm_set_max_flatten_depth(int depth) {
   flatten_maximum_depth = depth;
 }
 
+int lbm_get_max_flatten_depth(void) {
+  return flatten_maximum_depth;
+}
+
 void flatten_error(jmp_buf jb, int val) {
   longjmp(jb, val);
 }
 
-int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
+int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, bool image) {
   if (depth > flatten_maximum_depth) {
     flatten_error(jb, FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH);
   }
@@ -259,25 +265,34 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
     t = t & ~(LBM_PTR_TO_CONSTANT_BIT);
   }
 
+  if (image && lbm_is_ptr(v) && (v & LBM_PTR_TO_CONSTANT_BIT)) {
+    // If flattening to image, constants can be stored by reference.
+    return (sizeof(lbm_uint) + 1); // one byte tag, one word ptr
+  }
+
   switch (t) {
   case LBM_TYPE_CONS: {
-    int s2 = 0;
-    int s1 = flatten_value_size_internal(jb,lbm_car(v), depth + 1);
+    int res = 0;
+    int s1 = flatten_value_size_internal(jb,lbm_car(v), depth + 1, image);
     if (s1 > 0) {
-      s2 = flatten_value_size_internal(jb,lbm_cdr(v), depth + 1);
+      int s2 = flatten_value_size_internal(jb,lbm_cdr(v), depth + 1, image);
       if (s2 > 0) {
-        return (1 + s1 + s2);
+        res = (1 + s1 + s2);
       }
     }
-    return 0; // already terminated with error
+    return res;
   }
   case LBM_TYPE_LISPARRAY: {
     int sum = 4 + 1; // sizeof(uint32_t) + 1;
     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(v);
-    lbm_value *arrdata = (lbm_value*)header->data;
-    lbm_uint size = header->size / sizeof(lbm_value);
-    for (lbm_uint i = 0; i < size; i ++ ) {
-      sum += flatten_value_size_internal(jb, arrdata[i], depth + 1);
+    if (header) {
+      lbm_value *arrdata = (lbm_value*)header->data;
+      lbm_uint size = header->size / sizeof(lbm_value);
+      for (lbm_uint i = 0; i < size; i ++ ) {
+        sum += flatten_value_size_internal(jb, arrdata[i], depth + 1, image);
+      }
+    } else {
+      flatten_error(jb, FLATTEN_VALUE_ERROR_ARRAY);
     }
     return sum;
   }
@@ -299,9 +314,13 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
   case LBM_TYPE_DOUBLE:
     return 1 + 8;
   case LBM_TYPE_SYMBOL: {
-    int s = f_sym_string_bytes(v);
-    if (s > 0) return 1 + s;
-    flatten_error(jb, (int)s);
+    if (!image) {
+      int s = f_sym_string_bytes(v);
+      if (s > 0) return 1 + s;
+      flatten_error(jb, (int)s);
+    } else {
+      return 1 + sizeof(lbm_uint);
+    }
   } return 0; // already terminated with error
   case LBM_TYPE_ARRAY: {
     // Platform dependent size.
@@ -316,13 +335,13 @@ int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth) {
   }
 }
 
-int flatten_value_size(lbm_value v, int depth) {
+int flatten_value_size(lbm_value v, bool image) {
   jmp_buf jb;
   int r = setjmp(jb);
   if (r != 0) {
     return r;
   }
-  return flatten_value_size_internal(jb, v, depth);
+  return flatten_value_size_internal(jb, v, 0, image);
 }
 
 int flatten_value_c(lbm_flat_value_t *fv, lbm_value v) {
@@ -347,17 +366,22 @@ int flatten_value_c(lbm_flat_value_t *fv, lbm_value v) {
   }break;
   case LBM_TYPE_LISPARRAY: {
     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(v);
-    lbm_value *arrdata = (lbm_value*)header->data;
-    lbm_uint size = header->size / sizeof(lbm_value);
-    if (!f_lisp_array(fv, size)) return FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY;
-    int fv_r;
-    for (lbm_uint i = 0; i < size; i ++ ) {
-      fv_r =  flatten_value_c(fv, arrdata[i]);
-      if (fv_r != FLATTEN_VALUE_OK) {
-        return fv_r;
+    if (header) {
+      lbm_value *arrdata = (lbm_value*)header->data;
+      // always exact multiple of sizeof(lbm_value)
+      uint32_t size = (uint32_t)(header->size / sizeof(lbm_value));
+      if (!f_lisp_array(fv, size)) return FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY;
+      int fv_r = FLATTEN_VALUE_OK;
+      for (lbm_uint i = 0; i < size; i ++ ) {
+        fv_r =  flatten_value_c(fv, arrdata[i]);
+        if (fv_r != FLATTEN_VALUE_OK) {
+          break;
+        }
       }
+      return fv_r;
+    } else {
+      return FLATTEN_VALUE_ERROR_ARRAY;
     }
-    return FLATTEN_VALUE_OK;
   } break;
   case LBM_TYPE_BYTE:
     if (f_b(fv, (uint8_t)lbm_dec_as_char(v))) {
@@ -437,6 +461,7 @@ lbm_value handle_flatten_error(int err_val) {
   case FLATTEN_VALUE_ERROR_CIRCULAR: /* fall through */
   case FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH:
     return ENC_SYM_EERROR;
+  case FLATTEN_VALUE_ERROR_ARRAY: /* fall through */
   case FLATTEN_VALUE_ERROR_NOT_ENOUGH_MEMORY:
     return ENC_SYM_MERROR;
   }
@@ -446,14 +471,15 @@ lbm_value handle_flatten_error(int err_val) {
 lbm_value flatten_value(lbm_value v) {
 
   lbm_value array_cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
-  if (lbm_type_of(array_cell) == LBM_TYPE_SYMBOL) {
-    return ENC_SYM_MERROR;
+
+  if (array_cell == ENC_SYM_MERROR) {
+    return array_cell;
   }
 
   lbm_flat_value_t fv;
 
   lbm_array_header_t *array = NULL;
-  int required_mem = flatten_value_size(v, 0);
+  int required_mem = flatten_value_size(v, false);
   if (required_mem > 0) {
     array = (lbm_array_header_t *)lbm_malloc(sizeof(lbm_array_header_t));
     if (array == NULL) {
@@ -482,7 +508,7 @@ lbm_value flatten_value(lbm_value v) {
       lbm_set_car(array_cell, (lbm_uint)array);
       array_cell = lbm_set_ptr_type(array_cell, LBM_TYPE_ARRAY);
       return array_cell;
-    } 
+    }
   }
   lbm_set_car_and_cdr(array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
   return handle_flatten_error(required_mem);
@@ -499,6 +525,7 @@ static bool extract_byte(lbm_flat_value_t *v, uint8_t *r) {
 }
 
 static bool extract_word(lbm_flat_value_t *v, uint32_t *r) {
+  bool res = false;
   if (v->buf_size >= v->buf_pos + 4) {
     uint32_t tmp = 0;
     tmp |= (lbm_value)v->buf[v->buf_pos++];
@@ -506,12 +533,13 @@ static bool extract_word(lbm_flat_value_t *v, uint32_t *r) {
     tmp = tmp << 8 | (uint32_t)v->buf[v->buf_pos++];
     tmp = tmp << 8 | (uint32_t)v->buf[v->buf_pos++];
     *r = tmp;
-    return true;
+    res = true;
   }
-  return false;
+  return res;
 }
 
 static bool extract_dword(lbm_flat_value_t *v, uint64_t *r) {
+  bool res = false;
   if (v->buf_size >= v->buf_pos + 8) {
     uint64_t tmp = 0;
     tmp |= (lbm_value)v->buf[v->buf_pos++];
@@ -523,56 +551,33 @@ static bool extract_dword(lbm_flat_value_t *v, uint64_t *r) {
     tmp = tmp << 8 | (uint64_t)v->buf[v->buf_pos++];
     tmp = tmp << 8 | (uint64_t)v->buf[v->buf_pos++];
     *r = tmp;
-    return true;
+    res = true;;
   }
-  return false;
+  return res;
 }
 
-/* Recursive and potentially stack hungry for large flat values */
-static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
+static int lbm_unflatten_value_atom(lbm_flat_value_t *v, lbm_value *res) {
   if (v->buf_size == v->buf_pos) return UNFLATTEN_MALFORMED;
 
   uint8_t curr = v->buf[v->buf_pos++];
 
   switch(curr) {
   case S_CONS: {
-    lbm_value a;
-    lbm_value b;
-    int r = lbm_unflatten_value_internal(v, &a);
-    if (r == UNFLATTEN_OK) {
-      r = lbm_unflatten_value_internal(v, &b);
-      if (r == UNFLATTEN_OK) {
-        lbm_value c;
-        c = lbm_cons(a,b);
-        if (lbm_is_symbol_merror(c)) return UNFLATTEN_GC_RETRY;
-        *res = c;
-        r = UNFLATTEN_OK;
-      }
-    }
-    return r;
+    return UNFLATTEN_MALFORMED;
   }
-  case S_LBM_LISP_ARRAY: {
-    uint32_t size;
-    bool b = extract_word(v, &size);
-    int r = UNFLATTEN_MALFORMED;
+  case S_CONSTANT_REF: {
+    lbm_uint tmp;
+    bool b;
+#ifndef LBM64
+    b = extract_word(v, &tmp);
+#else
+    b = extract_dword(v, &tmp);
+#endif
     if (b) {
-      lbm_value array;
-      lbm_heap_allocate_lisp_array(&array, size);
-      lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(array);
-      lbm_value *arrdata = (lbm_value*)header->data;
-      if (lbm_is_symbol_merror(array)) return UNFLATTEN_GC_RETRY;
-      lbm_value a;
-      for (uint32_t i = 0; i < size; i ++) {
-        r = lbm_unflatten_value_internal(v, &a);
-        if (r == UNFLATTEN_OK) {
-          arrdata[i] = a;
-        } else {
-          break;
-        }
-      }
-      *res = array;
+      *res = tmp;
+      return UNFLATTEN_OK;
     }
-    return r;
+    return UNFLATTEN_MALFORMED;
   }
   case S_SYM_VALUE: {
     lbm_uint tmp;
@@ -742,30 +747,174 @@ static int lbm_unflatten_value_internal(lbm_flat_value_t *v, lbm_value *res) {
   }
   case S_SYM_STRING: {
     lbm_uint sym_id;
-    int r = lbm_get_symbol_by_name((char *)(v->buf + v->buf_pos), &sym_id);
-    if (!r) {
-      r = lbm_add_symbol_base((char *)(v->buf + v->buf_pos), &sym_id,false); //ram
-    }
-    if (r) {
+    if (lbm_add_symbol((char *)(v->buf + v->buf_pos), &sym_id)) {
       lbm_uint num_bytes = strlen((char*)(v->buf + v->buf_pos)) + 1;
       v->buf_pos += num_bytes;
       *res = lbm_enc_sym(sym_id);
       return UNFLATTEN_OK;
     }
-    return UNFLATTEN_MALFORMED;
+    return UNFLATTEN_GC_RETRY;
   }
   default:
     return UNFLATTEN_MALFORMED;
   }
 }
 
+// ////////////////////////////////////////////////////////////
+// Pointer-reversal-esque "stackless" deserialization of
+// flattened (serialized) trees.
+//
+// Initially:
+//   curr = LBM_NULL;    v->buf = { ... }
+//
+// FORWARDS PHASE: 
+// Cons case:
+//   Reading conses from the buffer builds a backpointing list.
+//   Placeholder element acts as a 1 bit "visited" field.
+//
+//   curr = p;   v->buf = {S_CONS, ... }
+//   =>
+//   curr = [p, placeholder]; v->buf = { ... }
+//
+// Lisp array case:
+//   An Array tag in the buffer leads to the creation of an array
+//   with a backptr in the last element position. Placeholder element
+//   is not needed as LBM-Arrays have a built in index field (used by GC)
+//   that can keep a count of how far along the array we have progressed.
+//
+//   curr = p;  v->buf = {S_LBM_LISP_ARRAY, ... }
+//   =>
+//   curr = [| nil ... p |]; v->buf = { ... }
+//
+// Atom case:
+//   Reading an atom triggers a backwards traversal along the backpointer
+//   structure.
+//
+//   curr = X;   v->buf = {any_atom, ... } example integer, string.
+//   =>
+//   val = unflatten_atom(v->buf);      v->buf = { ... }
+//
+//   BACKWARDS PHASE: Start the backwards traversal:
+//
+//   Case on X
+//     LBM_NULL;
+//     => Done! result = val
+//
+//     [p, placeholder];
+//     =>
+//     [p, val]   Base case. Finishes back traversal.
+//                Go back to FORWARDS PHASE.
+//
+//
+//     [p, val0];
+//     =>
+//     tmp = [val0, val];  val = tmp;  curr = p;   continue backwards with value pointing to recently constructed final subresult.
+//
+//
+//     [| a b nil ... p |]
+//     =>
+//     [| a b val ... p |]   Base case. Finishes back traversal.
+//                           Array internal index field keeps track of write position.
+//                           Go back to FORWARDS PHASE.
+//
+//
+//    [| a0 a1 ... an p |]
+//    =>
+//    tmp =  [| a0 a1 ... an val |];  val = tmp; curr = p; continue backwards
+//
+static int lbm_unflatten_value_nostack(lbm_flat_value_t *v, lbm_value *res) {
+  bool done = false;
+
+  lbm_value curr = lbm_enc_cons_ptr(LBM_PTR_NULL);
+  while (!done) {
+    if (v->buf[v->buf_pos] == S_CONS) {
+      lbm_value tmp = curr;
+      curr = lbm_cons(tmp, ENC_SYM_PLACEHOLDER);
+      if (lbm_is_symbol_merror(curr)) return UNFLATTEN_GC_RETRY;
+      v->buf_pos ++;
+    } else if (v->buf[v->buf_pos] == S_LBM_LISP_ARRAY) {
+      uint32_t size;
+      v->buf_pos ++;
+      bool b = extract_word(v, &size);
+      if (b) {
+        lbm_value array;
+        lbm_heap_allocate_lisp_array(&array, size);
+        lbm_array_header_extended_t *header = (lbm_array_header_extended_t*)lbm_car(array);
+        lbm_value *arrdata = (lbm_value*)header->data;
+        if (lbm_is_symbol_merror(array)) return UNFLATTEN_GC_RETRY;
+        header->index = 0;
+        arrdata[size-1] = curr; // backptr
+        curr = array;
+      } else {
+        return UNFLATTEN_MALFORMED;
+      }
+    } else if (v->buf[v->buf_pos] == 0) {
+      return UNFLATTEN_MALFORMED;
+    } else {
+      lbm_value unflattened;
+      int e_val = lbm_unflatten_value_atom(v, &unflattened);
+      if (e_val != UNFLATTEN_OK) {
+        return e_val;
+      }
+      lbm_value val0 = unflattened;
+      while (lbm_dec_ptr(curr) != LBM_PTR_NULL &&
+             lbm_cdr(curr) != ENC_SYM_PLACEHOLDER) { // has done left
+        if ( lbm_type_of(curr) == LBM_TYPE_LISPARRAY) {
+          lbm_array_header_extended_t *header = (lbm_array_header_extended_t*)lbm_car(curr);
+          lbm_value *arrdata = (lbm_value*)header->data;
+          uint32_t arrlen = header->size / sizeof(lbm_value);
+          if (header->index == arrlen - 1) {
+            lbm_value prev = arrdata[arrlen-1];
+            header->index = 0;
+            arrdata[arrlen-1] = val0;
+            val0 = curr;
+            curr = prev;
+          } else {
+            arrdata[header->index++] = val0;
+            break;
+          }
+        } else {
+          lbm_value prev = lbm_car(curr);
+          lbm_value r0   = lbm_cdr(curr);
+          lbm_set_cdr(curr, val0);
+          lbm_set_car(curr, r0);
+          val0 = curr;
+          curr = prev;
+        }
+      }
+      if (lbm_dec_ptr(curr) == LBM_PTR_NULL) {
+        *res = val0; // done
+        break;
+      } else if (lbm_type_of(curr) == LBM_TYPE_LISPARRAY) {
+        // Do nothing in this case. It has been arranged..
+      } else if (lbm_cdr(curr) == ENC_SYM_PLACEHOLDER) {
+        lbm_set_cdr(curr, val0);
+      } else {
+        return UNFLATTEN_MALFORMED;
+      }
+    }
+  }
+  return UNFLATTEN_OK;
+}
+
+/* lbm_unflatten_value_nostack, does not backtrack
+   upon error to swap pointer to the correct direction
+   and to remove the LBM_PTR_NULL tag.
+
+   unflatten_value_nostack does not alter the GC_FLAG or the GC_MARK,
+   So really only reverse pointers and the NIL tag could be
+   potential problems.
+*/
 bool lbm_unflatten_value(lbm_flat_value_t *v, lbm_value *res) {
   bool b = false;
-  int r = lbm_unflatten_value_internal(v,res);
+#ifdef LBM_ALWAYS_GC
+  lbm_perform_gc();
+#endif
+  int r = lbm_unflatten_value_nostack(v,res);
   if (r == UNFLATTEN_GC_RETRY) {
     lbm_perform_gc();
     v->buf_pos = 0;
-    r = lbm_unflatten_value_internal(v,res);
+    r = lbm_unflatten_value_nostack(v,res);
   }
   if (r == UNFLATTEN_MALFORMED) {
     *res = ENC_SYM_EERROR;

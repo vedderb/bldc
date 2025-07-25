@@ -43,8 +43,10 @@ static lbm_value ext_sf_read_rel(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_i(REL_ACTIVE() ? 1 : 0);
 }
 
-static void load_extensions(void) {
-	lbm_add_extension("sf-read-rel", ext_sf_read_rel);
+static void load_extensions(bool main_found) {
+	if (!main_found) {
+		lbm_add_extension("sf-read-rel", ext_sf_read_rel);
+	}
 }
 
 void hw_init_gpio(void) {

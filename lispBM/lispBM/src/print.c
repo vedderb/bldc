@@ -39,10 +39,45 @@
 #define CONTINUE_ARRAY 8
 #define END_ARRAY      9
 
-static lbm_stack_t print_stack = { NULL, 0, 0, 0};
+static lbm_stack_t print_stack = { NULL, 0, 0};
 static bool print_has_stack = false;
 
 const char *failed_str = "Error: print failed\n";
+
+// is_printable_string is turning out to be a headache.
+// What do we want from this function???
+//
+// Value                   | Print as                | Condition
+// [0]                     | [0]                     |
+// [1]                     | [1]                     |
+// ""                      | [0]                     | (array->size <= 1) => false
+// "hej"                   | "hej"                   | printable characters followed by a 0
+// [65 66 67 0 65 66 67 0] | [65 66 67 0 65 66 67 0] | position of first 0 after printable characters = array->size-1
+// [0 65 66 0]             | [0 65 66 0]             | position of first 0 after printable characters = array->size-1
+bool lbm_value_is_printable_string(lbm_value v, char **str) {
+  bool is_a_string = false;
+  lbm_array_header_t *array = lbm_dec_array_r(v);
+  if (array) {
+    char *c_data = (char *)array->data;
+    if (array->size > 1) { // nonzero length
+      unsigned int i = 0;
+      is_a_string = true;
+      for (i = 0; i < array->size; i ++) {
+	if (c_data[i] == 0) break;
+	if (!isprint((unsigned char)c_data[i]) && ((c_data[i] < 8) || c_data[i] > 13)) {
+	  is_a_string = false;
+	  break;
+	}
+      }
+      if (i > 0 && i != array->size-1 && c_data[i-1] != 0) is_a_string = false;
+      if (array->size-1 > i) is_a_string = false;
+      if (is_a_string) {
+        *str = (char*)array->data;
+      }
+    }
+  }
+  return is_a_string;
+}
 
 static int push_n(lbm_stack_t *s, lbm_uint *values, lbm_uint n) {
   if (s->sp + n < s->size) {
@@ -54,39 +89,6 @@ static int push_n(lbm_stack_t *s, lbm_uint *values, lbm_uint n) {
   }
   return 0;
 }
-
-bool lbm_value_is_printable_string(lbm_value v, char **str) {
-  bool is_a_string = false;
-  if (lbm_is_array_r(v)) {
-    lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
-
-    is_a_string = true;
-    // TODO: Potential null deref.
-    //       Highly unlikely that array is a recognizable NULL though.
-    //       If it is incorrect, it is most likely arbitrary.
-    char *c_data = (char *)array->data;
-    if (array->size == 1) {
-      *str = c_data;
-      return c_data[0] == 0;
-    }
-    unsigned int i;
-    for (i = 0; i < array->size; i ++) {
-      if (c_data[i] == 0 && i > 0) break;
-      if (!isprint((unsigned char)c_data[i]) && !iscntrl((unsigned char)c_data[i])) {
-        is_a_string = false;
-        break;
-      }
-    }
-
-    if (i == array->size) i--;
-    if (i > 0 && c_data[i] != 0) is_a_string = false;
-    if (is_a_string) {
-      *str = (char*)array->data;
-    }
-  }
-  return is_a_string;
-}
-
 
 int lbm_print_init(lbm_uint print_stack_size) {
 
@@ -215,13 +217,18 @@ static int print_emit_continuation(lbm_char_channel_t *chan, lbm_value v) {
 
 static int print_emit_custom(lbm_char_channel_t *chan, lbm_value v) {
   lbm_uint *custom = (lbm_uint*)lbm_car(v);
-  int r;
+  int r; // NULL checks works against SYM_NIL. 
   if (custom && custom[CUSTOM_TYPE_DESCRIPTOR]) {
     r = print_emit_string(chan, (char*)custom[CUSTOM_TYPE_DESCRIPTOR]);
   } else {
-    r = print_emit_string(chan, "Unspecified_Custom_Type");
+    r = print_emit_string(chan, "INVALID_CUSTOM_TYPE");
   }
   return r;
+}
+
+static int print_emit_defrag_mem(lbm_char_channel_t *chan, lbm_value v) {
+  (void) v;
+  return print_emit_string(chan, "DM");
 }
 
 static int print_emit_channel(lbm_char_channel_t *chan, lbm_value v) {
@@ -252,22 +259,25 @@ static int print_emit_array_data(lbm_char_channel_t *chan, lbm_array_header_t *a
 }
 
 static int print_emit_bytearray(lbm_char_channel_t *chan, lbm_value v) {
-
+  int r = 0;
   char *str;
-
-  if (lbm_value_is_printable_string(v, &str)) {
-    int r = print_emit_char(chan, '"');
-    if (r == EMIT_OK) {
-      r = print_emit_string_value(chan, str);
+  lbm_array_header_t *array = lbm_dec_array_r(v);
+  if (array) {
+    if (lbm_value_is_printable_string(v, &str)) {
+      r = print_emit_char(chan, '"');
       if (r == EMIT_OK) {
-        r = print_emit_char(chan, '"');
+        r = print_emit_string_value(chan, str);
+        if (r == EMIT_OK) {
+          r = print_emit_char(chan, '"');
+        }
       }
+    } else {
+      r=  print_emit_array_data(chan, array);
     }
-    return r;
+  } else {
+    r = print_emit_string(chan, "[INVALID_ARRAY]");
   }
-
-  lbm_array_header_t *array = (lbm_array_header_t*)lbm_car(v);
-  return print_emit_array_data(chan, array);
+  return r;
 }
 
 
@@ -287,21 +297,20 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
     case START_ARRAY: {
       lbm_pop(&print_stack, &curr);
       int res = 1;
-      r = print_emit_char(chan, '[');
+      r = print_emit_string(chan, "[|");
       lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(curr);
-      lbm_uint ix = 0;
       lbm_uint size = arr->size / sizeof(lbm_value);
       lbm_value *arrdata = (lbm_value*)arr->data;
       if (size >= 1) {
         lbm_value continuation[5] =
-          {ix + 1,
+          {1,  // next index
            (lbm_uint) arr,
            CONTINUE_ARRAY,
-           arrdata[ix],
+           arrdata[0], // first elt
            PRINT};
         res = res && push_n(&print_stack, continuation, 5);
       } else {
-        res = res && lbm_push(&print_stack, END_LIST);
+        res = res && lbm_push(&print_stack, END_ARRAY);
       }
       if (!res) {
         return EMIT_FAILED;
@@ -334,7 +343,7 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
       break;
     }
     case END_ARRAY: {
-      r = print_emit_char(chan, ']');
+      r = print_emit_string(chan, "|]");
       break;
     }
     case START_LIST: {
@@ -417,11 +426,15 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
 
       switch(t) {
       case LBM_TYPE_CONS: {
-        lbm_value cont[2] = {curr, START_LIST};
-        int res = push_n(&print_stack, cont, 2);
-        if (!res) {
-          print_emit_string(chan," ...");
-          return EMIT_OK;
+        if (lbm_dec_ptr(curr) == LBM_PTR_NULL) {
+          print_emit_string(chan, " LBM_NULL ");
+        } else {
+          lbm_value cont[2] = {curr, START_LIST};
+          int res = push_n(&print_stack, cont, 2);
+          if (!res) {
+            print_emit_string(chan," ...");
+            return EMIT_OK;
+          }
         }
         break;
       }
@@ -467,6 +480,9 @@ static int lbm_print_internal(lbm_char_channel_t *chan, lbm_value v) {
       case LBM_TYPE_ARRAY:
         r = print_emit_bytearray(chan, curr);
         break;
+      case LBM_TYPE_DEFRAG_MEM:
+	r = print_emit_defrag_mem(chan, curr);
+	break;
       case LBM_TYPE_LISPARRAY: {
         lbm_value cont[2] = {curr, START_ARRAY};
         int res = push_n(&print_stack, cont, 2);

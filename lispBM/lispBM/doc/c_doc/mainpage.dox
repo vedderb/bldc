@@ -1,0 +1,43 @@
+/**
+@mainpage LispBM
+@author Bo Joel Svensson.
+
+http://www.lispbm.com
+
+https://github.com/svenssonjoel/lispBM
+
+Building instructions: \ref Building
+
+<h2> Implementation documentation </h2>
+
+C Interoperation: \ref lbm_c_interop.h \ref lbm_c_interop.c <br>
+Environment: \ref env.h \ref env.c <br>
+Evaluator: \ref eval_cps.h \ref eval_cps.c <br>
+Extensions: \ref extensions.h \ref extensions.c <br>
+Fundamental operations: \ref fundamental.h \ref fundamental.c <br>
+Heap: \ref heap.h \ref heap.c  <br>
+Channels: \ref lbm_channel.h \ref lbm_channel.c <br>
+C interoperations: \ref lbm_c_interop.h \ref lbm_c_interop.c <br>
+Constants: \ref lbm_constants.h \ref lbm_constants.c <br>
+Custom types: \ref lbm_custom_type.h \ref lbm_custom_type.c <br>
+Global definitons: \ref lbm_defines.h \ref lbm_defines.c <br>
+Compactible memory region: \ref lbm_defrag_mem.h \ref lbm_defrag_mem.c <br>
+Flags: \ref lbm_flags.h \ref lbm_flags.c <br>
+Flat values: \ref lbm_flat_value.h \ref lbm_flat_value.c <br>
+Arrays and boxed value memory: \ref lbm_memory.h \ref lbm_memory.c <br>
+Profiler: \ref lbm_prof.h \ref lbm_prof.c <br>
+Internal C types: \ref lbm_types.h \ref lbm_types.c <br>
+Utilities: \ref lbm_utils.h \ref lbm_utils.c <br>
+Version: \ref lbm_version.h \ref lbm_version.c <br>
+LispBM: \ref lispbm.h \ref lispbm.c <br>
+Printing values: \ref print.h \ref print.c <br>
+Stacks: \ref stack.h \ref stack.c <br>
+channels: \ref lbm_channel.h \ref lbm_channel.c <br>
+Symbol table: \ref symrepr.h \ref symrepr.c <br>
+Tokeniser: \ref tokpar.h \ref tokpar.c <br>
+Image: \ref lbm_image.h \ref lbm_image.c <br>
+
+\image html lispbm_llama_small.png
+
+
+*/

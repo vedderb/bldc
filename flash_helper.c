@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "flash_helper.h"
@@ -47,6 +46,7 @@
 #define APP_MAX_SIZE							(1024 * 128 * 4 - 8) // Note that the bootloader needs 8 extra bytes
 #define QMLUI_BASE								9
 #define LISP_BASE								10
+#define LISP_CONST_BASE							8
 #define QMLUI_MAX_SIZE							(1024 * 128 - 8)
 #define LISP_MAX_SIZE							(1024 * 128 - 8)
 
@@ -96,8 +96,8 @@ typedef struct {
 	bool ok;
 } _code_checks;
 
-static _code_checks code_checks[2] = {0};
-static int code_sectors[2] = {QMLUI_BASE, LISP_BASE};
+static _code_checks code_checks[3] = {0};
+static int code_sectors[3] = {QMLUI_BASE, LISP_BASE, LISP_CONST_BASE};
 
 // Private constants
 static const uint32_t flash_addr[FLASH_SECTORS] = {
@@ -131,7 +131,7 @@ static const uint16_t flash_sector[FLASH_SECTORS] = {
 
 uint16_t flash_helper_erase_new_app(uint32_t new_app_size) {
 #ifdef USE_LISPBM
-	lispif_restart(false, false, false);
+	lispif_stop();
 #endif
 
 	FLASH_Unlock();
@@ -183,10 +183,24 @@ uint16_t flash_helper_write_new_app_data(uint32_t offset, uint8_t *data, uint32_
 
 uint16_t flash_helper_erase_code(int ind) {
 #ifdef USE_LISPBM
-	if (ind == CODE_IND_LISP) {
-		lispif_stop_lib();
+	if (ind == CODE_IND_LISP || ind == CODE_IND_LISP_CONST) {
+		lispif_stop();
 	}
 #endif
+
+	uint8_t *ptr = flash_helper_code_data_raw(ind);
+
+	bool has_data = false;
+	for (int i = 0;i < (1024 * 128); i++) {
+		if (*ptr != 0xFF) {
+			has_data = true;
+			break;
+		}
+	}
+
+	if (!has_data) {
+		return FLASH_COMPLETE;
+	}
 
 	code_checks[ind].check_done = false;
 	code_checks[ind].ok = false;
@@ -393,6 +407,10 @@ uint32_t flash_helper_verify_flash_memory_chunk(void) {
 	return res;
 }
 
+uint32_t flash_helper_app_crc(void) {
+	return *APP_CRC_ADDRESS;
+}
+
 static uint16_t erase_sector(uint32_t sector) {
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
@@ -471,7 +489,7 @@ static void qmlui_check(int ind) {
 	code_checks[ind].check_done = true;
 }
 
-#define VESC_IF_NVM_REGION_SIZE	(ADDR_FLASH_SECTOR_9 - ADDR_FLASH_SECTOR_8)
+#define VESC_IF_NVM_REGION_SIZE	(ADDR_FLASH_SECTOR_11 - ADDR_FLASH_SECTOR_10)
 
 /**
   * @brief  Reads len bytes to v from nvm at address
@@ -485,7 +503,7 @@ bool flash_helper_read_nvm(uint8_t *v, unsigned int len, unsigned int address) {
 		return false;
 	}
 
-	memcpy(v, (uint8_t*)(ADDR_FLASH_SECTOR_8 + address), len);
+	memcpy(v, (uint8_t*)(ADDR_FLASH_SECTOR_11 + address), len);
 
 	return true;
 }
@@ -502,7 +520,7 @@ bool flash_helper_write_nvm(uint8_t *v, unsigned int len, unsigned int address) 
 		return false;
 	}
 
-	uint16_t res = write_data(ADDR_FLASH_SECTOR_8 + address, v, len);
+	uint16_t res = write_data(ADDR_FLASH_SECTOR_11 + address, v, len);
 
 	return (res == FLASH_COMPLETE);
 }
@@ -512,7 +530,5 @@ bool flash_helper_write_nvm(uint8_t *v, unsigned int len, unsigned int address) 
   * @retval Boolean indicating success or failure
   */
 bool flash_helper_wipe_nvm(void) {
-	return (erase_sector(flash_sector[8]) == FLASH_COMPLETE);
+	return (erase_sector(flash_sector[11]) == FLASH_COMPLETE);
 }
-
-#pragma GCC pop_options

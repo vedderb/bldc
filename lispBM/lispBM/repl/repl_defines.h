@@ -44,8 +44,9 @@
 #define REPL_EXIT_CRITICAL_ERROR 21
 #define REPL_EXIT_SYMBOL_TABLE_TOO_BIG 22
 #define REPL_EXIT_ENV_POPULATION_TIMEOUT 23
+#define REPL_EXIT_INVALID_EXPRESSION 24
 
-const char *repl_exit_message[24] =
+const char *repl_exit_message[25] =
   {"Goodbye.",
    "ERROR: Out of memory while flattening a value.",
    "ERROR: Maximum cons depth reached while flattening value.",
@@ -70,6 +71,7 @@ const char *repl_exit_message[24] =
    "ERROR: Critical Error",
    "ERROR: Symbol table too large",
    "ERROR: Populating the environment from an env file timed out"
+   "ERROR: Invalid expression."
   };
 
 #endif

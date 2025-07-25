@@ -2,7 +2,7 @@ CCFLAGS = -Wall -Wextra -Wshadow -Wjump-misses-init -pedantic -std=c99
 
 ifndef PLATFORM
   BUILD_DIR = build/linux-x86
-  CCFLAGS += -g -O2 -m32 
+  CCFLAGS += -g -O2 -m32
   CCFLAGS += -D_PRELUDE
   PLATFORMSRC = platform/linux/src
   PLATFORMINC = platform/linux/include
@@ -20,13 +20,13 @@ ifeq ($(PLATFORM),linux-x64)
   PLATFORMSRC = platform/linux/src
   PLATFORMINC = platform/linux/include
   CC=gcc
-  AR=ar	
+  AR=ar
 endif
 
 ifeq ($(PLATFORM), zynq)
   CROSS_COMPILE = arm-none-eabi-
   BUILD_DIR = build/zynq
-  CCFLAGS += -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -O2 
+  CCFLAGS += -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -O2
   CCFLAGS += -D_PRELUDE
 endif
 
@@ -50,10 +50,20 @@ endif
 
 ifeq ($(PLATFORM), pi) #for compiling natively on the pi
   BUILD_DIR = build/pi
-  CCFLAGS += -g -O2 -m32 
+  CCFLAGS += -g -O2 -m32
   CCFLAGS += -D_PRELUDE
   PLATFORMSRC = platform/linux/src
   PLATFORMINC = platform/linux/include
+endif
+
+ifeq ($(PLATFORM), macos-arm64)
+  BUILD_DIR = build/macos-arm64
+  CCFLAGS += -g -O2 -m32
+  CCFLAGS += -D_PRELUDE
+  PLATFORMSRC = platform/linux/src
+  PLATFORMINC = platform/linux/include
+  CC=clang
+  AR=ar
 endif
 
 SOURCE_DIR = src
@@ -86,11 +96,11 @@ LIB = $(BUILD_DIR)/liblispbm.a
 
 all: $(OBJECTS) $(LIB)
 
-debug: CCFLAGS += -g 
+debug: CCFLAGS += -g
 debug: $(OBJECTS) $(LIB)
 
-$(LIB): $(OBJECTS) 
-	$(AR) -rcs $@ $(OBJECTS) 
+$(LIB): $(OBJECTS)
+	$(AR) -rcs $@ $(OBJECTS)
 
 $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c
 	$(CC) $(INCLUDE_DIR) -I$(PLATFORMINC) $(CCFLAGS) -c $< -o $@

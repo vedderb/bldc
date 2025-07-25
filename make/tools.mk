@@ -37,7 +37,7 @@ ifneq ($(OSFAMILY), windows)
 	# binary only release so just extract it
 	$(V1) tar -C $(TOOLS_DIR) -xjf "$(DL_DIR)/$(ARM_SDK_FILE)"
 else
-	$(V1) curl --continue - --location --insecure --output "$(DL_DIR)/$(ARM_SDK_FILE)" "$(ARM_SDK_URL)"
+	$(V1) curl -C - --location --insecure --output "$(DL_DIR)/$(ARM_SDK_FILE)" "$(ARM_SDK_URL)"
 	$(V1) powershell -noprofile -command Expand-Archive -DestinationPath $(ARM_SDK_DIR) -LiteralPath "$(DL_DIR)/$(ARM_SDK_FILE)"
 
 endif
@@ -203,7 +203,7 @@ ifneq ($(OSFAMILY), windows)
 	$(V1) $(MKDIR) "$(GTEST_DIR)"
 	$(V1) unzip -q -d "$(TOOLS_DIR)" "$(DL_DIR)/$(GTEST_FILE)"
 else
-	$(V1) curl --continue - --location --insecure --output "$(DL_DIR)/$(GTEST_FILE)" "$(GTEST_URL)"
+	$(V1) curl -C - --location --insecure --output "$(DL_DIR)/$(GTEST_FILE)" "$(GTEST_URL)"
 	$(V1) powershell -noprofile -command Expand-Archive -DestinationPath $(GTEST_DIR) -LiteralPath "$(DL_DIR)/$(GTEST_FILE)"
 endif
 
@@ -241,6 +241,5 @@ endif
 
 # Get the git branch name, commit hash, and clean/dirty state
 GIT_BRANCH_NAME := $(shell git rev-parse --abbrev-ref HEAD)
-GIT_COMMIT_HASH := $(shell git rev-parse --short HEAD)
+GIT_COMMIT_HASH := $(shell git rev-parse HEAD)
 GIT_DIRTY_LABEL := $(shell git diff --quiet || echo -dirty)
-

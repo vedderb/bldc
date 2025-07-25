@@ -38,10 +38,13 @@ static int m_mcconf_highest = 0;
 static int m_appconf_highest = 0;
 
 static uint8_t packet_buffer[PACKET_MAX_PL_LEN];
+static uint8_t lbm_packet_buffer[PACKET_MAX_PL_LEN];
 static mutex_t packet_buffer_mutex;
+static mutex_t lbm_packet_buffer_mutex;
 
 void mempools_init(void) {
 	chMtxObjectInit(&packet_buffer_mutex);
+	chMtxObjectInit(&lbm_packet_buffer_mutex);
 }
 
 mc_configuration *mempools_alloc_mcconf(void) {
@@ -127,8 +130,15 @@ uint8_t *mempools_get_packet_buffer(void) {
 	return packet_buffer;
 }
 
+uint8_t *mempools_get_lbm_packet_buffer(void) {
+	chMtxLock(&lbm_packet_buffer_mutex);
+	return lbm_packet_buffer;
+}
+
 void mempools_free_packet_buffer(uint8_t *buffer) {
 	if (buffer == packet_buffer) {
 		chMtxUnlock(&packet_buffer_mutex);
+	} else if (buffer == lbm_packet_buffer) {
+		chMtxUnlock(&lbm_packet_buffer_mutex);
 	}
 }

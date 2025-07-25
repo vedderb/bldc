@@ -76,7 +76,8 @@ typedef enum {
 typedef enum {
 	FOC_CURRENT_SAMPLE_MODE_LONGEST_ZERO = 0,
 	FOC_CURRENT_SAMPLE_MODE_ALL_SENSORS,
-	FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT
+	FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT,
+ 	FOC_CURRENT_SAMPLE_MODE_BEST_SENSOR // Experimental, not used!
 } mc_foc_current_sample_mode;
 
 // Auxiliary output mode
@@ -132,6 +133,12 @@ typedef enum {
 	FOC_OBSERVER_MXV_LAMBDA_COMP,
 	FOC_OBSERVER_MXV_LAMBDA_COMP_LIN,
 } mc_foc_observer_type;
+
+typedef enum {
+	FOC_AMB_MODE_SIX_VECTOR = 0,
+	FOC_AMB_MODE_D_SINGLE_PULSE,
+	FOC_AMB_MODE_D_DOUBLE_PULSE
+} mc_foc_hfi_amb_mode;
 
 typedef enum {
 	FAULT_CODE_NONE = 0,
@@ -205,6 +212,8 @@ typedef enum {
 	SENSOR_PORT_MODE_TLE5012_SSC_SW,
 	SENSOR_PORT_MODE_TLE5012_SSC_HW,
 	SENSOR_PORT_MODE_CUSTOM_ENCODER,
+	SENSOR_PORT_MODE_PWM,
+	SENSOR_PORT_MODE_PWM_ABI,
 } sensor_port_mode;
 
 typedef struct {
@@ -245,7 +254,8 @@ typedef enum {
 	CAN_BAUD_20K,
 	CAN_BAUD_50K,
 	CAN_BAUD_75K,
-	CAN_BAUD_100K
+	CAN_BAUD_100K,
+	CAN_BAUD_INVALID = 255,
 } CAN_BAUD;
 
 typedef enum {
@@ -287,6 +297,7 @@ typedef struct {
 
 #define BMS_MAX_CELLS	50
 #define BMS_MAX_TEMPS	50
+#define BMS_STATUS_LEN	41
 
 typedef struct {
 	float v_tot;
@@ -305,6 +316,8 @@ typedef struct {
 	float pressure;
 	float hum;
 	float temp_max_cell;
+	float v_cell_min;
+	float v_cell_max;
 	float soc;
 	float soh;
 	int can_id;
@@ -312,6 +325,11 @@ typedef struct {
 	float wh_cnt_chg_total;
 	float ah_cnt_dis_total;
 	float wh_cnt_dis_total;
+	int is_charging;
+	int is_balancing;
+	int is_charge_allowed;
+	int data_version;
+	char status[BMS_STATUS_LEN];
 	systime_t update_time;
 } bms_values;
 
@@ -326,6 +344,7 @@ typedef struct {
 	bool is_charging;
 	bool is_balancing;
 	bool is_charge_allowed;
+	int data_version;
 } bms_soc_soh_temp_stat;
 
 typedef enum {
@@ -466,6 +485,9 @@ typedef struct {
 	float foc_current_filter_const;
 	mc_foc_cc_decoupling_mode foc_cc_decoupling;
 	mc_foc_observer_type foc_observer_type;
+	mc_foc_hfi_amb_mode foc_hfi_amb_mode;
+	float foc_hfi_amb_current;
+	uint8_t foc_hfi_amb_tres;
 	float foc_hfi_voltage_start;
 	float foc_hfi_voltage_run;
 	float foc_hfi_voltage_max;
@@ -476,7 +498,7 @@ typedef struct {
 	uint16_t foc_hfi_start_samples;
 	float foc_hfi_obs_ovr_sec;
 	foc_hfi_samples foc_hfi_samples;
-	bool foc_offsets_cal_on_boot;
+	uint8_t foc_offsets_cal_mode;
 	float foc_offsets_current[3];
 	float foc_offsets_voltage[3];
 	float foc_offsets_voltage_undriven[3];
@@ -491,6 +513,7 @@ typedef struct {
 	float foc_fw_q_current_factor;
 	FOC_SPEED_SRC foc_speed_soure;
 	bool foc_short_ls_on_zero_duty;
+	float foc_overmod_factor;
 
 	PID_RATE sp_pid_loop_rate;
 
@@ -1099,6 +1122,12 @@ typedef enum {
 	//COMM_PINLOCK3							= 155,
 
 	COMM_SHUTDOWN							= 156,
+	
+	COMM_FW_INFO							= 157,
+
+	COMM_CAN_UPDATE_BAUD_ALL				= 158,
+
+	COMM_MOTOR_ESTOP						= 159,
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -1166,6 +1195,12 @@ typedef enum {
 	CAN_PACKET_GNSS_LAT						= 60,
 	CAN_PACKET_GNSS_LON						= 61,
 	CAN_PACKET_GNSS_ALT_SPEED_HDOP			= 62,
+	CAN_PACKET_UPDATE_BAUD					= 63,
+	CAN_PACKET_BMS_STATUS_1					= 64,
+	CAN_PACKET_BMS_STATUS_2					= 65,
+	CAN_PACKET_BMS_STATUS_3					= 66,
+	CAN_PACKET_BMS_STATUS_4					= 67,
+	CAN_PACKET_BMS_STATUS_5					= 68,
 	CAN_PACKET_MAKE_ENUM_32_BITS = 0xFFFFFFFF,
 } CAN_PACKET_ID;
 
@@ -1367,7 +1402,7 @@ typedef union {
 } eeprom_var;
 
 #define EEPROM_VARS_HW			32
-#define EEPROM_VARS_CUSTOM		128
+#define EEPROM_VARS_CUSTOM		256
 
 typedef struct {
 	float ah_tot;

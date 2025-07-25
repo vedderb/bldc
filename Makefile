@@ -94,10 +94,14 @@ help:
 	@echo "   [Firmware]"
 	@echo "     fw   - Build firmware for default target"
 	@echo "                            supported boards are: $(ALL_BOARD_NAMES)"
-	@echo "     fw_<board>   - Build firmware for target <board>"
-	@echo "     PROJECT=<target> fw   - Build firmware for <target>"
+	@echo "     fw_<board>           - Build firmware for target <board>"
+	@echo "     PROJECT=<target> fw  - Build firmware for <target>"
 	@echo "     fw_<board>_clean     - Remove firmware for <board>"
 	@echo "     fw_<board>_flash     - Use OpenOCD + SWD/JTAG to write firmware to <target>"
+	@echo ""
+	@echo "     fw_custom            - Build firmware with custom hwconf file locations, you must specify these by setting the HW_SRC and HW_HEADER variables"
+	@echo "     fw_custom_clean      - Remove firmware for custom"
+	@echo "     fw_custom_flash      - Use OpenOCD + SWD/JTAG to write firmware to custom"
 	@echo ""
 	@echo "   Hint: Add V=1 to your command line to see verbose build output."
 	@echo ""
@@ -118,19 +122,20 @@ $(TOOLS_DIR):
 #
 ##############################
 
-# $(1) = Canonical board name all in lower case (e.g. 100_250)
-# $(2) = Target hardware directory
+# $(1) = destination variable
+# $(2) = Canonical board name all in lower case (e.g. 100_250)
+# $(3) = Target hardware directory
 define FIND_TARGET_C_CODE
    # Remove `_no_limits`
-   $(eval ROOT_TARGET_NAME = $(subst _no_limits,,$(1)))
+   $(eval ROOT_TARGET_NAME = $(subst _no_limits,,$(2)))
 
    # Look for `*_core.c` file
-   ifneq ("$(wildcard $(2)/hw_*_core.c)","")
+   ifneq ("$(wildcard $(3)/hw_*_core.c)","")
       # Good luck, there it is!
-      HW_SRC_FILE = $(wildcard $(2)/hw_*_core.c)
+      $(1) = $(realpath $(wildcard $(3)/hw_*_core.c))
    else
       # There isn't one, so let's hope for the sister `.c` file
-      HW_SRC_FILE = $(2)/hw_$(ROOT_TARGET_NAME).c
+      $(1) = $(realpath $(3)/hw_$(ROOT_TARGET_NAME).c)
    endif
 
 endef
@@ -141,13 +146,33 @@ endef
 # $(4) = git branch name
 # $(5) = git hash (and dirty flag)
 # $(6) = compiler version
+# $(7) [optional] = hw source filepath
+# $(8) [optional] = hw header filepath (must be given/not given if $(7) is given/not given)
 define FW_TEMPLATE
 .PHONY: $(1) fw_$(1)
 $(1): fw_$(1)_vescfw
 fw_$(1): fw_$(1)_vescfw
 
-fw_$(1)_vescfw: $(eval HW_DIR = $(dir $(filter %/hw_$(1).h, $(TARGET_PATHS))))  # Find the directory for this header file
-fw_$(1)_vescfw: $(eval HW_SRC_FILE = $(call FIND_TARGET_C_CODE,$(1),$(HW_DIR)))  # Find the c code associated to this header file
+ifeq ($(7),)
+  $(1)_HW_DIR = $(dir $(filter %/hw_$(1).h, $(TARGET_PATHS)))
+  $(1)_HW_HEADER = $$($(1)_HW_DIR)/hw_$(1).h
+  
+  $$(eval $$(call FIND_TARGET_C_CODE,$(1)_HW_SRC_FILE,$(1),$$($(1)_HW_DIR)))
+else
+  $(1)_HW_SRC_FILE = $(7)
+  $(1)_HW_HEADER = $(8)
+endif
+
+$(1)_BUILD_MACROS = -DHW_SOURCE=\"$$($(1)_HW_SRC_FILE)\" -DHW_HEADER=\"$$($(1)_HW_HEADER)\" -DGIT_BRANCH_NAME=\"$(4)\" -DGIT_COMMIT_HASH=\"$(5)\" -DARM_GCC_VERSION=\"$(6)\"
+ifdef USER_GIT_COMMIT_HASH
+  $(1)_BUILD_MACROS += -DUSER_GIT_COMMIT_HASH=\"$(USER_GIT_COMMIT_HASH)\"
+endif
+ifdef USER_GIT_BRANCH_NAME
+  $(1)_BUILD_MACROS += -DUSER_GIT_BRANCH_NAME=\"$(USER_GIT_BRANCH_NAME)\"
+endif
+
+fw_$(1)_vescfw: $$($(1)_HW_DIR)
+fw_$(1)_vescfw: $$($(1)_HW_SRC_FILE)
 fw_$(1)_vescfw:
 	@echo "********* BUILD: $(1) **********"
 	$(V1) $(MKDIR) $(BUILD_DIR)/$(1)
@@ -155,7 +180,7 @@ fw_$(1)_vescfw:
 		TCHAIN_PREFIX="$(ARM_SDK_PREFIX)" \
 		BUILDDIR="$(2)" \
 		PROJECT="$(3)" \
-		build_args='-DHW_SOURCE=\"$(HW_SRC_FILE)\" -DHW_HEADER=\"$(HW_DIR)/hw_$(1).h\" -DGIT_BRANCH_NAME=\"$(4)\" -DGIT_COMMIT_HASH=\"$(5)\" -DARM_GCC_VERSION=\"$(6)\"' USE_VERBOSE_COMPILE=no
+		build_args='$$($(1)_BUILD_MACROS)' USE_VERBOSE_COMPILE=no
 
 $(1)_flash: fw_$(1)_flash
 fw_$(1)_flash: fw_$(1)_vescfw fw_$(1)_flash_only
@@ -183,6 +208,9 @@ endef
 clear_option_bytes:
 	$(V1) openocd -f board/stm32f4discovery.cfg -c "init" -c "stm32f2x unlock 0" -c "mww 0x40023C08 0x08192A3B; mww 0x40023C08 0x4C5D6E7F; mww 0x40023C14 0x0fffaaed" -c "exit"
 
+erase_flash:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "stm32f2x mass_erase 0" -c "reset" -c "exit"
+
 #program with olimex arm-usb-tiny-h and jtag-swd adapter board. needs openocd>=0.9
 upload-olimex: fw
 	$(V1) openocd -f interface/ftdi/olimex-arm-usb-tiny-h.cfg -f interface/ftdi/olimex-arm-jtag-swd.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x.cfg -c "program build/$(PROJECT).elf verify reset"
@@ -199,6 +227,24 @@ debug-start:
 size: build/$(PROJECT).elf
 	@$(SZ) $<
 
+read_lbm_image:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "flash read_bank 0 001_lbm_image.bin 0x80000 0x20000" -c "reset" -c "exit"
+
+read_lbm_code:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "flash read_bank 0 001_lbm_code.bin 0xC0000 0x20000" -c "reset" -c "exit"
+
+erase_lbm_image:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "flash erase_sector 0 8 8" -c "reset" -c "exit"
+
+erase_lbm_code:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "flash erase_sector 0 10 10" -c "reset" -c "exit"
+
+read_qml:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "flash read_bank 0 001_qml.bin 0xA0000 0x20000" -c "reset" -c "exit"
+
+erase_qml:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "init" -c "reset halt" -c "flash erase_sector 0 9 9" -c "reset" -c "exit"
+
 # Generate the targets for whatever boards are in each list
 FW_TARGETS := $(addprefix fw_, $(ALL_BOARD_NAMES))
 
@@ -207,8 +253,19 @@ all_fw:        $(addsuffix _vescfw, $(FW_TARGETS))
 all_fw_clean:  $(addsuffix _clean,  $(FW_TARGETS))
 
 # Expand the firmware rules
-$(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_DIR)/$(board),$(board),$(GIT_BRANCH_NAME),$(GIT_COMMIT_HASH)$(GIT_DIRTY_LABEL),$(ARM_GCC_VERSION))))
+$(foreach board, $(ALL_BOARD_NAMES), $(eval $(call FW_TEMPLATE,$(board),$(BUILD_DIR)/$(board),$(board),$(GIT_BRANCH_NAME),$(GIT_COMMIT_HASH)$(GIT_DIRTY_LABEL),$(ARM_GCC_VERSION),,)))
 
+.PHONY: fw_custom fw_custom_check
+
+ifndef HW_SRC
+fw_custom_check:
+	$(error "HW_SRC not defined: you must set HW_SRC and HW_HEADER to build fw_custom")
+else ifndef HW_HEADER
+fw_custom_check:
+	$(error "HW_HEADER not defined: you must set HW_SRC and HW_HEADER to build fw_custom")
+endif
+fw_custom: fw_custom_check
+$(eval $(call FW_TEMPLATE,custom,$(BUILD_DIR)/custom,custom,$(GIT_BRANCH_NAME),$(GIT_COMMIT_HASH)$(GIT_DIRTY_LABEL),$(ARM_GCC_VERSION),$(HW_SRC),$(HW_HEADER)))
 
 ##############################
 #

@@ -242,7 +242,7 @@ void foc_pll_run(float phase, float dt, float *phase_var,
  * @param tBout PWM duty cycle phase B
  * @param tCout PWM duty cycle phase C
  */
-void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
+void foc_svm(float alpha, float beta, float max_mod, uint32_t PWMFullDutyCycle,
 				uint32_t* tAout, uint32_t* tBout, uint32_t* tCout, uint32_t *svm_sector) {
 	uint32_t sector;
 
@@ -281,15 +281,15 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	}
 
 	// PWM timings
-	uint32_t tA, tB, tC;
+	int tA, tB, tC;
 
 	switch (sector) {
 
 	// sector 1-2
 	case 1: {
 		// Vector on-times
-		uint32_t t1 = (alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
-		uint32_t t2 = (TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		int t1 = (alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		int t2 = (TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
 
 		// PWM timings
 		tA = (PWMFullDutyCycle + t1 + t2) / 2;
@@ -302,8 +302,8 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	// sector 2-3
 	case 2: {
 		// Vector on-times
-		uint32_t t2 = (alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
-		uint32_t t3 = (-alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		int t2 = (alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		int t3 = (-alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
 
 		// PWM timings
 		tB = (PWMFullDutyCycle + t2 + t3) / 2;
@@ -316,8 +316,8 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	// sector 3-4
 	case 3: {
 		// Vector on-times
-		uint32_t t3 = (TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
-		uint32_t t4 = (-alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		int t3 = (TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		int t4 = (-alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
 
 		// PWM timings
 		tB = (PWMFullDutyCycle + t3 + t4) / 2;
@@ -330,8 +330,8 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	// sector 4-5
 	case 4: {
 		// Vector on-times
-		uint32_t t4 = (-alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
-		uint32_t t5 = (-TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		int t4 = (-alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		int t5 = (-TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
 
 		// PWM timings
 		tC = (PWMFullDutyCycle + t4 + t5) / 2;
@@ -344,8 +344,8 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	// sector 5-6
 	case 5: {
 		// Vector on-times
-		uint32_t t5 = (-alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
-		uint32_t t6 = (alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		int t5 = (-alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		int t6 = (alpha - ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
 
 		// PWM timings
 		tC = (PWMFullDutyCycle + t5 + t6) / 2;
@@ -358,8 +358,8 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 	// sector 6-1
 	case 6: {
 		// Vector on-times
-		uint32_t t6 = (-TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
-		uint32_t t1 = (alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		int t6 = (-TWO_BY_SQRT3 * beta) * PWMFullDutyCycle;
+		int t1 = (alpha + ONE_BY_SQRT3 * beta) * PWMFullDutyCycle;
 
 		// PWM timings
 		tA = (PWMFullDutyCycle + t6 + t1) / 2;
@@ -369,6 +369,11 @@ void foc_svm(float alpha, float beta, uint32_t PWMFullDutyCycle,
 		break;
 	}
 	}
+
+	int t_max = PWMFullDutyCycle * (1.0 - (1.0 - max_mod) * 0.5);
+	utils_truncate_number_int(&tA, 0, t_max);
+	utils_truncate_number_int(&tB, 0, t_max);
+	utils_truncate_number_int(&tC, 0, t_max);
 
 	*tAout = tA;
 	*tBout = tB;
@@ -757,4 +762,5 @@ void foc_precalc_values(motor_all_state_t *motor) {
 	motor->p_inv_ld_lq = (1.0 / motor->p_lq - 1.0 / motor->p_ld);
 	motor->p_v2_v3_inv_avg_half = (0.5 / motor->p_lq + 0.5 / motor->p_ld) * 0.9; // With the 0.9 we undo the adjustment from the detection
 	motor->m_observer_state.lambda_est = conf_now->foc_motor_flux_linkage;
+	motor->p_duty_norm = TWO_BY_SQRT3 / conf_now->foc_overmod_factor;
 }

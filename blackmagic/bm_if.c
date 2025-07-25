@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "bm_if.h"
@@ -696,5 +695,3 @@ void bm_default_swd_pins(void) {
 	platform_swclk_port = SWCLK_PORT_DEFAULT;
 	platform_swclk_pin = SWCLK_PIN_DEFAULT;
 }
-
-#pragma GCC pop_options

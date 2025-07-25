@@ -1,0 +1,654 @@
+------------------------------------------------------------
+Heap size: 1024
+Streaming source: no
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_take_iota_0.lisp
+Memory initialized.
+LBM Initialized
+Constants memory initialized
+Events initialized.
+Array extensions initialized.
+Math extensions initialized.
+String extensions initialized.
+Runtime extensions initialized.
+Matvec extensions initialized.
+Random extensions initialized.
+Loop extensions initialized.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Result check extension added.
+extension load extension added.
+LBM memory free: 3599 words, 28792 bytes 
+Wait for pause init
+Wait for pause init
+test_cid = 497
+Program loaded
+***   Error: out_of_memory
+***   In:    take
+***   After: 100
+
+
+   In context: 497
+   Current intermediate result: 100
+
+	Current local environment:
+
+
+	Current global environment:
+	iota = (closure (n) (range 0 n) nil)
+
+
+   Stack:
+     CONT[0]
+     CONT[0]
+     check
+     nil
+     nil
+     1u
+     CONT[5]
+     eq
+     nil
+     ((iota 100))
+     1u
+     CONT[5]
+     take
+     (0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 
+     100
+Thread 497 finished: out_of_memory
+experiment failed due to taking longer than 10 seconds
+------------------------------------------------------------
+Heap size: 1024
+Streaming source: no
+Incremental read: yes
+------------------------------------------------------------
+Opening file: tests/test_take_iota_0.lisp
+Memory initialized.
+LBM Initialized
+Constants memory initialized
+Events initialized.
+Array extensions initialized.
+Math extensions initialized.
+String extensions initialized.
+Runtime extensions initialized.
+Matvec extensions initialized.
+Random extensions initialized.
+Loop extensions initialized.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Result check extension added.
+extension load extension added.
+LBM memory free: 3599 words, 28792 bytes 
+Wait for pause init
+Wait for pause init
+test_cid = 497
+Program loaded
+***   Error: out_of_memory
+***   In:    take
+***   After: 100
+
+
+   In context: 497
+   Current intermediate result: 100
+
+	Current local environment:
+
+
+	Current global environment:
+	iota = (closure (n) (range 0 n) nil)
+
+
+   Stack:
+     CONT[0]
+     0u
+     ~CHANNEL~
+     CONT[20]
+     ~CHANNEL~
+     nil
+     CONT[17]
+     ~CHANNEL~
+     1u
+     CONT[15]
+     check
+     nil
+     nil
+     1u
+     CONT[5]
+     eq
+     nil
+     ((iota 100))
+     1u
+     CONT[5]
+     take
+     (0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 
+     100
+Thread 497 finished: out_of_memory
+experiment failed due to taking longer than 10 seconds
+------------------------------------------------------------
+Heap size: 1024
+Streaming source: yes
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_take_iota_0.lisp
+Memory initialized.
+LBM Initialized
+Constants memory initialized
+Events initialized.
+Array extensions initialized.
+Math extensions initialized.
+String extensions initialized.
+Runtime extensions initialized.
+Matvec extensions initialized.
+Random extensions initialized.
+Loop extensions initialized.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Result check extension added.
+extension load extension added.
+LBM memory free: 3599 words, 28792 bytes 
+Wait for pause init
+Wait for pause init
+test_cid = 497
+Program loaded
+***   Error: out_of_memory
+***   In:    take
+***   After: 100
+
+
+   In context: 497
+   Current intermediate result: 100
+
+	Current local environment:
+
+
+	Current global environment:
+	iota = (closure (n) (range 0 n) nil)
+
+
+   Stack:
+     CONT[0]
+     CONT[0]
+     check
+     nil
+     nil
+     1u
+     CONT[5]
+     eq
+     nil
+     ((iota 100))
+     1u
+     CONT[5]
+     take
+     (0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 
+     100
+Thread 497 finished: out_of_memory
+experiment failed due to taking longer than 10 seconds
+------------------------------------------------------------
+Heap size: 1024
+Streaming source: yes
+Incremental read: yes
+------------------------------------------------------------
+Opening file: tests/test_take_iota_0.lisp
+Memory initialized.
+LBM Initialized
+Constants memory initialized
+Events initialized.
+Array extensions initialized.
+Math extensions initialized.
+String extensions initialized.
+Runtime extensions initialized.
+Matvec extensions initialized.
+Random extensions initialized.
+Loop extensions initialized.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Result check extension added.
+extension load extension added.
+LBM memory free: 3599 words, 28792 bytes 
+Wait for pause init
+Wait for pause init
+test_cid = 497
+Program loaded
+***   Error: out_of_memory
+***   In:    take
+***   After: 100
+
+
+   In context: 497
+   Current intermediate result: 100
+
+	Current local environment:
+
+
+	Current global environment:
+	iota = (closure (n) (range 0 n) nil)
+
+
+   Stack:
+     CONT[0]
+     0u
+     ~CHANNEL~
+     CONT[20]
+     ~CHANNEL~
+     nil
+     CONT[17]
+     ~CHANNEL~
+     1u
+     CONT[15]
+     check
+     nil
+     nil
+     1u
+     CONT[5]
+     eq
+     nil
+     ((iota 100))
+     1u
+     CONT[5]
+     take
+     (0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 
+     100
+Thread 497 finished: out_of_memory
+experiment failed due to taking longer than 10 seconds
+------------------------------------------------------------
+Heap size: 512
+Streaming source: no
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_take_iota_0.lisp
+Memory initialized.
+LBM Initialized
+Constants memory initialized
+Events initialized.
+Array extensions initialized.
+Math extensions initialized.
+String extensions initialized.
+Runtime extensions initialized.
+Matvec extensions initialized.
+Random extensions initialized.
+Loop extensions initialized.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Result check extension added.
+extension load extension added.
+LBM memory free: 3599 words, 28792 bytes 
+Wait for pause init
+Wait for pause init
+test_cid = 497
+Program loaded
+***   Error: out_of_memory
+***   In:    range
+***   After: n
+
+
+   In context: 497
+   Current intermediate result: n
+
+	Current local environment:
+	n = 1000
+
+
+	Current global environment:
+	iota = (closure (n) (range 0 n) nil)
+
+
+   Stack:
+     CONT[0]
+     CONT[0]
+     check
+     nil
+     nil
+     1u
+     CONT[5]
+     eq
+     nil
+     ((iota 100))
+     1u
+     CONT[5]
+     take
+     nil
+     (100)
+     1u
+     CONT[5]
+     range
+     0
+     1000
+Thread 497 finished: out_of_memory
+experiment failed due to taking longer than 10 seconds
+------------------------------------------------------------
+Heap size: 512
+Streaming source: no
+Incremental read: yes
+------------------------------------------------------------
+Opening file: tests/test_take_iota_0.lisp
+Memory initialized.
+LBM Initialized
+Constants memory initialized
+Events initialized.
+Array extensions initialized.
+Math extensions initialized.
+String extensions initialized.
+Runtime extensions initialized.
+Matvec extensions initialized.
+Random extensions initialized.
+Loop extensions initialized.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Result check extension added.
+extension load extension added.
+LBM memory free: 3599 words, 28792 bytes 
+Wait for pause init
+Wait for pause init
+test_cid = 497
+Program loaded
+***   Error: out_of_memory
+***   In:    range
+***   After: n
+
+
+   In context: 497
+   Current intermediate result: n
+
+	Current local environment:
+	n = 1000
+
+
+	Current global environment:
+	iota = (closure (n) (range 0 n) nil)
+
+
+   Stack:
+     CONT[0]
+     0u
+     ~CHANNEL~
+     CONT[20]
+     ~CHANNEL~
+     nil
+     CONT[17]
+     ~CHANNEL~
+     1u
+     CONT[15]
+     check
+     nil
+     nil
+     1u
+     CONT[5]
+     eq
+     nil
+     ((iota 100))
+     1u
+     CONT[5]
+     take
+     nil
+     (100)
+     1u
+     CONT[5]
+     range
+     0
+     1000
+Thread 497 finished: out_of_memory
+experiment failed due to taking longer than 10 seconds
+------------------------------------------------------------
+Heap size: 512
+Streaming source: yes
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_block_unblock_2.lisp
+Memory initialized.
+LBM Initialized
+Constants memory initialized
+Events initialized.
+Array extensions initialized.
+Math extensions initialized.
+String extensions initialized.
+Runtime extensions initialized.
+Matvec extensions initialized.
+Random extensions initialized.
+Loop extensions initialized.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Result check extension added.
+extension load extension added.
+LBM memory free: 3599 words, 28792 bytes 
+Wait for pause init
+Wait for pause init
+test_cid = 497
+Program loaded
+experiment failed due to taking longer than 10 seconds
+------------------------------------------------------------
+Heap size: 512
+Streaming source: yes
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_take_iota_0.lisp
+Memory initialized.
+LBM Initialized
+Constants memory initialized
+Events initialized.
+Array extensions initialized.
+Math extensions initialized.
+String extensions initialized.
+Runtime extensions initialized.
+Matvec extensions initialized.
+Random extensions initialized.
+Loop extensions initialized.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Result check extension added.
+extension load extension added.
+LBM memory free: 3599 words, 28792 bytes 
+Wait for pause init
+Wait for pause init
+test_cid = 497
+Program loaded
+***   Error: out_of_memory
+***   In:    range
+***   After: n
+
+
+   In context: 497
+   Current intermediate result: n
+
+	Current local environment:
+	n = 1000
+
+
+	Current global environment:
+	iota = (closure (n) (range 0 n) nil)
+
+
+   Stack:
+     CONT[0]
+     CONT[0]
+     check
+     nil
+     nil
+     1u
+     CONT[5]
+     eq
+     nil
+     ((iota 100))
+     1u
+     CONT[5]
+     take
+     nil
+     (100)
+     1u
+     CONT[5]
+     range
+     0
+     1000
+Thread 497 finished: out_of_memory
+experiment failed due to taking longer than 10 seconds
+------------------------------------------------------------
+Heap size: 512
+Streaming source: yes
+Incremental read: yes
+------------------------------------------------------------
+Opening file: tests/test_take_iota_0.lisp
+Memory initialized.
+LBM Initialized
+Constants memory initialized
+Events initialized.
+Array extensions initialized.
+Math extensions initialized.
+String extensions initialized.
+Runtime extensions initialized.
+Matvec extensions initialized.
+Random extensions initialized.
+Loop extensions initialized.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Extension added.
+Result check extension added.
+extension load extension added.
+LBM memory free: 3599 words, 28792 bytes 
+Wait for pause init
+Wait for pause init
+test_cid = 497
+Program loaded
+***   Error: out_of_memory
+***   In:    range
+***   After: n
+
+
+   In context: 497
+   Current intermediate result: n
+
+	Current local environment:
+	n = 1000
+
+
+	Current global environment:
+	iota = (closure (n) (range 0 n) nil)
+
+
+   Stack:
+     CONT[0]
+     0u
+     ~CHANNEL~
+     CONT[20]
+     ~CHANNEL~
+     nil
+     CONT[17]
+     ~CHANNEL~
+     1u
+     CONT[15]
+     check
+     nil
+     nil
+     1u
+     CONT[5]
+     eq
+     nil
+     ((iota 100))
+     1u
+     CONT[5]
+     take
+     nil
+     (100)
+     1u
+     CONT[5]
+     range
+     0
+     1000
+Thread 497 finished: out_of_memory
+experiment failed due to taking longer than 10 seconds

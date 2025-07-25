@@ -23,7 +23,6 @@
 #include "conf_general.h"
 #include "utils.h"
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 // Settings
@@ -77,9 +76,9 @@ void pwm_servo_init_servo(void) {
 void pwm_servo_stop(void) {
 	if (m_is_running) {
 		palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT);
+		TIM_DeInit(HW_ICU_TIMER);
 	}
 
-	TIM_DeInit(HW_ICU_TIMER);
 	m_is_running = false;
 }
 
@@ -122,5 +121,3 @@ void pwm_servo_set_servo_out(float output) {
 bool pwm_servo_is_running(void) {
 	return m_is_running;
 }
-
-#pragma GCC pop_options

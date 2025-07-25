@@ -21,7 +21,6 @@
  * the device, providing the XML memory map and Flash memory programming.
  */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "general.h"
@@ -449,5 +448,3 @@ static bool nrf51_mdm_cmd_erase_mass(target *t)
 	// should we return the prot status here?
 	return true;
 }
-
-#pragma GCC pop_options

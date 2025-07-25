@@ -1,5 +1,5 @@
 /*
-    Copyright 2019, 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2019, 2021, 2024 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,22 +22,43 @@
 #include "stack.h"
 #include "print.h"
 
-int lbm_stack_allocate(lbm_stack_t *s, lbm_uint stack_size) {
-  s->data = lbm_memory_allocate(stack_size);
-  s->sp = 0;
-  s->size = stack_size;
-  s->max_sp = 0;
+#define STACK_UNUSED_BYTE 0x55
+#ifndef LBM64
+#define STACK_UNUSED_WORD 0x55555555
+#else
+#define STACK_UNUSED_WORD 0x5555555555555555
+#endif
 
-  if (s->data) return 1;
-  return 0;
+int lbm_stack_allocate(lbm_stack_t *s, lbm_uint stack_size) {
+  int r = 0;
+  s->data = lbm_memory_allocate(stack_size);
+  if (s->data) {
+    memset(s->data, STACK_UNUSED_BYTE, stack_size * sizeof(lbm_uint));
+    s->sp = 0;
+    s->size = stack_size;
+    r = 1;
+  }
+  return r;
 }
 
-int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, lbm_uint size) {
+int lbm_stack_create(lbm_stack_t *s, lbm_uint* data, lbm_uint stack_size) {
   s->data = data;
+  memset(s->data, STACK_UNUSED_BYTE, stack_size * sizeof(lbm_uint));
   s->sp = 0;
-  s->size = size;
-  s->max_sp = 0;
+  s->size = stack_size;
   return 1;
+}
+
+lbm_uint lbm_get_max_stack(lbm_stack_t *s) {
+  lbm_uint unused = 0;
+  for (int i = (int)s->size-1 ; i >= 0; i --) {
+    if (s->data[i] == STACK_UNUSED_WORD) {
+      unused ++;
+    } else {
+      break;
+    }
+  }
+  return s->size - unused;
 }
 
 void lbm_stack_free(lbm_stack_t *s) {
@@ -50,12 +71,6 @@ void lbm_stack_clear(lbm_stack_t *s) {
   s->sp = 0;
 }
 
-lbm_uint *lbm_get_stack_ptr(lbm_stack_t *s, lbm_uint n) {
-  if (n > s->sp) return NULL;
-  lbm_uint index = s->sp - n;
-  return &s->data[index];
-}
-
 int lbm_stack_drop(lbm_stack_t *s, lbm_uint n) {
 
   if (n > s->sp) return 0;
@@ -64,23 +79,12 @@ int lbm_stack_drop(lbm_stack_t *s, lbm_uint n) {
   return 1;
 }
 
-lbm_uint *lbm_stack_reserve(lbm_stack_t *s, lbm_uint n) {
-
-  if (s->sp + n >= s->size) {
-    return NULL;
-  }
-  lbm_uint *ptr = &s->data[s->sp];
-  s->sp += n;
-  return ptr;
-}
-
 int lbm_push(lbm_stack_t *s, lbm_uint val) {
   int res = 1;
   if (s->sp == s->size) {
     return 0;
   }
   s->data[s->sp++] = val;
-  if (s->sp > s->max_sp) s->max_sp = s->sp;
   return res;
 }
 

@@ -53,7 +53,11 @@ extern lbm_extension_t *extension_table;
  * \param extension_storage_size Size of function pointer array.
  * \return 1 on success and 0 for failure
  */
-  int lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_storage_size);
+int lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_storage_size);
+/** Set the next index to be given out to the next added extension.
+ * \param i Next index.
+ */
+void lbm_extensions_set_next(lbm_uint i);
 /** The number of extensions that can be allocated.
  * \return The maximum number of extensions that can be added.
  */
@@ -130,6 +134,47 @@ bool lbm_check_argn_number(lbm_value *args, lbm_uint argn, lbm_uint n);
 
 lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn);
 
+// Extension writing helpers
+
+extern lbm_value make_list(int num, ...);
+extern bool strmatch(const char *str1, const char *str2);
+  
+static inline lbm_value mk_lam(lbm_value args, lbm_value body) {
+  return make_list(3, ENC_SYM_LAMBDA, args, body);
+}
+
+static inline lbm_value mk_call_cc(lbm_value body) {
+  return make_list(2, ENC_SYM_CALL_CC_UNSAFE, body);
+}
+
+static inline lbm_value mk_let(lbm_value bindings, lbm_value body) {
+  return make_list(3, ENC_SYM_LET, bindings, body);
+}
+
+static inline lbm_value mk_if(lbm_value cond, lbm_value tb, lbm_value fb) {
+  return make_list(4, ENC_SYM_IF, cond, tb, fb);
+}
+
+static inline lbm_value mk_inc(lbm_value v) {
+  return make_list(3, ENC_SYM_ADD, v, lbm_enc_i(1));
+}
+
+static inline lbm_value mk_lt(lbm_value a, lbm_value b) {
+  return make_list(3, ENC_SYM_LT, a, b);
+}
+
+static inline lbm_value mk_eq(lbm_value a, lbm_value b) {
+  return make_list(3, ENC_SYM_EQ, a, b);
+}
+
+static inline lbm_value mk_car(lbm_value a) {
+  return make_list(2, ENC_SYM_CAR, a);
+}
+
+static inline lbm_value mk_cdr(lbm_value a) {
+  return make_list(2, ENC_SYM_CDR, a);
+}
+  
 #ifdef __cplusplus
 }
 #endif

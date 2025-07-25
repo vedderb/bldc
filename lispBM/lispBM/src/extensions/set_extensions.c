@@ -1,5 +1,5 @@
 /*
-    Copyright 2024 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2024, 2025 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -20,35 +20,22 @@
 #include "extensions.h"
 #include "fundamental.h"
 
+#ifdef LBM_OPT_SET_EXTENSIONS_SIZE
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_SET_EXTENSIONS_SIZE_AGGRESSIVE
+#pragma GCC optimize ("-Oz")
+#endif
+
+
 #define ABORT_ON_MERROR(X) if ((X) == ENC_SYM_MERROR) return ENC_SYM_MERROR;
 
-static lbm_value ext_member(lbm_value *args, lbm_uint argn);
 static lbm_value ext_set_insert(lbm_value *args, lbm_uint argn);
 static lbm_value ext_set_union(lbm_value *args, lbm_uint argn);
 
-bool lbm_set_extensions_init(void) {
-  bool res = true;
-  res = res && lbm_add_extension("member", ext_member);
-  res = res && lbm_add_extension("set-insert", ext_set_insert);
-  res = res && lbm_add_extension("set-union", ext_set_union);
-  return res;
-}
-
-static lbm_value ext_member(lbm_value *args, lbm_uint argn) {
-  lbm_value res = ENC_SYM_TERROR;
-  if (argn == 2 && lbm_is_list(args[0])) {
-    res = ENC_SYM_NIL;
-    lbm_value curr = args[0];
-
-    while (lbm_is_cons(curr)) {
-      if (struct_eq(lbm_car(curr), args[1])) {
-        res = args[0];
-        break;
-      }
-      curr = lbm_cdr(curr);
-    }
-  }
-  return res;
+void lbm_set_extensions_init(void) {
+  lbm_add_extension("set-insert", ext_set_insert);
+  lbm_add_extension("set-union", ext_set_union);
 }
 
 static lbm_value set_insert(lbm_value set, lbm_value val) {

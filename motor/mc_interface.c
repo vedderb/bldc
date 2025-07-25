@@ -103,7 +103,9 @@ static volatile motor_if_state_t m_motor_2;
 #endif
 
 // Sampling variables
-#define ADC_SAMPLE_MAX_LEN		1600
+#ifndef ADC_SAMPLE_MAX_LEN
+#define ADC_SAMPLE_MAX_LEN		1000 // 20 byte per sample
+#endif
 __attribute__((section(".ram4"))) static volatile int16_t m_curr0_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int16_t m_curr1_samples[ADC_SAMPLE_MAX_LEN];
 __attribute__((section(".ram4"))) static volatile int16_t m_curr2_samples[ADC_SAMPLE_MAX_LEN];
@@ -127,6 +129,8 @@ static volatile int m_sample_trigger;
 static volatile float m_last_adc_duration_sample;
 static volatile bool m_sample_is_second_motor;
 static volatile gnss_data m_gnss = {0};
+static volatile bool m_wheel_speed_override = false;
+static volatile float m_wheel_speed_override_value = 0.0;
 
 typedef struct {
 	bool is_second_motor;
@@ -1598,13 +1602,17 @@ float mc_interface_get_battery_level(float *wh_left) {
  * Speed, in m/s
  */
 float mc_interface_get_speed(void) {
+	if (m_wheel_speed_override) {
+		return m_wheel_speed_override_value;
+	} else {
 #ifdef HW_HAS_WHEEL_SPEED_SENSOR
-	return hw_get_speed();
+		return hw_get_speed();
 #else
-	const volatile mc_configuration *conf = mc_interface_get_configuration();
-	const float rpm = mc_interface_get_rpm() / (conf->si_motor_poles / 2.0);
-	return (rpm / 60.0) * conf->si_wheel_diameter * M_PI / conf->si_gear_ratio;
+		const volatile mc_configuration *conf = mc_interface_get_configuration();
+		const float rpm = mc_interface_get_rpm() / (conf->si_motor_poles / 2.0);
+		return (rpm / 60.0) * conf->si_wheel_diameter * M_PI / conf->si_gear_ratio;
 #endif
+	}
 }
 
 /**
@@ -1633,6 +1641,11 @@ float mc_interface_get_distance_abs(void) {
 	const float tacho_scale = (conf->si_wheel_diameter * M_PI) / (3.0 * conf->si_motor_poles * conf->si_gear_ratio);
 	return mc_interface_get_tachometer_abs_value(false) * tacho_scale;
 #endif
+}
+
+void mc_interface_override_wheel_speed(bool ovr, float speed) {
+	m_wheel_speed_override = ovr;
+	m_wheel_speed_override_value = speed;
 }
 
 setup_values mc_interface_get_setup_values(void) {
@@ -1740,6 +1753,8 @@ bool mc_interface_wait_for_motor_release_both(float timeout) {
 		mc_interface_select_motor_thread(motor_last);
 		return false;
 	}
+
+	mc_interface_select_motor_thread(motor_last);
 
 	return true;
 }
@@ -2556,73 +2571,75 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 	update_override_limits(motor, &motor->m_conf);
 
 	// Update auxiliary output
-	switch (motor->m_conf.m_out_aux_mode) {
-	case OUT_AUX_MODE_UNUSED:
-		break;
+	if (is_motor_1) {
+		switch (motor->m_conf.m_out_aux_mode) {
+		case OUT_AUX_MODE_UNUSED:
+			break;
 
-	case OUT_AUX_MODE_OFF:
-		AUX_OFF();
-		break;
-
-	case OUT_AUX_MODE_ON_AFTER_2S:
-		if (chVTGetSystemTimeX() >= MS2ST(2000)) {
-			AUX_ON();
-		}
-		break;
-
-	case OUT_AUX_MODE_ON_AFTER_5S:
-		if (chVTGetSystemTimeX() >= MS2ST(5000)) {
-			AUX_ON();
-		}
-		break;
-
-	case OUT_AUX_MODE_ON_AFTER_10S:
-		if (chVTGetSystemTimeX() >= MS2ST(10000)) {
-			AUX_ON();
-		}
-		break;
-
-	case OUT_AUX_MODE_ON_WHEN_RUNNING:
-		if (mc_interface_get_state() == MC_STATE_RUNNING) {
-			AUX_ON();
-		} else {
+		case OUT_AUX_MODE_OFF:
 			AUX_OFF();
+			break;
+
+		case OUT_AUX_MODE_ON_AFTER_2S:
+			if (chVTGetSystemTimeX() >= MS2ST(2000)) {
+				AUX_ON();
+			}
+			break;
+
+		case OUT_AUX_MODE_ON_AFTER_5S:
+			if (chVTGetSystemTimeX() >= MS2ST(5000)) {
+				AUX_ON();
+			}
+			break;
+
+		case OUT_AUX_MODE_ON_AFTER_10S:
+			if (chVTGetSystemTimeX() >= MS2ST(10000)) {
+				AUX_ON();
+			}
+			break;
+
+		case OUT_AUX_MODE_ON_WHEN_RUNNING:
+			if (mc_interface_get_state() == MC_STATE_RUNNING) {
+				AUX_ON();
+			} else {
+				AUX_OFF();
+			}
+			break;
+
+		case OUT_AUX_MODE_ON_WHEN_NOT_RUNNING:
+			if (mc_interface_get_state() == MC_STATE_RUNNING) {
+				AUX_OFF();
+			} else {
+				AUX_ON();
+			}
+			break;
+
+		case OUT_AUX_MODE_MOTOR_50:
+			if (mc_interface_temp_motor_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
+			break;
+
+		case OUT_AUX_MODE_MOSFET_50:
+			if (mc_interface_temp_fet_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
+			break;
+
+		case OUT_AUX_MODE_MOTOR_70:
+			if (mc_interface_temp_motor_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
+			break;
+
+		case OUT_AUX_MODE_MOSFET_70:
+			if (mc_interface_temp_fet_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
+			break;
+
+		case OUT_AUX_MODE_MOTOR_MOSFET_50:
+			if (mc_interface_temp_motor_filtered() > 50.0 ||
+					mc_interface_temp_fet_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
+			break;
+
+		case OUT_AUX_MODE_MOTOR_MOSFET_70:
+			if (mc_interface_temp_motor_filtered() > 70.0 ||
+					mc_interface_temp_fet_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
+			break;
 		}
-		break;
-
-	case OUT_AUX_MODE_ON_WHEN_NOT_RUNNING:
-		if (mc_interface_get_state() == MC_STATE_RUNNING) {
-			AUX_OFF();
-		} else {
-			AUX_ON();
-		}
-		break;
-
-	case OUT_AUX_MODE_MOTOR_50:
-		if (mc_interface_temp_motor_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
-		break;
-
-	case OUT_AUX_MODE_MOSFET_50:
-		if (mc_interface_temp_fet_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
-		break;
-
-	case OUT_AUX_MODE_MOTOR_70:
-		if (mc_interface_temp_motor_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
-		break;
-
-	case OUT_AUX_MODE_MOSFET_70:
-		if (mc_interface_temp_fet_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
-		break;
-
-	case OUT_AUX_MODE_MOTOR_MOSFET_50:
-		if (mc_interface_temp_motor_filtered() > 50.0 ||
-				mc_interface_temp_fet_filtered() > 50.0) {AUX_ON();} else {AUX_OFF();}
-		break;
-
-	case OUT_AUX_MODE_MOTOR_MOSFET_70:
-		if (mc_interface_temp_motor_filtered() > 70.0 ||
-				mc_interface_temp_fet_filtered() > 70.0) {AUX_ON();} else {AUX_OFF();}
-		break;
 	}
 
 	encoder_check_faults(&motor->m_conf, !is_motor_1);

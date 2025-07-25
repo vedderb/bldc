@@ -1,5 +1,5 @@
 /*
-    Copyright 2022, 2023 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2022 - 2025 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,19 +24,69 @@
 extern "C" {
 #endif
 
+#define STR2(X) #X
+#define STR(X)  STR2(X)
+
 /** LBM major version */
-#define LBM_MAJOR_VERSION 0
+#define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 25
+#define LBM_MINOR_VERSION 32u
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 0
+#define LBM_PATCH_VERSION 0u
 
-#define LBM_VERSION_STRING "0.25.0"
-
+#define LBM_VERSION_STRING STR(LBM_MAJOR_VERSION) "." STR(LBM_MINOR_VERSION) "." STR(LBM_PATCH_VERSION)
 
 /*! \page changelog Changelog
+APR 14 2025: VERSION 0.32.0
+  - Fix image space calculation for flat value.
+  - Fix symbol numbering restoration after image boot.
+  - Initialize last_const_heap_ix to 0 in image_init.
+
+APR 9 2025: VERSION 0.31.0
+  - Fixes to resuming waiting for timeout.
+  - Built in identity operation.
+  - Buffers, arrays and structs can be allocated in DM.
+  - Time based scheduler added.
+  - Bugfix in create_binding_location.
+  - TTF library based on libschrift.
+  - "Lisp-images" runtime system images. (fastboot).
+  - Bugfix in setassoc.
+  - Pointer reversal algorithms for serialization and deserialization.
+
+JAN 19 2025: Version 0.30.0
+  - Loop macros and defun, defunret are part of LBM now.
+  - Added "unsafe" variant of callcc for efficiency in cases where it can be used.
+  - lbm_get_global_env_size function added.
+  - Error printing then "trapped" can be toggled.
+  - Added a defstruct functionality.
+  - Custom types are being phased out where not absolutely needed.
+  - Added mutex extensions.
+  - Bugfixes and refactorings for making static analysis happy.
+
+DEC 26 2024: Version 0.29.0
+  - Identity operation added
+  - Bugfix in recv-to.
+  - bugfix in is_printable_string.
+
+DEC 5 2024: Version 0.28.0
+  - Fixes bugs in recv-to (receive with timeout).
+  - Fixes crash when trying to read an empty buffer.
+  - Error message improvements.
+  - Display library character spacing when rendering upwards or downwards text (thanks r3n33).
+  - Changes to how memory usage statistics is collected.
+  - Pointer reversal GC now compatible with recent language additions.
+
+NOV 5 2024: Version 0.27.0
+  - A number of important bugfixes. A write out of bounds among the most important.
+  - Addition of integer division operation (By Rasmus S)
+  - A lot of refactoring for readability of code and reduce code complexity.
+  - A defragmentable memory (compactible memory area).
+  - Vesc interfacing in the LBM REPL.
+AUG 6 2024: Version 0.26.0
+  - Bugfix related to restargs.
+  - coverage report in relation to the unit tests.
 JUL 23 2024: Version 0.25.0
-  - Multiple bugfixes. 
+  - Multiple bugfixes.
   - Trap function on expressions.
   - Reference manual updates.
   - New String operations (Thanks Rasmus S)
@@ -45,7 +95,7 @@ JUL 23 2024: Version 0.25.0
 APR 28 2024: Version 0.24.0
   - Cleaning of lispbm repository. less to maintain.
   - Lots of improvements to documentation.
-  - lbm_memory optimization. 
+  - lbm_memory optimization.
 
 MAR 9 2024: Version 0.23.0
   - rest-args functionality added to function application of lambda defined function.
@@ -104,7 +154,7 @@ JUN 29 2023: version 0.15.0
   - Bug fix in reader.
   - Bug fix in dynamic load.
   - Bug fix in quasiquotation expansion.
-  - 
+  -
 
 JUN 8 2023: Version 0.14.0
   - wait-for that blocks code unless a flag is set.

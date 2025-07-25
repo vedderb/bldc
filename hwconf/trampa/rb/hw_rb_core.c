@@ -66,10 +66,12 @@ static lbm_value ext_rb_set_rear_light(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
-static void load_extensions(void) {
-	lbm_add_extension("rb-read-brake", ext_rb_read_brake);
-	lbm_add_extension("rb-set-front-light", ext_rb_set_front_light);
-	lbm_add_extension("rb-set-rear-light", ext_rb_set_rear_light);
+static void load_extensions(bool main_found) {
+	if (!main_found) {
+		lbm_add_extension("rb-read-brake", ext_rb_read_brake);
+		lbm_add_extension("rb-set-front-light", ext_rb_set_front_light);
+		lbm_add_extension("rb-set-rear-light", ext_rb_set_rear_light);
+	}
 }
 
 void hw_init_gpio(void) {

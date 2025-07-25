@@ -61,10 +61,10 @@
 #define V_REG					3.30
 #endif
 #ifndef VIN_R1
-#define VIN_R1					100000.0
+#define VIN_R1					105000.0
 #endif
 #ifndef VIN_R2
-#define VIN_R2					3160.0
+#define VIN_R2					3300.0
 #endif
 #ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN		20.0
@@ -176,6 +176,19 @@
 #define HW_ICU_GPIO_AF			GPIO_AF_TIM4
 #define HW_ICU_GPIO				GPIOB
 #define HW_ICU_PIN				6
+
+// I2C for EEPROM
+#define EEPROM_SDA_GPIO		GPIOC
+#define EEPROM_SDA_PIN		11
+#define EEPROM_SCL_GPIO		GPIOC
+#define EEPROM_SCL_PIN		12
+#define EEPROM_ADDR  		0x50
+
+// Lisp custom pins
+#define PIN_HW_1_GPIO 	GPIOC
+#define PIN_HW_1 		11
+#define PIN_HW_2_GPIO 	GPIOC
+#define PIN_HW_2 		12
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]

@@ -1,8 +1,6 @@
 
 ;; Promotion of byte type
 
-(defun apply (f x) (eval (cons f x)))
-
 (define a1 (eq (type-of (* 1b 1b)) type-char))
 (define a2 (eq (type-of (* 1b 1)) type-i))
 (define a3 (eq (type-of (* 1b 1u)) type-u))
