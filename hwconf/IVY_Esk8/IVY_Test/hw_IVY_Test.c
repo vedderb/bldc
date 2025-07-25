@@ -245,6 +245,7 @@ void hw_try_restore_i2c(void)
 	}
 }
 
+#ifndef HW_NO_SHUTDOWN_SWITCH
 bool hw_sample_shutdown_button(void)
 {
 	chMtxLock(&shutdown_mutex);
@@ -268,3 +269,45 @@ bool hw_sample_shutdown_button(void)
 
 	return (bt_diff > 0.12);
 }
+#else
+#define IN_CURRENT_SHUNT_RES (0.0005)
+#define IN_CURRENT_SHUNT_GAIN (20)
+static volatile float input_current_sensor_offset = 1.65;
+static volatile int16_t input_current_sensor_offset_samples = -1;
+static volatile uint32_t input_current_sensor_offset_sum = 0;
+
+float hw_read_input_current(void)
+{
+	return ((V_REG / 4095.0) / (IN_CURRENT_SHUNT_GAIN * IN_CURRENT_SHUNT_RES) *
+			((float)ADC_Value[ADC_IND_IN_CURR] - input_current_sensor_offset));
+}
+
+void hw_get_input_current_offset(void)
+{
+
+	if (input_current_sensor_offset_samples > -1)
+	{
+
+		if (input_current_sensor_offset_samples >= 100)
+		{
+			input_current_sensor_offset = (((float)input_current_sensor_offset_sum) /
+										   input_current_sensor_offset_samples) *
+										  (V_REG / 4095.0);
+			// Reset the sum and samples
+			input_current_sensor_offset_sum = 0;
+			input_current_sensor_offset_samples = -1;
+		}
+		else
+		{
+			input_current_sensor_offset_sum += ADC_Value[ADC_IND_IN_CURR];
+			input_current_sensor_offset_samples++;
+		}
+	}
+}
+
+void hw_start_input_current_sensor_offset_measurement(void)
+{
+	input_current_sensor_offset_samples = 0;
+	input_current_sensor_offset_sum = 0;
+}
+#endif

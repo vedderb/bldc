@@ -100,17 +100,21 @@
 #define CURRENT_FILTER_OFF() palClearPad(GPIOD, 2)
 #endif
 
-// // Shutdown pin
-// #define HW_SHUTDOWN_GPIO GPIOC
-// #define HW_SHUTDOWN_PIN 5
-// #define HW_SHUTDOWN_HOLD_ON() palSetPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
-// #define HW_SHUTDOWN_HOLD_OFF() palClearPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
-// #define HW_SAMPLE_SHUTDOWN() hw_sample_shutdown_button()
+#define HW_NO_SHUTDOWN_SWITCH
 
-// // Hold shutdown pin early to wake up on short pulses
-// #define HW_EARLY_INIT()                                                         \
-//     palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
-//     HW_SHUTDOWN_HOLD_ON();
+#ifndef HW_NO_SHUTDOWN_SWITCH
+// Shutdown pin
+#define HW_SHUTDOWN_GPIO GPIOC
+#define HW_SHUTDOWN_PIN 5
+#define HW_SHUTDOWN_HOLD_ON() palSetPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
+#define HW_SHUTDOWN_HOLD_OFF() palClearPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
+#define HW_SAMPLE_SHUTDOWN() hw_sample_shutdown_button()
+
+// Hold shutdown pin early to wake up on short pulses
+#define HW_EARLY_INIT()                                                         \
+    palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
+    HW_SHUTDOWN_HOLD_ON();
+#endif
 
 /*
  * ADC Vector
@@ -146,12 +150,16 @@
 #define ADC_IND_CURR1 3
 #define ADC_IND_CURR2 4
 #define ADC_IND_CURR3 5
-#define ADC_IND_VIN_SENS 11
 #define ADC_IND_EXT 6
 #define ADC_IND_EXT2 7
-#define ADC_IND_SHUTDOWN 10
 #define ADC_IND_TEMP_MOS 8
 #define ADC_IND_TEMP_MOTOR 9
+#ifndef HW_NO_SHUTDOWN_SWITCH
+#define ADC_IND_SHUTDOWN 10
+#else
+#define ADC_IND_IN_CURR 10
+#endif
+#define ADC_IND_VIN_SENS 11
 #define ADC_IND_VREFINT 12
 
 // ADC macros and settings
@@ -168,6 +176,14 @@
 
 // Input voltage
 #define GET_INPUT_VOLTAGE() ((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
+
+#ifdef HW_NO_SHUTDOWN_SWITCH
+// Input current
+#define HW_HAS_INPUT_CURRENT_SENSOR
+#define GET_INPUT_CURRENT() hw_read_input_current()
+#define GET_INPUT_CURRENT_OFFSET() hw_get_input_current_offset()
+#define MEASURE_INPUT_CURRENT_OFFSET() hw_start_input_current_sensor_offset_measurement()
+#endif
 
 // NTC Termistors
 // #define NTC_RES(adc_val) ((4095.0 * 10000.0) / adc_val - 10000.0)
@@ -279,5 +295,11 @@
 #define HW_LIM_TEMP_FET -40.0, 110.0
 
 // HW-specific functions
+#ifndef HW_NO_SHUTDOWN_SWITCH
 bool hw_sample_shutdown_button(void);
+#else
+float hw_read_input_current(void);
+void hw_get_input_current_offset(void);
+void hw_start_input_current_sensor_offset_measurement(void);
+#endif
 #endif /* HW_IVY_Test_H_ */
