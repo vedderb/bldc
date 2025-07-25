@@ -61,21 +61,21 @@
 #define MCCONF_DEFAULT_MOTOR_TYPE MOTOR_TYPE_FOC
 
 #define MCCONF_L_MAX_ABS_CURRENT 164.0 // The maximum absolute current above which a fault is generated
-#define MCCONF_L_IN_CURRENT_MAX 130.0  // Input current limit in Amperes (Upper)
-#define MCCONF_L_IN_CURRENT_MIN -130.0 // Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MAX 70.0   // Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MIN -70.0  // Input current limit in Amperes (Lower)
 
 #define MCCONF_FOC_F_ZV 30000.0
 #define MCCONF_FOC_CONTROL_SAMPLE_MODE FOC_CONTROL_SAMPLE_MODE_V0
 #define MCCONF_FOC_SAMPLE_V0_V7 false // Run control loop in both v0 and v7 (requires phase shunts)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC 1500.0
+#define HW_DEAD_TIME_NSEC 1000.0
 
 // HW properties
-#define HW_HAS_3_SHUNTS
-// #define HW_HAS_PHASE_SHUNTS
-// #define HW_HAS_PHASE_FILTERS
-// #define HW_HAS_CURR_FILTERS
+#define HW_HAS_3_SHUNTS // 三相电流采样
+// #define HW_HAS_PHASE_SHUNTS //相电流采样，禁用为低端测流
+// #define HW_HAS_PHASE_FILTERS //相电压滤波
+// #define HW_HAS_CURR_FILTERS //相电流滤波
 
 // Macros
 #define LED_GREEN_GPIO GPIOB
@@ -95,22 +95,22 @@
 #define PHASE_FILTER_OFF() palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
 #endif
 
-// Shutdown pin
-#define HW_SHUTDOWN_GPIO GPIOC
-#define HW_SHUTDOWN_PIN 5
-#define HW_SHUTDOWN_HOLD_ON() palSetPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
-#define HW_SHUTDOWN_HOLD_OFF() palClearPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
-#define HW_SAMPLE_SHUTDOWN() hw_sample_shutdown_button()
-
-// Hold shutdown pin early to wake up on short pulses
-#define HW_EARLY_INIT()                                                         \
-    palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
-    HW_SHUTDOWN_HOLD_ON();
-
 #ifdef HW_HAS_CURR_FILTERS
 #define CURRENT_FILTER_ON() palSetPad(GPIOD, 2)
 #define CURRENT_FILTER_OFF() palClearPad(GPIOD, 2)
 #endif
+
+// // Shutdown pin
+// #define HW_SHUTDOWN_GPIO GPIOC
+// #define HW_SHUTDOWN_PIN 5
+// #define HW_SHUTDOWN_HOLD_ON() palSetPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
+// #define HW_SHUTDOWN_HOLD_OFF() palClearPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
+// #define HW_SAMPLE_SHUTDOWN() hw_sample_shutdown_button()
+
+// // Hold shutdown pin early to wake up on short pulses
+// #define HW_EARLY_INIT()                                                         \
+//     palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
+//     HW_SHUTDOWN_HOLD_ON();
 
 /*
  * ADC Vector
@@ -269,9 +269,9 @@
 #define READ_HALL3() palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Setting limits
-#define HW_LIM_CURRENT -130.0, 130.0
+#define HW_LIM_CURRENT -100.0, 100.0
 #define HW_LIM_CURRENT_IN -100.0, 100.0
-#define HW_LIM_CURRENT_ABS 0.0, 164
+#define HW_LIM_CURRENT_ABS 0.0, 200
 #define HW_LIM_VIN 12.0, 85.0
 #define HW_LIM_ERPM -200e3, 200e3
 #define HW_LIM_DUTY_MIN 0.0, 0.1
