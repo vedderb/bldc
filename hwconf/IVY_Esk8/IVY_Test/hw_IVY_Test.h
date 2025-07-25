@@ -17,11 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef HW_IVY_AceDeck_H_
+#ifndef HW_IVY_Test_H_
 
-#define HW_IVY_AceDeck_H_
+#define HW_IVY_Test_H_
 
-#define HW_NAME "IVY_AceDeck"
+#define HW_NAME "IVY_Test"
 
 // Default setting overrides
 #define APPCONF_APP_TO_USE APP_NONE
@@ -69,10 +69,10 @@
 #define MCCONF_FOC_SAMPLE_V0_V7 false // Run control loop in both v0 and v7 (requires phase shunts)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC 850.0
+#define HW_DEAD_TIME_NSEC 1500.0
 
 // HW properties
-// #define HW_HAS_3_SHUNTS
+#define HW_HAS_3_SHUNTS
 // #define HW_HAS_PHASE_SHUNTS
 // #define HW_HAS_PHASE_FILTERS
 // #define HW_HAS_CURR_FILTERS
@@ -280,4 +280,4 @@
 
 // HW-specific functions
 bool hw_sample_shutdown_button(void);
-#endif /* HW_IVY_AceDeck_H_ */
+#endif /* HW_IVY_Test_H_ */

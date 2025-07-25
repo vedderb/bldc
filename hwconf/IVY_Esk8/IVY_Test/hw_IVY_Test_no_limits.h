@@ -17,11 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef HW_IVY_AceDeck_NO_LIMITS_H_
-#define HW_IVY_AceDeck_NO_LIMITS_H_
+#ifndef HW_IVY_Test_NO_LIMITS_H_
+#define HW_IVY_Test_NO_LIMITS_H_
 
 #define DISABLE_HW_LIMITS
 
-#include "hw_IVY_AceDeck.h"
+#include "hw_IVY_Test.h"
 
-#endif /* HW_IVY_AceDeck_NO_LIMITS_H_ */
+#endif /* HW_IVY_Test_NO_LIMITS_H_ */
