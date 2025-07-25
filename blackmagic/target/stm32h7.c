@@ -25,7 +25,6 @@
  *   Reference manual - STM32H7x3 advanced ARM®-based 32-bit MCUs Rev.3
  */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "general.h"
@@ -514,4 +513,3 @@ static bool stm32h7_cmd_psize(target *t, int argc, char *argv[])
 	return true;
 }
 
-#pragma GCC pop_options

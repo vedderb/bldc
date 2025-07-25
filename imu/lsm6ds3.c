@@ -196,11 +196,16 @@ void lsm6ds3_init(i2c_bb_state *i2c_state,
 		}
 	}
 
+	// Disable IMU writing to output registers
+	txb[0] = LSM6DS3_ACC_GYRO_CTRL3_C;
+	txb[1] = LSM6DS3_ACC_GYRO_BDU_BLOCK_UPDATE | LSM6DS3_ACC_GYRO_IF_INC_ENABLED;
+	i2c_bb_tx_rx(m_i2c_bb, lsm6ds3_addr, txb, 2, rxb, 1);
+
 	terminal_register_command_callback(
-				"lsm_read_reg",
-				"Read register of the LSM6DS3",
-				"[reg]",
-				terminal_read_reg);
+			"lsm_read_reg",
+			"Read register of the LSM6DS3",
+			"[reg]",
+			terminal_read_reg);
 
 	lsm6ds3_thread_ref = chThdCreateStatic(work_area, work_area_size, NORMALPRIO, lsm6ds3_thread, NULL);
 }
@@ -254,7 +259,7 @@ static void terminal_read_reg(int argc, const char **argv) {
 
 static THD_FUNCTION(lsm6ds3_thread, arg) {
 	(void)arg;
-	chRegSetThreadName("LSM6SD3 Sampling");
+	chRegSetThreadName("LSM6SD3");
 
 	systime_t iteration_timer = chVTGetSystemTimeX();
 	const systime_t desired_interval = US2ST(1000000 / rate_hz);
@@ -262,11 +267,6 @@ static THD_FUNCTION(lsm6ds3_thread, arg) {
 	while (!chThdShouldTerminateX()) {
 		uint8_t txb[2];
 		uint8_t rxb[12];
-
-		// Disable IMU writing to output registers
-		txb[0] = LSM6DS3_ACC_GYRO_CTRL3_C;
-		txb[1] = LSM6DS3_ACC_GYRO_BDU_BLOCK_UPDATE | LSM6DS3_ACC_GYRO_IF_INC_ENABLED;
-		i2c_bb_tx_rx(m_i2c_bb, lsm6ds3_addr, txb, 2, rxb, 1);
 
 		// Read IMU output registers
 		txb[0] = LSM6DS3_ACC_GYRO_OUTX_L_G;

@@ -16,6 +16,7 @@
 */
 
 #define _POSIX_C_SOURCE 200809L
+#define _GNU_SOURCE // MAP_ANON
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -23,47 +24,67 @@
 #include <getopt.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <sys/mman.h>
 
 #include "lispbm.h"
 #include "extensions/array_extensions.h"
 #include "extensions/math_extensions.h"
 #include "extensions/string_extensions.h"
 #include "extensions/runtime_extensions.h"
-#include "extensions/matvec_extensions.h"
 #include "extensions/random_extensions.h"
-#include "extensions/loop_extensions.h"
+#include "extensions/set_extensions.h"
+#include "extensions/mutex_extensions.h"
+#include "extensions/lbm_dyn_lib.h"
 #include "lbm_channel.h"
 #include "lbm_flat_value.h"
+#include "lbm_image.h"
 
 #define WAIT_TIMEOUT 2500
 
 #define GC_STACK_SIZE 96
 #define PRINT_STACK_SIZE 256
-#define EXTENSION_STORAGE_SIZE 100
-#define CONSTANT_MEMORY_SIZE 32*1024
+#define EXTENSION_STORAGE_SIZE 200
+#define CONSTANT_MEMORY_SIZE 4*1024 // in words
 
 
 #define FAIL 0
 #define SUCCESS 1
 
 lbm_extension_t extensions[EXTENSION_STORAGE_SIZE];
-lbm_uint constants_memory[CONSTANT_MEMORY_SIZE];
 
+#define IMAGE_STORAGE_SIZE              (128 * 1024)
+#ifdef LBM64
+// Cannot map address above 2^48 so use same as for 32 bit...
+#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
+#else
+#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
+#endif
+
+static size_t   image_storage_size = IMAGE_STORAGE_SIZE;
+static uint32_t *image_storage = NULL;
+
+#ifndef LONGER_DELAY
 static uint32_t timeout = 10;
+#else
+static uint32_t timeout = 30;
+#endif
 
-void const_heap_init(void) {
-  for (int i = 0; i < CONSTANT_MEMORY_SIZE; i ++) {
-    constants_memory[i] = 0xFFFFFFFF;
+bool image_write(uint32_t w, int32_t ix, bool const_heap) {
+  (void) const_heap;
+  if (image_storage[ix] == 0xffffffff) {
+    image_storage[ix] = w;
+    return true;
+  } else if (image_storage[ix] == w) {
+    return true;
+  } else {
+    printf("image_storage[%u] = %x\n", ix, image_storage[ix]);
+    printf("when trying to write %x\n", w);
   }
+  return false;
 }
 
-bool const_heap_write(lbm_uint ix, lbm_uint w) {
-  if (ix >= CONSTANT_MEMORY_SIZE) return false;
-  if (constants_memory[ix] != 0xFFFFFFFF) {
-    printf("Writing to same flash location more than once\n");
-    return false;
-  }
-  constants_memory[ix] = w;
+bool image_clear(void) {
+  memset(image_storage, 0xff, image_storage_size);
   return true;
 }
 
@@ -114,64 +135,62 @@ void context_done_callback(eval_context_t *ctx) {
   printf("Thread %d finished: %s\n", (int32_t)ctx->id, output);
 }
 
+void critical_error(void) {
+  printf("Critical error\n");
+  exit(EXIT_FAILURE);
+}
+
+
+// Dynamic loader
+
 bool dyn_load(const char *str, const char **code) {
 
   size_t len = strlen(str);
-  bool res = false;
   if (len == 5 && strncmp(str, "defun", 5) == 0) {
     *code = "(define defun (macro (name args body) `(define ,name (lambda ,args ,body))))";
-    res = true;
+    return true;
   }  else if (len == 4 && strncmp(str, "iota", 4) == 0) {
     *code = "(define iota (lambda (n)"
             "(range 0 n)))";
-    res = true;
+    return true;
   } else if (len == 4 && strncmp(str, "take", 4) == 0) {
     *code = "(define take (lambda (n xs)"
             "(let ((take-tail (lambda (acc n xs)"
             "(if (= n 0) acc"
             "(take-tail (cons (car xs) acc) (- n 1) (cdr xs))))))"
             "(reverse (take-tail nil n xs)))))";
-    res = true;
+    return true;
   } else if (len == 4 && strncmp(str, "drop", 4) == 0) {
     *code = "(define drop (lambda (n xs)"
             "(if (= n 0) xs"
             "(if (eq xs nil) nil"
             "(drop (- n 1) (cdr xs))))))";
-    res = true;
+    return true;
   } else if (len == 3 && strncmp(str, "zip", 3) == 0) {
     *code = "(define zip (lambda (xs ys)"
             "(if (eq xs nil) nil"
             "(if (eq ys nil) nil"
             "(cons (cons (car xs) (car ys)) (zip (cdr xs) (cdr ys)))))))";
-    res = true;
+    return true;
   } else if (len == 6 && strncmp(str, "lookup", 6) == 0) {
     *code = "(define lookup (lambda (x xs)"
             "(if (eq xs nil) nil"
             "(if (eq (car (car xs)) x)"
             "(car (cdr (car xs)))"
             "(lookup x (cdr xs))))))";
-    res = true;
+    return true;
   } else if (len == 5 && strncmp(str, "foldr", 5) == 0) {
     *code = "(define foldr (lambda (f i xs)"
             "(if (eq xs nil) i"
             "(f (car xs) (foldr f i (cdr xs))))))";
-    res = true;
+    return true;
   } else if (len == 5 && strncmp(str, "foldl", 5) == 0) {
     *code = "(define foldl (lambda (f i xs)"
             "(if (eq xs nil) i (foldl f (f i (car xs)) (cdr xs)))))";
-    res = true;
+    return true;
   }
 
-
-  for (unsigned int i = 0; i < (sizeof(loop_extensions_dyn_load) / sizeof(loop_extensions_dyn_load[0])); i ++) {
-    if (strncmp (str, loop_extensions_dyn_load[i]+8, len)  == 0) {
-      *code = loop_extensions_dyn_load[i];
-      res = true;
-      break;
-    }
-  }
-
-  return res;
+  return lbm_dyn_lib_find(str,code);
 }
 
   //lbm_value ext_even(lbm_value *args, lbm_uint argn) {
@@ -387,12 +406,12 @@ LBM_EXTENSION(ext_check, args, argn) {
 
 char *const_prg = "(define a 10) (+ a 1)";
 
-LBM_EXTENSION(ext_const_prg, args, argn) {
+LBM_EXTENSION(ext_flash_prg, args, argn) {
   (void) args;
   (void) argn;
   lbm_value v = ENC_SYM_NIL;
 
-  if (!lbm_share_const_array(&v, const_prg, strlen(const_prg)+1))
+  if (!lbm_share_array_const(&v, const_prg, strlen(const_prg)+1))
     return ENC_SYM_NIL;
   return v;
 }
@@ -413,22 +432,37 @@ LBM_EXTENSION(ext_load_inc_i, args, argn) {
   return ENC_SYM_TRUE;
 }
 
+
+LBM_EXTENSION(ext_flatten_depth, args, argn) {
+  lbm_value res = ENC_SYM_NIL;
+  if (argn == 1 && lbm_is_number(args[0])) {
+    lbm_int i = lbm_dec_as_i32(args[0]);
+    lbm_set_max_flatten_depth(i);
+    res = ENC_SYM_TRUE;
+  }
+  return res;
+}
+
 int main(int argc, char **argv) {
 
   int res = 0;
 
-  unsigned int heap_size = 8 * 1024 * 1024;  // 8 Megabytes is standard
-  //  bool compress_decompress = false;
+  image_storage = mmap(IMAGE_FIXED_VIRTUAL_ADDRESS,
+                       IMAGE_STORAGE_SIZE,
+                       PROT_READ | PROT_WRITE,
+                       MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+  if (((int)image_storage) == -1) {
+    printf("error mapping fixed location for flash emulation\n");
+    return 0;
+  }
+
+  unsigned int heap_size = 8 * 1024;  // 8k cells 
 
   bool stream_source = false;
   bool incremental = false;
 
   pthread_t lispbm_thd;
   lbm_cons_t *heap_storage = NULL;
-
-  lbm_const_heap_t const_heap;
-
-  const_heap_init();
 
   int c;
   opterr = 1;
@@ -536,13 +570,18 @@ int main(int argc, char **argv) {
     return FAIL;
   }
 
-  if (!lbm_const_heap_init(const_heap_write,
-                           &const_heap,constants_memory,
-                           CONSTANT_MEMORY_SIZE)) {
-    return FAIL;
-  } else {
-    printf("Constants memory initialized\n");
+  lbm_image_init(image_storage,
+                 image_storage_size / sizeof(lbm_uint),
+                 image_write);
+
+  image_clear();
+  lbm_image_create("test-image");
+
+  if (!lbm_image_boot()) {
+    printf("Error booting image\n");
+    return 0;
   }
+  lbm_add_eval_symbols();
 
   res = lbm_eval_init_events(20);
   if (res)
@@ -552,172 +591,37 @@ int main(int argc, char **argv) {
     return FAIL;
   }
 
-  if (lbm_array_extensions_init()) {
-    printf("Array extensions initialized.\n");
+  lbm_array_extensions_init();
+  lbm_math_extensions_init();
+  lbm_string_extensions_init();
+  lbm_runtime_extensions_init();
+  lbm_random_extensions_init();
+  lbm_mutex_extensions_init();
+  lbm_set_extensions_init();
+  lbm_dyn_lib_init();
+
+  lbm_add_extension("ext-even", ext_even);
+  lbm_add_extension("ext-odd", ext_odd);
+  lbm_add_extension("ext-numbers", ext_numbers);
+  lbm_add_extension("event-sym", ext_event_sym);
+  lbm_add_extension("event-float", ext_event_float);
+  lbm_add_extension("event-list-of-float", ext_event_list_of_float);
+  lbm_add_extension("event-array", ext_event_array);
+  lbm_add_extension("block", ext_block);
+  lbm_add_extension("unblock", ext_unblock);
+  lbm_add_extension("block-rmbr", ext_block_rmbr);
+
+  lbm_add_extension("unblock-rmbr", ext_unblock_rmbr);
+  lbm_add_extension("unblock-error", ext_unblock_error);
+  lbm_add_extension("flash-prg", ext_flash_prg);
+  lbm_add_extension("check", ext_check);
+  lbm_add_extension("load-inc-i", ext_load_inc_i);
+  lbm_add_extension("flatten-depth", ext_flatten_depth);
+
+  if (lbm_get_num_extensions() < lbm_get_max_extensions()) {
+    printf("Extensions loaded successfully\n");
   } else {
-    printf("Array extensions failed.\n");
-    return FAIL;
-  }
-
-  if (lbm_math_extensions_init()) {
-    printf("Math extensions initialized.\n");
-  } else {
-    printf("Math extensions failed.\n");
-    return FAIL;
-  }
-
-  if (lbm_string_extensions_init()) {
-    printf("String extensions initialized.\n");
-  } else {
-    printf("String extensions failed.\n");
-    return FAIL;
-  }
-
-  if (lbm_runtime_extensions_init(false)) {
-    printf("Runtime extensions initialized.\n");
-  } else {
-    printf("Runtime extensions failed.\n");
-    return FAIL;
-  }
-
-  if (lbm_matvec_extensions_init()) {
-    printf("Matvec extensions initialized.\n");
-  } else {
-    printf("Matvec extensions failed.\n");
-    return FAIL;
-  }
-
-  if (lbm_random_extensions_init()) {
-    printf("Random extensions initialized.\n");
-  } else {
-    printf("Random extensions failed.\n");
-    return FAIL;
-  }
-
-  if (lbm_loop_extensions_init()) {
-    printf("Loop extensions initialized.\n");
-  } else {
-    printf("Loop extensions failed.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("ext-even", ext_even);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("ext-odd", ext_odd);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("ext-numbers", ext_numbers);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("event-sym", ext_event_sym);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("event-float", ext_event_float);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("event-list-of-float", ext_event_list_of_float);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("event-array", ext_event_array);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("block", ext_block);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("unblock", ext_unblock);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("block-rmbr", ext_block_rmbr);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("unblock-rmbr", ext_unblock_rmbr);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("unblock-error", ext_unblock_error);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("const-prg", ext_const_prg);
-  if (res)
-    printf("Extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("check", ext_check);
-  if (res)
-    printf("Result check extension added.\n");
-  else {
-    printf("Error adding extension.\n");
-    return FAIL;
-  }
-
-  res = lbm_add_extension("load-inc-i", ext_load_inc_i);
-  if (res)
-    printf("extension load extension added.\n");
-  else {
-    printf("Error adding extension.\n");
+    printf("Failed to load Extensions\n");
     return FAIL;
   }
 
@@ -725,10 +629,11 @@ int main(int argc, char **argv) {
   lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_printf_callback(printf);
+  lbm_set_critical_error_callback(critical_error);
 
   lbm_set_verbose(true);
 
-  printf("LBM memory free: %u words, %u bytes \n", lbm_memory_num_free(), lbm_memory_num_free() * sizeof(lbm_uint));
+  printf("LBM memory free: %"PRI_UINT" words, %"PRI_UINT" bytes \n", lbm_memory_num_free(), lbm_memory_num_free() * sizeof(lbm_uint));
 
   if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
     printf("Error creating evaluation thread\n");
@@ -771,7 +676,7 @@ int main(int argc, char **argv) {
   }
 
   test_cid = cid; // the result which is important for success or failure of test.
-  printf("test_cid = %d\n", test_cid);
+  printf("test_cid = %"PRI_INT"\n", test_cid);
 
   lbm_continue_eval();
   uint32_t stream_i = 0;

@@ -230,7 +230,7 @@ typedef struct {
 
 extern lbm_heap_state_t lbm_heap_state;
 
-typedef bool (*const_heap_write_fun)(lbm_uint ix, lbm_uint w);
+typedef bool (*const_heap_write_fun)(lbm_uint w, lbm_uint ix);
 
 typedef struct {
   lbm_uint *heap;
@@ -253,7 +253,7 @@ typedef struct {
   lbm_uint *data;
   uint32_t index;         // Limits arrays to max 2^32-1 elements.
 } lbm_array_header_extended_t;
-  
+
 /** Lock GC mutex
  *  Locks a mutex during GC marking when using the pointer reversal algorithm.
  *  Does nothing when using stack based GC mark.
@@ -286,7 +286,10 @@ void lbm_heap_new_freelist_length(void);
  *
  * \return Number of free lbm_cons_t cells.
  */
-lbm_uint lbm_heap_num_free(void);
+static inline lbm_uint lbm_heap_num_free(void) {
+  return lbm_heap_state.heap_size - lbm_heap_state.num_alloc;
+}
+
 /** Check how many lbm_cons_t cells are allocated.
  *
  * \return  Number of lbm_cons_t cells that are currently allocated.
@@ -307,9 +310,9 @@ lbm_uint lbm_heap_size_bytes(void);
  * \param type A type that can be encoded onto the cell (most often LBM_PTR_TYPE_CONS).
  * \param car Value to write into car position of allocated cell.
  * \param cdr Value to write into cdr position of allocated cell.
- * \return An lbm_value referring to a cons_cell or enc_sym(SYM_MERROR) in case the heap is full.
+ * \return a heap cell on success and Memory_error on failure.
  */
-lbm_value lbm_heap_allocate_cell(lbm_type type, lbm_value car, lbm_value cdr);
+lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr);
 /** Allocate a list of n heap-cells.
  * \param n The number of heap-cells to allocate.
  * \return A list of heap-cells of Memory error if unable to allocate.
@@ -334,6 +337,26 @@ lbm_value lbm_heap_allocate_list_init(unsigned int n, ...);
  * \return allocated list or error symbol
  */
 char *lbm_dec_str(lbm_value val);
+/** Decode a readable array, if the argument is not an array the result is NULL
+  * \param val value to decode.
+  * \return array pointer or NULL.
+  */
+lbm_array_header_t *lbm_dec_array_r(lbm_value val);
+/** Decode an a read/write array, if the argument is not an array the result is NULL
+ * \param val value to decode.
+ * \return array pointer or NULL.
+ */
+lbm_array_header_t *lbm_dec_array_rw(lbm_value val);
+/** Decode a readable lisp array, if the argument is not an array the result is NULL
+  * \param val value to decode.
+  * \return array pointer or NULL.
+  */
+lbm_array_header_t *lbm_dec_lisp_array_r(lbm_value val);
+/** Decode an a read/write lisp array, if the argument is not an array the result is NULL
+ * \param val value to decode.
+ * \return array pointer or NULL.
+ */
+lbm_array_header_t *lbm_dec_lisp_array_rw(lbm_value val);
 /** Decode an lbm_value representing a char channel into an lbm_char_channel_t pointer.
  *
  * \param val Value
@@ -410,6 +433,7 @@ lbm_uint lbm_dec_raw(lbm_value v);
  * \param cdr The value to put in the cdr field of the allocated lbm_cons_t.
  * \return A value referencing the lbm_cons_t or enc_sym(SYM_MERROR) if heap is full.
  */
+
 lbm_value lbm_cons(lbm_value car, lbm_value cdr);
 
 /** Accesses the car field of an lbm_cons_t.
@@ -631,6 +655,7 @@ uint8_t *lbm_heap_array_get_data_rw(lbm_value arr);
  * \param arr Array value.
  */
 int lbm_heap_explicit_free_array(lbm_value arr);
+
 /** Query the size in bytes of an lbm_type.
  * \param t Type
  * \return Size in bytes of type or 0 if the type represents a composite.
@@ -639,8 +664,7 @@ lbm_uint lbm_size_of(lbm_type t);
 
 int lbm_const_heap_init(const_heap_write_fun w_fun,
                         lbm_const_heap_t *heap,
-                        lbm_uint *addr,
-                        lbm_uint num_words);
+                        lbm_uint *addr);
 
 lbm_flash_status lbm_allocate_const_cell(lbm_value *res);
 lbm_flash_status lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res);
@@ -808,6 +832,11 @@ static inline bool lbm_is_ptr(lbm_value x) {
   return (x & LBM_PTR_BIT);
 }
 
+static inline bool lbm_is_constant(lbm_value x) {
+  return ((x & LBM_PTR_BIT && x & LBM_PTR_TO_CONSTANT_BIT) ||
+          (!(x & LBM_PTR_BIT)));
+}
+
 /**
  * Check if a value is a Read/Writeable cons cell
  * \param x Value to check
@@ -826,6 +855,10 @@ static inline bool lbm_is_cons(lbm_value x) {
   return lbm_is_ptr(x) && ((x & LBM_CONS_TYPE_MASK) == LBM_TYPE_CONS);
 }
 
+static inline bool lbm_is_symbol_nil(lbm_value exp) {
+  return !exp;
+}
+  
 /** Check if a value represents a number
  * \param x Value to check.
  * \return true is x represents a number and false otherwise.
@@ -837,17 +870,26 @@ static inline bool lbm_is_number(lbm_value x) {
     (x & LBM_VAL_TYPE_MASK);
 }
 
+// Check if an array is valid (an invalid array has been freed by someone explicitly)
+static inline bool lbm_heap_array_valid(lbm_value arr) {
+  return !(lbm_is_symbol_nil(lbm_car(arr))); // this is an is_zero check similar to (a == NULL)
+}
+
 /** Check if value is an array that can be READ
  * \param x Value to check.
  * \return true if x represents a readable array and false otherwise.
  */
 static inline bool lbm_is_array_r(lbm_value x) {
   lbm_type t = lbm_type_of(x);
-  return ((t & LBM_PTR_TO_CONSTANT_MASK) == LBM_TYPE_ARRAY);
+  bool t_ok = ((t & LBM_PTR_TO_CONSTANT_MASK) == LBM_TYPE_ARRAY);
+  bool t_valid = lbm_heap_array_valid(x);
+  return ( t_ok && t_valid ) ;
 }
 
 static inline bool lbm_is_array_rw(lbm_value x) {
-  return( (lbm_type_of(x) == LBM_TYPE_ARRAY) && !(x & LBM_PTR_TO_CONSTANT_BIT));
+  return ((lbm_type_of(x) == LBM_TYPE_ARRAY) &&
+          !(x & LBM_PTR_TO_CONSTANT_BIT) &&
+          lbm_heap_array_valid(x));
 }
 
 static inline bool lbm_is_lisp_array_r(lbm_value x) {
@@ -909,10 +951,6 @@ static inline bool lbm_is_symbol(lbm_value exp) {
   return !(exp & LBM_LOW_RESERVED_BITS);
 }
 
-static inline bool lbm_is_symbol_nil(lbm_value exp) {
-  return !exp;
-}
-
 static inline bool lbm_is_symbol_true(lbm_value exp) {
   return (lbm_is_symbol(exp) && exp == ENC_SYM_TRUE);
 }
@@ -959,6 +997,16 @@ static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
   return &lbm_dec_heap(addr)[lbm_dec_cons_cell_ptr(addr)];
   //return &lbm_heap_state.heap[lbm_dec_ptr(addr)];
 }
+
+typedef void (*trav_fun)(lbm_value, bool, void*);
+
+/**
+ * \param f pointer to function to execute at each node in tree.
+ * \param v Tree to traverses.
+ * \param arg Extra argument to pass to f when applied.
+ * \return true if successful traversal and false if there is a cycle in the data.
+ */
+bool lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg);
 
 
 // lbm_uint a = lbm_heaps[0];

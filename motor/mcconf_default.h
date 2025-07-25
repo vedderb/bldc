@@ -406,6 +406,15 @@
 #ifndef MCCONF_FOC_OBSERVER_TYPE
 #define MCCONF_FOC_OBSERVER_TYPE		FOC_OBSERVER_MXLEMMING_LAMBDA_COMP // Position observer type for FOC
 #endif
+#ifndef MCCONF_FOC_HFI_AMB_MODE
+#define MCCONF_FOC_HFI_AMB_MODE			FOC_AMB_MODE_SIX_VECTOR // HFI ambiguity resolution mode
+#endif
+#ifndef MCCONF_FOC_HFI_AMB_CURRENT
+#define MCCONF_FOC_HFI_AMB_CURRENT		60.0 // HFI ambiguity resolution current
+#endif
+#ifndef MCCONF_FOC_HFI_AMB_TRES
+#define MCCONF_FOC_HFI_AMB_TRES			15 // HFI ambiguity resolution threshold
+#endif
 #ifndef MCCONF_FOC_HFI_VOLTAGE_START
 #define MCCONF_FOC_HFI_VOLTAGE_START	20 // HFI voltage at start when resolving ambiguity
 #endif
@@ -416,7 +425,7 @@
 #define MCCONF_FOC_HFI_GAIN				0.3 // Correction gain for HFI V2
 #endif
 #ifndef MCCONF_FOC_HFI_MAX_ERR
-#define MCCONF_FOC_HFI_MAX_ERR			0.15 // Truncate HFI error at this value
+#define MCCONF_FOC_HFI_MAX_ERR			0.30 // Truncate HFI error at this value
 #endif
 #ifndef MCCONF_FOC_HFI_HYST
 #define MCCONF_FOC_HFI_HYST				0.0 // Sense vector offset hysteresis for HFI V2
@@ -436,8 +445,8 @@
 #ifndef MCCONF_FOC_HFI_SAMPLES
 #define MCCONF_FOC_HFI_SAMPLES			HFI_SAMPLES_16 // Samples per motor revolution for HFI
 #endif
-#ifndef MCCONF_FOC_OFFSETS_CAL_ON_BOOT
-#define MCCONF_FOC_OFFSETS_CAL_ON_BOOT	true // Measure offsets every boot
+#ifndef MCCONF_FOC_OFFSETS_CAL_MODE
+#define MCCONF_FOC_OFFSETS_CAL_MODE		1 // Offset calibration mode
 #endif
 #ifndef MCCONF_FOC_OFFSETS_CURRENT_0
 #define MCCONF_FOC_OFFSETS_CURRENT_0	2048.0 // Current 0 offset
@@ -495,6 +504,9 @@
 #endif
 #ifndef MCCONF_FOC_SHORT_LS_ON_ZERO_DUTY
 #define MCCONF_FOC_SHORT_LS_ON_ZERO_DUTY false // Short low-side phases on zero duty cycle
+#endif
+#ifndef MCCONF_FOC_OVERMOD_FACTOR
+#define MCCONF_FOC_OVERMOD_FACTOR 		1.0 // Overmodulation factor
 #endif
 
 // GPD

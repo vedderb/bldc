@@ -1,0 +1,12 @@
+Cppcheck 2.16.0
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1272:47: style: Condition 'end_is_past0!=0' is always true [knownConditionTrueFalse]
+      && (start_is_past0 != 0 || end_is_past0 != 0);
+                                              ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1274:47: style: Condition 'end_is_past1!=0' is always true [knownConditionTrueFalse]
+      && (start_is_past1 != 0 || end_is_past1 != 0);
+                                              ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1410:45: style: Condition 'end_is_past!=0' is always true [knownConditionTrueFalse]
+      && (start_is_past != 0 || end_is_past != 0);
+                                            ^
+nofile:0:0: information: Active checkers: 108/836 (use --checkers-report=<filename> to see details) [checkersReport]
+

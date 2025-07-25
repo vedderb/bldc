@@ -1,5 +1,6 @@
 /*
-    Copyright 2022, 2024 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2022, 2024, 2025 Joel Svensson        svenssonjoel@yahoo.se
+              2025 Rasmus Söderhielm rasmus.soderhielm@gmail.com
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -32,6 +33,7 @@
 #define LBM_PTR_BIT                      0x00000001u
 #define LBM_PTR_VAL_MASK                 0x03FFFFFCu
 #define LBM_PTR_TYPE_MASK                0xFC000000u
+// TODO: Recall why PTR_NULL is given the value (0x03FFFFFCu >> 2)
 #define LBM_PTR_NULL                     (0x03FFFFFCu >> 2)
 
 // The address is an index into the const heap.
@@ -39,38 +41,40 @@
 #define LBM_PTR_TO_CONSTANT_MASK         ~LBM_PTR_TO_CONSTANT_BIT
 #define LBM_PTR_TO_CONSTANT_SHIFT        26
 
-#define LBM_POINTER_TYPE_FIRST           0x10000000u
-#define LBM_TYPE_CONS                    0x10000000u
-#define LBM_TYPE_CONS_CONST              0x14000000u
-#define LBM_NON_CONS_POINTER_TYPE_FIRST  0x20000000u
-#define LBM_TYPE_I32                     0x28000000u
-#define LBM_TYPE_U32                     0x38000000u
-#define LBM_TYPE_I64                     0x48000000u
-#define LBM_TYPE_U64                     0x58000000u
-#define LBM_TYPE_FLOAT                   0x68000000u
-#define LBM_TYPE_DOUBLE                  0x78000000u
-#define LBM_TYPE_ARRAY                   0x80000000u // ByteArray
-#define LBM_TYPE_ARRAY_CONST             0x84000000u
-#define LBM_TYPE_CHANNEL                 0x90000000u
-#define LBM_TYPE_CUSTOM                  0xA0000000u
-#define LBM_TYPE_LISPARRAY               0xB0000000u // a "real" array
-#define LBM_TYPE_LISPARRAY_CONST         0xB4000000u
-#define LBM_POINTER_TYPE_LAST            0xBC000000u
+#define LBM_POINTER_TYPE_FIRST           0x10000000u // 00010000000000000000000000000000
+#define LBM_TYPE_CONS                    0x10000000u // 00010000000000000000000000000000
+#define LBM_TYPE_CONS_CONST              0x14000000u // 00010100000000000000000000000000
+#define LBM_NON_CONS_POINTER_TYPE_FIRST  0x20000000u // 00100000000000000000000000000000
+#define LBM_TYPE_I32                     0x28000000u // 00101000000000000000000000000000
+#define LBM_TYPE_U32                     0x38000000u // 00111000000000000000000000000000
+#define LBM_TYPE_I64                     0x48000000u // 01001000000000000000000000000000
+#define LBM_TYPE_U64                     0x58000000u // 01011000000000000000000000000000
+#define LBM_TYPE_FLOAT                   0x68000000u // 01101000000000000000000000000000
+#define LBM_TYPE_DOUBLE                  0x78000000u // 01111000000000000000000000000000
+#define LBM_TYPE_ARRAY                   0x80000000u // 10000000000000000000000000000000 ByteArray
+#define LBM_TYPE_ARRAY_CONST             0x84000000u // 10000100000000000000000000000000
+#define LBM_TYPE_CHANNEL                 0x90000000u // 10010000000000000000000000000000
+#define LBM_TYPE_CUSTOM                  0xA0000000u // 10100000000000000000000000000000
+#define LBM_TYPE_LISPARRAY               0xB0000000u // 10110000000000000000000000000000 a "real" array
+#define LBM_TYPE_LISPARRAY_CONST         0xB4000000u // 10110100000000000000000000000000
+#define LBM_TYPE_DEFRAG_MEM              0xC0000000u // 11000000000000000000000000000000
+#define LBM_POINTER_TYPE_LAST            0xCC000000u // 11001100000000000000000000000000
 // POINTER_TYPE_LAST is less than the value used for CONTINUATION_INTERNAL
 
-#define LBM_CONS_TYPE_MASK               0xF0000000u
-#define LBM_CONS_CONST_TYPE_MASK         0xFF000000u
+#define LBM_CONS_TYPE_MASK               0xF0000000u // 11110000000000000000000000000000
+#define LBM_CONS_CONST_TYPE_MASK         0xFF000000u // 11111111000000000000000000000000
 
-#define LBM_CONTINUATION_INTERNAL        0xF8000001u // PTR bit set
-#define LBM_CONTINUATION_INTERNAL_TYPE   0xF8000000u
+#define LBM_CONTINUATION_INTERNAL        0xF8000001u // 11111000000000000000000000000001 PTR bit set
+#define LBM_CONTINUATION_INTERNAL_TYPE   0xF8000000u // 11111000000000000000000000000000
 
-#define LBM_GC_MASK                      0x00000002u
-#define LBM_GC_MARKED                    0x00000002u
+#define LBM_GC_MASK                      0x00000002u // 00000000000000000000000000000010
+#define LBM_GC_MARKED                    0x00000002u // 00000000000000000000000000000010
 
-#define LBM_VAL_MASK                     0xFFFFFFF0u
-#define LBM_VAL_TYPE_MASK                0x0000000Cu
-#define LBM_TYPE_MASK                    0xFC00000Cu
-#define LBM_NUMBER_MASK                  0x08000000u
+#define LBM_VAL_MASK                     0xFFFFFFF0u // 11111111111111111111111111110000
+#define LBM_VAL_TYPE_MASK                0x0000000Cu // 00000000000000000000000000001100
+#define LBM_TYPE_MASK                    0xFC00000Cu // 11111100000000000000000000001100
+#define LBM_NUMBER_MASK                  0x08000000u // 00001000000000000000000000000000
+#define LBM_FLOAT_MASK                   0x68000000u // 01101000000000000000000000000000
                                                      //    gc ptr
 #define LBM_TYPE_SYMBOL                  0x00000000u // 00  0   0
 #define LBM_TYPE_CHAR                    0x00000004u // 01  0   0
@@ -107,7 +111,8 @@
 #define LBM_TYPE_CUSTOM                  (lbm_uint)0x8000000000000000
 #define LBM_TYPE_LISPARRAY               (lbm_uint)0x9000000000000000
 #define LBM_TYPE_LISPARRAY_CONST         (lbm_uint)0x9400000000000000
-#define LBM_POINTER_TYPE_LAST            (lbm_uint)0x9C00000000000000
+#define LBM_TYPE_DEFRAG_MEM              (lbm_uint)0xA000000000000000
+#define LBM_POINTER_TYPE_LAST            (lbm_uint)0xAC00000000000000
 // POINTER_TYPE_LAST is less than the value used for CONTINUATION_INTERNAL
 
 #define LBM_CONS_TYPE_MASK               (lbm_uint)0xF000000000000000
@@ -146,7 +151,7 @@
 #define SYM_DONTCARE      0x9
 #define SYM_TIMEOUT       0xA
 
-// 0x20 - 0x2F are errors
+// 0x20 - 0x2F are errors/special
 #define SYM_RERROR                0x20  /* READ ERROR */
 #define SYM_TERROR                0x21  /* TYPE ERROR */
 #define SYM_EERROR                0x22  /* EVAL ERROR */
@@ -157,21 +162,26 @@
 #define SYM_STACK_ERROR           0x27
 #define SYM_RECOVERED             0x28
 #define SYM_ERROR_FLASH_HEAP_FULL 0x29
+#define SYM_PLACEHOLDER 0x2A
 
 
 //#define TYPE_CLASSIFIER_STARTS 0x30
-#define SYM_ARRAY_TYPE         0x30
-#define SYM_RAW_I_TYPE         0x31
-#define SYM_RAW_U_TYPE         0x32
-#define SYM_RAW_F_TYPE         0x33
-#define SYM_IND_I_TYPE         0x34
-#define SYM_IND_U_TYPE         0x35
-#define SYM_IND_F_TYPE         0x36
-#define SYM_CHANNEL_TYPE       0x37
-#define SYM_CUSTOM_TYPE        0x38
-#define SYM_LISPARRAY_TYPE     0x39
+#define SYM_ARRAY_TYPE            0x30
+#define SYM_RAW_I_TYPE            0x31
+#define SYM_RAW_U_TYPE            0x32
+#define SYM_RAW_F_TYPE            0x33
+#define SYM_IND_I_TYPE            0x34
+#define SYM_IND_U_TYPE            0x35
+#define SYM_IND_F_TYPE            0x36
+#define SYM_CHANNEL_TYPE          0x37
+#define SYM_CUSTOM_TYPE           0x38
+#define SYM_LISPARRAY_TYPE        0x39
+#define SYM_DEFRAG_MEM_TYPE       0x3A
+#define SYM_DEFRAG_ARRAY_TYPE     0x3B
+#define SYM_DEFRAG_LISPARRAY_TYPE 0x3C
 //#define TYPE_CLASSIFIER_ENDS   0x39
-#define SYM_NONSENSE           0x3A
+
+#define SYM_NONSENSE              0x3D
 
 #define SYM_NO_MATCH       0x40
 #define SYM_MATCH_ANY      0x41
@@ -192,6 +202,8 @@
 #define SYM_TYPE_BYTE       0x5C
 #define SYM_TYPE_CHANNEL    0x5E
 #define SYM_TYPE_LISPARRAY  0x5F
+#define SYM_TYPE_DEFRAG_MEM 0x60
+#define SYM_TYPE_CUSTOM     0x61
 
 //Relevant for the tokenizer and reader
 #define TOKENIZER_SYMBOLS_START 0x70
@@ -210,7 +222,9 @@
 #define SYM_TOKENIZER_RERROR 0x82
 #define SYM_OPENCURL         0x84
 #define SYM_CONST            0x85
-#define TOKENIZER_SYMBOLS_END 0x85
+#define SYM_OPENARRAY        0x86
+#define SYM_CLOSEARRAY       0x87
+#define TOKENIZER_SYMBOLS_END 0x87
 
 // Built in special forms:
 // Special forms get their arguments unevaluated
@@ -241,7 +255,9 @@
 #define SYM_MOVE_TO_FLASH       0x114
 #define SYM_LOOP                0x115
 #define SYM_TRAP                0x116
-#define SPECIAL_FORMS_END       0x116
+#define SYM_CALL_CC_UNSAFE      0x117
+#define SYM_CONT_SP             0x118
+#define SPECIAL_FORMS_END       0x118
 
 #ifndef LBM64
 #define SPECIAL_FORMS_MASK        0xFFFFFF00
@@ -320,8 +336,16 @@
 #define SYM_TAKE                0x20038
 #define SYM_DROP                0x20039
 #define SYM_MKARRAY             0x2003A
-#define SYM_ARRAY_TO_LIST       0x2003B
-#define SYM_LIST_TO_ARRAY       0x2003C
+#define SYM_DM_CREATE           0x2003B
+#define SYM_DM_ALLOC            0x2003C
+#define SYM_IS_LIST             0x2003D
+#define SYM_IS_NUMBER           0x2003E
+#define SYM_INT_DIV             0x2003F
+#define SYM_IDENTITY            0x20040
+#define SYM_ARRAY               0x20041
+#define SYM_IS_STRING           0x20042
+#define SYM_IS_CONSTANT         0x20043
+#define SYM_MEMBER              0x20044
 
 // Apply funs:
 // Get their arguments in evaluated form on the stack.
@@ -351,6 +375,7 @@
 #define SYM_SORT                  0x30014
 #define SYM_REST_ARGS             0x30015
 #define SYM_ROTATE                0x30016
+#define SYM_APPLY                 0x30017
 
 #define SYMBOL_KIND(X)          ((X) >> 16)
 #define SYMBOL_KIND_SPECIAL     0
@@ -394,21 +419,25 @@
 #define ENC_SYM_STACK_ERROR           ENC_SYM(SYM_STACK_ERROR)
 #define ENC_SYM_RECOVERED             ENC_SYM(SYM_RECOVERED)
 #define ENC_SYM_ERROR_FLASH_HEAP_FULL ENC_SYM(SYM_ERROR_FLASH_HEAP_FULL)
+#define ENC_SYM_PLACEHOLDER           ENC_SYM(SYM_PLACEHOLDER)
 
-#define ENC_SYM_ARRAY_TYPE         ENC_SYM(SYM_ARRAY_TYPE)
-#define ENC_SYM_RAW_I_TYPE         ENC_SYM(SYM_RAW_I_TYPE)
-#define ENC_SYM_RAW_U_TYPE         ENC_SYM(SYM_RAW_U_TYPE)
-#define ENC_SYM_RAW_F_TYPE         ENC_SYM(SYM_RAW_F_TYPE)
-#define ENC_SYM_IND_I_TYPE         ENC_SYM(SYM_IND_I_TYPE)
-#define ENC_SYM_IND_U_TYPE         ENC_SYM(SYM_IND_U_TYPE)
-#define ENC_SYM_IND_F_TYPE         ENC_SYM(SYM_IND_F_TYPE)
-#define ENC_SYM_CHANNEL_TYPE       ENC_SYM(SYM_CHANNEL_TYPE)
-#define ENC_SYM_CUSTOM_TYPE        ENC_SYM(SYM_CUSTOM_TYPE)
-#define ENC_SYM_LISPARRAY_TYPE     ENC_SYM(SYM_LISPARRAY_TYPE)
-#define ENC_SYM_NONSENSE           ENC_SYM(SYM_NONSENSE)
+#define ENC_SYM_ARRAY_TYPE            ENC_SYM(SYM_ARRAY_TYPE)
+#define ENC_SYM_RAW_I_TYPE            ENC_SYM(SYM_RAW_I_TYPE)
+#define ENC_SYM_RAW_U_TYPE            ENC_SYM(SYM_RAW_U_TYPE)
+#define ENC_SYM_RAW_F_TYPE            ENC_SYM(SYM_RAW_F_TYPE)
+#define ENC_SYM_IND_I_TYPE            ENC_SYM(SYM_IND_I_TYPE)
+#define ENC_SYM_IND_U_TYPE            ENC_SYM(SYM_IND_U_TYPE)
+#define ENC_SYM_IND_F_TYPE            ENC_SYM(SYM_IND_F_TYPE)
+#define ENC_SYM_CHANNEL_TYPE          ENC_SYM(SYM_CHANNEL_TYPE)
+#define ENC_SYM_CUSTOM_TYPE           ENC_SYM(SYM_CUSTOM_TYPE)
+#define ENC_SYM_LISPARRAY_TYPE        ENC_SYM(SYM_LISPARRAY_TYPE)
+#define ENC_SYM_DEFRAG_MEM_TYPE       ENC_SYM(SYM_DEFRAG_MEM_TYPE)
+#define ENC_SYM_DEFRAG_ARRAY_TYPE     ENC_SYM(SYM_DEFRAG_ARRAY_TYPE)
+#define ENC_SYM_DEFRAG_LISPARRAY_TYPE ENC_SYM(SYM_DEFRAG_LISPARRAY_TYPE)
+#define ENC_SYM_NONSENSE              ENC_SYM(SYM_NONSENSE)
 
-#define ENC_SYM_NO_MATCH       ENC_SYM(SYM_NO_MATCH)
-#define ENC_SYM_MATCH_ANY      ENC_SYM(SYM_MATCH_ANY)
+#define ENC_SYM_NO_MATCH        ENC_SYM(SYM_NO_MATCH)
+#define ENC_SYM_MATCH_ANY       ENC_SYM(SYM_MATCH_ANY)
 
 #define ENC_SYM_TYPE_LIST       ENC_SYM(SYM_TYPE_LIST)
 #define ENC_SYM_TYPE_I          ENC_SYM(SYM_TYPE_I)
@@ -425,6 +454,8 @@
 #define ENC_SYM_TYPE_BYTE       ENC_SYM(SYM_TYPE_BYTE)
 #define ENC_SYM_TYPE_CHANNEL    ENC_SYM(SYM_TYPE_CHANNEL)
 #define ENC_SYM_TYPE_LISPARRAY  ENC_SYM(SYM_TYPE_LISPARRAY)
+#define ENC_SYM_TYPE_DEFRAG_MEM ENC_SYM(SYM_TYPE_DEFRAG_MEM)
+#define ENC_SYM_TYPE_CUSTOM     ENC_SYM(SYM_TYPE_CUSTOM)
 
 #define ENC_SYM_OPENPAR          ENC_SYM(SYM_OPENPAR)
 #define ENC_SYM_CLOSEPAR         ENC_SYM(SYM_CLOSEPAR)
@@ -441,6 +472,8 @@
 #define ENC_SYM_TOKENIZER_RERROR ENC_SYM(SYM_TOKENIZER_RERROR)
 #define ENC_SYM_OPENCURL         ENC_SYM(SYM_OPENCURL)
 #define ENC_SYM_CONST            ENC_SYM(SYM_CONST)
+#define ENC_SYM_OPENARRAY        ENC_SYM(SYM_OPENARRAY)
+#define ENC_SYM_CLOSEARRAY       ENC_SYM(SYM_CLOSEARRAY)
 
 #define ENC_SYM_QUOTE               ENC_SYM(SYM_QUOTE)
 #define ENC_SYM_DEFINE              ENC_SYM(SYM_DEFINE)
@@ -489,6 +522,9 @@
 #define ENC_SYM_REST_ARGS             ENC_SYM(SYM_REST_ARGS)
 #define ENC_SYM_ROTATE                ENC_SYM(SYM_ROTATE)
 #define ENC_SYM_TRAP                  ENC_SYM(SYM_TRAP)
+#define ENC_SYM_CALL_CC_UNSAFE        ENC_SYM(SYM_CALL_CC_UNSAFE)
+#define ENC_SYM_CONT_SP               ENC_SYM(SYM_CONT_SP)
+#define ENC_SYM_APPLY                 ENC_SYM(SYM_APPLY)
 
 #define ENC_SYM_ADD           ENC_SYM(SYM_ADD)
 #define ENC_SYM_SUB           ENC_SYM(SYM_SUB)
@@ -549,8 +585,9 @@
 #define ENC_SYM_TAKE                ENC_SYM(SYM_TAKE)
 #define ENC_SYM_DROP                ENC_SYM(SYM_DROP)
 #define ENC_SYM_MKARRAY             ENC_SYM(SYM_MKARRAY)
-#define ENC_SYM_ARRAY_TO_LIST       ENC_SYM(SYM_ARRAY_TO_LIST)
-#define ENC_SYM_LIST_TO_ARRAY       ENC_SYM(SYM_LIST_TO_ARRAY)
-
+#define ENC_SYM_DM_CREATE           ENC_SYM(SYM_DM_CREATE)
+#define ENC_SYM_DM_ALLOC            ENC_SYM(SYM_DM_ALLOC)
+#define ENC_SYM_IS_LIST             ENC_SYM(SYM_IS_LIST)
+#define ENC_SYM_IS_NUMBER           ENC_SYM(SYM_IS_NUMBER)
 
 #endif

@@ -1,6 +1,6 @@
 /** \file env.h */
 /*
-    Copyright 2018 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2018, 2025 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -39,6 +39,10 @@ int lbm_init_env(void);
  * \return the global environment
  */
 lbm_value *lbm_get_global_env(void);
+/**
+ * \return the size of the global env in number of heap cells.
+ */
+lbm_uint lbm_get_global_env_size(void);
 /** Copy the spine of an environment. The list structure is
  * recreated but the values themselves are not copied but rather
  * just referenced.
@@ -61,13 +65,6 @@ bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env);
  * \return True on success or false otherwise.
  */
 bool lbm_global_env_lookup(lbm_value *res, lbm_value sym);
-/** Lookup a value in from the global environment.
- *
- * \param sym The key to look for in the environment
- * \param env The environment to search for the key.
- * \return The value bound to key or lbm_enc_sym(SYM_NOT_FOUND).
- */
-lbm_value lbm_env_lookup(lbm_value sym, lbm_value env);
 /** Create a new binding on the environment or replace an old binding.
  *
  * \param env Environment to modify.

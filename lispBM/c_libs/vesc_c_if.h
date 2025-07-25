@@ -297,6 +297,11 @@ typedef enum {
 	CFG_PARAM_si_battery_cells,
 	CFG_PARAM_si_battery_ah,
 	CFG_PARAM_si_motor_nl_current,
+
+	// Motor FOC Parameters
+	CFG_PARAM_foc_motor_r,
+	CFG_PARAM_foc_motor_l,
+	CFG_PARAM_foc_motor_flux_linkage,
 } CFG_PARAM;
 
 typedef struct {
@@ -374,7 +379,7 @@ typedef struct {
 	int (*printf)(const char *str, ...);
 	void* (*malloc)(size_t bytes);
 	void (*free)(void *prt);
-	lib_thread (*spawn)(void (*fun)(void *arg), size_t stack_size, char *name, void *arg);
+	lib_thread (*spawn)(void (*fun)(void *arg), size_t stack_size, const char *name, void *arg);
 	void (*request_terminate)(lib_thread thd);
 	bool (*should_terminate)(void);
 	void** (*get_arg)(uint32_t prog_addr);
@@ -490,7 +495,7 @@ typedef struct {
 
 	// UART
 	bool (*uart_start)(uint32_t baudrate, bool half_duplex);
-	bool (*uart_write)(uint8_t *data, uint32_t size);
+	bool (*uart_write)(const uint8_t *data, uint32_t size);
 	int32_t (*uart_read)(void);
 
 	// Packets
@@ -510,7 +515,7 @@ typedef struct {
 	void (*imu_get_accel)(float *accel);
 	void (*imu_get_gyro)(float *gyro);
 	void (*imu_get_mag)(float *mag);
-	void (*imu_derotate)(float *input, float *output);
+	void (*imu_derotate)(const float *input, float *output);
 	void (*imu_get_accel_derotated)(float *accel);
 	void (*imu_get_gyro_derotated)(float *gyro);
 	void (*imu_get_quaternions)(float *q);
@@ -535,8 +540,8 @@ typedef struct {
 	float (*timeout_secs_since_update)(void);
 
 	// Plot
-	void (*plot_init)(char *namex, char *namey);
-	void (*plot_add_graph)(char *name);
+	void (*plot_init)(const char *namex, const char *namey);
+	void (*plot_add_graph)(const char *name);
 	void (*plot_set_graph)(int graph);
 	void (*plot_send_points)(float x, float y);
 
@@ -580,12 +585,12 @@ typedef struct {
 	// IMU AHRS functions and read callback
 	void (*imu_set_read_callback)(void (*func)(float *acc, float *gyro, float *mag, float dt));
 	void (*ahrs_init_attitude_info)(ATTITUDE_INFO *att);
-	void (*ahrs_update_initial_orientation)(float *accelXYZ, float *magXYZ, ATTITUDE_INFO *att);
-	void (*ahrs_update_mahony_imu)(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att);
-	void (*ahrs_update_madgwick_imu)(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att);
-	float (*ahrs_get_roll)(ATTITUDE_INFO *att);
-	float (*ahrs_get_pitch)(ATTITUDE_INFO *att);
-	float (*ahrs_get_yaw)(ATTITUDE_INFO *att);
+	void (*ahrs_update_initial_orientation)(const float *accelXYZ, const float *magXYZ, ATTITUDE_INFO *att);
+	void (*ahrs_update_mahony_imu)(const float *gyroXYZ, const float *accelXYZ, float dt, ATTITUDE_INFO *att);
+	void (*ahrs_update_madgwick_imu)(const float *gyroXYZ, const float *accelXYZ, float dt, ATTITUDE_INFO *att);
+	float (*ahrs_get_roll)(const ATTITUDE_INFO *att);
+	float (*ahrs_get_pitch)(const ATTITUDE_INFO *att);
+	float (*ahrs_get_yaw)(const ATTITUDE_INFO *att);
 
 	// Set custom encoder callbacks
 	void (*encoder_set_custom_callbacks)(
@@ -646,7 +651,7 @@ typedef struct {
 	bool (*foc_beep)(float freq, float time, float voltage);
 	bool (*foc_play_tone)(int channel, float freq, float voltage);
 	void (*foc_stop_audio)(bool reset);
-	bool (*foc_set_audio_sample_table)(int channel, float *samples, int len);
+	bool (*foc_set_audio_sample_table)(int channel, const float *samples, int len);
 	const float* (*foc_get_audio_sample_table)(int channel);
 	bool (*foc_play_audio_samples)(const int8_t *samples, int num_samp, float f_samp, float voltage);
 
@@ -671,7 +676,7 @@ typedef struct {
 #define VESC_IF		((vesc_c_if*)(0x1000F800))
 
 // Put this at the beginning of your source file
-#define HEADER		static volatile int __attribute__((__section__(".program_ptr"))) prog_ptr;
+#define HEADER		volatile int __attribute__((__section__(".program_ptr"))) prog_ptr;
 
 // Init function
 #define INIT_FUN	bool __attribute__((__section__(".init_fun"))) init
@@ -684,6 +689,8 @@ typedef struct {
 
 // The argument that was set in the init function (same as the one you get in stop_fun)
 #define ARG			(*VESC_IF->get_arg(PROG_ADDR))
+
+extern volatile int prog_ptr;
 
 #endif  // VESC_C_IF_H
 

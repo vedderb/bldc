@@ -1,0 +1,161 @@
+/** \page Building Building LispBM
+
+<h2>About building LispBM</h2>
+
+<p> LispBM is intended to be integrated into a larger application and then building
+LispBM is a part of building that larger application. Currently there are no detailed
+instructions on how to set that up other than the examples that exists in
+<a href="https://github.com/vedderb/vesc_express">vesc_express</a>, <a href="https://github.com/vedderb/BLDC">BLDC</a>.
+and in the <a href="https://github.com/svenssonjoel/lispBM/tree/master/repl">LispBM REPL</a>.</p>
+
+
+<h2 id="cond_build"> Conditional building of features </h2>
+
+The following flags can be used when building LispBM to turn features on or off.
+These should be added as a -D... flag to the C compiler for the LispBM compilation units.
+
+<ul>
+<li>LBM64 - Builds the 64bit version of LispBM. Default is 32bit.</li>
+<li>FULL_RTS_LIB - Build all the extensions in the runtime system extensions library.</li>
+<li>LBM_ALWAYS_GC - Debug mode where the garbage collector is run for (most) every allocation.</li>
+<li>LBM_USE_GC_PTR_REV - Use the Deutch-Schorr-Waite pointer reversal GC algorithm.</li>
+<li>LBM_USE_DYN_FUNS - Add a library of functions to the dynamic loader.</li>
+<li>LBM_USE_DYN_MACROS - Add a library of macros to the dynamic loader.</li>
+<li>LBM_USE_DYN_DEFSTRUCT - Add the defstruct mechanism, requires LBM_USE_DYN_FUNS and LBM_USE_DYN_MACROS.</li>
+<li>LBM_USE_DYN_LOOPS - Add loop macros, requires LBM_USE_DYN_MACROS.</li>
+<li>LBM_USE_DYN_ARRAYS - Add additional array manipulation functions. Requires LBM_USE_DYN_MACROS and LBM_USE_DYN_LOOPS</li>
+<li>LBM_USE_DYN_TTF - Load the lisp part of the TTF font library dynamically.</li>
+<li>LBM_USE_TIME_QUOTA - Use scheduler with time-based quotas instead of evaluator steps.</li>
+<li>LBM_USE_EXT_MAILBOX_GET - loads the mailbox-get extension that allows introspection into mailboxes.</li>
+<li>LBM_USE_ERROR_LINENO - Reports the line in eval_cps.c where the error was triggered. For debug use.</li>
+</ul>
+
+The following preprocessor flags control code size optimizions on a per subsystem basis.
+<ul>
+<li>LBM_OPT_FUNDAMENTALS_SIZE</li>
+<li>LBM_OPT_FUNDAMENTALS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_ARRAY_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_ARRAY_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_DISPLAY_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_DISPLAY_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_MATH_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_MATH_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_MUTEX_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_MUTEX_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_RANDOM_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_RANDOM_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_RUNTIME_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_RUNTIME_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_SET_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_SET_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_STRING_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_STRING_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_TTF_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_TTF_EXTENSIONS_SIZE_AGGRESSIVE</li>
+
+<h2>Build on Linux</h2>
+
+<p> Start by cloning the LispBM repository. Open a terminal and issue command</p>
+
+@code
+git clone https://github.com/svenssonjoel/lispBM.git
+@endcode
+
+<p> You should now have a directory called lispBM. Go into it and into the <code>repl</code> subdirectory. </p>
+    
+@code
+cd lispBM
+cd repl
+@endcode
+
+<p> Now, you have multiple choices on how to build the REPL. To build the 32bit version (which is most similar to what you will run on a microcontroller) issue the <code>make</code> command. </p>
+
+@code
+make
+@endcode
+
+<p> If the make command above fails, it is most likely because there are some missing dependencies. </p>
+<p> Building the 32bit version of the repl requires 32bit libraries. If you are on an Ubuntu platform you get 32bit standard libraries by installing <code>gcc-multilib</code>. </p>
+<p> In addition to <code>gcc-multilib</code> the REPL requires libreadline andlibpng. You need to get the 32bit versions of these libraries. On Ubuntu you can run the following commands. </p>
+
+@code
+sudo apt install gcc-multilib libreadline-dev:i386 libpng-dev:i386
+@endcode
+
+<p> If you were unable to install the 32bit dependencies with the command above, you may need to instruct the package manager that you are interested in 32bit packages as well.</p>
+    
+@code
+sudo dpkg --add-architecture i386
+@endcode
+
+<p> Then retry the previous step to install the dependencies. </p>
+
+<p> If installing the dependencies finished successfully, <code>make</code> should now work and the repl executable should be built. </p>
+
+<p> Start the REPL and explore! </p>
+
+@code
+./repl
+@endcode 
+
+<p> You should now be greeted by the LispBM REPL in a way similar to what is shown below.</p>
+
+@code
+Lisp REPL started! (LBM Version: 0.27.1)
+Type :quit to exit.
+     :info for statistics.
+     :load [filename] to load lisp source.
+#
+</pre>
+    
+<p> Try to evaluate some expressions. Type <code>(+ 1 2)</code> and press enter. </p>
+
+<pre>
+Lisp REPL started! (LBM Version: 0.27.1)
+Type :quit to exit.
+     :info for statistics.
+     :load [filename] to load lisp source.
+# (+ 1 2)
+> 3
+# 
+@endcode
+
+<p> When you input code at the <code>#</code> prompt, LispBM answers on a new line starting with <code>></code>.</p>
+
+<p> Alternatively the REPL can be built as a 64bit binary. Building the 64bit binary requires 64bit versions of the readline and png libraries. </p>
+<p> On Ubuntu you get the dependcies by doing <code>sudo apt install libreadline-dev libpng-dev</code>. Then to build the executable you issue the following command.</p>
+
+@code
+make all64
+@endcode
+
+<p> Lastly, the REPL can be build with <a href="https://www.libsdl.org/">SDL (Simple Directmedia Layer)</a> for graphical output.
+This is done by issueing the following command.</p>
+
+@code
+make sdl64 
+@endcode
+
+<p> Or for 32bit.</p>
+
+<p><b>WARNING</b> if you are using UBUNTU 24.04(.0/.2) lts <b>DO NOT</b> "sudo atp install" the 32 bit sdl libraries.
+Doing so may render your system unusable as the apt solver is incorrectly deciding to uninstall key operating system
+packages. See <a href=https://bugs.launchpad.net/ubuntu/+source/libsdl2/+bug/2104920> bugreport </a>. Instead do the following: <p>
+
+@code
+sudo apt install aptitude
+sudo aptitude install libsdl2-dev:i386
+sudo aptitude install libsdl2-image-dev:i386
+@endcode
+
+<p> Then to build 32bit LBM with sdl do: </p>
+
+@code
+make sdl
+@endcode
+
+<p>The REPL with SDL requires <code>libsdl2-dev</code> and <code>libsdl2-image-dev</code> libraries or
+the 32 bit versions (for 32bit repl binary) <code>libsdl2-dev:i386</code> and <code>libsdl2-image-dev:i386</code>.</p>
+
+
+*/

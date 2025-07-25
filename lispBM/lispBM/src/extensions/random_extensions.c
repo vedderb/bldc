@@ -1,5 +1,5 @@
 /*
-    Copyright 2023 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2023, 2025 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,6 +17,14 @@
 
 #include <extensions.h>
 #include <lbm_utils.h>
+
+#ifdef LBM_OPT_RANDOM_EXTENSIONS_SIZE
+#pragma GCC optimize ("-Os")
+#endif
+#ifdef LBM_OPT_RANDOM_EXTENSIONS_SIZE_AGGRESSIVE
+#pragma GCC optimize ("-Oz")
+#endif
+
 
 #define M 268435183 //(1 << 28)
 #define A 268435043
@@ -40,10 +48,8 @@ static lbm_value ext_random(lbm_value *args, lbm_uint argn) {
   return lbm_enc_u(random_seed);
 }
 
-bool lbm_random_extensions_init(void) {
+void lbm_random_extensions_init(void) {
 
-  bool res = true;
-  res = res && lbm_add_extension("seed", ext_seed);
-  res = res && lbm_add_extension("random", ext_random);
-  return res;
+  lbm_add_extension("seed", ext_seed);
+  lbm_add_extension("random", ext_random);
 }

@@ -50,7 +50,7 @@ int lbm_print_init(lbm_uint print_stack_size);
  * \param t The value to print.
  * \return negative number for failure and the number of printed characters on success.
  */
-int lbm_print_value(char *buf,unsigned int len, lbm_value t);
+int lbm_print_value(char *buf, unsigned int len, lbm_value t);
 
 #ifdef __cplusplus
 }

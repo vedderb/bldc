@@ -23,15 +23,10 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 
-#define HW_HAS_PHASE_FILTERS
-#define PHASE_FILTER_GPIO       GPIOC
-#define PHASE_FILTER_PIN        13
-#define PHASE_FILTER_ON()       palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
-#define PHASE_FILTER_OFF()      palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
 #ifdef ADV200
-#define HW_DEAD_TIME_NSEC       450.0
+#define HW_DEAD_TIME_NSEC       600.0
 #else
-#define HW_DEAD_TIME_NSEC       660.0
+#define HW_DEAD_TIME_NSEC       1200.0
 #endif
 
 // Macros
@@ -53,7 +48,7 @@
  * 7:   IN6     ADC_EXT2
  * 8:   IN3     TEMP_PCB
  * 9:   IN14    TEMP_MOTOR
- * 10:  IN15    Shutdown
+ * 10:  IN15    NONE
  * 11:  IN13    AN_IN
  * 12:  Vrefint
  * 13:  IN0     SENS1
@@ -83,10 +78,18 @@
 
 // Component parameters (can be overridden)
 #ifndef V_REG
+#ifdef ADV200
 #define V_REG                   3.3
+#else
+#define V_REG                   3.288
+#endif
 #endif
 #ifndef VIN_R1
+#ifdef ADV200
 #define VIN_R1                  68000.0
+#else
+#define VIN_R1                  110000.0
+#endif
 #endif
 #ifndef VIN_R2
 #define VIN_R2                  2200.0
@@ -194,20 +197,25 @@
 #define HW_SPI_PORT_MISO        GPIOA
 #define HW_SPI_PIN_MISO         6
 
+#ifdef ADV200
 // IMU: BMI160
 #define BMI160_SDA_GPIO         GPIOB
 #define BMI160_SDA_PIN          2
 #define BMI160_SCL_GPIO         GPIOA
 #define BMI160_SCL_PIN          15
+#else
+// LSM6DS3
+#define LSM6DS3_SDA_GPIO        GPIOB
+#define LSM6DS3_SDA_PIN         2
+#define LSM6DS3_SCL_GPIO        GPIOA
+#define LSM6DS3_SCL_PIN         15
+#endif
 
 // NRF SWD
 #define NRF5x_SWDIO_GPIO        GPIOB
 #define NRF5x_SWDIO_PIN         4
 #define NRF5x_SWCLK_GPIO        GPIOB
 #define NRF5x_SWCLK_PIN         3
-
-// EEPROM
-#define EEPROM_BACKUP_ALTERNATE
 
 // Measurement macros
 #define ADC_V_L1                ADC_Value[ADC_IND_SENS1]
@@ -225,13 +233,17 @@
 #define MCCONF_L_MIN_VOLTAGE            18.0        // Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
+#ifdef ADV200
+#define MCCONF_L_MAX_VOLTAGE            95.0    // Maximum input voltage
+#else
 #define MCCONF_L_MAX_VOLTAGE            95.0    // Maximum input voltage
 #endif
+#endif
 #ifndef MCCONF_L_CURRENT_MAX
-#define MCCONF_L_CURRENT_MAX                100.0    // Current limit in Amperes (Upper)
+#define MCCONF_L_CURRENT_MAX                120.0    // Current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_CURRENT_MIN
-#define MCCONF_L_CURRENT_MIN                -80.0   // Current limit in Amperes (Lower)
+#define MCCONF_L_CURRENT_MIN                -100.0   // Current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
 #define MCCONF_L_IN_CURRENT_MAX             60.0    // Input current limit in Amperes (Upper)
@@ -240,13 +252,13 @@
 #define MCCONF_L_IN_CURRENT_MIN             -50.0   // Input current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT            200.0   // The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT            240.0   // The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_L_LIM_TEMP_FET_START
 #define MCCONF_L_LIM_TEMP_FET_START     70.0    // MOSFET temperature where current limiting should begin
 #endif
 #ifndef MCCONF_L_LIM_TEMP_FET_END
-#define MCCONF_L_LIM_TEMP_FET_END       80.0   // MOSFET temperature where everything should be shut off
+#define MCCONF_L_LIM_TEMP_FET_END       85.0   // MOSFET temperature where everything should be shut off
 #endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE       MOTOR_TYPE_FOC
@@ -257,18 +269,19 @@
 
 // Setting limits
 #ifdef ADV200
-#define HW_LIM_CURRENT          -150.0, 150.0
-#define HW_LIM_CURRENT_IN       -100.0, 100.0
-#define HW_LIM_CURRENT_ABS      0.0, 225.0
-#else
-#define HW_LIM_CURRENT          -300.0, 300.0
-#define HW_LIM_CURRENT_IN       -100.0, 100.0
-#define HW_LIM_CURRENT_ABS      0.0, 500.0
-#endif
+#define HW_LIM_CURRENT          -180.0, 180.0
+#define HW_LIM_CURRENT_IN       -80.0, 80.0
+#define HW_LIM_CURRENT_ABS      0.0, 250.0
 #define HW_LIM_VIN              18.0, 95.0
+#else
+#define HW_LIM_CURRENT          -200.0, 200.0
+#define HW_LIM_CURRENT_IN       -100.0, 100.0
+#define HW_LIM_CURRENT_ABS      0.0, 320.0
+#define HW_LIM_VIN              18.0, 95.0
+#endif
 #define HW_LIM_ERPM             -200e3, 200e3
 #define HW_LIM_DUTY_MIN         0.0, 0.1
 #define HW_LIM_DUTY_MAX         0.0, 0.99
-#define HW_LIM_TEMP_FET         -40.0, 100.0
+#define HW_LIM_TEMP_FET         -40.0, 110.0
 
-#endif /* HW_LITTLE_FOCER_H_ */
+#endif /* HW_ADV_CORE_H_ */

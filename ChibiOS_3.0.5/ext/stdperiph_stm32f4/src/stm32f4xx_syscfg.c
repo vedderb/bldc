@@ -46,7 +46,6 @@
   ******************************************************************************
   */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 /* Includes ------------------------------------------------------------------*/
@@ -247,8 +246,6 @@ void SYSCFG_BreakConfig(uint32_t SYSCFG_Break)
   SYSCFG->CFGR2 |= (uint32_t) SYSCFG_Break;
 }
 #endif /* STM32F410xx */
-
-#pragma GCC pop_options
 
 /**
   * @}

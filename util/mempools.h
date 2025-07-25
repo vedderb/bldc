@@ -42,6 +42,7 @@ int mempools_mcconf_allocated_num(void);
 int mempools_appconf_allocated_num(void);
 
 uint8_t *mempools_get_packet_buffer(void);
+uint8_t *mempools_get_lbm_packet_buffer(void);
 void mempools_free_packet_buffer(uint8_t *buffer);
 
 #endif /* MEMPOOLS_H_ */

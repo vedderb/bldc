@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "ch.h"
@@ -46,8 +45,13 @@
 #include <math.h>
 
 // Settings
+#ifndef FAULT_VEC_LEN
 #define FAULT_VEC_LEN						25
+#endif // FAULT_VEC_LEN
+
+#ifndef CALLBACK_LEN
 #define CALLBACK_LEN						40
+#endif // CALLBACK_LEN
 
 // Private types
 typedef struct _terminal_callback_struct {
@@ -63,7 +67,7 @@ static volatile int fault_vec_write = 0;
 static terminal_callback_struct callbacks[CALLBACK_LEN];
 static int callback_write = 0;
 
-void terminal_process_string(char *str) {
+__attribute__((section(".text2"))) void terminal_process_string(char *str) {
 	// Echo command so user can see what they previously ran
 	commands_printf("-> %s \n", str);
 
@@ -527,16 +531,23 @@ void terminal_process_string(char *str) {
 					erpm_per_sec > 0.0 && duty > 0.02 && duty <= 0.9 && res >= 0.0 && ind >= 0.0) {
 				float linkage = 0.0, linkage_undriven = 0.0, undriven_samples = 0.0;
 				bool result;
+				float enc_offset, enc_ratio;
+				bool enc_inverted;
 
 				int fault = conf_general_measure_flux_linkage_openloop(current, duty, erpm_per_sec, res, ind,
-																	   &linkage, &linkage_undriven, &undriven_samples, &result);
+																	   &linkage, &linkage_undriven, &undriven_samples, &result,
+																	   &enc_offset, &enc_ratio, &enc_inverted);
 				if (fault == FAULT_CODE_NONE) {
 					if (result) {
 						commands_printf(
 									"Flux linkage            : %.7f\n"
 									"Flux Linkage (undriven) : %.7f\n"
 									"Undriven samples        : %.1f\n",
-									(double)linkage, (double)linkage_undriven, (double)undriven_samples);
+									"Encoder Offset          : %.1f\n",
+									"Encoder Ratio           : %.1f\n",
+									"Encoder inverted        : %d\n",
+									(double)linkage, (double)linkage_undriven, (double)undriven_samples,
+									(double)enc_offset, (double)enc_ratio, enc_inverted);
 					} else {
 						commands_printf("Failed to measure flux linkage");
 					}
@@ -1127,10 +1138,17 @@ void terminal_process_string(char *str) {
 				commands_printf("Invalid arguments\n");
 			}
 		}
-	} else if (strcmp(argv[0], "fwinfo") == 0) {
-		commands_printf("GIT Branch: %s", GIT_BRANCH_NAME);
-		commands_printf("GIT Hash  : %s", GIT_COMMIT_HASH);
-		commands_printf("Compiler  : %s\n", ARM_GCC_VERSION);
+	} else if (strcmp(argv[0], "fw_info") == 0) {
+		commands_printf("Git Branch: %s", GIT_BRANCH_NAME);
+		commands_printf("Git Hash  : %s", GIT_COMMIT_HASH);
+		commands_printf("Compiler  : %s", ARM_GCC_VERSION);
+#ifdef USER_GIT_BRANCH_NAME
+		commands_printf("User Git Branch: %s", USER_GIT_BRANCH_NAME);
+#endif
+#ifdef USER_GIT_COMMIT_HASH
+		commands_printf("User Git Hash  : %s", USER_GIT_COMMIT_HASH);
+#endif
+		commands_printf(" ");
 	} else if (strcmp(argv[0], "rebootwdt") == 0) {
 		chSysLock();
 		for (;;) {__NOP();}
@@ -1246,7 +1264,7 @@ void terminal_process_string(char *str) {
 		commands_printf("update_pid_pos_offset [angle_now] [store]");
 		commands_printf("  Update position PID offset.");
 
-		commands_printf("fwinfo");
+		commands_printf("fw_info");
 		commands_printf("  Print detailed firmware info.");
 
 		commands_printf("rebootwdt");
@@ -1357,5 +1375,3 @@ void terminal_unregister_callback(void(*cbf)(int argc, const char **argv)) {
 		}
 	}
 }
-
-#pragma GCC pop_options

@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include <string.h>
@@ -161,5 +160,3 @@ void log_send_samples_f64(
 
 	mempools_free_packet_buffer(buffer);
 }
-
-#pragma GCC pop_options

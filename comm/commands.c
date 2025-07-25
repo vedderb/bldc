@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "commands.h"
@@ -57,6 +56,7 @@
 #endif
 #include "main.h"
 #include "conf_custom.h"
+#include "comm_usb.h"
 
 #include <math.h>
 #include <string.h>
@@ -540,7 +540,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_SET_MCCONF: {
 #ifndef	HW_MCCONF_READ_ONLY
 		mc_configuration *mcconf = mempools_alloc_mcconf();
-		*mcconf = *mc_interface_get_configuration();
+		volatile const mc_configuration *mcconf_old = mc_interface_get_configuration();
+		*mcconf = *mcconf_old;
 
 		if (confgenerator_deserialize_mcconf(data, mcconf)) {
 			utils_truncate_number(&mcconf->l_current_max_scale , 0.0, 1.0);
@@ -554,6 +555,21 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			mcconf->lo_current_min = mcconf->l_current_min * mcconf->l_current_min_scale;
 			mcconf->lo_in_current_max = mcconf->l_in_current_max;
 			mcconf->lo_in_current_min = mcconf->l_in_current_min;
+
+			// Keep old offsets if writing offsets is disabled
+			if (!(mcconf->foc_offsets_cal_mode & (1 << 1))) {
+				mcconf->foc_offsets_current[0] = mcconf_old->foc_offsets_current[0];
+				mcconf->foc_offsets_current[1] = mcconf_old->foc_offsets_current[1];
+				mcconf->foc_offsets_current[2] = mcconf_old->foc_offsets_current[2];
+
+				mcconf->foc_offsets_voltage[0] = mcconf_old->foc_offsets_voltage[0];
+				mcconf->foc_offsets_voltage[1] = mcconf_old->foc_offsets_voltage[1];
+				mcconf->foc_offsets_voltage[2] = mcconf_old->foc_offsets_voltage[2];
+
+				mcconf->foc_offsets_voltage_undriven[0] = mcconf_old->foc_offsets_voltage_undriven[0];
+				mcconf->foc_offsets_voltage_undriven[1] = mcconf_old->foc_offsets_voltage_undriven[1];
+				mcconf->foc_offsets_voltage_undriven[2] = mcconf_old->foc_offsets_voltage_undriven[2];
+			}
 
 			commands_apply_mcconf_hw_limits(mcconf);
 			conf_general_store_mc_configuration(mcconf, mc_interface_get_motor_thread() == 2);
@@ -1391,7 +1407,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 #ifdef USE_LISPBM
 		if (packet_id == COMM_LISP_ERASE_CODE) {
-			lispif_restart(false, false, false);
+			lispif_stop();
+			flash_helper_erase_code(CODE_IND_LISP_CONST);
 		}
 #endif
 
@@ -1590,6 +1607,50 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 	} break;
 
+	case COMM_FW_INFO: {
+		// Write at most the first max_len characters of str into buffer,
+		// followed by a null byte.
+		void buffer_append_str_max_len(uint8_t *buffer, char *str, size_t max_len, int32_t *index) {
+			size_t str_len = strlen(str);
+			if (str_len > max_len) {
+				str_len = max_len;
+				return;
+			}
+			
+			memcpy(&buffer[*index], str, str_len);
+			*index += str_len;
+			buffer[(*index)++] = '\0';
+		}
+		
+		int32_t ind = 0;
+		uint8_t send_buffer[98];
+		
+		send_buffer[ind++] = COMM_FW_INFO;
+		
+		// This information is technically duplicated with COMM_FW_VERSION, but
+		// I don't care.
+		send_buffer[ind++] = FW_VERSION_MAJOR;
+		send_buffer[ind++] = FW_VERSION_MINOR;
+		send_buffer[ind++] = FW_TEST_VERSION_NUMBER;
+		
+		// We don't include the branch name unfortunately
+		buffer_append_str_max_len(send_buffer, GIT_COMMIT_HASH, 46, &ind);
+#ifdef USER_GIT_COMMIT_HASH
+		char *user_commit_hash = USER_GIT_COMMIT_HASH;
+#else
+		char *user_commit_hash = "";
+#endif
+		buffer_append_str_max_len(send_buffer, user_commit_hash, 46, &ind);
+
+		reply_func(send_buffer, ind);
+	} break;
+
+	case COMM_MOTOR_ESTOP: {
+		int32_t ind = 0;
+		mc_interface_ignore_input_both(buffer_get_uint16(data, &ind));
+		mc_interface_release_motor_override_both();
+	} break;
+
 	// Blocking commands. Only one of them runs at any given time, in their
 	// own thread. If other blocking commands come before the previous one has
 	// finished, they are discarded.
@@ -1613,6 +1674,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_BM_MEM_READ:
 	case COMM_GET_IMU_CALIBRATION:
 	case COMM_BM_MEM_WRITE:
+	case COMM_CAN_UPDATE_BAUD_ALL:
 		if (!is_blocking) {
 			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
 			blocking_thread_cmd_len = len + 1;
@@ -1658,10 +1720,41 @@ int commands_printf_lisp(const char* format, ...) {
 	int len;
 
 	print_buffer[0] = COMM_LISP_PRINT;
-	len = vsnprintf(print_buffer + 1, (PRINT_BUFFER_SIZE - 1), format, arg);
-	va_end (arg);
+	int offset = 1;
+	size_t prefix_len = sprintf(print_buffer + offset, lispif_print_prefix(), "%s");
+	offset += prefix_len;
 
-	int len_to_print = (len < (PRINT_BUFFER_SIZE - 1)) ? len + 1 : PRINT_BUFFER_SIZE;
+	len = vsnprintf(
+		print_buffer + offset, (PRINT_BUFFER_SIZE - offset), format, arg
+	);
+	va_end(arg);
+
+	int len_to_print = (len < (PRINT_BUFFER_SIZE - offset)) ? len + offset : PRINT_BUFFER_SIZE;
+	
+	for (size_t i = 2; i < (size_t)len_to_print; i++) {
+		// TODO: Handle newline character in prefix?
+		char chr = print_buffer[i - 1];
+		if (chr == '\0') {
+			break;
+		}
+		if (chr == '\n') {
+			int remaining_len = len_to_print - i;
+			if (remaining_len > (int)(PRINT_BUFFER_SIZE - i - prefix_len)) {
+				remaining_len = PRINT_BUFFER_SIZE - i - prefix_len;
+			}
+			if (remaining_len <= 0) {
+				break;
+			}
+			memmove(print_buffer + i + prefix_len, print_buffer + i, remaining_len);
+			memmove(print_buffer + i, lispif_print_prefix(), prefix_len);
+			i += prefix_len;
+			len_to_print += prefix_len;
+		}
+		
+		if (len_to_print > PRINT_BUFFER_SIZE) {
+			len_to_print = PRINT_BUFFER_SIZE;
+		}
+	}
 
 	if (len > 0) {
 		if (print_buffer[len_to_print - 1] == '\n') {
@@ -1669,6 +1762,9 @@ int commands_printf_lisp(const char* format, ...) {
 		}
 
 		commands_send_packet((unsigned char*)print_buffer, len_to_print);
+
+		// Uncomment to always print to USB. Useful when debugging code that redirects prints
+//		comm_usb_send_packet((unsigned char*)print_buffer, len_to_print);
 	}
 
 	chMtxUnlock(&print_mutex);
@@ -1792,9 +1888,11 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 	utils_truncate_number(&mcconf->l_current_max_scale, 0.0, 1.0);
 	utils_truncate_number(&mcconf->l_current_min_scale, 0.0, 1.0);
 	utils_truncate_number(&mcconf->l_erpm_start, 0.0, 1.0);
+	utils_truncate_number(&mcconf->foc_overmod_factor, 1.0, 1.5);
 
 	float ctrl_loop_freq = 0.0;
 
+#if FOC_CONTROL_LOOP_FREQ_DIVIDER < 2 // When skipping cycles you are on your own!
 	// This limit should always be active, as starving the threads never
 	// makes sense.
 #ifdef HW_LIM_FOC_CTRL_LOOP_FREQ
@@ -1811,6 +1909,7 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 		ctrl_loop_freq = mcconf->foc_f_zv / 2.0;
 #endif
     }
+#endif
 #endif
 
     if (ctrl_loop_freq >= (hw_lim_upper(HW_LIM_FOC_CTRL_LOOP_FREQ) * 0.9)) {
@@ -1839,6 +1938,7 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 #ifdef HW_LIM_CURRENT
 	utils_truncate_number(&mcconf->l_current_max, HW_LIM_CURRENT);
 	utils_truncate_number(&mcconf->l_current_min, HW_LIM_CURRENT);
+	utils_truncate_number(&mcconf->foc_hfi_amb_current, HW_LIM_CURRENT);
 #endif
 #ifdef HW_LIM_CURRENT_IN
 	utils_truncate_number(&mcconf->l_in_current_max, HW_LIM_CURRENT_IN);
@@ -1871,7 +1971,7 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 #endif
 }
 
-void commands_init_plot(char *namex, char *namey) {
+void commands_init_plot(const char *namex, const char *namey) {
 	int ind = 0;
 	uint8_t *send_buffer_global = mempools_get_packet_buffer();
 	send_buffer_global[ind++] = COMM_PLOT_INIT;
@@ -1885,7 +1985,7 @@ void commands_init_plot(char *namex, char *namey) {
 	mempools_free_packet_buffer(send_buffer_global);
 }
 
-void commands_plot_add_graph(char *name) {
+void commands_plot_add_graph(const char *name) {
 	int ind = 0;
 	uint8_t *send_buffer_global = mempools_get_packet_buffer();
 	send_buffer_global[ind++] = COMM_PLOT_ADD_GRAPH;
@@ -2054,9 +2154,11 @@ static THD_FUNCTION(blocking_thread, arg) {
 				float current = buffer_get_float32(data, 1e3, &ind);
 
 				mcconf->motor_type = MOTOR_TYPE_FOC;
-				mcconf->foc_f_zv = 10000.0;
-				mcconf->foc_current_kp = 0.01;
-				mcconf->foc_current_ki = 10.0;
+				// These parameters work for most motors if detection has not been
+				// done before, but not for all motors. For now we disable them.
+//				mcconf->foc_f_zv = 10000.0;
+//				mcconf->foc_current_kp = 0.01;
+//				mcconf->foc_current_ki = 10.0;
 				mc_interface_set_configuration(mcconf);
 
 				float offset = 0.0;
@@ -2151,9 +2253,12 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 			float linkage, linkage_undriven, undriven_samples;
 			bool res;
+			float enc_offset, enc_ratio;
+			bool enc_inverted;
 			int fault = conf_general_measure_flux_linkage_openloop(current, duty,
 																   erpm_per_sec, resistance, inductance,
-																   &linkage, &linkage_undriven, &undriven_samples, &res);
+																   &linkage, &linkage_undriven, &undriven_samples, &res,
+																   &enc_offset, &enc_ratio, &enc_inverted);
 
 			if (fault != FAULT_CODE_NONE) {
 				linkage = 0.0;
@@ -2171,6 +2276,9 @@ static THD_FUNCTION(blocking_thread, arg) {
 			ind = 0;
 			send_buffer[ind++] = COMM_DETECT_MOTOR_FLUX_LINKAGE_OPENLOOP;
 			buffer_append_float32(send_buffer, linkage, 1e7, &ind);
+			buffer_append_float32(send_buffer, enc_offset, 1e6, &ind);
+			buffer_append_float32(send_buffer, enc_ratio, 1e6, &ind);
+			send_buffer[ind++] = enc_inverted;
 			if (send_func_blocking) {
 				send_func_blocking(send_buffer, ind);
 			}
@@ -2373,10 +2481,35 @@ static THD_FUNCTION(blocking_thread, arg) {
 			}
 		} break;
 
+		case COMM_CAN_UPDATE_BAUD_ALL: {
+			int32_t ind = 0;
+			uint32_t kbits = buffer_get_int16(data, &ind);
+			uint32_t delay_msec = buffer_get_int16(data, &ind);
+
+			CAN_BAUD baud = comm_can_kbits_to_baud(kbits);
+			if (baud != CAN_BAUD_INVALID) {
+				for (int i = 0;i < 10;i++) {
+					comm_can_send_update_baud(kbits, delay_msec);
+					chThdSleepMilliseconds(50);
+				}
+
+				comm_can_set_baud(baud, delay_msec);
+
+				app_configuration *appconf = (app_configuration*)app_get_configuration();
+				appconf->can_baud_rate = baud;
+				conf_general_store_app_configuration(appconf);
+			}
+
+			ind = 0;
+			send_buffer[ind++] = packet_id;
+			send_buffer[ind++] = baud != CAN_BAUD_INVALID;
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
 		default:
 			break;
 		}
 	}
 }
-
-#pragma GCC pop_options

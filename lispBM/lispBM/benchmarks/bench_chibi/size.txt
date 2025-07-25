@@ -1,0 +1,8 @@
+   text	   data	    bss	    dec	    hex	filename             date
+ 132044	   2520	 128552	 263116	  403cc	build/lisp_test.elf  oct 26 2024
+ 131916	   2520	 128552	 262988	  4034c	build/lisp_test.elf  oct 27 2024
+ 132396	   2520	 128552	 263468	  4052c	build/lisp_test.elf  dec 4  2024
+ 133180	   2520	 128552	 264252	  4083c	build/lisp_test.elf  jan 27 2025
+ 132892	   2520	 128552	 263964	  4071c	build/lisp_test.elf  jan 27 2025
+ 132716	   2520	 128552	 263788	  4066c	build/lisp_test.elf  jan 27 2025
+ 132844	   2520	 128552	 263916	  406ec	build/lisp_test.elf  feb 4  2025

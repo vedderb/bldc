@@ -1,8 +1,6 @@
 
 ;; Promotion of f32 type
 
-(defun apply (f x) (eval (cons f x)))
-
 (define a1 (eq (type-of (+ 1.0f32 1b)) type-float))
 (define a2 (eq (type-of (+ 1.0f32 1)) type-float))
 (define a3 (eq (type-of (+ 1.0f32 1u)) type-float))

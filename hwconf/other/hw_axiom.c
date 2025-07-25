@@ -518,7 +518,7 @@ void hw_axiom_init_FPGA_CLK(void) {
 
 char hw_axiom_configure_FPGA(void) {
 	// use CCM SRAM for this 2kB decompressor buffer
-	__attribute__((section(".ram4"))) static uint8_t __LZO_MMODEL outputBuffer[BITSTREAM_CHUNK_SIZE] = {0};
+	static uint8_t __LZO_MMODEL outputBuffer[BITSTREAM_CHUNK_SIZE] = {0};
 
     int r;
     uint32_t index = 0;

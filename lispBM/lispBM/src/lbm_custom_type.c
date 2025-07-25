@@ -31,7 +31,7 @@ bool lbm_custom_type_create(lbm_uint value, custom_type_destructor fptr, const c
   t[CUSTOM_TYPE_DESTRUCTOR] = (lbm_uint)fptr;
 
   lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CUSTOM, (lbm_uint) t, ENC_SYM_CUSTOM_TYPE);
-  if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) {
+  if (cell == ENC_SYM_MERROR) {
     *result = cell;
     lbm_memory_free(t);
     return false;

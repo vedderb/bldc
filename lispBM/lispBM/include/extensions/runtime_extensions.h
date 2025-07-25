@@ -24,7 +24,7 @@
 extern "C" {
 #endif
 
-bool lbm_runtime_extensions_init(bool minimal);
+void lbm_runtime_extensions_init(void);
 
 #ifdef __cplusplus
 }

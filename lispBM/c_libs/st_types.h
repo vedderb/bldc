@@ -23,10 +23,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "system_stm32f4xx.h"
-
-#ifdef USE_STLIB
 #include "stm32f4xx_conf.h"
-#endif
 
 typedef struct {
 	volatile uint32_t MODER;

@@ -1,8 +1,6 @@
 
 ;; Promotion of u64 type
 
-(defun apply (f x) (eval (cons f x)))
-
 (define a1 (eq (type-of (* 1u64 1b)) type-u64))
 (define a2 (eq (type-of (* 1u64 1)) type-u64))
 (define a3 (eq (type-of (* 1u64 1u)) type-u64))

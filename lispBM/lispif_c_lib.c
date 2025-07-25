@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "ch.h"
@@ -55,7 +54,7 @@ void packet_process_byte(uint8_t rx_data, PACKET_STATE_t *state);
 void packet_send_packet(unsigned char *data, unsigned int len, PACKET_STATE_t *state);
 
 typedef struct {
-	char *name;
+	const char *name;
 	void *arg;
 	void (*func)(void*);
 	void *w_mem;
@@ -94,7 +93,7 @@ static THD_FUNCTION(lib_thd, arg) {
 	lbm_free(t);
 }
 
-lib_thread lispif_spawn(void (*func)(void*), size_t stack_size, char *name, void *arg) {
+lib_thread lispif_spawn(void (*func)(void*), size_t stack_size, const char *name, void *arg) {
 	if (!utils_is_func_valid(func)) {
 		commands_printf_lisp("Invalid function address. Make sure that the function is static.");
 		return 0;
@@ -395,7 +394,7 @@ static void wait_uart_tx_task(void *arg) {
 	HW_UART_DEV.usart->CR1 |= USART_CR1_RE;
 }
 
-static bool lib_uart_write(uint8_t *data, uint32_t size) {
+static bool lib_uart_write(const uint8_t *data, uint32_t size) {
 	if (uart_cfg.cr3 & USART_CR3_HDSEL) {
 		HW_UART_DEV.usart->CR1 &= ~USART_CR1_RE;
 		sdWrite(&HW_UART_DEV, data, size);
@@ -462,6 +461,10 @@ static float lib_get_cfg_float(CFG_PARAM p) {
 		case CFG_PARAM_si_wheel_diameter: res = mcconf->si_wheel_diameter; break;
 		case CFG_PARAM_si_battery_ah: res = mcconf->si_battery_ah; break;
 		case CFG_PARAM_si_motor_nl_current: res = mcconf->si_motor_nl_current; break;
+
+		case CFG_PARAM_foc_motor_r: res = mcconf->foc_motor_r; break;
+		case CFG_PARAM_foc_motor_l: res = mcconf->foc_motor_l; break;
+		case CFG_PARAM_foc_motor_flux_linkage: res = mcconf->foc_motor_flux_linkage; break;
 
 		default: break;
 	}
@@ -545,6 +548,10 @@ static bool lib_set_cfg_float(CFG_PARAM p, float value) {
 		case CFG_PARAM_si_wheel_diameter: mcconf->si_wheel_diameter = value; changed_mc = 1; res = true; break;
 		case CFG_PARAM_si_battery_ah: mcconf->si_battery_ah = value; changed_mc = 1; res = true; break;
 		case CFG_PARAM_si_motor_nl_current: mcconf->si_motor_nl_current = value; changed_mc = 1; res = true; break;
+
+		case CFG_PARAM_foc_motor_r: mcconf->foc_motor_r = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_foc_motor_l: mcconf->foc_motor_r = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_foc_motor_flux_linkage: mcconf->foc_motor_flux_linkage = value; changed_mc = 1; res = true; break;
 		default: break;
 	}
 
@@ -687,6 +694,14 @@ static int lib_lbm_set_error_reason(char *str) {
 	return 1;
 }
 
+static void comm_can_transmit_sid_wrapper(uint32_t id, const uint8_t *data, uint8_t len) {
+	comm_can_transmit_sid(id, data, len);
+}
+
+static void comm_can_transmit_eid_wrapper(uint32_t id, const uint8_t *data, uint8_t len) {
+	comm_can_transmit_eid(id, data, len);
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -777,8 +792,8 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		// CAN
 		cif.cif.can_set_sid_cb = comm_can_set_sid_rx_callback;
 		cif.cif.can_set_eid_cb = comm_can_set_eid_rx_callback;
-		cif.cif.can_transmit_sid = comm_can_transmit_sid;
-		cif.cif.can_transmit_eid = comm_can_transmit_eid;
+		cif.cif.can_transmit_sid = comm_can_transmit_sid_wrapper;
+		cif.cif.can_transmit_eid = comm_can_transmit_eid_wrapper;
 		cif.cif.can_send_buffer = comm_can_send_buffer;
 		cif.cif.can_set_duty = comm_can_set_duty;
 		cif.cif.can_set_current = comm_can_set_current;
@@ -1127,5 +1142,3 @@ float lispif_get_ppm(void) {
 
 	return servo_val;
 }
-
-#pragma GCC pop_options

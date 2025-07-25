@@ -120,7 +120,6 @@
   ******************************************************************************  
   */ 
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 /* Includes ------------------------------------------------------------------*/
@@ -1284,8 +1283,6 @@ void DMA_ClearITPendingBit(DMA_Stream_TypeDef* DMAy_Streamx, uint32_t DMA_IT)
     DMAy->LIFCR = (uint32_t)(DMA_IT & RESERVED_MASK);
   }   
 }
-
-#pragma GCC pop_options
 
 /**
   * @}

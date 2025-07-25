@@ -34,7 +34,6 @@
  *   Programming manual - STM32F10xxx Flash memory microcontrollers
  */
 
-#pragma GCC push_options
 #pragma GCC optimize ("Os")
 
 #include "general.h"
@@ -384,5 +383,3 @@ static bool stm32f1_cmd_option(target *t, int argc, char *argv[])
 	}
 	return true;
 }
-
-#pragma GCC pop_options

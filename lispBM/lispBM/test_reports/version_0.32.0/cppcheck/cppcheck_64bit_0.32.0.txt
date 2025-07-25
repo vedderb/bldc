@@ -1,0 +1,69 @@
+Cppcheck 2.16.0
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1321:47: style: Condition 'end_is_past0!=0' is always true [knownConditionTrueFalse]
+      && (start_is_past0 != 0 || end_is_past0 != 0);
+                                              ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1323:47: style: Condition 'end_is_past1!=0' is always true [knownConditionTrueFalse]
+      && (start_is_past1 != 0 || end_is_past1 != 0);
+                                              ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1459:45: style: Condition 'end_is_past!=0' is always true [knownConditionTrueFalse]
+      && (start_is_past != 0 || end_is_past != 0);
+                                            ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:503:37: style: The scope of the variable 'length' can be reduced. [variableScope]
+  unsigned int numTables, numPairs, length, format, flags;
+                                    ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:503:45: style: The scope of the variable 'format' can be reduced. [variableScope]
+  unsigned int numTables, numPairs, length, format, flags;
+                                            ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:503:53: style: The scope of the variable 'flags' can be reduced. [variableScope]
+  unsigned int numTables, numPairs, length, format, flags;
+                                                    ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:672:9: style: The scope of the variable 'pt' can be reduced. [variableScope]
+  Point pt;
+        ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:686:9: style: The scope of the variable 'pt' can be reduced. [variableScope]
+  Point pt;
+        ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:806:33: style: The scope of the variable 'sample' can be reduced. [variableScope]
+  const uint8_t *bytes = base, *sample;
+                                ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:807:37: style: The scope of the variable 'mid' can be reduced. [variableScope]
+  size_t low = 0, high = nmemb - 1, mid;
+                                    ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:1067:31: style: The scope of the variable 'boundary' can be reduced. [variableScope]
+  uint_fast32_t hmtx, offset, boundary;
+                              ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:1228:47: style: The scope of the variable 'cur' can be reduced. [variableScope]
+  uint_least16_t looseEnd, beg, ctrl, center, cur;
+                                              ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:1389:23: style: The scope of the variable 'glyph' can be reduced. [variableScope]
+  unsigned int flags, glyph, basePoint;
+                      ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:670:60: style: Parameter 'trf' can be declared as const array [constParameter]
+transform_points(unsigned int numPts, Point *points, float trf[6])
+                                                           ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:873:31: style: Parameter 'tag' can be declared as const array [constParameter]
+gettable(SFT_Font *font, char tag[4], uint_fast32_t *offset)
+                              ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:894:11: style: Variable 'key' can be declared as const array [constVariable]
+  uint8_t key[2] = { (uint8_t) (charCode >> 8), (uint8_t) charCode };
+          ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:123:14: style: Variable 'c' is assigned a value that is never used. [unreadVariable]
+  uint32_t c = 0;
+             ^
+/home/joels/Current/lispbm/src/extensions/ttf_extensions.c:308:11: style: The scope of the variable 'y_scale' can be reduced. [variableScope]
+    float y_scale = x_scale;
+          ^
+/home/joels/Current/lispbm/src/extensions/ttf_extensions.c:639:11: style: The scope of the variable 'y_n' can be reduced. [variableScope]
+    float y_n = y;
+          ^
+/home/joels/Current/lispbm/src/extensions/ttf_extensions.c:683:18: style: Local variable 'i' shadows outer variable [shadowVariable]
+        for (int i = 0; i < src.width; i ++) {
+                 ^
+/home/joels/Current/lispbm/src/extensions/ttf_extensions.c:628:12: note: Shadowed declaration
+  uint32_t i = 0;
+           ^
+/home/joels/Current/lispbm/src/extensions/ttf_extensions.c:683:18: note: Shadow variable
+        for (int i = 0; i < src.width; i ++) {
+                 ^
+nofile:0:0: information: Active checkers: 108/836 (use --checkers-report=<filename> to see details) [checkersReport]
+

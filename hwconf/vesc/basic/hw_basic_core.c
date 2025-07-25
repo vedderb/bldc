@@ -78,11 +78,13 @@ static lbm_value ext_basic_set_out3(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
-static void load_extensions(void) {
-	lbm_add_extension("basic-read-brake", ext_basic_read_brake);
-	lbm_add_extension("basic-set-out1", ext_basic_set_out1);
-	lbm_add_extension("basic-set-out2", ext_basic_set_out2);
-	lbm_add_extension("basic-set-out3", ext_basic_set_out3);
+static void load_extensions(bool main_found) {
+	if (!main_found) {
+		lbm_add_extension("basic-read-brake", ext_basic_read_brake);
+		lbm_add_extension("basic-set-out1", ext_basic_set_out1);
+		lbm_add_extension("basic-set-out2", ext_basic_set_out2);
+		lbm_add_extension("basic-set-out3", ext_basic_set_out3);
+	}
 }
 
 void hw_init_gpio(void) {

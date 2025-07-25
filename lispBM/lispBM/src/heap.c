@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020, 2022 - 2024 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2022 - 2025 Joel Svensson  svenssonjoel@yahoo.se
                           2022        Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -23,6 +23,9 @@
 #include <inttypes.h>
 #include <lbm_memory.h>
 #include <lbm_custom_type.h>
+#include <lbm_defrag_mem.h>
+#include <lbm_image.h>
+
 
 #include "heap.h"
 #include "symrepr.h"
@@ -34,17 +37,32 @@
 #include "heap_vis.h"
 #endif
 
-
 static inline lbm_value lbm_set_gc_mark(lbm_value x) {
   return x | LBM_GC_MARKED;
 }
-
 static inline lbm_value lbm_clr_gc_mark(lbm_value x) {
   return x & ~LBM_GC_MASK;
 }
 
 static inline bool lbm_get_gc_mark(lbm_value x) {
   return x & LBM_GC_MASK;
+}
+
+static inline void gc_mark(lbm_value c) {
+  //c must be a cons cell.
+  lbm_cons_t *cell = lbm_ref_cell(c);
+  cell->cdr = lbm_set_gc_mark(cell->cdr);
+}
+
+static inline bool gc_marked(lbm_value c) {
+  lbm_cons_t *cell = lbm_ref_cell(c);
+  return lbm_get_gc_mark(cell->cdr);
+}
+
+static inline void gc_clear_mark(lbm_value c) {
+  //c must be a cons cell.
+  lbm_cons_t *cell = lbm_ref_cell(c);
+  cell->cdr = lbm_clr_gc_mark(cell->cdr);
 }
 
 // flag is the same bit as mark, but in car
@@ -124,9 +142,9 @@ lbm_value lbm_enc_float(float x) {
 #endif
 }
 
+#ifndef LBM64
 static lbm_value enc_64_on_32(uint8_t *source, lbm_uint type_qual, lbm_uint type) {
-  lbm_value res = ENC_SYM_MERROR;
-  res = lbm_cons(ENC_SYM_NIL,ENC_SYM_NIL);
+  lbm_value res = lbm_cons(ENC_SYM_NIL,ENC_SYM_NIL);
   if (lbm_type_of(res) != LBM_TYPE_SYMBOL) {
     uint8_t* storage = lbm_malloc(sizeof(uint64_t));
     if (storage) {
@@ -139,6 +157,7 @@ static lbm_value enc_64_on_32(uint8_t *source, lbm_uint type_qual, lbm_uint type
   }
   return res;
 }
+#endif
 
 lbm_value lbm_enc_i64(int64_t x) {
 #ifndef LBM64
@@ -192,9 +211,11 @@ float lbm_dec_float(lbm_value x) {
 
 double lbm_dec_double(lbm_value x) {
 #ifndef LBM64
-  double d;
-  uint32_t *data = (uint32_t*)lbm_car(x);
-  memcpy(&d, data, sizeof(double));
+  double d = 0.0;
+  if (lbm_is_ptr(x)) {
+    uint32_t *data = (uint32_t*)lbm_ref_cell(x)->car;
+    memcpy(&d, data, sizeof(double));
+  }
   return d;
 #else
   double f_tmp;
@@ -206,9 +227,11 @@ double lbm_dec_double(lbm_value x) {
 
 uint64_t lbm_dec_u64(lbm_value x) {
 #ifndef LBM64
-  uint64_t u;
-  uint32_t *data = (uint32_t*)lbm_car(x);
-  memcpy(&u, data, 8);
+  uint64_t u = 0;
+  if (lbm_is_ptr(x)) {
+    uint32_t *data = (uint32_t*)lbm_ref_cell(x)->car;
+    memcpy(&u, data, 8);
+  }
   return u;
 #else
   return (uint64_t)lbm_car(x);
@@ -217,9 +240,11 @@ uint64_t lbm_dec_u64(lbm_value x) {
 
 int64_t lbm_dec_i64(lbm_value x) {
 #ifndef LBM64
-  int64_t i;
-  uint32_t *data = (uint32_t*)lbm_car(x);
-  memcpy(&i, data, 8);
+  int64_t i = 0;
+  if (lbm_is_ptr(x)) {
+    uint32_t *data = (uint32_t*)lbm_ref_cell(x)->car;
+    memcpy(&i, data, 8);
+  }
   return i;
 #else
   return (int64_t)lbm_car(x);
@@ -228,12 +253,45 @@ int64_t lbm_dec_i64(lbm_value x) {
 
 char *lbm_dec_str(lbm_value val) {
   char *res = 0;
-  // If val is an array, car of val will be non-null.
   if (lbm_is_array_r(val)) {
     lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(val);
-    res = (char *)array->data;
+    if (array) {
+      res = (char *)array->data;
+    }
   }
   return res;
+}
+
+lbm_array_header_t *lbm_dec_array_r(lbm_value val) {
+  lbm_array_header_t *array = NULL;
+  if (lbm_is_array_r(val)) {
+    array = (lbm_array_header_t *)lbm_car(val);
+  }
+  return array;
+}
+
+lbm_array_header_t *lbm_dec_array_rw(lbm_value val) {
+  lbm_array_header_t *array = NULL;
+  if (lbm_is_array_rw(val)) {
+    array = (lbm_array_header_t *)lbm_car(val);
+  }
+  return array;
+}
+
+lbm_array_header_t *lbm_dec_lisp_array_r(lbm_value val) {
+  lbm_array_header_t *array = NULL;
+  if (lbm_is_lisp_array_r(val)) {
+    array = (lbm_array_header_t *)lbm_car(val);
+  }
+  return array;
+}
+
+lbm_array_header_t *lbm_dec_lisp_array_rw(lbm_value val) {
+  lbm_array_header_t *array = NULL;
+  if (lbm_is_lisp_array_rw(val)) {
+    array = (lbm_array_header_t *)lbm_car(val);
+  }
+  return array;
 }
 
 lbm_char_channel_t *lbm_dec_channel(lbm_value val) {
@@ -254,221 +312,227 @@ lbm_uint lbm_dec_custom(lbm_value val) {
 }
 
 uint8_t lbm_dec_as_char(lbm_value a) {
+  uint8_t r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-    return (uint8_t) lbm_dec_char(a);
+    r = (uint8_t)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (uint8_t) lbm_dec_i(a);
+    r = (uint8_t)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (uint8_t) lbm_dec_u(a);
+    r = (uint8_t)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (uint8_t) lbm_dec_i32(a);
+    r = (uint8_t)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (uint8_t) lbm_dec_u32(a);
+    r = (uint8_t)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (uint8_t)lbm_dec_float(a);
+    r = (uint8_t)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (uint8_t) lbm_dec_i64(a);
+    r = (uint8_t)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (uint8_t) lbm_dec_u64(a);
+    r = (uint8_t)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (uint8_t) lbm_dec_double(a);
+    r = (uint8_t) lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 uint32_t lbm_dec_as_u32(lbm_value a) {
+  uint32_t r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-    return (uint32_t) lbm_dec_char(a);
+    r = (uint32_t)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (uint32_t) lbm_dec_i(a);
+    r = (uint32_t)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (uint32_t) lbm_dec_u(a);
+    r = (uint32_t)lbm_dec_u(a); break;
   case LBM_TYPE_I32: /* fall through */
   case LBM_TYPE_U32:
-    return (uint32_t) lbm_dec_u32(a);
+    r = (uint32_t)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (uint32_t)lbm_dec_float(a);
+    r = (uint32_t)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (uint32_t) lbm_dec_i64(a);
+    r = (uint32_t)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (uint32_t) lbm_dec_u64(a);
+    r = (uint32_t)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (uint32_t) lbm_dec_double(a);
+    r = (uint32_t)lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 int32_t lbm_dec_as_i32(lbm_value a) {
+  int32_t r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-      return (int32_t) lbm_dec_char(a);
+    r = (int32_t)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (int32_t) lbm_dec_i(a);
+    r = (int32_t)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (int32_t) lbm_dec_u(a);
+    r = (int32_t)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (int32_t) lbm_dec_i32(a);
+    r = (int32_t)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (int32_t) lbm_dec_u32(a);
+    r = (int32_t)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (int32_t) lbm_dec_float(a);
+    r = (int32_t)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (int32_t) lbm_dec_i64(a);
+    r = (int32_t)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (int32_t) lbm_dec_u64(a);
+    r = (int32_t)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (int32_t) lbm_dec_double(a);
-
+    r = (int32_t) lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 int64_t lbm_dec_as_i64(lbm_value a) {
+  int64_t r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-      return (int64_t) lbm_dec_char(a);
+    r = (int64_t)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return lbm_dec_i(a);
+    r = (int64_t)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (int64_t) lbm_dec_u(a);
+    r = (int64_t)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (int64_t) lbm_dec_i32(a);
+    r = (int64_t)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (int64_t) lbm_dec_u32(a);
+    r = (int64_t)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (int64_t) lbm_dec_float(a);
+    r = (int64_t)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (int64_t) lbm_dec_i64(a);
+    r = (int64_t)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (int64_t) lbm_dec_u64(a);
+    r = (int64_t)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (int64_t) lbm_dec_double(a);
+    r = (int64_t) lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 uint64_t lbm_dec_as_u64(lbm_value a) {
+  uint64_t r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-    return (uint64_t) lbm_dec_char(a);
+    r = (uint64_t)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (uint64_t) lbm_dec_i(a);
+    r = (uint64_t)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return lbm_dec_u(a);
+    r = (uint64_t)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (uint64_t) lbm_dec_i32(a);
+    r = (uint64_t)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (uint64_t) lbm_dec_u32(a);
+    r = (uint64_t)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (uint64_t)lbm_dec_float(a);
+    r = (uint64_t)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (uint64_t) lbm_dec_i64(a);
+    r = (uint64_t)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (uint64_t) lbm_dec_u64(a);
+    r = (uint64_t)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (uint64_t) lbm_dec_double(a);
+    r = (uint64_t)lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 lbm_uint lbm_dec_as_uint(lbm_value a) {
+  lbm_uint r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-    return (lbm_uint) lbm_dec_char(a);
+    r = (lbm_uint)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (lbm_uint) lbm_dec_i(a);
+    r = (lbm_uint)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (lbm_uint) lbm_dec_u(a);
+    r = (lbm_uint)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (lbm_uint) lbm_dec_i32(a);
+    r = (lbm_uint)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (lbm_uint) lbm_dec_u32(a);
+    r = (lbm_uint)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (lbm_uint) lbm_dec_float(a);
+    r = (lbm_uint)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (lbm_uint) lbm_dec_i64(a);
+    r = (lbm_uint)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (lbm_uint) lbm_dec_u64(a);
+    r = (lbm_uint) lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (lbm_uint) lbm_dec_double(a);
+    r = (lbm_uint)lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 lbm_int lbm_dec_as_int(lbm_value a) {
+  lbm_int r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-    return (lbm_int) lbm_dec_char(a);
+    r = (lbm_int)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (lbm_int) lbm_dec_i(a);
+    r = (lbm_int)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (lbm_int) lbm_dec_u(a);
+    r = (lbm_int)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (lbm_int) lbm_dec_i32(a);
+    r = (lbm_int)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (lbm_int) lbm_dec_u32(a);
+    r = (lbm_int)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (lbm_int)lbm_dec_float(a);
+    r = (lbm_int)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (lbm_int) lbm_dec_i64(a);
+    r = (lbm_int)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (lbm_int) lbm_dec_u64(a);
+    r = (lbm_int)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (lbm_int) lbm_dec_double(a);
+    r = (lbm_int)lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 float lbm_dec_as_float(lbm_value a) {
-
+  float r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-      return (float) lbm_dec_char(a);
+    r = (float)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (float) lbm_dec_i(a);
+    r = (float)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (float) lbm_dec_u(a);
+    r = (float)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (float) lbm_dec_i32(a);
+    r = (float)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (float) lbm_dec_u32(a);
+    r = (float)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (float) lbm_dec_float(a);
+    r = (float)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (float) lbm_dec_i64(a);
+    r = (float)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (float) lbm_dec_u64(a);
+    r = (float)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (float) lbm_dec_double(a);
+    r = (float)lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 double lbm_dec_as_double(lbm_value a) {
-
+  double r = 0;
   switch (lbm_type_of_functional(a)) {
   case LBM_TYPE_CHAR:
-      return (double) lbm_dec_char(a);
+    r = (double)lbm_dec_char(a); break;
   case LBM_TYPE_I:
-    return (double) lbm_dec_i(a);
+    r = (double)lbm_dec_i(a); break;
   case LBM_TYPE_U:
-    return (double) lbm_dec_u(a);
+    r = (double)lbm_dec_u(a); break;
   case LBM_TYPE_I32:
-    return (double) lbm_dec_i32(a);
+    r = (double)lbm_dec_i32(a); break;
   case LBM_TYPE_U32:
-    return (double) lbm_dec_u32(a);
+    r = (double)lbm_dec_u32(a); break;
   case LBM_TYPE_FLOAT:
-    return (double) lbm_dec_float(a);
+    r = (double)lbm_dec_float(a); break;
   case LBM_TYPE_I64:
-    return (double) lbm_dec_i64(a);
+    r = (double)lbm_dec_i64(a); break;
   case LBM_TYPE_U64:
-    return (double) lbm_dec_u64(a);
+    r = (double)lbm_dec_u64(a); break;
   case LBM_TYPE_DOUBLE:
-    return (double) lbm_dec_double(a);
+    r = (double)lbm_dec_double(a); break;
   }
-  return 0;
+  return r;
 }
 
 /****************************************************/
@@ -545,24 +609,21 @@ int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
   return generate_freelist(num_cells);
 }
 
-lbm_uint lbm_heap_num_free(void) {
-  return lbm_heap_state.heap_size - lbm_heap_state.num_alloc;
-}
 
 lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr) {
-  lbm_value res;
-  // it is a ptr replace freelist with cdr of freelist;
-  res = lbm_heap_state.freelist;
-  if (lbm_type_of(res) == LBM_TYPE_CONS) {
-    lbm_uint heap_ix = lbm_dec_ptr(res);
+  lbm_value r;
+  lbm_value cell = lbm_heap_state.freelist;
+  if (cell) {
+    lbm_uint heap_ix = lbm_dec_ptr(cell);
     lbm_heap_state.freelist = lbm_heap_state.heap[heap_ix].cdr;
     lbm_heap_state.num_alloc++;
     lbm_heap_state.heap[heap_ix].car = car;
     lbm_heap_state.heap[heap_ix].cdr = cdr;
-    res = lbm_set_ptr_type(res, ptr_type);
-    return res;
+    r = lbm_set_ptr_type(cell, ptr_type);
+  } else {
+    r = ENC_SYM_MERROR;
   }
-  return ENC_SYM_MERROR;
+  return r;
 }
 
 lbm_value lbm_heap_allocate_list(lbm_uint n) {
@@ -637,25 +698,44 @@ void lbm_get_heap_state(lbm_heap_state_t *res) {
 }
 
 lbm_uint lbm_get_gc_stack_max(void) {
-  return lbm_heap_state.gc_stack.max_sp;
+  return lbm_get_max_stack(&lbm_heap_state.gc_stack);
 }
 
 lbm_uint lbm_get_gc_stack_size(void) {
   return lbm_heap_state.gc_stack.size;
 }
 
-#ifdef USE_GC_PTR_REV
 static inline void value_assign(lbm_value *a, lbm_value b) {
   lbm_value a_old = *a & LBM_GC_MASK;
   *a = a_old | (b & ~LBM_GC_MASK);
 }
 
-void lbm_gc_mark_phase(lbm_value root) {
-  bool work_to_do = true;
+#ifdef LBM_USE_GC_PTR_REV
+/* ************************************************************
+   Deutch-Schorr-Waite (DSW) pointer reversal GC for 2-ptr cells
+   with a hack-solution for the lisp-array case (n-ptr cells).
 
+   DSW visits each branch node 3 times compared to 2 times for
+   the stack based recursive mark.
+   Where the stack based recursive mark performs a stack push/pop,
+   DSW rearranges the, current, prev, next and a ptr field on
+   the heap.
+
+   DSW changes the structure of the heap and it introduces an
+   invalid pointer (LBM_PTR_NULL) temporarily during marking.
+   Since the heap will be "messed up" while marking, a mutex
+   is introuded to keep other processes out of the heap while
+   marking.
+
+   TODO: See if the extra index field in arrays can be used
+   to mark arrays without resorting to recursive mark calls.
+*/
+
+
+void lbm_gc_mark_phase_nm(lbm_value root) {
+  bool work_to_do = true;
   if (!lbm_is_ptr(root)) return;
 
-  mutex_lock(&lbm_const_heap_mutex);
   lbm_value curr = root;
   lbm_value prev = lbm_enc_cons_ptr(LBM_PTR_NULL);
 
@@ -674,6 +754,15 @@ void lbm_gc_mark_phase(lbm_value root) {
         value_assign(&cell->car, prev);
         value_assign(&prev,curr);
         value_assign(&curr, next);
+      } else if (lbm_type_of(curr) == LBM_TYPE_LISPARRAY) {
+        lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
+        lbm_value *arr_data = (lbm_value *)arr->data;
+        size_t  arr_size = (size_t)arr->size / sizeof(lbm_value);
+        // C stack recursion as deep as there are nested arrays.
+        // TODO: Try to do this without recursion on the C side.
+        for (size_t i = 0; i < arr_size; i ++) {
+          lbm_gc_mark_phase_nm(arr_data[i]);
+        }
       }
       // Will jump out next iteration as gc mark is set in curr.
     }
@@ -703,10 +792,31 @@ void lbm_gc_mark_phase(lbm_value root) {
       value_assign(&cell->cdr, next);
     }
   }
-  mutex_unlock(&lbm_const_heap_mutex);
+}
+
+void lbm_gc_mark_phase(lbm_value root) {
+    mutex_lock(&lbm_const_heap_mutex);
+    lbm_gc_mark_phase_nm(root);
+    mutex_unlock(&lbm_const_heap_mutex);
 }
 
 #else
+/* ************************************************************
+   Explicit stack "recursive" mark phase
+
+   Trees are marked in a left subtree before rigth subtree, car first then cdr,
+   way to favor lisp lists. This means that stack will grow slowly when
+   marking right-leaning (cdr-recursive) data-structures while left-leaning
+   (car-recursive) structures uses a lot of stack.
+
+   Lisp arrays contain an extra book-keeping field to keep track
+   of how far into the array the marking process has gone.
+
+   TODO: DSW should be used as a last-resort if the GC stack is exhausted.
+         If we use DSW as last-resort can we get away with a way smaller
+         GC stack and unchanged performance (on sensible programs)?
+*/
+
 extern eval_context_t *ctx_running;
 void lbm_gc_mark_phase(lbm_value root) {
   lbm_value t_ptr;
@@ -730,37 +840,47 @@ void lbm_gc_mark_phase(lbm_value root) {
       continue;
     }
 
-     t_ptr = lbm_type_of(curr);
+    t_ptr = lbm_type_of(curr);
 
     // An array is marked in O(N) time using an additional 32bit
     // value per array that keeps track of how far into the array GC
     // has progressed.
     if (t_ptr == LBM_TYPE_LISPARRAY) {
-      lbm_push(s, curr); // put array back as bookkeeping.
       lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
       uint32_t index = arr->index;
-
-      // Potential optimization.
-      // 1. CONS pointers are set to curr and recurse.
-      // 2. Any other ptr is marked immediately and index is increased.
-      if (lbm_is_ptr(arrdata[index]) && ((arrdata[index] & LBM_PTR_TO_CONSTANT_BIT) == 0) &&
-          !((arrdata[index] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
-        lbm_cons_t *elt = &lbm_heap_state.heap[lbm_dec_ptr(arrdata[index])];
-        if (!lbm_get_gc_mark(elt->cdr)) {
-          curr = arrdata[index];
-          goto mark_shortcut;
+      if (arr->size > 0) {
+        lbm_push(s, curr); // put array back as bookkeeping.
+        // Potential optimization.
+        // 1. CONS pointers are set to curr and recurse.
+        // 2. Any other ptr is marked immediately and index is increased.
+        if (lbm_is_ptr(arrdata[index]) && ((arrdata[index] & LBM_PTR_TO_CONSTANT_BIT) == 0) &&
+            !((arrdata[index] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
+          lbm_cons_t *elt = &lbm_heap_state.heap[lbm_dec_ptr(arrdata[index])];
+          if (!lbm_get_gc_mark(elt->cdr)) {
+            curr = arrdata[index];
+            goto mark_shortcut;
+          }
         }
+        if (index < ((arr->size/(sizeof(lbm_value))) - 1)) {
+          arr->index++;
+          continue;
+        }
+        arr->index = 0;
+        lbm_pop(s, &curr); // Remove array from GC stack as we are done marking it.
       }
-      if (index < ((arr->size/(sizeof(lbm_value))) - 1)) {
-        arr->index++;
-        continue;
-      }
-
-      arr->index = 0;
       cell->cdr = lbm_set_gc_mark(cell->cdr);
       lbm_heap_state.gc_marked ++;
-      lbm_pop(s, &curr); // Remove array from GC stack as we are done marking it.
+      continue;
+    } else if (t_ptr == LBM_TYPE_CHANNEL) {
+      cell->cdr = lbm_set_gc_mark(cell->cdr);
+      lbm_heap_state.gc_marked ++;
+      // TODO: Can channels be explicitly freed ?
+      if (cell->car != ENC_SYM_NIL) {
+        lbm_char_channel_t *chan = (lbm_char_channel_t *)cell->car;
+        curr = chan->dependency;
+        goto mark_shortcut;
+      }
       continue;
     }
 
@@ -837,26 +957,30 @@ int lbm_gc_sweep_phase(void) {
         case ENC_SYM_IND_F_TYPE:
           lbm_memory_free((lbm_uint*)heap[i].car);
           break;
+        case ENC_SYM_DEFRAG_LISPARRAY_TYPE: /* fall through */
+        case ENC_SYM_DEFRAG_ARRAY_TYPE:
+          lbm_defrag_mem_free((lbm_uint*)heap[i].car);
+          break;
         case ENC_SYM_LISPARRAY_TYPE: /* fall through */
         case ENC_SYM_ARRAY_TYPE:{
           lbm_array_header_t *arr = (lbm_array_header_t*)heap[i].car;
-          if (lbm_memory_ptr_inside((lbm_uint*)arr->data)) {
-            lbm_memory_free((lbm_uint *)arr->data);
-            lbm_heap_state.gc_recovered_arrays++;
-          }
+          lbm_memory_free((lbm_uint *)arr->data);
+          lbm_heap_state.gc_recovered_arrays++;
           lbm_memory_free((lbm_uint *)arr);
         } break;
         case ENC_SYM_CHANNEL_TYPE:{
           lbm_char_channel_t *chan = (lbm_char_channel_t*)heap[i].car;
-          if (lbm_memory_ptr_inside((lbm_uint*)chan)) {
-            lbm_memory_free((lbm_uint*)chan->state);
-            lbm_memory_free((lbm_uint*)chan);
-          }
+          lbm_memory_free((lbm_uint*)chan->state);
+          lbm_memory_free((lbm_uint*)chan);
         } break;
         case ENC_SYM_CUSTOM_TYPE: {
           lbm_uint *t = (lbm_uint*)heap[i].car;
           lbm_custom_type_destroy(t);
           lbm_memory_free(t);
+          } break;
+        case ENC_SYM_DEFRAG_MEM_TYPE: {
+          lbm_uint *ptr = (lbm_uint *)heap[i].car;
+          lbm_defrag_mem_destroy(ptr);
           } break;
         default:
           break;
@@ -888,17 +1012,11 @@ lbm_value lbm_cons(lbm_value car, lbm_value cdr) {
 }
 
 lbm_value lbm_car(lbm_value c){
-
   if (lbm_is_ptr(c) ){
     lbm_cons_t *cell = lbm_ref_cell(c);
     return cell->car;
   }
-
-  if (lbm_is_symbol_nil(c)) {
-    return c; // if nil, return nil.
-  }
-
-  return ENC_SYM_TERROR;
+  return c ? ENC_SYM_TERROR : c; //nil if c == nil
 }
 
 // TODO: Many comparisons "is this the nil symbol" can be
@@ -906,40 +1024,26 @@ lbm_value lbm_car(lbm_value c){
 // lbm_value.
 
 lbm_value lbm_caar(lbm_value c) {
-
-  lbm_value tmp;
-
+  lbm_value tmp = ENC_SYM_NIL;
   if (lbm_is_ptr(c)) {
     tmp = lbm_ref_cell(c)->car;
-
     if (lbm_is_ptr(tmp)) {
       return lbm_ref_cell(tmp)->car;
-    } else if (lbm_is_symbol_nil(tmp)) {
-      return tmp;
     }
-  } else if (lbm_is_symbol_nil(c)){
-    return c;
   }
-  return ENC_SYM_TERROR;
+  return c || tmp ? ENC_SYM_TERROR : c; //nil if not something else
 }
 
 
 lbm_value lbm_cadr(lbm_value c) {
-
-  lbm_value tmp;
-
+  lbm_value tmp = ENC_SYM_NIL;
   if (lbm_is_ptr(c)) {
     tmp = lbm_ref_cell(c)->cdr;
-
     if (lbm_is_ptr(tmp)) {
       return lbm_ref_cell(tmp)->car;
-    } else if (lbm_is_symbol_nil(tmp)) {
-      return tmp;
     }
-  } else if (lbm_is_symbol_nil(c)) {
-    return c;
   }
-  return ENC_SYM_TERROR;
+  return c || tmp ? ENC_SYM_TERROR : c;
 }
 
 lbm_value lbm_cdr(lbm_value c){
@@ -947,10 +1051,7 @@ lbm_value lbm_cdr(lbm_value c){
     lbm_cons_t *cell = lbm_ref_cell(c);
     return cell->cdr;
   }
-  if (lbm_is_symbol_nil(c)) {
-    return ENC_SYM_NIL; // if nil, return nil.
-  }
-  return ENC_SYM_TERROR;
+  return c ? ENC_SYM_TERROR: c;
 }
 
 lbm_value lbm_cddr(lbm_value c) {
@@ -960,10 +1061,7 @@ lbm_value lbm_cddr(lbm_value c) {
       return lbm_ref_cell(tmp)->cdr;
     }
   }
-  if (lbm_is_symbol_nil(c)) {
-    return ENC_SYM_NIL;
-  }
-  return ENC_SYM_TERROR;
+  return c ? ENC_SYM_TERROR : c;
 }
 
 int lbm_set_car(lbm_value c, lbm_value v) {
@@ -1143,57 +1241,49 @@ lbm_value lbm_index_list(lbm_value l, int32_t n) {
 // in the "heap of cons cells".
 int lbm_heap_allocate_array_base(lbm_value *res, bool byte_array, lbm_uint size){
 
+  lbm_uint tag = ENC_SYM_ARRAY_TYPE;
+  lbm_uint type = LBM_TYPE_ARRAY;
   lbm_array_header_t *array = NULL;
+  lbm_array_header_extended_t *ext_array = NULL;
 
   if (byte_array) {
     array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_t));
   } else {
-    // an extra 32bit quantity for a GC index.
+    tag = ENC_SYM_LISPARRAY_TYPE;
+    type = LBM_TYPE_LISPARRAY;
+    size = sizeof(lbm_value) * size;
     array = (lbm_array_header_t*)lbm_malloc(sizeof(lbm_array_header_extended_t));
+    ext_array = (lbm_array_header_extended_t*)array;
   }
+  if (array) {
+    if (!byte_array) ext_array->index = 0;
 
-  if (array == NULL) {
-    *res = ENC_SYM_MERROR;
-    return 0;
+    array->data = NULL;
+    array->size = size;
+    if ( size > 0) {
+      array->data = (lbm_uint*)lbm_malloc(size);
+      if (array->data == NULL) {
+        lbm_memory_free((lbm_uint*)array);
+        goto allocate_array_merror;
+      }
+      // It is more important to zero out high-level arrays.
+      // 0 is symbol NIL which is perfectly safe for the GC to inspect.
+      memset(array->data, 0, size);
+    }
+    // allocating a cell for array's heap-presence
+    lbm_value cell = lbm_heap_allocate_cell(type, (lbm_uint) array, tag);
+    if (cell == ENC_SYM_MERROR) {
+      lbm_memory_free((lbm_uint*)array->data);
+      lbm_memory_free((lbm_uint*)array);
+      goto allocate_array_merror;
+    }
+    *res = cell;
+    lbm_heap_state.num_alloc_arrays ++;
+    return 1;
   }
-
-  lbm_uint tag = ENC_SYM_ARRAY_TYPE;
-  lbm_uint type = LBM_TYPE_ARRAY;
-  if (!byte_array) {
-      tag = ENC_SYM_LISPARRAY_TYPE;
-      type = LBM_TYPE_LISPARRAY;
-      size = sizeof(lbm_value) * size;
-      lbm_array_header_extended_t *ext_array = (lbm_array_header_extended_t*)array;
-      ext_array->index = 0;
-  }
-
-  array->data = (lbm_uint*)lbm_malloc(size);
-
-  if (array->data == NULL) {
-    lbm_memory_free((lbm_uint*)array);
-    *res = ENC_SYM_MERROR;
-    return 0;
-  }
-  // It is more important to zero out high-level arrays.
-  // 0 is symbol NIL which is perfectly safe for the GC to inspect.
-  memset(array->data, 0, size);
-  array->size = size;
-
-  // allocating a cell for array's heap-presence
-  lbm_value cell  = lbm_heap_allocate_cell(type, (lbm_uint) array, tag);
-
-  *res = cell;
-
-  if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) { // Out of heap memory
-    lbm_memory_free((lbm_uint*)array->data);
-    lbm_memory_free((lbm_uint*)array);
-    *res = ENC_SYM_MERROR;
-    return 0;
-  }
-
-  lbm_heap_state.num_alloc_arrays ++;
-
-  return 1;
+ allocate_array_merror:
+  *res = ENC_SYM_MERROR;
+  return 0;
 }
 
 int lbm_heap_allocate_array(lbm_value *res, lbm_uint size){
@@ -1204,14 +1294,12 @@ int lbm_heap_allocate_lisp_array(lbm_value *res, lbm_uint size) {
   return lbm_heap_allocate_array_base(res, false, size);
 }
 
-// Convert a C array into an lbm_array.
-// if the array is in LBM_MEMORY, the lifetime will be managed by the GC after lifting.
 int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 
   lbm_array_header_t *array = NULL;
-  lbm_value cell  = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
+  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CONS, ENC_SYM_NIL, ENC_SYM_ARRAY_TYPE);
 
-  if (lbm_type_of(cell) == LBM_TYPE_SYMBOL) { // Out of heap memory
+  if (cell == ENC_SYM_MERROR) {
     *value = cell;
     return 0;
   }
@@ -1237,11 +1325,8 @@ int lbm_lift_array(lbm_value *value, char *data, lbm_uint num_elt) {
 lbm_int lbm_heap_array_get_size(lbm_value arr) {
 
   lbm_int r = -1;
-  if (lbm_is_array_r(arr)) {
-    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
-    if (header == NULL) {
-      return r;
-    }
+  lbm_array_header_t *header = lbm_dec_array_r(arr);
+  if (header) {
     r = (lbm_int)header->size;
   }
   return r;
@@ -1249,8 +1334,8 @@ lbm_int lbm_heap_array_get_size(lbm_value arr) {
 
 const uint8_t *lbm_heap_array_get_data_ro(lbm_value arr) {
   uint8_t *r = NULL;
-  if (lbm_is_array_r(arr)) {
-    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
+  lbm_array_header_t *header = lbm_dec_array_r(arr);
+  if (header) {
     r = (uint8_t*)header->data;
   }
   return r;
@@ -1258,8 +1343,8 @@ const uint8_t *lbm_heap_array_get_data_ro(lbm_value arr) {
 
 uint8_t *lbm_heap_array_get_data_rw(lbm_value arr) {
   uint8_t *r = NULL;
-  if (lbm_is_array_rw(arr)) {
-    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
+  lbm_array_header_t *header = lbm_dec_array_rw(arr);
+  if (header) {
     r = (uint8_t*)header->data;
   }
   return r;
@@ -1286,8 +1371,7 @@ uint8_t *lbm_heap_array_get_data_rw(lbm_value arr) {
 int lbm_heap_explicit_free_array(lbm_value arr) {
 
   int r = 0;
-  if (lbm_is_array_rw(arr)) {
-
+  if (lbm_is_array_rw(arr) && lbm_cdr(arr) == ENC_SYM_ARRAY_TYPE) {
     lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(arr);
     if (header == NULL) {
       return 0;
@@ -1339,10 +1423,8 @@ static const_heap_write_fun const_heap_write = dummy_flash_write;
 
 int lbm_const_heap_init(const_heap_write_fun w_fun,
                         lbm_const_heap_t *heap,
-                        lbm_uint *addr,
-                        lbm_uint  num_words) {
+                        lbm_uint *addr) {
   if (((uintptr_t)addr % 4) != 0) return 0;
-  if ((num_words % 2) != 0) return 0;
 
   if (!lbm_const_heap_mutex_initialized) {
     mutex_init(&lbm_const_heap_mutex);
@@ -1357,7 +1439,7 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
   const_heap_write = w_fun;
 
   heap->heap = addr;
-  heap->size = num_words;
+  heap->size = 0;
   heap->next = 0;
 
   lbm_const_heap_state = heap;
@@ -1376,7 +1458,7 @@ lbm_flash_status lbm_allocate_const_cell(lbm_value *res) {
   }
 
   if (lbm_const_heap_state &&
-      (lbm_const_heap_state->next+1) < lbm_const_heap_state->size) {
+      (lbm_const_heap_state->next+1) < (uint32_t)lbm_image_get_write_index()) {
     // A cons cell uses two words.
     lbm_value cell = lbm_const_heap_state->next;
     lbm_const_heap_state->next += 2;
@@ -1391,7 +1473,7 @@ lbm_flash_status lbm_allocate_const_raw(lbm_uint nwords, lbm_uint *res) {
   lbm_flash_status r = LBM_FLASH_FULL;
 
   if (lbm_const_heap_state &&
-      (lbm_const_heap_state->next + nwords) < lbm_const_heap_state->size) {
+      (lbm_const_heap_state->next + nwords) < (uint32_t)lbm_image_get_write_index()) {
     lbm_uint ix = lbm_const_heap_state->next;
     *res = (lbm_uint)&lbm_const_heap_state->heap[ix];
     lbm_const_heap_state->next += nwords;
@@ -1405,11 +1487,11 @@ lbm_flash_status lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res) 
   lbm_flash_status r = LBM_FLASH_FULL;
 
   if (lbm_const_heap_state &&
-      (lbm_const_heap_state->next + n) < lbm_const_heap_state->size) {
+      (lbm_const_heap_state->next + n) < (uint32_t)lbm_image_get_write_index()) {
     lbm_uint ix = lbm_const_heap_state->next;
 
     for (unsigned int i = 0; i < n; i ++) {
-      if (!const_heap_write(ix + i, ((lbm_uint*)data)[i]))
+      if (!const_heap_write(((lbm_uint*)data)[i],ix + i))
         return LBM_FLASH_WRITE_ERROR;
     }
     lbm_const_heap_state->next += n;
@@ -1423,8 +1505,8 @@ lbm_flash_status lbm_const_write(lbm_uint *tgt, lbm_uint val) {
 
   if (lbm_const_heap_state) {
     lbm_uint flash = (lbm_uint)lbm_const_heap_state->heap;
-    lbm_uint ix = (((lbm_uint)tgt - flash) / 4); // byte address to ix
-    if (const_heap_write(ix, val)) {
+    lbm_uint ix = (((lbm_uint)tgt - flash) / sizeof(lbm_uint)); // byte address to ix
+    if (const_heap_write(val, ix)) {
       return LBM_FLASH_WRITE_OK;
     }
     return LBM_FLASH_WRITE_ERROR;
@@ -1434,18 +1516,213 @@ lbm_flash_status lbm_const_write(lbm_uint *tgt, lbm_uint val) {
 
 lbm_flash_status write_const_cdr(lbm_value cell, lbm_value val) {
   lbm_uint addr = lbm_dec_ptr(cell);
-  if (const_heap_write(addr+1, val))
+  if (const_heap_write(val, addr+1))
     return LBM_FLASH_WRITE_OK;
   return LBM_FLASH_WRITE_ERROR;
 }
 
 lbm_flash_status write_const_car(lbm_value cell, lbm_value val) {
   lbm_uint addr = lbm_dec_ptr(cell);
-  if (const_heap_write(addr, val))
+  if (const_heap_write(val, addr))
     return LBM_FLASH_WRITE_OK;
   return LBM_FLASH_WRITE_ERROR;
 }
 
 lbm_uint lbm_flash_memory_usage(void) {
   return lbm_const_heap_state->next;
+}
+
+
+// ////////////////////////////////////////////////////////////
+// pointer reversal traversal
+//
+// Caveats:
+//   * Structures on the constant heap cannot be traversed using
+//     pointer reversal. If a dynamic structure is pointing into the
+//     constant heap, the 'f' will be applied to the constant cons cell on
+//     the border and then traversal will retreat.
+//   * Traversal is for trees and graphs without cycles.
+//     - Note that if used to "flatten" a graph, the resulting flat
+//       value will encode a tree where sharing is duplicated.
+//     - NOT suitable for flattening in general, but should be
+//       a perfect fit for the flattening we do into images.
+
+// May 3 2025
+//  * It may be impossible to detect all kinds of cycles
+//    if attempting to use and restore the GC in a single pass
+//    over the tree. To detect cycles all visited nodes must
+//    remain detectable when traversing all branches!
+//
+//  * Potential fix is to run GC after a complete traversal of the
+//    entire value in order to restore the GC bits.
+//
+//  * If we leave GC bits set when traversing values, we can use this
+//    to detect cycles that happen in multiple steps accross values
+//    in the environment.
+//
+//  * lbm_ptr_rev_trav with the "do_nothing" travfun is the same thing
+//    as a GC mark phase! Maybe utilize this for code-size purposes,
+//    atleast in the ptr_rev_gc version. This also increases the amount
+//    of testing the ptr_rev_trav function is subjected to.
+
+bool lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
+
+  bool cyclic = false;
+  lbm_value curr = v;
+  lbm_value prev = lbm_enc_cons_ptr(LBM_PTR_NULL);
+
+  while (true) {
+
+    // Run leftwards and process conses until
+    // hitting a leaf in the left direction.
+    while ((lbm_is_cons_rw(curr) &&
+            !gc_marked(curr)) ||         // do not step into a loop
+           lbm_is_lisp_array_rw(curr)) { // do not step into the constant heap
+      lbm_cons_t *cell = lbm_ref_cell(curr);
+      if (lbm_is_cons(curr)) {
+        gc_mark(curr);
+        // In-order traversal
+        f(curr, false, arg);
+        lbm_value next = 0;
+        value_assign(&next, cell->car);
+        value_assign(&cell->car, prev);
+        value_assign(&prev, curr);
+        value_assign(&curr, next);
+      } else { // it is an array
+        gc_mark(curr);
+        lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
+        lbm_value *arr_data = (lbm_value *)arr->data;
+        uint32_t index = arr->index;
+        if (arr->size == 0) break;
+        if (index == 0) { // index should only be 0 or there is a potential cycle
+          f(curr, false, arg);
+          arr->index = 1;
+
+          lbm_value next = 0;
+          value_assign(&next, arr_data[0]);
+          value_assign(&arr_data[0], prev);
+          value_assign(&prev, curr);
+          value_assign(&curr, next);
+        } else {
+          cyclic = true;
+          break;
+        }
+      }
+    }
+
+    if (lbm_is_ptr(curr) && gc_marked(curr)) {
+      f(curr, true, arg); // run on shared node as well.
+      cyclic = true;
+    } else if (!lbm_is_cons(curr) || // Found a leaf
+        (curr & LBM_PTR_TO_CONSTANT_BIT)) {
+      if (lbm_is_ptr(curr) && !(curr & LBM_PTR_TO_CONSTANT_BIT)) gc_mark(curr); // Mark it so that the mandatory GC does not swipe it.
+      f(curr, false, arg);
+    }
+
+    // Now either prev has the "flag" set or it doesnt.
+    // If the flag is set that means that the prev node
+    // have had both its car and cdr visited. So that node is done!
+    //
+    // If the flag is not set, jump down to SWAP
+
+    while ((lbm_is_cons(prev) &&
+            (lbm_dec_ptr(prev) != LBM_PTR_NULL) && // is LBM_NULL a cons type?
+            lbm_get_gc_flag(lbm_car(prev))) ||
+           lbm_is_lisp_array_rw(prev)) {
+      lbm_cons_t *cell = lbm_ref_cell(prev);
+      if (lbm_is_cons(prev)) {
+
+        // clear the flag
+        // This means that we are done with a "CDR" child.
+        // prev = [ a , b ][flag = 1]
+        // =>
+        // prev = [ a , b ][flag = 0]
+
+        //gc_clear_mark(prev);
+        cell->car = lbm_clr_gc_flag(cell->car);
+        // Move on downwards until
+        //   finding a cons cell without flag or NULL
+
+        // curr = c
+        // prev = [ a , b ][flag = 0]
+        // =>
+        // prev = [ a , c ][flag = 0]
+        // curr = prev
+        // prev = b
+
+        lbm_value next = 0;
+        value_assign(&next, cell->cdr);
+        value_assign(&cell->cdr, curr);
+        value_assign(&curr, prev);
+        value_assign(&prev, next);
+      } else { // is an array
+        lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
+        lbm_value *arr_data = (lbm_value *)arr->data;
+        size_t arr_size = (size_t)arr->size / sizeof(lbm_value);
+        lbm_value next = 0;
+        if (arr->index == arr_size) {
+          value_assign(&next, arr_data[arr->index-1]);
+          value_assign(&arr_data[arr->index-1], curr);
+          value_assign(&curr, prev);
+          value_assign(&prev, next);
+          arr->index = 0;
+        } else {
+          break;
+        }
+      }
+    }
+
+    // SWAP
+
+    // if the prev node is NULL we have traced backwards all the
+    // way back to where curr == v. Another alternative is that
+    // the input v was an Atom.  We are done!
+    if (lbm_is_ptr(prev) &&
+        lbm_dec_ptr(prev) == LBM_PTR_NULL) {
+      if (lbm_is_cons(curr)) {
+        //gc_clear_mark(curr);
+      }
+      //done = true;
+      break;
+    }
+
+    // if the prev node is not NULL then we should move
+    // down to the prev node and start process its remaining child.
+    else if (lbm_is_cons(prev)) {
+
+      lbm_cons_t *cell = lbm_ref_cell(prev);
+      lbm_value next = 0;
+
+
+      //  prev = [ p , cdr ][flag = 0]
+      //  =>
+      //  prev = [ p , cdr ][flag = 1]
+
+      cell->car = lbm_set_gc_flag(cell->car);
+
+      // switch to processing the cdr field and set the flag.
+      // curr = c
+      // prev = [ a, b ][flag = 1]
+      // =>
+      // prev = [ c, a ][flag = 1]
+      // curr = b
+
+      value_assign(&next, cell->car);
+      value_assign(&cell->car, curr);
+      value_assign(&curr, cell->cdr);
+      value_assign(&cell->cdr, next);
+    } else if (lbm_is_lisp_array_rw(prev)) {
+      lbm_cons_t *cell = lbm_ref_cell(prev);
+      lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
+      lbm_value *arr_data = (lbm_value *)arr->data;
+      lbm_value next = 0;
+
+      value_assign(&next, arr_data[arr->index-1]);
+      value_assign(&arr_data[arr->index-1], curr);
+      value_assign(&curr, arr_data[arr->index]);
+      value_assign(&arr_data[arr->index], next);
+      arr->index = arr->index + 1;
+    }
+  }
+  return !cyclic;
 }

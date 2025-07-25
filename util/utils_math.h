@@ -33,6 +33,8 @@ float utils_interpolate_angles_rad(float a1, float a2, float weight_a1);
 float utils_middle_of_3(float a, float b, float c);
 int utils_middle_of_3_int(int a, int b, int c);
 float utils_fast_atan2(float y, float x);
+float utils_fast_sin(float angle);
+float utils_fast_cos(float angle);
 void utils_fast_sincos(float angle, float *sin, float *cos);
 void utils_fast_sincos_better(float angle, float *sin, float *cos);
 float utils_min_abs(float va, float vb);
