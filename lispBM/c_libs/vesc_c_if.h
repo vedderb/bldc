@@ -661,6 +661,12 @@ typedef struct {
 	void (*sem_signal)(lib_semaphore);
 	bool (*sem_wait_to)(lib_semaphore, systime_t); // Returns false on timeout
 	void (*sem_reset)(lib_semaphore);
+
+	// Functions below were added in firmware 6.06
+
+	// Set priority of current thread
+	// Range: -5 to 5, -5 is lowest, 0 is normal, 5 is highest
+	void (*thread_set_priority)(int priority);
 } vesc_c_if;
 
 typedef struct {
