@@ -107,7 +107,6 @@ include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 include hwconf/hwconf.mk
 include applications/applications.mk
 include libcanard/canard.mk
-include imu/imu.mk
 include blackmagic/blackmagic.mk
 include encoder/encoder.mk
 

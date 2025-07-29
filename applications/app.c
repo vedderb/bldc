@@ -27,7 +27,6 @@
 #include "nrf_driver.h"
 #include "rfhelp.h"
 #include "comm_can.h"
-#include "imu.h"
 #include "crc.h"
 #include "pwm_servo.h"
 #include "servo_dec.h"
@@ -79,8 +78,6 @@ void app_set_configuration(app_configuration *conf) {
 #if CAN_ENABLE
 	comm_can_set_baud(conf->can_baud_rate);
 #endif
-
-	imu_init(&conf->imu_conf);
 
 	if (app_changed) {
 		if (appconf.app_to_use != APP_PPM &&

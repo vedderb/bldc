@@ -42,7 +42,6 @@
 #include "encoder/encoder.h"
 #include "nrf_driver.h"
 #include "confgenerator.h"
-#include "imu.h"
 #include "shutdown.h"
 #if HAS_BLACKMAGIC
 #include "bm_if.h"
@@ -1058,84 +1057,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		break;
 
 	case COMM_GET_IMU_DATA: {
-		int32_t ind = 0;
-		uint8_t send_buffer[70];
-		send_buffer[ind++] = packet_id;
-
-		int32_t ind2 = 0;
-		uint32_t mask = buffer_get_uint16(data, &ind2);
-
-		float rpy[3], acc[3], gyro[3], mag[3], q[4];
-		imu_get_rpy(rpy);
-		imu_get_accel(acc);
-		imu_get_gyro(gyro);
-		imu_get_mag(mag);
-		imu_get_quaternions(q);
-
-		buffer_append_uint16(send_buffer, mask, &ind);
-
-		if (mask & ((uint32_t)1 << 0)) {
-			buffer_append_float32_auto(send_buffer, rpy[0], &ind);
-		}
-		if (mask & ((uint32_t)1 << 1)) {
-			buffer_append_float32_auto(send_buffer, rpy[1], &ind);
-		}
-		if (mask & ((uint32_t)1 << 2)) {
-			buffer_append_float32_auto(send_buffer, rpy[2], &ind);
-		}
-
-		if (mask & ((uint32_t)1 << 3)) {
-			buffer_append_float32_auto(send_buffer, acc[0], &ind);
-		}
-		if (mask & ((uint32_t)1 << 4)) {
-			buffer_append_float32_auto(send_buffer, acc[1], &ind);
-		}
-		if (mask & ((uint32_t)1 << 5)) {
-			buffer_append_float32_auto(send_buffer, acc[2], &ind);
-		}
-
-		if (mask & ((uint32_t)1 << 6)) {
-			buffer_append_float32_auto(send_buffer, gyro[0], &ind);
-		}
-		if (mask & ((uint32_t)1 << 7)) {
-			buffer_append_float32_auto(send_buffer, gyro[1], &ind);
-		}
-		if (mask & ((uint32_t)1 << 8)) {
-			buffer_append_float32_auto(send_buffer, gyro[2], &ind);
-		}
-
-		if (mask & ((uint32_t)1 << 9)) {
-			buffer_append_float32_auto(send_buffer, mag[0], &ind);
-		}
-		if (mask & ((uint32_t)1 << 10)) {
-			buffer_append_float32_auto(send_buffer, mag[1], &ind);
-		}
-		if (mask & ((uint32_t)1 << 11)) {
-			buffer_append_float32_auto(send_buffer, mag[2], &ind);
-		}
-
-		if (mask & ((uint32_t)1 << 12)) {
-			buffer_append_float32_auto(send_buffer, q[0], &ind);
-		}
-		if (mask & ((uint32_t)1 << 13)) {
-			buffer_append_float32_auto(send_buffer, q[1], &ind);
-		}
-		if (mask & ((uint32_t)1 << 14)) {
-			buffer_append_float32_auto(send_buffer, q[2], &ind);
-		}
-		if (mask & ((uint32_t)1 << 15)) {
-			buffer_append_float32_auto(send_buffer, q[3], &ind);
-		}
-
-		uint8_t current_controller_id = app_get_configuration()->controller_id;
-#ifdef HW_HAS_DUAL_MOTORS
-		if (mc_interface_get_motor_thread() == 2) {
-			current_controller_id = utils_second_motor_id();
-		}
-#endif
-		send_buffer[ind++] = current_controller_id;
-
-		reply_func(send_buffer, ind);
+		__NOP();
 	} break;
 
 	case COMM_ERASE_BOOTLOADER_ALL_CAN:
@@ -2351,26 +2273,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 		} break;
 #endif
 		case COMM_GET_IMU_CALIBRATION: {
-			int32_t ind = 0;
-			float yaw = buffer_get_float32(data, 1e3, &ind);
-			float imu_cal[9];
-			imu_get_calibration(yaw, imu_cal);
-
-			ind = 0;
-			send_buffer[ind++] = COMM_GET_IMU_CALIBRATION;
-			buffer_append_float32(send_buffer, imu_cal[0], 1e6, &ind);
-			buffer_append_float32(send_buffer, imu_cal[1], 1e6, &ind);
-			buffer_append_float32(send_buffer, imu_cal[2], 1e6, &ind);
-			buffer_append_float32(send_buffer, imu_cal[3], 1e6, &ind);
-			buffer_append_float32(send_buffer, imu_cal[4], 1e6, &ind);
-			buffer_append_float32(send_buffer, imu_cal[5], 1e6, &ind);
-			buffer_append_float32(send_buffer, imu_cal[6], 1e6, &ind);
-			buffer_append_float32(send_buffer, imu_cal[7], 1e6, &ind);
-			buffer_append_float32(send_buffer, imu_cal[8], 1e6, &ind);
-
-			if (send_func_blocking) {
-				send_func_blocking(send_buffer, ind);
-			}
+			__NOP();
 		} break;
 
 		default:

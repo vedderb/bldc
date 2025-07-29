@@ -1,10 +1,10 @@
 /*
-	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
+        Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 
-	This file is part of the VESC firmware.
+        This file is part of the VESC firmware.
 
-	The VESC firmware is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
+        The VESC firmware is free software: you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
@@ -18,53 +18,51 @@
  */
 
 #pragma GCC push_options
-#pragma GCC optimize ("Os")
+#pragma GCC optimize("Os")
 
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 
-#include <stdio.h>
 #include <math.h>
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include "app.h"
+#include "comm_usb.h"
+#include "commands.h"
+#include "conf_custom.h"
+#include "crc.h"
+#include "encoder/encoder.h"
+#include "flash_helper.h"
+#include "hw.h"
+#include "ledpwm.h"
 #include "mc_interface.h"
 #include "mcpwm.h"
 #include "mcpwm_foc.h"
-#include "ledpwm.h"
-#include "comm_usb.h"
-#include "ledpwm.h"
-#include "terminal.h"
-#include "hw.h"
-#include "app.h"
-#include "packet.h"
-#include "commands.h"
-#include "timeout.h"
-#include "encoder/encoder.h"
-#include "pwm_servo.h"
-#include "utils_math.h"
 #include "nrf_driver.h"
+#include "packet.h"
+#include "pwm_servo.h"
+#include "qmlui.h"
 #include "rfhelp.h"
 #include "spi_sw.h"
+#include "terminal.h"
+#include "timeout.h"
 #include "timer.h"
-#include "imu.h"
-#include "flash_helper.h"
-#include "conf_custom.h"
-#include "crc.h"
-#include "qmlui.h"
+#include "utils_math.h"
 
 #if HAS_BLACKMAGIC
 #include "bm_if.h"
 #endif
-#include "shutdown.h"
-#include "mempools.h"
 #include "events.h"
 #include "main.h"
+#include "mempools.h"
+#include "shutdown.h"
 
 #ifdef CAN_ENABLE
 #include "comm_can.h"
-#define CAN_FRAME_MAX_PL_SIZE	8
+#define CAN_FRAME_MAX_PL_SIZE 8
 #endif
 
 #ifdef USE_LISPBM
@@ -95,273 +93,276 @@ static THD_WORKING_AREA(flash_integrity_check_thread_wa, 256);
 static volatile bool m_init_done = false;
 
 static THD_FUNCTION(flash_integrity_check_thread, arg) {
-	(void)arg;
+  (void)arg;
 
-	chRegSetThreadName("Flash check");
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
+  chRegSetThreadName("Flash check");
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
 
-	for(;;) {
-		if (flash_helper_verify_flash_memory_chunk() == FAULT_CODE_FLASH_CORRUPTION) {
-			NVIC_SystemReset();
-		}
+  for (;;) {
+    if (flash_helper_verify_flash_memory_chunk() ==
+        FAULT_CODE_FLASH_CORRUPTION) {
+      NVIC_SystemReset();
+    }
 
-		chThdSleepMilliseconds(6);
-	}
+    chThdSleepMilliseconds(6);
+  }
 }
 
 static THD_FUNCTION(led_thread, arg) {
-	(void)arg;
+  (void)arg;
 
-	chRegSetThreadName("Main LED");
+  chRegSetThreadName("Main LED");
 
-	for(;;) {
-		mc_state state1 = mc_interface_get_state();
-		mc_interface_select_motor_thread(2);
-		mc_state state2 = mc_interface_get_state();
-		mc_interface_select_motor_thread(1);
-		if ((state1 == MC_STATE_RUNNING) || (state2 == MC_STATE_RUNNING)) {
-			ledpwm_set_intensity(LED_GREEN, 1.0);
-		} else {
-			ledpwm_set_intensity(LED_GREEN, 0.2);
-		}
+  for (;;) {
+    mc_state state1 = mc_interface_get_state();
+    mc_interface_select_motor_thread(2);
+    mc_state state2 = mc_interface_get_state();
+    mc_interface_select_motor_thread(1);
+    if ((state1 == MC_STATE_RUNNING) || (state2 == MC_STATE_RUNNING)) {
+      ledpwm_set_intensity(LED_GREEN, 1.0);
+    } else {
+      ledpwm_set_intensity(LED_GREEN, 0.2);
+    }
 
-		mc_fault_code fault = mc_interface_get_fault();
-		mc_interface_select_motor_thread(2);
-		mc_fault_code fault2 = mc_interface_get_fault();
-		mc_interface_select_motor_thread(1);
-		if (fault != FAULT_CODE_NONE || fault2 != FAULT_CODE_NONE) {
-			for (int i = 0;i < (int)fault;i++) {
-				ledpwm_set_intensity(LED_RED, 1.0);
-				chThdSleepMilliseconds(250);
-				ledpwm_set_intensity(LED_RED, 0.0);
-				chThdSleepMilliseconds(250);
-			}
+    mc_fault_code fault = mc_interface_get_fault();
+    mc_interface_select_motor_thread(2);
+    mc_fault_code fault2 = mc_interface_get_fault();
+    mc_interface_select_motor_thread(1);
+    if (fault != FAULT_CODE_NONE || fault2 != FAULT_CODE_NONE) {
+      for (int i = 0; i < (int)fault; i++) {
+        ledpwm_set_intensity(LED_RED, 1.0);
+        chThdSleepMilliseconds(250);
+        ledpwm_set_intensity(LED_RED, 0.0);
+        chThdSleepMilliseconds(250);
+      }
 
-			chThdSleepMilliseconds(500);
+      chThdSleepMilliseconds(500);
 
-			for (int i = 0;i < (int)fault2;i++) {
-				ledpwm_set_intensity(LED_RED, 1.0);
-				chThdSleepMilliseconds(250);
-				ledpwm_set_intensity(LED_RED, 0.0);
-				chThdSleepMilliseconds(250);
-			}
+      for (int i = 0; i < (int)fault2; i++) {
+        ledpwm_set_intensity(LED_RED, 1.0);
+        chThdSleepMilliseconds(250);
+        ledpwm_set_intensity(LED_RED, 0.0);
+        chThdSleepMilliseconds(250);
+      }
 
-			chThdSleepMilliseconds(500);
-		} else {
-			ledpwm_set_intensity(LED_RED, 0.0);
-		}
+      chThdSleepMilliseconds(500);
+    } else {
+      ledpwm_set_intensity(LED_RED, 0.0);
+    }
 
-		chThdSleepMilliseconds(10);
-	}
+    chThdSleepMilliseconds(10);
+  }
 }
 
 static THD_FUNCTION(periodic_thread, arg) {
-	(void)arg;
+  (void)arg;
 
-	chRegSetThreadName("Main periodic");
+  chRegSetThreadName("Main periodic");
 
-	for(;;) {
-		if (mc_interface_get_state() == MC_STATE_DETECTING) {
-			commands_send_rotor_pos(mcpwm_get_detect_pos());
-		}
+  for (;;) {
+    if (mc_interface_get_state() == MC_STATE_DETECTING) {
+      commands_send_rotor_pos(mcpwm_get_detect_pos());
+    }
 
-		disp_pos_mode display_mode = commands_get_disp_pos_mode();
+    disp_pos_mode display_mode = commands_get_disp_pos_mode();
 
-		switch (display_mode) {
-		case DISP_POS_MODE_ENCODER:
-			commands_send_rotor_pos(encoder_read_deg());
-			break;
+    switch (display_mode) {
+    case DISP_POS_MODE_ENCODER:
+      commands_send_rotor_pos(encoder_read_deg());
+      break;
 
-		case DISP_POS_MODE_PID_POS:
-			commands_send_rotor_pos(mc_interface_get_pid_pos_now());
-			break;
+    case DISP_POS_MODE_PID_POS:
+      commands_send_rotor_pos(mc_interface_get_pid_pos_now());
+      break;
 
-		case DISP_POS_MODE_PID_POS_ERROR:
-			commands_send_rotor_pos(utils_angle_difference(mc_interface_get_pid_pos_set(), mc_interface_get_pid_pos_now()));
-			break;
+    case DISP_POS_MODE_PID_POS_ERROR:
+      commands_send_rotor_pos(utils_angle_difference(
+          mc_interface_get_pid_pos_set(), mc_interface_get_pid_pos_now()));
+      break;
 
-		default:
-			break;
-		}
+    default:
+      break;
+    }
 
-		if (mc_interface_get_configuration()->motor_type == MOTOR_TYPE_FOC) {
-			switch (display_mode) {
-			case DISP_POS_MODE_OBSERVER:
-				commands_send_rotor_pos(mcpwm_foc_get_phase_observer());
-				break;
+    if (mc_interface_get_configuration()->motor_type == MOTOR_TYPE_FOC) {
+      switch (display_mode) {
+      case DISP_POS_MODE_OBSERVER:
+        commands_send_rotor_pos(mcpwm_foc_get_phase_observer());
+        break;
 
-			case DISP_POS_MODE_ENCODER_OBSERVER_ERROR:
-				commands_send_rotor_pos(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
-				break;
+      case DISP_POS_MODE_ENCODER_OBSERVER_ERROR:
+        commands_send_rotor_pos(utils_angle_difference(
+            mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
+        break;
 
-			case DISP_POS_MODE_HALL_OBSERVER_ERROR:
-				commands_send_rotor_pos(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_hall()));
-				break;
+      case DISP_POS_MODE_HALL_OBSERVER_ERROR:
+        commands_send_rotor_pos(utils_angle_difference(
+            mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_hall()));
+        break;
 
-			default:
-				break;
-			}
-		}
-	 
-		HW_TRIM_HSI(); // Compensate HSI for temperature
+      default:
+        break;
+      }
+    }
 
-		chThdSleepMilliseconds(10);
-	}
+    HW_TRIM_HSI(); // Compensate HSI for temperature
+
+    chThdSleepMilliseconds(10);
+  }
 }
 
-// When assertions enabled halve PWM frequency. The control loop ISR runs 40% slower
-void assert_failed(uint8_t* file, uint32_t line) {
-	commands_printf("Wrong parameters value: file %s on line %d\r\n", file, line);
-	mc_interface_release_motor();
-	while(1) {
-		chThdSleepMilliseconds(1);
-	}
+// When assertions enabled halve PWM frequency. The control loop ISR runs 40%
+// slower
+void assert_failed(uint8_t *file, uint32_t line) {
+  commands_printf("Wrong parameters value: file %s on line %d\r\n", file, line);
+  mc_interface_release_motor();
+  while (1) {
+    chThdSleepMilliseconds(1);
+  }
 }
 
-bool main_init_done(void) {
-	return m_init_done;
-}
+bool main_init_done(void) { return m_init_done; }
 
 uint32_t main_calc_hw_crc(void) {
-	uint32_t crc = 0;
+  uint32_t crc = 0;
 
 #ifdef QMLUI_SOURCE_HW
-	crc = crc32_with_init(data_qml_hw, DATA_QML_HW_SIZE, crc);
+  crc = crc32_with_init(data_qml_hw, DATA_QML_HW_SIZE, crc);
 #endif
 
-	for (int i = 0;i < conf_custom_cfg_num();i++) {
-		uint8_t *data = 0;
-		int len = conf_custom_get_cfg_xml(i, &data);
-		if (len > 0) {
-			crc = crc32_with_init(data, len, crc);
-		}
-	}
+  for (int i = 0; i < conf_custom_cfg_num(); i++) {
+    uint8_t *data = 0;
+    int len = conf_custom_get_cfg_xml(i, &data);
+    if (len > 0) {
+      crc = crc32_with_init(data, len, crc);
+    }
+  }
 
-	if (flash_helper_code_size(CODE_IND_QML) > 0) {
-		crc = crc32_with_init(
-				flash_helper_code_data(CODE_IND_QML),
-				flash_helper_code_size(CODE_IND_QML),
-				crc);
-	}
+  if (flash_helper_code_size(CODE_IND_QML) > 0) {
+    crc = crc32_with_init(flash_helper_code_data(CODE_IND_QML),
+                          flash_helper_code_size(CODE_IND_QML), crc);
+  }
 
-	return crc;
+  return crc;
 }
 
 int main(void) {
-	halInit();
-	chSysInit();
+  halInit();
+  chSysInit();
 
-	// Initialize the enable pins here and disable them
-	// to avoid excessive current draw at boot because of
-	// floating pins.
+  // Initialize the enable pins here and disable them
+  // to avoid excessive current draw at boot because of
+  // floating pins.
 #ifdef HW_HAS_DRV8313
-	INIT_BR();
+  INIT_BR();
 #endif
 
-	HW_EARLY_INIT();
+  HW_EARLY_INIT();
 
 #ifdef BOOT_OK_GPIO
-	palSetPadMode(BOOT_OK_GPIO, BOOT_OK_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-	palClearPad(BOOT_OK_GPIO, BOOT_OK_PIN);
+  palSetPadMode(BOOT_OK_GPIO, BOOT_OK_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+  palClearPad(BOOT_OK_GPIO, BOOT_OK_PIN);
 #endif
 
-	chThdSleepMilliseconds(100);
+  chThdSleepMilliseconds(100);
 
-	mempools_init();
-	events_init();
-	timer_init(); // Initialize timer here to allow I2C in hw_init
-	hw_init_gpio();
-	LED_RED_OFF();
-	LED_GREEN_OFF();
+  mempools_init();
+  events_init();
+  timer_init(); // Initialize timer here to allow I2C in hw_init
+  hw_init_gpio();
+  LED_RED_OFF();
+  LED_GREEN_OFF();
 
-	conf_general_init();
+  conf_general_init();
 
-	if (flash_helper_verify_flash_memory() == FAULT_CODE_FLASH_CORRUPTION)	{
-		// Loop here, it is not safe to run any code
-		while (1) {
-			chThdSleepMilliseconds(100);
-			LED_RED_ON();
-			chThdSleepMilliseconds(75);
-			LED_RED_OFF();
-		}
-	}
+  if (flash_helper_verify_flash_memory() == FAULT_CODE_FLASH_CORRUPTION) {
+    // Loop here, it is not safe to run any code
+    while (1) {
+      chThdSleepMilliseconds(100);
+      LED_RED_ON();
+      chThdSleepMilliseconds(75);
+      LED_RED_OFF();
+    }
+  }
 
-	ledpwm_init();
-	mc_interface_init();
+  ledpwm_init();
+  mc_interface_init();
 
-	commands_init();
+  commands_init();
 
 #if COMM_USE_USB
-	comm_usb_init();
+  comm_usb_init();
 #endif
 
-	app_uartcomm_initialize();
-	app_configuration *appconf = mempools_alloc_appconf();
-	conf_general_read_app_configuration(appconf);
-	app_uartcomm_start(UART_PORT_BUILTIN);
-	app_uartcomm_start(UART_PORT_EXTRA_HEADER);
-	app_set_configuration(appconf);
+  app_uartcomm_initialize();
+  app_configuration *appconf = mempools_alloc_appconf();
+  conf_general_read_app_configuration(appconf);
+  app_uartcomm_start(UART_PORT_BUILTIN);
+  app_uartcomm_start(UART_PORT_EXTRA_HEADER);
+  app_set_configuration(appconf);
 
-	// This reads the appconf, that must be initialized first.
+  // This reads the appconf, that must be initialized first.
 #if CAN_ENABLE
-	comm_can_init();
+  comm_can_init();
 #endif
 
 #ifdef HW_HAS_PERMANENT_NRF
-	conf_general_permanent_nrf_found = nrf_driver_init();
-	if (conf_general_permanent_nrf_found) {
-		rfhelp_restart();
-	} else {
-		nrf_driver_stop();
-		// Set the nrf SPI pins to the general SPI interface so that
-		// an external NRF can be used with the NRF app.
-		spi_sw_change_pins(
-				HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
-				HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
-				HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
-				HW_SPI_PORT_MISO, HW_SPI_PIN_MISO);
-		HW_PERMANENT_NRF_FAILED_HOOK();
-	}
+  conf_general_permanent_nrf_found = nrf_driver_init();
+  if (conf_general_permanent_nrf_found) {
+    rfhelp_restart();
+  } else {
+    nrf_driver_stop();
+    // Set the nrf SPI pins to the general SPI interface so that
+    // an external NRF can be used with the NRF app.
+    spi_sw_change_pins(HW_SPI_PORT_NSS, HW_SPI_PIN_NSS, HW_SPI_PORT_SCK,
+                       HW_SPI_PIN_SCK, HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
+                       HW_SPI_PORT_MISO, HW_SPI_PIN_MISO);
+    HW_PERMANENT_NRF_FAILED_HOOK();
+  }
 #endif
 
-	// Threads
-	chThdCreateStatic(led_thread_wa, sizeof(led_thread_wa), NORMALPRIO, led_thread, NULL);
-	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
-	chThdCreateStatic(flash_integrity_check_thread_wa, sizeof(flash_integrity_check_thread_wa), LOWPRIO, flash_integrity_check_thread, NULL);
+  // Threads
+  chThdCreateStatic(led_thread_wa, sizeof(led_thread_wa), NORMALPRIO,
+                    led_thread, NULL);
+  chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO,
+                    periodic_thread, NULL);
+  chThdCreateStatic(flash_integrity_check_thread_wa,
+                    sizeof(flash_integrity_check_thread_wa), LOWPRIO,
+                    flash_integrity_check_thread, NULL);
 
-	timeout_init();
-	timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current, appconf->kill_sw_mode);
+  timeout_init();
+  timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current,
+                    appconf->kill_sw_mode);
 
 #if HAS_BLACKMAGIC
-	bm_init();
+  bm_init();
 #endif
 
-	shutdown_init();
+  shutdown_init();
 
-	imu_reset_orientation();
-
-	chThdSleepMilliseconds(500);
-	m_init_done = true;
+  chThdSleepMilliseconds(500);
+  m_init_done = true;
 
 #ifdef BOOT_OK_GPIO
-	palSetPad(BOOT_OK_GPIO, BOOT_OK_PIN);
+  palSetPad(BOOT_OK_GPIO, BOOT_OK_PIN);
 #endif
 
 #ifdef CAN_ENABLE
-	// Transmit a CAN boot-frame to notify other nodes on the bus about it.
-	if (appconf->can_mode == CAN_MODE_VESC) {
-		comm_can_transmit_eid(
-				app_get_configuration()->controller_id | (CAN_PACKET_NOTIFY_BOOT << 8),
-				(uint8_t *)HW_NAME, (strlen(HW_NAME) <= CAN_FRAME_MAX_PL_SIZE) ?
-						strlen(HW_NAME) : CAN_FRAME_MAX_PL_SIZE);
-	}
+  // Transmit a CAN boot-frame to notify other nodes on the bus about it.
+  if (appconf->can_mode == CAN_MODE_VESC) {
+    comm_can_transmit_eid(
+        app_get_configuration()->controller_id | (CAN_PACKET_NOTIFY_BOOT << 8),
+        (uint8_t *)HW_NAME,
+        (strlen(HW_NAME) <= CAN_FRAME_MAX_PL_SIZE) ? strlen(HW_NAME)
+                                                   : CAN_FRAME_MAX_PL_SIZE);
+  }
 #endif
 
-	mempools_free_appconf(appconf);
+  mempools_free_appconf(appconf);
 
-	for(;;) {
-		chThdSleepMilliseconds(10);
-	}
+  for (;;) {
+    chThdSleepMilliseconds(10);
+  }
 }
 
 #pragma GCC pop_options

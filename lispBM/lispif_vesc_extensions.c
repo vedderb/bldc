@@ -41,11 +41,11 @@
 #include "utils_sys.h"
 #include "hw.h"
 #include "mcpwm_foc.h"
-#include "imu.h"
 #include "mempools.h"
 #include "app.h"
 #include "spi_bb.h"
 #include "i2c.h"
+#include "i2c_bb.h"
 #include "confgenerator.h"
 #include "worker.h"
 #include "app.h"
@@ -997,105 +997,6 @@ static lbm_value ext_set_aux(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TERROR;
 }
 
-static lbm_value ext_get_imu_rpy(lbm_value *args, lbm_uint argn) {
-	(void)args; (void)argn;
-
-	float rpy[3];
-	imu_get_rpy(rpy);
-
-	lbm_value imu_data = ENC_SYM_NIL;
-	imu_data = lbm_cons(lbm_enc_float(rpy[2]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(rpy[1]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(rpy[0]), imu_data);
-
-	return imu_data;
-}
-
-static lbm_value ext_get_imu_quat(lbm_value *args, lbm_uint argn) {
-	(void)args; (void)argn;
-
-	float q[4];
-	imu_get_quaternions(q);
-
-	lbm_value imu_data = ENC_SYM_NIL;
-	imu_data = lbm_cons(lbm_enc_float(q[3]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(q[2]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(q[1]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(q[0]), imu_data);
-
-	return imu_data;
-}
-
-static lbm_value ext_get_imu_acc(lbm_value *args, lbm_uint argn) {
-	(void)args; (void)argn;
-
-	float acc[3];
-	imu_get_accel(acc);
-
-	lbm_value imu_data = ENC_SYM_NIL;
-	imu_data = lbm_cons(lbm_enc_float(acc[2]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(acc[1]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(acc[0]), imu_data);
-
-	return imu_data;
-}
-
-static lbm_value ext_get_imu_gyro(lbm_value *args, lbm_uint argn) {
-	(void)args; (void)argn;
-
-	float gyro[3];
-	imu_get_gyro(gyro);
-
-	lbm_value imu_data = ENC_SYM_NIL;
-	imu_data = lbm_cons(lbm_enc_float(gyro[2]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(gyro[1]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(gyro[0]), imu_data);
-
-	return imu_data;
-}
-
-static lbm_value ext_get_imu_mag(lbm_value *args, lbm_uint argn) {
-	(void)args; (void)argn;
-
-	float mag[3];
-	imu_get_mag(mag);
-
-	lbm_value imu_data = ENC_SYM_NIL;
-	imu_data = lbm_cons(lbm_enc_float(mag[2]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(mag[1]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(mag[0]), imu_data);
-
-	return imu_data;
-}
-
-static lbm_value ext_get_imu_acc_derot(lbm_value *args, lbm_uint argn) {
-	(void)args; (void)argn;
-
-	float acc[3];
-	imu_get_accel_derotated(acc);
-
-	lbm_value imu_data = ENC_SYM_NIL;
-	imu_data = lbm_cons(lbm_enc_float(acc[2]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(acc[1]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(acc[0]), imu_data);
-
-	return imu_data;
-}
-
-static lbm_value ext_get_imu_gyro_derot(lbm_value *args, lbm_uint argn) {
-	(void)args; (void)argn;
-
-	float gyro[3];
-	imu_get_gyro_derotated(gyro);
-
-	lbm_value imu_data = ENC_SYM_NIL;
-	imu_data = lbm_cons(lbm_enc_float(gyro[2]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(gyro[1]), imu_data);
-	imu_data = lbm_cons(lbm_enc_float(gyro[0]), imu_data);
-
-	return imu_data;
-}
-
 static void send_app_data(unsigned char *data, unsigned int len, int interface, int can_id) {
 	int32_t index = 0;
 	uint8_t *send_buffer_global = mempools_get_packet_buffer();
@@ -1226,16 +1127,7 @@ static lbm_value ext_recv_data(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_get_remote_state(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 
-	float gyro[3];
-	imu_get_gyro_derotated(gyro);
-
 	lbm_value state = ENC_SYM_NIL;
-	state = lbm_cons(lbm_enc_float(app_nunchuk_get_update_age()), state);
-	state = lbm_cons(lbm_enc_i(app_nunchuk_get_is_rev()), state);
-	state = lbm_cons(lbm_enc_i(app_nunchuk_get_bt_z()), state);
-	state = lbm_cons(lbm_enc_i(app_nunchuk_get_bt_c()), state);
-	state = lbm_cons(lbm_enc_float(app_nunchuk_get_decoded_x()), state);
-	state = lbm_cons(lbm_enc_float(app_nunchuk_get_decoded_y()), state);
 
 	return state;
 }
@@ -5289,13 +5181,6 @@ void lispif_load_vesc_extensions(void) {
 	lbm_add_extension("secs-since", ext_secs_since);
 	lbm_add_extension("set-aux", ext_set_aux);
 	lbm_add_extension("event-enable", ext_enable_event);
-	lbm_add_extension("get-imu-rpy", ext_get_imu_rpy);
-	lbm_add_extension("get-imu-quat", ext_get_imu_quat);
-	lbm_add_extension("get-imu-acc", ext_get_imu_acc);
-	lbm_add_extension("get-imu-gyro", ext_get_imu_gyro);
-	lbm_add_extension("get-imu-mag", ext_get_imu_mag);
-	lbm_add_extension("get-imu-acc-derot", ext_get_imu_acc_derot);
-	lbm_add_extension("get-imu-gyro-derot", ext_get_imu_gyro_derot);
 	lbm_add_extension("send-data", ext_send_data);
 	lbm_add_extension("recv-data", ext_recv_data);
 	lbm_add_extension("get-remote-state", ext_get_remote_state);

@@ -34,12 +34,10 @@
 #include "worker.h"
 #include "app.h"
 #include "mempools.h"
-#include "imu.h"
 #include "terminal.h"
 #include "timeout.h"
 #include "conf_custom.h"
 #include "timer.h"
-#include "ahrs.h"
 #include "encoder.h"
 #include "conf_general.h"
 #include "servo_dec.h"
@@ -419,7 +417,6 @@ static float lib_get_cfg_float(CFG_PARAM p) {
 	float res = 0.0;
 
 	const volatile mc_configuration *mcconf = mc_interface_get_configuration();
-	const app_configuration *appconf = app_get_configuration();
 
 	switch (p) {
 		case CFG_PARAM_l_current_max: res = mcconf->l_current_max; break;
@@ -444,20 +441,6 @@ static float lib_get_cfg_float(CFG_PARAM p) {
 		case CFG_PARAM_l_min_duty: res = mcconf->l_min_duty; break;
 		case CFG_PARAM_l_max_duty: res = mcconf->l_max_duty; break;
 
-		case CFG_PARAM_IMU_accel_confidence_decay: res = appconf->imu_conf.accel_confidence_decay; break;
-		case CFG_PARAM_IMU_mahony_kp: res = appconf->imu_conf.mahony_kp; break;
-		case CFG_PARAM_IMU_mahony_ki: res = appconf->imu_conf.mahony_ki; break;
-		case CFG_PARAM_IMU_madgwick_beta: res = appconf->imu_conf.madgwick_beta; break;
-		case CFG_PARAM_IMU_rot_roll: res = appconf->imu_conf.rot_roll; break;
-		case CFG_PARAM_IMU_rot_pitch: res = appconf->imu_conf.rot_pitch; break;
-		case CFG_PARAM_IMU_rot_yaw: res = appconf->imu_conf.rot_yaw; break;
-		case CFG_PARAM_IMU_accel_offset_x: res = appconf->imu_conf.accel_offsets[0]; break;
-		case CFG_PARAM_IMU_accel_offset_y: res = appconf->imu_conf.accel_offsets[1]; break;
-		case CFG_PARAM_IMU_accel_offset_z: res = appconf->imu_conf.accel_offsets[2]; break;
-		case CFG_PARAM_IMU_gyro_offset_x: res = appconf->imu_conf.gyro_offsets[0]; break;
-		case CFG_PARAM_IMU_gyro_offset_y: res = appconf->imu_conf.gyro_offsets[1]; break;
-		case CFG_PARAM_IMU_gyro_offset_z: res = appconf->imu_conf.gyro_offsets[2]; break;
-
 		case CFG_PARAM_si_gear_ratio: res = mcconf->si_gear_ratio; break;
 		case CFG_PARAM_si_wheel_diameter: res = mcconf->si_wheel_diameter; break;
 		case CFG_PARAM_si_battery_ah: res = mcconf->si_battery_ah; break;
@@ -478,8 +461,6 @@ static int lib_get_cfg_int(CFG_PARAM p) {
 	switch (p) {
 		case CFG_PARAM_app_can_mode: res = appconf->can_mode; break;
 		case CFG_PARAM_app_can_baud_rate: res = appconf->can_baud_rate; break;
-		case CFG_PARAM_IMU_ahrs_mode: res = appconf->imu_conf.mode; break;
-		case CFG_PARAM_IMU_sample_rate: res = appconf->imu_conf.sample_rate_hz; break;
 		case CFG_PARAM_app_shutdown_mode: res = appconf->shutdown_mode; break;
 
 		case CFG_PARAM_si_motor_poles: res = mcconf->si_motor_poles; break;
@@ -527,20 +508,6 @@ static bool lib_set_cfg_float(CFG_PARAM p, float value) {
 		case CFG_PARAM_l_min_duty: mcconf->l_min_duty = value; changed_mc = 1; res = true; break;
 		case CFG_PARAM_l_max_duty: mcconf->l_max_duty = value; changed_mc = 1; res = true; break;
 
-		case CFG_PARAM_IMU_accel_confidence_decay: appconf->imu_conf.accel_confidence_decay = value; changed_app = 1; res = true; break;
-		case CFG_PARAM_IMU_mahony_kp: appconf->imu_conf.mahony_kp = value; changed_app = 1; res = true; break;
-		case CFG_PARAM_IMU_mahony_ki: appconf->imu_conf.mahony_ki = value; changed_app = 1; res = true; break;
-		case CFG_PARAM_IMU_madgwick_beta: appconf->imu_conf.madgwick_beta = value; changed_app = 1; res = true; break;
-		case CFG_PARAM_IMU_rot_roll: appconf->imu_conf.rot_roll = value; changed_app = 1; res = true; break;
-		case CFG_PARAM_IMU_rot_pitch: appconf->imu_conf.rot_pitch = value; changed_app = 1; res = true; break;
-		case CFG_PARAM_IMU_rot_yaw: appconf->imu_conf.rot_yaw = value; changed_app = 1; res = true; break;
-		case CFG_PARAM_IMU_accel_offset_x: appconf->imu_conf.accel_offsets[0] = value; changed_app = 1; res = true; break;
-		case CFG_PARAM_IMU_accel_offset_y: appconf->imu_conf.accel_offsets[1] = value; changed_app = 1; res = true; break;
-		case CFG_PARAM_IMU_accel_offset_z: appconf->imu_conf.accel_offsets[2] = value; changed_app = 1; res = true; break;
-		case CFG_PARAM_IMU_gyro_offset_x: appconf->imu_conf.gyro_offsets[0] = value; changed_app = 1; res = true; break;
-		case CFG_PARAM_IMU_gyro_offset_y: appconf->imu_conf.gyro_offsets[1] = value; changed_app = 1; res = true; break;
-		case CFG_PARAM_IMU_gyro_offset_z: appconf->imu_conf.gyro_offsets[2] = value; changed_app = 1; res = true; break;
-
 		case CFG_PARAM_si_gear_ratio: mcconf->si_gear_ratio = value; changed_mc = 1; res = true; break;
 		case CFG_PARAM_si_wheel_diameter: mcconf->si_wheel_diameter = value; changed_mc = 1; res = true; break;
 		case CFG_PARAM_si_battery_ah: mcconf->si_battery_ah = value; changed_mc = 1; res = true; break;
@@ -574,8 +541,6 @@ static bool lib_set_cfg_int(CFG_PARAM p, int value) {
 	switch (p) {
 	case CFG_PARAM_app_can_mode: appconf->can_mode = value; changed_app = 1; res = true; break;
 	case CFG_PARAM_app_can_baud_rate: appconf->can_baud_rate = value; changed_app = 1; res = true; break;
-	case CFG_PARAM_IMU_ahrs_mode: appconf->imu_conf.mode = value; changed_app = 1; res = true; break;
-	case CFG_PARAM_IMU_sample_rate: appconf->imu_conf.sample_rate_hz = value; changed_app = 1; res = true; break;
 	case CFG_PARAM_app_shutdown_mode: appconf->shutdown_mode = value; changed_app = 1; res = true; break;
 
 	case CFG_PARAM_si_motor_poles: mcconf->si_motor_poles = value; changed_mc = 1; res = true; break;
@@ -881,22 +846,6 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.packet_process_byte = packet_process_byte;
 		cif.cif.packet_send_packet = packet_send_packet;
 
-		// IMU
-		cif.cif.imu_startup_done = imu_startup_done;
-		cif.cif.imu_get_roll = imu_get_roll;
-		cif.cif.imu_get_pitch = imu_get_pitch;
-		cif.cif.imu_get_yaw = imu_get_yaw;
-		cif.cif.imu_get_rpy = imu_get_rpy;
-		cif.cif.imu_get_accel = imu_get_accel;
-		cif.cif.imu_get_gyro = imu_get_gyro;
-		cif.cif.imu_get_mag = imu_get_mag;
-		cif.cif.imu_derotate = imu_derotate;
-		cif.cif.imu_get_accel_derotated = imu_get_accel_derotated;
-		cif.cif.imu_get_gyro_derotated = imu_get_gyro_derotated;
-		cif.cif.imu_get_quaternions = imu_get_quaternions;
-		cif.cif.imu_get_calibration = imu_get_calibration;
-		cif.cif.imu_set_yaw = imu_set_yaw;
-
 		// Terminal
 		cif.cif.terminal_register_command_callback = terminal_register_command_callback;
 		cif.cif.terminal_unregister_callback = terminal_unregister_callback;
@@ -949,16 +898,6 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 
 		// Unregister pointers to previously used reply function
 		cif.cif.commands_unregister_reply_func = commands_unregister_reply_func;
-
-		// IMU AHRS functions and read callback
-		cif.cif.imu_set_read_callback = imu_set_read_callback;
-		cif.cif.ahrs_init_attitude_info = ahrs_init_attitude_info;
-		cif.cif.ahrs_update_initial_orientation = ahrs_update_initial_orientation;
-		cif.cif.ahrs_update_mahony_imu = ahrs_update_mahony_imu;
-		cif.cif.ahrs_update_madgwick_imu = ahrs_update_madgwick_imu;
-		cif.cif.ahrs_get_roll = ahrs_get_roll;
-		cif.cif.ahrs_get_pitch = ahrs_get_pitch;
-		cif.cif.ahrs_get_yaw = ahrs_get_yaw;
 
 		// Set custom encoder callbacks
 		cif.cif.encoder_set_custom_callbacks = encoder_set_custom_callbacks;

@@ -30,7 +30,6 @@
 #include "mempools.h"
 #include "timeout.h"
 #include "stdio.h"
-#include "imu.h"
 
 // Variables
 static volatile bool i2c_running = false;

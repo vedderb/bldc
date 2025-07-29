@@ -51,7 +51,6 @@
 #include "buffer.h"
 #include "utils.h"
 #include "mcpwm_foc.h"
-#include "imu.h"
 
 // Constants
 #define CAN_APP_NODE_NAME								"org.vesc." HW_NAME
@@ -537,10 +536,9 @@ static void sendRtData(CanardInstance *ins) {
 	data.curr_d = mcpwm_foc_get_id();
 	data.curr_q = mcpwm_foc_get_iq();
 
-	float rpy[3], acc[3], gyro[3];
-	imu_get_rpy(rpy);
-	imu_get_accel(acc);
-	imu_get_gyro(gyro);
+	float rpy[3] = {0};
+	float acc[3] = {0};
+	float gyro[3] = {0};
 
 	data.roll = rpy[0];
 	data.pitch = rpy[1];

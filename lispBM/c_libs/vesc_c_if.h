@@ -270,23 +270,6 @@ typedef enum {
 	CFG_PARAM_l_min_duty,
 	CFG_PARAM_l_max_duty,
 
-	// IMU
-	CFG_PARAM_IMU_accel_confidence_decay,
-	CFG_PARAM_IMU_mahony_kp,
-	CFG_PARAM_IMU_mahony_ki,
-	CFG_PARAM_IMU_madgwick_beta,
-	CFG_PARAM_IMU_rot_roll,
-	CFG_PARAM_IMU_rot_pitch,
-	CFG_PARAM_IMU_rot_yaw,
-	CFG_PARAM_IMU_ahrs_mode,
-	CFG_PARAM_IMU_sample_rate,
-	CFG_PARAM_IMU_accel_offset_x,
-	CFG_PARAM_IMU_accel_offset_y,
-	CFG_PARAM_IMU_accel_offset_z,
-	CFG_PARAM_IMU_gyro_offset_x,
-	CFG_PARAM_IMU_gyro_offset_y,
-	CFG_PARAM_IMU_gyro_offset_z,
-
 	CFG_PARAM_app_shutdown_mode,
 
 	// Motor Additional Info
@@ -576,16 +559,6 @@ typedef struct {
 
 	// Unregister pointers to previously used reply function
 	void (*commands_unregister_reply_func)(void(*reply_func)(unsigned char *data, unsigned int len));
-
-	// IMU AHRS functions and read callback
-	void (*imu_set_read_callback)(void (*func)(float *acc, float *gyro, float *mag, float dt));
-	void (*ahrs_init_attitude_info)(ATTITUDE_INFO *att);
-	void (*ahrs_update_initial_orientation)(float *accelXYZ, float *magXYZ, ATTITUDE_INFO *att);
-	void (*ahrs_update_mahony_imu)(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att);
-	void (*ahrs_update_madgwick_imu)(float *gyroXYZ, float *accelXYZ, float dt, ATTITUDE_INFO *att);
-	float (*ahrs_get_roll)(ATTITUDE_INFO *att);
-	float (*ahrs_get_pitch)(ATTITUDE_INFO *att);
-	float (*ahrs_get_yaw)(ATTITUDE_INFO *att);
 
 	// Set custom encoder callbacks
 	void (*encoder_set_custom_callbacks)(
