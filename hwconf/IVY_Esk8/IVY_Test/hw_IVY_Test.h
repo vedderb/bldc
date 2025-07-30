@@ -71,6 +71,10 @@
 // Override dead time. See the stm32f4 reference manual for calculating this value.
 #define HW_DEAD_TIME_NSEC 1000.0
 
+// 二选一
+// #define HW_HAS_SHUTDOWN_SWITCH
+#define HW_HAS_INPUT_CURRENT_SENSOR
+
 // HW properties
 #define HW_HAS_3_SHUNTS // 三相电流采样
 // #define HW_HAS_PHASE_SHUNTS //相电流采样，禁用为低端测流
@@ -100,9 +104,7 @@
 #define CURRENT_FILTER_OFF() palClearPad(GPIOD, 2)
 #endif
 
-#define HW_NO_SHUTDOWN_SWITCH
-
-#ifndef HW_NO_SHUTDOWN_SWITCH
+#ifdef HW_HAS_SHUTDOWN_SWITCH
 // Shutdown pin
 #define HW_SHUTDOWN_GPIO GPIOC
 #define HW_SHUTDOWN_PIN 5
@@ -154,9 +156,9 @@
 #define ADC_IND_EXT2 7
 #define ADC_IND_TEMP_MOS 8
 #define ADC_IND_TEMP_MOTOR 9
-#ifndef HW_NO_SHUTDOWN_SWITCH
+#ifdef HW_HAS_SHUTDOWN_SWITCH
 #define ADC_IND_SHUTDOWN 10
-#else
+#elif defined HW_HAS_INPUT_CURRENT_SENSOR
 #define ADC_IND_IN_CURR 10
 #endif
 #define ADC_IND_VIN_SENS 11
@@ -177,9 +179,8 @@
 // Input voltage
 #define GET_INPUT_VOLTAGE() ((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
-#ifdef HW_NO_SHUTDOWN_SWITCH
+#ifdef ADC_IND_IN_CURR
 // Input current
-#define HW_HAS_INPUT_CURRENT_SENSOR
 #define GET_INPUT_CURRENT() hw_read_input_current()
 #define GET_INPUT_CURRENT_OFFSET() hw_get_input_current_offset()
 #define MEASURE_INPUT_CURRENT_OFFSET() hw_start_input_current_sensor_offset_measurement()

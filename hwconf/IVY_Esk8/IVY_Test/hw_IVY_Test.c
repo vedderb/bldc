@@ -245,7 +245,7 @@ void hw_try_restore_i2c(void)
 	}
 }
 
-#ifndef HW_NO_SHUTDOWN_SWITCH
+#ifdef HW_HAS_SHUTDOWN_SWITCH
 bool hw_sample_shutdown_button(void)
 {
 	chMtxLock(&shutdown_mutex);
@@ -269,17 +269,61 @@ bool hw_sample_shutdown_button(void)
 
 	return (bt_diff > 0.12);
 }
-#else
+#elif defined ADC_IND_IN_CURR
+
 #define IN_CURRENT_SHUNT_RES (0.0005)
-#define IN_CURRENT_SHUNT_GAIN (20)
+#define IN_CURRENT_SHUNT_GAIN (20.0)
 static volatile float input_current_sensor_offset = 1.65;
 static volatile int16_t input_current_sensor_offset_samples = -1;
 static volatile uint32_t input_current_sensor_offset_sum = 0;
 
+typedef struct KFP_t
+{
+	float LastP; // 上次估算协方差 初始化值为0.02
+	float Now_P; // 当前估算协方差 初始化值为0
+	float out;	 // 卡尔曼滤波器输出 初始化值为0
+	float Kg;	 // 卡尔曼增益 初始化值为0
+	float Q;	 // 过程噪声协方差 初始化值为0.001，越大越信任输入
+	float R;	 // 观测噪声协方差 初始化值为0.543，越大收敛越慢
+} KFP;			 // Kalman Filter parameter
+
+static volatile KFP input_current_KFP = {
+	.LastP = 0.02,
+	.Now_P = 0.0,
+	.out = 0.0,
+	.Kg = 0.0,
+	.Q = 0.0001,
+	.R = 0.6};
+
+/**
+ *卡尔曼滤波器
+ *@param KFP *kfp 卡尔曼结构体参数
+ *   float input 需要滤波的参数的测量值（即传感器的采集值）
+ *@return 滤波后的参数（最优值）
+ */
+float kalmanFilter(KFP *kfp, float input)
+{
+	if (isnan(input))
+		return input;
+	// 预测协方差方程：k时刻系统估算协方差 = k-1时刻的系统协方差 + 过程噪声协方差
+	kfp->Now_P = kfp->LastP + kfp->Q;
+	// 卡尔曼增益方程：卡尔曼增益 = k时刻系统估算协方差 / （k时刻系统估算协方差 + 观测噪声协方差）
+	kfp->Kg = kfp->Now_P / (kfp->Now_P + kfp->R);
+	if (isnan(kfp->Kg))
+		kfp->Kg = 0;
+	// 更新最优值方程：k时刻状态变量的最优值 = 状态变量的预测值 + 卡尔曼增益 * （测量值 - 状态变量的预测值）
+	kfp->out = kfp->out + kfp->Kg * (input - kfp->out); // 因为这一次的预测值就是上一次的输出值
+	// 更新协方差方程: 本次的系统协方差付给 kfp->LastP 为下一次运算准备。
+	kfp->LastP = (1 - kfp->Kg) * kfp->Now_P;
+	return kfp->out;
+}
+
 float hw_read_input_current(void)
 {
-	return ((V_REG / 4095.0) / (IN_CURRENT_SHUNT_GAIN * IN_CURRENT_SHUNT_RES) *
-			((float)ADC_Value[ADC_IND_IN_CURR] - input_current_sensor_offset));
+	// return ((V_REG / 4095.0) * (kalmanFilter(&input_current_KFP, ADC_Value[ADC_IND_IN_CURR]) - input_current_sensor_offset) /
+	// 		IN_CURRENT_SHUNT_GAIN / IN_CURRENT_SHUNT_RES);
+	return ((V_REG / 4095.0) * kalmanFilter(&input_current_KFP, ADC_Value[ADC_IND_IN_CURR]) /
+			IN_CURRENT_SHUNT_GAIN / IN_CURRENT_SHUNT_RES);
 }
 
 void hw_get_input_current_offset(void)
@@ -291,8 +335,7 @@ void hw_get_input_current_offset(void)
 		if (input_current_sensor_offset_samples >= 100)
 		{
 			input_current_sensor_offset = (((float)input_current_sensor_offset_sum) /
-										   input_current_sensor_offset_samples) *
-										  (V_REG / 4095.0);
+										   input_current_sensor_offset_samples);
 			// Reset the sum and samples
 			input_current_sensor_offset_sum = 0;
 			input_current_sensor_offset_samples = -1;
