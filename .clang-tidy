@@ -1,0 +1,28 @@
+Checks: >
+  -*,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  bugprone-*,
+  readability-*,
+  portability-*,
+  misc-*,
+  modernize-use-nullptr,
+  -readability-identifier-naming,
+  -cppcoreguidelines-pro-type-cstyle-cast
+
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'
+FormatStyle: file
+CheckOptions:
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: '1'
+  - key: readability-function-cognitive-complexity.Threshold
+    value: '15'
+  - key: readability-magic-numbers.IgnoredValues
+    value: '0,1,2,-1'
+  - key: readability-magic-numbers.IgnoredFunctionNames
+    value: 'main,assert'
+  - key: readability-magic-numbers.IgnoredVariableNames
+    value: 'argc,argv'
+  - key: misc-unused-parameters.StrictMode
+    value: '1'
