@@ -23,9 +23,9 @@
 #define CIXI_STATUS_SEND_INTERVAL_MS            10U
 #define CIXI_HEARBEAT_TIMEOUT_CHECK_INTERVAL_MS 25U
 
-// #define APP_CUSTOM_TO_USE     "cixi_comm_can.h"
 #define APPCONF_APP_TO_USE    APP_CUSTOM
 #define APPCONF_SHUTDOWN_MODE SHUTDOWN_MODE_ALWAYS_ON
+
 /**
  * @brief Enum for identifying base CAN IDs of known CIXI frames.
  */

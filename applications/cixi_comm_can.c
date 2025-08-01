@@ -9,10 +9,11 @@
 #include "mc_interface.h"
 #include "timeout.h"
 
-static int16_t          last_control_value = 0;
-static mutex_t          cixi_mtx;
-static CixiCanHeartbeat heartbeat_msg;
-static bool             heartbeat_timed_out = false;
+static int16_t             last_control_value = 0;
+static mutex_t             cixi_mtx;
+static CixiCanHeartbeat    heartbeat_msg;
+static bool                heartbeat_timed_out   = false;
+static CixiControllerState cixi_controller_state = CIXI_STATE_INIT;
 // Threads
 static THD_FUNCTION(cixi_can_thread, arg);
 static THD_WORKING_AREA(cixi_can_thread_wa, 512);
@@ -230,27 +231,44 @@ handle_cixi_cmd (const CixiCanCommand *cmd)
 {
     if (cmd == NULL)
     {
+        mc_interface_set_current(STOP_CURRENT);
         return false;
     }
 
-    if (cmd->control_enable == CIXI_ENABLE_ACTIVE)
+    switch (cmd->control_enable)
     {
-        if (cmd->control_value != 0)
-        {
-            float speed = 2500.0F;
-            mc_interface_set_pid_speed(speed);
-            timeout_reset();
-        }
-        else
-        {
-            mc_interface_set_brake_current(BRAKE_CURRENT);
-            timeout_reset();
-        }
+        case CIXI_ENABLE_STANDBY:
+            if ((cixi_controller_state == CIXI_STATE_INIT))
+            {
+                cixi_controller_state = CIXI_STATE_STANDBY;
+            }
+            break;
+
+        case CIXI_ENABLE_ACTIVE:
+            if (cixi_controller_state == CIXI_STATE_STANDBY)
+            {
+                cixi_controller_state = CIXI_STATE_ACTIVE;
+            }
+
+            if (cixi_controller_state == CIXI_STATE_ACTIVE)
+            {
+                if (cmd->control_value > 1)
+                {
+                    mc_interface_set_pid_speed(2500.0F);
+                }
+                else
+                {
+                    mc_interface_set_brake_current(BRAKE_CURRENT);
+                }
+                timeout_reset();
+            }
+            break;
     }
-    else
+
+    // Stop motor if not ACTIVE
+    if (cixi_controller_state != CIXI_STATE_ACTIVE)
     {
         mc_interface_set_current(STOP_CURRENT);
-        timeout_reset();
     }
 
     return true;
@@ -406,13 +424,22 @@ check_heartbeat_timeout (void)
 
     if (diff_ms > CIXI_HEARTBEAT_TIMEOUT_MS)
     {
-        // Timeout: stop the motor safely
         mc_interface_set_current(STOP_CURRENT);
         heartbeat_timed_out = true;
+        if (cixi_controller_state != CIXI_STATE_ERROR)
+        {
+            cixi_controller_state = CIXI_STATE_ERROR;
+        }
         timeout_reset();
     }
+
     else
     {
+        if (heartbeat_timed_out && cixi_controller_state == CIXI_STATE_ERROR)
+        {
+            // Heartbeat has resumed
+            cixi_controller_state = CIXI_STATE_STANDBY;
+        }
         heartbeat_timed_out = false;
     }
 }
@@ -455,7 +482,10 @@ static THD_FUNCTION(cixi_can_thread, arg)
         if (ST2MS(chVTTimeElapsedSinceX(last_heartbeat_send))
             >= CIXI_HEARTBEAT_SEND_INTERVAL_MS)
         {
-            cixi_can_send_heartbeat(0);
+            if (cixi_controller_state == CIXI_STATE_ACTIVE)
+            {
+                cixi_can_send_heartbeat(0);
+            }
             last_heartbeat_send = now;
         }
 
@@ -463,8 +493,12 @@ static THD_FUNCTION(cixi_can_thread, arg)
         if (ST2MS(chVTTimeElapsedSinceX(last_status_send))
             >= CIXI_STATUS_SEND_INTERVAL_MS)
         {
-            CixiCanData status = cixi_get_status_data(CIXI_STATE_ACTIVE);
-            cixi_can_send_status(0, &status);
+            if (cixi_controller_state != CIXI_STATE_INIT)
+            {
+                CixiCanData status
+                    = cixi_get_status_data(cixi_controller_state);
+                cixi_can_send_status(0, &status);
+            }
             last_status_send = now;
         }
 
