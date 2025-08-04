@@ -252,9 +252,16 @@ handle_cixi_cmd (const CixiCanCommand *cmd)
 
             if (cixi_controller_state == CIXI_STATE_ACTIVE)
             {
-                if (cmd->control_value > 1)
+                if (cmd->control_value > (int16_t)THRESHOLD_CONTROL_VALUE)
                 {
-                    mc_interface_set_pid_speed(2500.0F);
+                    float req_speed = ((float)cmd->control_value * TORQUE_SCALE
+                                       * TORQUE_TO_SPEED_UX);
+                    if ((float)MAX_MOTOR_ERPM < req_speed)
+                    {
+                        req_speed = (float)MAX_MOTOR_ERPM;
+                    }
+
+                    mc_interface_set_pid_speed(req_speed);
                 }
                 else
                 {
@@ -309,8 +316,9 @@ cixi_get_status_data (CixiControllerState controller_state)
     CixiCanData status
         = { .control_value_in = last_control_value,
             .motor_torque     = mc_interface_read_reset_avg_motor_current()
-                            * MOTOR_TORQUE_CONSTANT,
-            .rpm_sensored     = mc_interface_get_rpm(),
+                            * MOTOR_TORQUE_CONSTANT * GEAR_RATIO,
+            .rpm_sensored
+            = (float)mc_interface_get_rpm() / (float)MOTOR_TO_WHEEL_RATIO,
             .electrical_power = input_power,
             .mechanical_power = input_power,   // assume 100% efficiency
             .input_voltage    = input_voltage, // V

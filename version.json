@@ -1,0 +1,17 @@
+{
+    "version": {
+        "major": 6,
+        "minor": 5,
+        "patch": 0
+    },
+    "tag": "",
+    "build": {
+        "commit": "",
+        "date": ""
+    },
+    "metadata": {
+        "pre_release": false,
+        "notes": "",
+        "released_by": "jakub@minimalx.com"
+    }
+}

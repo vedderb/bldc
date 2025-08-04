@@ -10,11 +10,19 @@
 #define SHIFT_6_BITS        6U
 #define MASK_CIXI_RECV_BASE 0x7F0
 
-#define TORQUE_SCALE 0.1F
-#define RPM_SCALE    0.1F
-#define EE_SIG_SCALE 0.01F
+#define TORQUE_SCALE         0.1F
+#define RPM_SCALE            0.1F
+#define EE_SIG_SCALE         0.01F
+#define POLE_PAIRS           5U
+#define GEAR_RATIO           11U
+#define MOTOR_TO_WHEEL_RATIO POLE_PAIRS *GEAR_RATIO
 
-#define MOTOR_TORQUE_CONSTANT 1.0F
+#define TORQUE_TO_SPEED_UX      200.0F
+#define MAX_MOTOR_ERPM          17250U
+#define THRESHOLD_CONTROL_VALUE 1U
+
+#define MOTOR_KV              10.0F
+#define MOTOR_TORQUE_CONSTANT 1.0F / MOTOR_KV
 #define BRAKE_CURRENT         5.0F
 #define STOP_CURRENT          0.0F
 
