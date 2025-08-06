@@ -14,9 +14,12 @@ static mutex_t             cixi_mtx;
 static CixiCanHeartbeat    heartbeat_msg;
 static bool                heartbeat_timed_out   = false;
 static CixiControllerState cixi_controller_state = CIXI_STATE_INIT;
+static CixiControllerState bms_state             = CIXI_STATE_STANDBY;
 // Threads
 static THD_FUNCTION(cixi_can_thread, arg);
 static THD_WORKING_AREA(cixi_can_thread_wa, 512);
+// Static instance for the control value filter
+static ControlValueFIRFilter control_filter;
 
 // Private variables
 static volatile bool stop_now   = true;
@@ -65,6 +68,8 @@ cixi_can_init (void)
     setup_cixi_callback();
 
     stop_now = false;
+
+    fir_filter_init(&control_filter, 10);
 
     // Spawn the CIXI CAN sending thread
     chThdCreateStatic(cixi_can_thread_wa,
@@ -116,8 +121,72 @@ process_can_cixi_frame (uint32_t can_id, uint8_t *data, uint8_t len)
         chMtxUnlock(&cixi_mtx);
         return heartbeat_msg.valid;
     }
+    else if (can_id == (uint32_t)CIXI_CAN_BMS_CMD)
+    {
+        command_msg = parse_bms_cmd_frame(data, len);
+        if (command_msg.valid == true)
+        {
+            return handle_bms_cmd(&command_msg);
+        }
+    }
 
     return false;
+}
+
+bool
+handle_bms_cmd (const CixiCanCommand *cmd)
+{
+    if (cmd == NULL)
+    {
+        return false;
+    }
+
+    switch (cmd->bms_enable)
+    {
+        case BMSEnableSignal_ON:
+            bms_state = CIXI_STATE_ACTIVE;
+            break;
+
+        case BMSEnableSignal_OFF:
+            bms_state = CIXI_STATE_STANDBY;
+            break;
+
+        case BMSEnableSignal_DEEPSLEEP:
+            bms_state = CIXI_STATE_STANDBY;
+            break;
+
+        default:
+            return false; // Invalid BMS state
+    }
+
+    // Handle the command based on the BMS state
+    // For example, set the BMS current or voltage here
+
+    return true;
+}
+
+CixiCanCommand
+parse_bms_cmd_frame (uint8_t *data8, int len)
+{
+    CixiCanCommand result;
+
+    // Initialize result as invalid
+    (void)memset(&result, 0, sizeof(result));
+    result.valid = false;
+
+    // Sanity check: minimum length
+    if (data8 == NULL || len != 1)
+    {
+        return result;
+    }
+
+    uint8_t bms_state_raw = data8[0] & 0x0F; // Extract the first 4 bits
+
+    result.bms_enable = (BMSEnableSignal)bms_state_raw;
+
+    result.valid = true;
+
+    return result;
 }
 
 CixiCanHeartbeat
@@ -252,9 +321,11 @@ handle_cixi_cmd (const CixiCanCommand *cmd)
 
             if (cixi_controller_state == CIXI_STATE_ACTIVE)
             {
-                if (cmd->control_value > (int16_t)THRESHOLD_CONTROL_VALUE)
+                int16_t filtered_value
+                    = fir_filter_update(&control_filter, cmd->control_value);
+                if (filtered_value > 0)
                 {
-                    float req_speed = ((float)cmd->control_value * TORQUE_SCALE
+                    float req_speed = ((float)filtered_value * TORQUE_SCALE
                                        * TORQUE_TO_SPEED_UX);
                     if ((float)MAX_MOTOR_ERPM < req_speed)
                     {
@@ -265,7 +336,7 @@ handle_cixi_cmd (const CixiCanCommand *cmd)
                 }
                 else
                 {
-                    mc_interface_set_brake_current(BRAKE_CURRENT);
+                    stop_motor();
                 }
                 timeout_reset();
             }
@@ -306,19 +377,44 @@ cixi_can_send_heartbeat (uint8_t controller_id)
     return CIXI_CAN_OK;
 }
 
+CixiCanStatus
+cixi_can_send_bms_heartbeat (void)
+{
+    static uint16_t heartbeat_counter = 0U;
+
+    uint8_t  can_payload[2];
+    uint32_t can_id = 0U;
+
+    /* Encode counter as little-endian */
+    can_payload[0] = (uint8_t)(heartbeat_counter & LAST_BYTE_MASK);
+    can_payload[1]
+        = (uint8_t)((heartbeat_counter >> SHIFT_8_BITS) & LAST_BYTE_MASK);
+
+    /* Construct CAN ID: base (0x7C0) + controller ID */
+    can_id = (uint32_t)CIXI_CAN_BMS_HEARTBEAT;
+
+    /* Transmit CAN frame */
+    comm_can_transmit_sid(can_id, can_payload, 2U);
+
+    /* Increment counter for next heartbeat */
+    heartbeat_counter++;
+
+    return CIXI_CAN_OK;
+}
+
 CixiCanData
 cixi_get_status_data (CixiControllerState controller_state)
 {
-    float input_current = mc_interface_read_reset_avg_input_current();
-    float input_voltage = mc_interface_get_input_voltage_filtered();
-    float input_power   = input_current * input_voltage;
+    float   input_current = mc_interface_read_reset_avg_input_current();
+    float   input_voltage = mc_interface_get_input_voltage_filtered();
+    float   input_power   = input_current * input_voltage;
+    int16_t rpm = (int16_t)(mc_interface_get_rpm() / MOTOR_TO_WHEEL_RATIO);
 
     CixiCanData status
         = { .control_value_in = last_control_value,
             .motor_torque     = mc_interface_read_reset_avg_motor_current()
                             * MOTOR_TORQUE_CONSTANT * GEAR_RATIO,
-            .rpm_sensored
-            = (float)mc_interface_get_rpm() / (float)MOTOR_TO_WHEEL_RATIO,
+            .rpm_sensored     = rpm,
             .electrical_power = input_power,
             .mechanical_power = input_power,   // assume 100% efficiency
             .input_voltage    = input_voltage, // V
@@ -417,6 +513,20 @@ cixi_can_send_status (uint8_t controller_id, const CixiCanData *status)
     return CIXI_CAN_OK;
 }
 
+void
+stop_motor (void)
+{
+    if (mc_interface_get_rpm() < 100)
+    {
+        mc_interface_set_current(STOP_CURRENT);
+    }
+    else
+    {
+        // If the motor is still spinning, apply brake current
+        mc_interface_set_brake_current(BRAKE_CURRENT);
+    }
+}
+
 static void
 check_heartbeat_timeout (void)
 {
@@ -452,6 +562,199 @@ check_heartbeat_timeout (void)
     }
 }
 
+CixiBatteryInfo
+cixi_get_battery_info (void)
+{
+    float voltage = mc_interface_get_input_voltage_filtered(); // returns volts
+    float current = mc_interface_read_reset_avg_input_current();
+    uint8_t soc
+        = (uint8_t)(100.0F * (1.0F - (54.4F - voltage) / 17.4F)); // percent
+    uint8_t soh = 100U;                                           // percent
+    uint8_t soe = soc;                                            // percent
+
+    CixiBatteryInfo info = { .voltage = voltage, // convert to mV
+                             .current = current, // convert to mA
+                             .soc     = soc,
+                             .soh     = soh,
+                             .soe     = soe,
+                             .valid   = true };
+
+    return info;
+}
+
+CixiBatteryStatus
+cixi_get_battery_status (void)
+{
+    CixiBatteryStatus status = {
+        .state            = bms_state, // CixiControllerState enum
+        .in_charge        = false,     // bool
+        .in_discharge     = false,     // bool
+        .charger_detected = false,     // bool
+        .warning_present  = false,     // bool
+        .error_present    = false      // bool
+    };
+
+    return status;
+}
+
+CixiCanStatus
+cixi_can_send_battery_info (const CixiBatteryInfo *info)
+{
+    if (info == NULL)
+    {
+        return CIXI_CAN_ERROR;
+    }
+
+    uint8_t data[7];
+    memset(data, 0, sizeof(data));
+
+    // Format (Intel = Little Endian):
+    // current: int16, scale 0.01 A
+    int16_t current = (int16_t)(info->current * 100.0f);
+
+    // voltage: int16, scale 0.01 V
+    int16_t voltage = (int16_t)(info->voltage * 100.0f);
+
+    // Pack data
+    data[0] = (uint8_t)(current & LAST_BYTE_MASK);
+    data[1] = (uint8_t)((current >> SHIFT_8_BITS) & LAST_BYTE_MASK);
+
+    data[2] = (uint8_t)(voltage & LAST_BYTE_MASK);
+    data[3] = (uint8_t)((voltage >> SHIFT_8_BITS) & LAST_BYTE_MASK);
+
+    data[4] = info->soc;
+    data[5] = info->soh;
+    data[6] = info->soe;
+
+    // Send via CAN
+    const uint32_t can_id = CIXI_CAN_BMS_INFO;
+    comm_can_transmit_sid(can_id, data, sizeof(data));
+
+    return CIXI_CAN_OK;
+}
+
+CixiCanStatus
+cixi_can_send_battery_status (const CixiBatteryStatus *status)
+{
+    if (status == NULL)
+    {
+        return CIXI_CAN_ERROR;
+    }
+
+    uint8_t data = 0;
+
+    // Bits 0–1: BMS Status enum
+    data |= (status->state & 0x03); // Mask to 2 bits
+
+    // Bit 3: In charge
+    if (status->in_charge)
+    {
+        data |= (1U << 3);
+    }
+
+    // Bit 4: In discharge
+    if (status->in_discharge)
+    {
+        data |= (1U << 4);
+    }
+
+    // Bit 5: Charger detected
+    if (status->charger_detected)
+    {
+        data |= (1U << 5);
+    }
+
+    // Bit 6: Warning present
+    if (status->warning_present)
+    {
+        data |= (1U << 6);
+    }
+
+    // Bit 7: Error present
+    if (status->error_present)
+    {
+        data |= (1U << 7);
+    }
+
+    const uint32_t can_id = CIXI_CAN_BMS_STATUS;
+    comm_can_transmit_sid(can_id, &data, 1);
+
+    return CIXI_CAN_OK;
+}
+
+// ==============================
+// FIR Filter for Control Value
+// ==============================
+
+// Initialize the FIR filter
+void
+fir_filter_init (ControlValueFIRFilter *filter, uint8_t size)
+{
+    if (filter == NULL || size == 0 || size > CIXI_CONTROL_FILTER_MAX_SIZE)
+    {
+        return;
+    }
+
+    memset(filter->buffer, 0, sizeof(filter->buffer));
+    filter->size       = size;
+    filter->index      = 0;
+    filter->zero_count = 0;
+}
+
+// Reset the filter state
+void
+fir_filter_reset (ControlValueFIRFilter *filter)
+{
+    if (filter == NULL)
+    {
+        return;
+    }
+
+    memset(filter->buffer, 0, sizeof(filter->buffer));
+    filter->index      = 0;
+    filter->zero_count = 0;
+}
+
+// Update the FIR filter with a new sample and compute the average
+int16_t
+fir_filter_update (ControlValueFIRFilter *filter, int16_t new_value)
+{
+    if (filter == NULL || filter->size == 0)
+    {
+        return new_value;
+    }
+
+    // Count consecutive zero or negative values
+    if (new_value <= 0)
+    {
+        filter->zero_count++;
+    }
+    else
+    {
+        filter->zero_count = 0;
+    }
+
+    // If 3 or more consecutive zeros or negatives, reset the output
+    if (filter->zero_count >= CIXI_CONTROL_ZERO_SAMPLE_COUNT)
+    {
+        fir_filter_reset(filter);
+        return 0;
+    }
+
+    // Insert new value into circular buffer
+    filter->buffer[filter->index] = new_value;
+    filter->index                 = (filter->index + 1) % filter->size;
+
+    // Compute average
+    int32_t sum = 0;
+    for (uint8_t i = 0; i < filter->size; i++)
+    {
+        sum += filter->buffer[i];
+    }
+
+    return (int16_t)(sum / filter->size);
+}
+
 static THD_FUNCTION(cixi_can_thread, arg)
 {
     (void)arg;
@@ -463,6 +766,8 @@ static THD_FUNCTION(cixi_can_thread, arg)
     systime_t last_heartbeat_check = chVTGetSystemTimeX();
     systime_t last_heartbeat_send  = last_heartbeat_check;
     systime_t last_status_send     = last_heartbeat_check;
+    systime_t last_bms_info_send   = last_heartbeat_check;
+    systime_t last_bms_status_send = last_heartbeat_check;
 
     // init comms and put pers and controller into active modes
     // for now just listen to commands for testing
@@ -493,6 +798,7 @@ static THD_FUNCTION(cixi_can_thread, arg)
             if (cixi_controller_state == CIXI_STATE_ACTIVE)
             {
                 cixi_can_send_heartbeat(0);
+                cixi_can_send_bms_heartbeat();
             }
             last_heartbeat_send = now;
         }
@@ -508,6 +814,24 @@ static THD_FUNCTION(cixi_can_thread, arg)
                 cixi_can_send_status(0, &status);
             }
             last_status_send = now;
+        }
+
+        // Every 75 ms: get & send BMS info
+        if (ST2MS(chVTTimeElapsedSinceX(last_bms_info_send))
+            >= CIXI_BMS_INFO_SEND_INTERVAL_MS)
+        {
+            CixiBatteryInfo info = cixi_get_battery_info();
+            cixi_can_send_battery_info(&info);
+            last_bms_info_send = now;
+        }
+
+        // Every 35 ms: send BMS status
+        if (ST2MS(chVTTimeElapsedSinceX(last_bms_status_send))
+            >= CIXI_BMS_STATUS_SEND_INTERVAL_MS)
+        {
+            CixiBatteryStatus status = cixi_get_battery_status();
+            cixi_can_send_battery_status(&status);
+            last_bms_status_send = now;
         }
 
         chThdSleepMilliseconds(5);

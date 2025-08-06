@@ -1,0 +1,22 @@
+name: C Project CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    outputs:
+      version_tag: ${{ steps.check.outputs.version_tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+
+      - name: Run version check
+        id: check
+        run: python scripts/version_check.py

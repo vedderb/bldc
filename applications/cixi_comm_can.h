@@ -15,9 +15,9 @@
 #define EE_SIG_SCALE         0.01F
 #define POLE_PAIRS           5U
 #define GEAR_RATIO           11U
-#define MOTOR_TO_WHEEL_RATIO POLE_PAIRS *GEAR_RATIO
+#define MOTOR_TO_WHEEL_RATIO 55U
 
-#define TORQUE_TO_SPEED_UX      200.0F
+#define TORQUE_TO_SPEED_UX      500.0F
 #define MAX_MOTOR_ERPM          17250U
 #define THRESHOLD_CONTROL_VALUE 1U
 
@@ -27,9 +27,11 @@
 #define STOP_CURRENT          0.0F
 
 #define CIXI_HEARTBEAT_TIMEOUT_MS               150U
-#define CIXI_HEARTBEAT_SEND_INTERVAL_MS         35U
+#define CIXI_HEARTBEAT_SEND_INTERVAL_MS         45U
 #define CIXI_STATUS_SEND_INTERVAL_MS            10U
 #define CIXI_HEARBEAT_TIMEOUT_CHECK_INTERVAL_MS 25U
+#define CIXI_BMS_INFO_SEND_INTERVAL_MS          95U
+#define CIXI_BMS_STATUS_SEND_INTERVAL_MS        45U
 
 #define APPCONF_APP_TO_USE    APP_CUSTOM
 #define APPCONF_SHUTDOWN_MODE SHUTDOWN_MODE_ALWAYS_ON
@@ -39,6 +41,7 @@
  */
 typedef enum
 {
+    /*PERS*/
     CIXI_CAN_CMD_BASE       = 0x030,
     CIXI_CAN_STATUS_BASE    = 0x038,
     CIXI_CAN_TEMP_BASE      = 0x12C,
@@ -46,7 +49,13 @@ typedef enum
     CIXI_CAN_WARNING_BASE   = 0x137,
     CIXI_CAN_VERSION_BASE   = 0x7C6,
     CIXI_CAN_HEARTBEAT_BASE = 0x7C0,
-    CIXI_CAN_PERS_HEARTBEAT = 0x780
+    CIXI_CAN_PERS_HEARTBEAT = 0x780,
+    /*Virtual BMS*/
+    CIXI_CAN_BMS_STATUS    = 0x0D1,
+    CIXI_CAN_BMS_CMD       = 0x0D0,
+    CIXI_CAN_BMS_INFO      = 0x0D2,
+    CIXI_CAN_BMS_TEMP      = 0x0D3,
+    CIXI_CAN_BMS_HEARTBEAT = 0x788,
 } CixiCanFrameIdBase;
 
 /**
@@ -84,6 +93,13 @@ typedef enum
     STATUS_PAGE_3 = 2
 } CixiStatusPage;
 
+typedef enum
+{
+    BMSEnableSignal_ON        = 1U,
+    BMSEnableSignal_OFF       = 3U,
+    BMSEnableSignal_DEEPSLEEP = 12U
+} BMSEnableSignal;
+
 /**
  * @brief Decoded representation of a CIXI Propulsion Controller Status
  * frame.
@@ -104,6 +120,43 @@ typedef struct
 } CixiCanData;
 
 /**
+ * @brief Battery Information frame.
+ */
+typedef struct
+{
+    float   voltage; ///< Battery voltage in mV
+    float   current; ///< Battery current in mA
+    uint8_t soc;     ///< State of charge in percentage (0–100)
+    uint8_t soh;     ///< State of health in percentage (0–100)
+    uint8_t soe;     ///< State of energy in percentage (0–100)
+    bool    valid;
+} CixiBatteryInfo;
+
+/**
+ * @brief Battery Status frame.
+ */
+typedef struct
+{
+    CixiControllerState state;
+    bool                in_charge;
+    bool                in_discharge;
+    bool                charger_detected;
+    bool                warning_present;
+    bool                error_present;
+} CixiBatteryStatus;
+
+/**
+ * @brief Battery temperature frame.
+ */
+typedef struct
+{
+    int8_t mean_temperature; ///< Mean temperature in °C
+    int8_t min_temperature;  ///< Minimum temperature in °C
+    int8_t max_temperature;  ///< Maximum temperature in °C
+    bool   valid;            ///< True if frame was successfully decoded
+} CixiBatteryTemperature;
+
+/**
  * @brief Decoded representation of a CIXI Command frame (PERS ➜
  * Controller).
  */
@@ -111,8 +164,9 @@ typedef struct
 {
     int16_t          control_value;  ///< Torque command (Nm)
     CixiEnableSignal control_enable; ///< 0 = STANDBY, 3 = ACTIVE
-    uint8_t          control_incr;   ///< Command increment
-    bool             valid;          ///< Set to true if parsed successfully
+    BMSEnableSignal  bms_enable;
+    uint8_t          control_incr; ///< Command increment
+    bool             valid;        ///< Set to true if parsed successfully
 } CixiCanCommand;
 
 /**
@@ -249,7 +303,62 @@ bool handle_cixi_cmd(const CixiCanCommand *cmd);
 
 void cixi_can_init(void);
 
-void app_custom_start(void);
-void app_custom_stop(void);
+void              app_custom_start(void);
+void              app_custom_stop(void);
+CixiCanStatus     cixi_can_send_bms_heartbeat(void);
+CixiCanStatus     cixi_can_send_battery_info(const CixiBatteryInfo *info);
+CixiCanStatus     cixi_can_send_battery_status(const CixiBatteryStatus *status);
+CixiBatteryStatus cixi_get_battery_status(void);
+CixiCanCommand    parse_bms_cmd_frame(uint8_t *data8, int len);
+bool              handle_bms_cmd(const CixiCanCommand *cmd);
+void              stop_motor(void);
+
+// ==============================
+// FIR Filter for Control Value
+// ==============================
+
+#define CIXI_CONTROL_FILTER_MAX_SIZE 16U // Adjustable maximum buffer size
+#define CIXI_CONTROL_ZERO_SAMPLE_COUNT \
+    3U // Number of consecutive zero samples to reset
+
+/**
+ * @brief Structure for parametric FIR filter for control values.
+ */
+typedef struct
+{
+    int16_t buffer[CIXI_CONTROL_FILTER_MAX_SIZE]; ///< Circular buffer for
+                                                  ///< storing control values
+    uint8_t size;       ///< Number of samples in the filter (window size)
+    uint8_t index;      ///< Current index in the circular buffer
+    uint8_t zero_count; ///< Counter for consecutive zero or negative values
+} ControlValueFIRFilter;
+
+/**
+ * @brief Initialize the FIR filter.
+ *
+ * @param filter Pointer to the FIR filter structure.
+ * @param size Window size (number of samples); must be ≤
+ * CIXI_CONTROL_FILTER_MAX_SIZE.
+ */
+void fir_filter_init(ControlValueFIRFilter *filter, uint8_t size);
+
+/**
+ * @brief Update the filter with a new value and return the filtered result.
+ *
+ * If 3 or more consecutive samples are zero or negative, the filter output
+ * resets to zero.
+ *
+ * @param filter Pointer to the FIR filter structure.
+ * @param new_value New incoming control value.
+ * @return int16_t Filtered output value.
+ */
+int16_t fir_filter_update(ControlValueFIRFilter *filter, int16_t new_value);
+
+/**
+ * @brief Reset the FIR filter state.
+ *
+ * @param filter Pointer to the FIR filter structure.
+ */
+void fir_filter_reset(ControlValueFIRFilter *filter);
 
 #endif // CAN_CIXI_COMMS_H
