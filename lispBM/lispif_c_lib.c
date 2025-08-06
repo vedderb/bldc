@@ -702,6 +702,11 @@ static void comm_can_transmit_eid_wrapper(uint32_t id, const uint8_t *data, uint
 	comm_can_transmit_eid(id, data, len);
 }
 
+static void lib_thread_set_priority(int priority) {
+	utils_truncate_number_int(&priority, -5, 5);
+	chThdSetPriority((tprio_t)((int)NORMALPRIO + priority));
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -1037,6 +1042,9 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.sem_signal = lib_sem_signal;
 		cif.cif.sem_wait_to = lib_sem_wait_to;
 		cif.cif.sem_reset = lib_sem_reset;
+
+		// 6.06+
+		cif.cif.thread_set_priority = lib_thread_set_priority;
 
 		lib_init_done = true;
 	}
