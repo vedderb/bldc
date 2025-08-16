@@ -36,54 +36,50 @@ static const I2CConfig i2cfg = {
 		STD_DUTY_CYCLE
 };
 
-static lbm_value ext_basic_read_brake(lbm_value *args, lbm_uint argn) {
-	(void)args; (void)argn;
+static lbm_value ext_basic_set_out(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(2);
 
-	return lbm_enc_i(ADC_VOLTS(ADC_IND_EXT2) < 0.5 ? 1 : 0);
-}
+	int pin = lbm_dec_as_i32(args[0]);
+	int state = lbm_dec_as_i32(args[1]);
 
-static lbm_value ext_basic_set_out1(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1);
+	lbm_value res = ENC_SYM_TRUE;
 
-	if (lbm_dec_as_i32(args[0])) {
-		OUT_1_ON();
-	} else {
-		OUT_1_OFF();
+	switch (pin) {
+	case 1:
+		if (state) {
+			OUT_1_ON();
+		} else {
+			OUT_1_OFF();
+		}
+		break;
+
+	case 2:
+		if (state) {
+			OUT_2_ON();
+		} else {
+			OUT_2_OFF();
+		}
+		break;
+
+	case 3:
+		if (state) {
+			OUT_3_ON();
+		} else {
+			OUT_3_OFF();
+		}
+		break;
+
+	default:
+		res = ENC_SYM_TERROR;
+		break;
 	}
 
-	return ENC_SYM_TRUE;
-}
-
-static lbm_value ext_basic_set_out2(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1);
-
-	if (lbm_dec_as_i32(args[0])) {
-		OUT_2_ON();
-	} else {
-		OUT_2_OFF();
-	}
-
-	return ENC_SYM_TRUE;
-}
-
-static lbm_value ext_basic_set_out3(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1);
-
-	if (lbm_dec_as_i32(args[0])) {
-		OUT_3_ON();
-	} else {
-		OUT_3_OFF();
-	}
-
-	return ENC_SYM_TRUE;
+	return res;
 }
 
 static void load_extensions(bool main_found) {
 	if (!main_found) {
-		lbm_add_extension("basic-read-brake", ext_basic_read_brake);
-		lbm_add_extension("basic-set-out1", ext_basic_set_out1);
-		lbm_add_extension("basic-set-out2", ext_basic_set_out2);
-		lbm_add_extension("basic-set-out3", ext_basic_set_out3);
+		lbm_add_extension("hw-set-out", ext_basic_set_out);
 	}
 }
 
@@ -141,6 +137,7 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG);
 
 	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG);
@@ -183,7 +180,7 @@ void hw_setup_adc_channels(void) {
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 2, ADC_SampleTime_15Cycles);  //4
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 3, ADC_SampleTime_15Cycles);  //7
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 4, ADC_SampleTime_15Cycles); //10
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_0, 5, ADC_SampleTime_15Cycles);  //13
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_7, 5, ADC_SampleTime_15Cycles);  //13
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_9, 6, ADC_SampleTime_15Cycles);  //16
 
 	// ADC3 regular channels

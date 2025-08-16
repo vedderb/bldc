@@ -80,7 +80,7 @@
  * 10 (2):	IN15
  * 11 (3):	IN13
  * 12 (1):	Vrefint
- * 13 (2):	IN0
+ * 13 (2):	IN7 Wheel speed
  * 14 (3):	IN1
  * 15 (1):  IN8
  * 16 (2):  IN9
@@ -101,6 +101,7 @@
 #define ADC_IND_VIN_SENS		11
 #define ADC_IND_EXT				8
 #define ADC_IND_EXT2			15
+#define ADC_IND_EXT3			13
 #define ADC_IND_TEMP_MOS		10
 #define ADC_IND_TEMP_MOTOR		16
 #define ADC_IND_VREFINT			12
