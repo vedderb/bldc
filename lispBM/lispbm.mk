@@ -15,7 +15,6 @@ LISPBMSRC = $(LISPBM)/src/env.c \
             $(LISPBM)/src/lbm_channel.c \
             $(LISPBM)/src/lbm_c_interop.c \
             $(LISPBM)/src/lbm_custom_type.c \
-            $(LISPBM)/src/lbm_flags.c \
             $(LISPBM)/src/lbm_flat_value.c \
             $(LISPBM)/src/lbm_prof.c \
             $(LISPBM)/src/lbm_defrag_mem.c \
