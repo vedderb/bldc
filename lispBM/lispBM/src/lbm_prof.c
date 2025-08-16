@@ -45,6 +45,7 @@ bool lbm_prof_init(lbm_prof_t *prof_data_buf,
       memset(&prof_data_buf[i].name, 0, LBM_PROF_MAX_NAME_SIZE);
       prof_data_buf[i].count = 0;
     }
+    return true;
   }
   return false;
 }

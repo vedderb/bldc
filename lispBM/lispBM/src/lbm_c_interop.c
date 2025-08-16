@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2022, 2025 Joel Svensson    svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,6 +16,19 @@
 */
 
 #include "lbm_c_interop.h"
+
+/* Utility */
+
+static bool lift_char_channel(lbm_char_channel_t *chan , lbm_value *res) {
+  lbm_value cell = lbm_heap_allocate_cell(LBM_TYPE_CHANNEL, (lbm_uint) chan, ENC_SYM_CHANNEL_TYPE);
+  if (cell == ENC_SYM_MERROR) {
+    return false;
+  }
+  *res = cell;
+  return true;
+}
+
+
 
 /****************************************************/
 /* Interface for loading and running programs and   */
@@ -181,15 +194,16 @@ int lbm_send_message(lbm_cid cid, lbm_value msg) {
 
   if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
 
-    int v = lbm_find_receiver_and_send(cid, msg);
-    if (v == 0) res = 1;
-    else res = 0;
+    if (lbm_find_receiver_and_send(cid, msg)) {
+      res = 1;
+    }
   }
   return res;
 }
 
 int lbm_define(char *symbol, lbm_value value) {
   int res = 0;
+  if (!symbol) return res;
 
   lbm_uint sym_id;
   if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
@@ -201,13 +215,14 @@ int lbm_define(char *symbol, lbm_value value) {
     lbm_uint ix_key = sym_id & GLOBAL_ENV_MASK;
     lbm_value *glob_env = lbm_get_global_env();
     glob_env[ix_key] = lbm_env_set(glob_env[ix_key], lbm_enc_sym(sym_id), value);
+    res = 1;
   }
   return res;
 }
 
 int lbm_undefine(char *symbol) {
   lbm_uint sym_id;
-  if (!lbm_get_symbol_by_name(symbol, &sym_id))
+  if (!symbol || !lbm_get_symbol_by_name(symbol, &sym_id))
     return 0;
 
   lbm_value *glob_env = lbm_get_global_env();
@@ -252,6 +267,8 @@ int lbm_share_array_const(lbm_value *res, char *flash_ptr, lbm_uint num_elt) {
   return r;
 }
 
+// TODO: There is no NULL check in lbm_heap_allocate_array.
+//       Users must provide a valid pointer.
 int lbm_create_array(lbm_value *value, lbm_uint num_elt) {
   return lbm_heap_allocate_array(value, num_elt);
 }

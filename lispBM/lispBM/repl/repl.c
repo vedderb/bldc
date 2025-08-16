@@ -81,6 +81,12 @@
 
 typedef void (*send_func_t)(unsigned char *, unsigned int);
 
+
+// ////////////////////////////////////////////////////////////
+// Stub loaders
+void load_vesc_express_extensions(void);
+void load_bldc_extensions(void);
+
 // ////////////////////////////////////////////////////////////
 // win util
 
@@ -148,9 +154,17 @@ static lbm_char_channel_t buffered_string_tok;
 
 #define IMAGE_STORAGE_SIZE              (128 * 1024) // bytes:
 #ifdef LBM64
-#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
+  #ifdef LBM_WIN
+    #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0x30000000  // Windows-safe address
+  #else
+    #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
+  #endif
 #else
-#define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
+  #ifdef LBM_WIN
+    #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0x30000000  // Windows-safe address
+  #else
+    #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
+  #endif
 #endif
 // todo: is there a good way to pick a fixed virtual address ?
 
@@ -165,7 +179,7 @@ static size_t constants_memory_size = 4096;  // size words
 // LBM
 #define GC_STACK_SIZE 256
 #define PRINT_STACK_SIZE 256
-#define EXTENSION_STORAGE_SIZE 1024
+#define EXTENSION_STORAGE_SIZE 4096
 #define STR_SIZE 1024
 #define PROF_DATA_NUM 100
 
@@ -248,6 +262,47 @@ bool drop_reader(lbm_cid cid) {
   return r;
 }
 
+typedef struct ctx_list_s {
+  lbm_cid cid;
+  struct ctx_list_s *next;
+} ctx_list_t;
+
+static void add_ctx(ctx_list_t **list, lbm_cid cid) {
+  ctx_list_t *new_head = (ctx_list_t*)malloc(sizeof(ctx_list_t));
+  if (new_head) {
+    new_head->cid = cid;
+    new_head->next = *list;
+    *list = new_head;
+  } else {
+    printf("Couldn't allocate ctx list\n");
+  }
+}
+
+static bool drop_ctx(ctx_list_t **list, lbm_cid cid) {
+  bool r = false;
+  ctx_list_t *prev = NULL;
+  ctx_list_t *curr = *list;
+
+  while (curr) {
+    if (curr->cid == cid) {
+      if (prev) {
+        prev->next = curr->next;
+      } else {
+        *list = curr->next;
+      }
+
+      free(curr);
+      r = true;
+      break;
+    }
+    prev = curr;
+    curr = curr->next;
+  }
+  return r;
+}
+
+// List of contexts directly started by the REPL.
+static ctx_list_t *repl_ctxs = NULL;
 
 void shutdown_procedure(void);
 
@@ -275,9 +330,6 @@ bool image_write(uint32_t w, int32_t ix, bool const_heap) { // ix >= 0 and ix <=
     return true;
   } else if (image_storage[ix] == w) {
     return true;
-  } else {
-    printf("image_storage[%u] = %x\n", (uint32_t)ix, image_storage[ix]);
-    printf("when trying to write %x\n", w);
   }
   return false;
 }
@@ -291,15 +343,72 @@ bool image_clear(void) {
 static lbm_char_channel_t string_tok;
 static lbm_string_channel_state_t string_tok_state;
 
-void new_prompt(void) {
-  printf("\33[2K\r");
-  printf("# ");
-  fflush(stdout);
+static int vsprintf_allocate(char **result, const char *format, va_list args) {
+  va_list args_copy;
+  va_copy(args_copy, args);
+  int len_result = vsnprintf(NULL, 0, format, args_copy);
+  va_end(args_copy);
+
+  if (len_result < 0) {
+    return len_result;
+  }
+  
+  // Allocate buffer
+  *result = malloc((size_t)len_result + 1);
+  if (!*result) {
+      return -1;
+  }
+  
+  len_result = vsnprintf(*result, (size_t)len_result + 1, format, args);
+  
+  return len_result;
 }
 
-void erase(void) {
-  printf("\33[2K\r");
-  fflush(stdout);
+static volatile _Atomic bool readline_started = false;
+static volatile _Atomic bool prompt_printed_last = false;
+
+/**
+ * Printf wrapper which redraws the readline prompt correctly.
+ * 
+ * Automatically removes the previous prompt if it's safe to do so, prints the
+ * result, and redraws the prompt below if the result ended in a newline
+ * character.
+ * 
+ * Makes sure that no non-readline text which was output via this function is
+ * replaced. The thread which is drawing the readline prompt can call `printf`
+ * safely, as long as it makes sure that the current line was empty when it
+ * starts the new prompt, i.e. it should end every `printf` call with '\n'.
+ */
+static int printf_redraw_prompt(const char *format, ...) {
+  // Print string to buffer
+  va_list args;
+  va_start(args, format);
+  char *buffer;
+  int len = vsprintf_allocate(&buffer, format, args);
+  va_end(args);
+  if (len < 0) {
+    return len;
+  }
+
+#ifndef LBM_WIN
+  if (prompt_printed_last) {
+    rl_clear_visible_line();
+  }
+#endif
+  
+  fputs(buffer, stdout);
+  prompt_printed_last = false;
+  
+  // Redraw prompt if output ends with a newline.
+  if (len > 0 && buffer[len - 1] == '\n' && readline_started) {
+#ifndef LBM_WIN
+    rl_redraw_prompt_last_line();
+#endif
+    prompt_printed_last = true;
+  }
+  free(buffer);
+  
+  return len;
 }
 
 #ifdef LBM_WIN
@@ -369,15 +478,17 @@ void done_callback(eval_context_t *ctx) {
       printf("ALERT: Unable to flatten result value\n");
     }
   }
-  char output[1024];
-  lbm_value t = ctx->r;
-  lbm_print_value(output, 1024, t);
-  erase();
-  if (!silent_mode) {
-    printf("> %s\n", output);
-    new_prompt();
-  } else {
-    printf("%s\n", output);
+  
+  // Only print result from contexts directly started by the REPL.
+  if (drop_ctx(&repl_ctxs, ctx->id)) {
+    char output[1024];
+    lbm_value t = ctx->r;
+    lbm_print_value(output, 1024, t);
+    if (!silent_mode) {
+      printf_redraw_prompt("> %s\n", output);
+    } else {
+      printf_redraw_prompt("%s\n", output);
+    }
   }
 
   if (startup_cid != -1) {
@@ -385,16 +496,6 @@ void done_callback(eval_context_t *ctx) {
       startup_cid = -1;
     }
   }
-}
-
-int error_print(const char *format, ...) {
-  va_list args;
-  va_start (args, format);
-  erase();
-  int n = vprintf(format, args);
-  va_end(args);
-  new_prompt();
-  return n;
 }
 
 void sleep_callback(uint32_t us) {
@@ -546,7 +647,13 @@ lbm_const_heap_t const_heap;
 #define VESCTCP              0x0407
 #define VESCTCP_PORT         0x0408
 #define VESCTCP_PROGRAM_FLASH_SIZE   0x0409
-#define HISTORY_FILE         0x0410
+#define HISTORY_FILE         0x040A
+
+#define BLDC_STUBS           0x040B
+#define VESC_EXPRESS_STUBS   0x040C
+
+bool use_bldc_stubs = false;
+bool use_vesc_express_stubs = false;
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -565,6 +672,8 @@ struct option options[] = {
   {"vesctcp_port",required_argument, NULL, VESCTCP_PORT},
   {"vesctcp_program_flash_size", required_argument, NULL, VESCTCP_PROGRAM_FLASH_SIZE},
   {"history_file", required_argument, NULL, HISTORY_FILE},
+  {"bldc_stubs", no_argument, NULL, BLDC_STUBS},
+  {"vesc_express_stubs", no_argument, NULL, VESC_EXPRESS_STUBS},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -636,7 +745,7 @@ void parse_opts(int argc, char **argv) {
   int c;
   opterr = 1;
   int opt_index = 0;
-  while ((c = getopt_long(argc, argv, "H:M:C:hse:",options, &opt_index)) != -1) {
+  while ((c = getopt_long(argc, argv, "H:M:C:hs:e:",options, &opt_index)) != -1) {
     switch (c) {
     case 'H':
       heap_size = (size_t)atoi((char*)optarg);
@@ -731,6 +840,10 @@ void parse_opts(int argc, char **argv) {
       printf("    --history_file=FILEPATH           Path to file used for the repl history.\n");
       printf("                                      An empty string disables loading or\n");
       printf("                                      writing the history. (see HISTORY FILE)\n");
+      printf("\n");
+      printf("    --bldc_stubs                      Load BLDC extension stub files\n");
+      printf("    --vesc_express_stubs              Load Vesc Express extension stub files\n");
+      printf("\n");
 
       printf("memory-size-indices: \n"          \
              "Index | Words\n"                  \
@@ -820,6 +933,12 @@ void parse_opts(int argc, char **argv) {
       exit_on_alloc_failure(history_file_path);
       memcpy(history_file_path, optarg, len + 1);
     } break;
+    case BLDC_STUBS:
+      use_bldc_stubs = true;
+      break;
+    case VESC_EXPRESS_STUBS:
+      use_vesc_express_stubs = false;
+      break;
     default:
       break;
     }
@@ -935,7 +1054,7 @@ int init_repl(void) {
   lbm_set_timestamp_us_callback(timestamp);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dynamic_loader);
-  lbm_set_printf_callback(error_print);
+  lbm_set_printf_callback(printf_redraw_prompt);
 
 
   //Load an image
@@ -966,8 +1085,14 @@ int init_repl(void) {
     lbm_image_create("bepa_1");
   }
 
+  if (lbm_image_exists()) {
+     if (!silent_mode)
+       printf("Image initialized!\n");
+  }
+  
   if (lbm_image_get_version()) {
-    printf("image version string: %s\n", lbm_image_get_version());
+    if (!silent_mode)
+      printf("Image version string: %s\n", lbm_image_get_version());
   }
 
   lbm_image_boot();
@@ -977,8 +1102,15 @@ int init_repl(void) {
   lbm_add_eval_symbols();
   if (!lbm_image_has_extensions()) {
     init_exts();
+    if (use_bldc_stubs) {
+      load_bldc_extensions();
+    }
+    if (use_vesc_express_stubs) {
+      load_vesc_express_extensions();
+    }
   } else {
-    printf("Image contains extensions\n");
+    if (!silent_mode)
+      printf("Image contains extensions\n");
   }
 
 #ifdef WITH_SDL
@@ -995,7 +1127,8 @@ int init_repl(void) {
   }
 #endif
 
-  printf("creating eval thread\n");
+  if (!silent_mode)
+    printf("creating eval thread\n");
 #ifdef LBM_WIN
   lispbm_thd = CreateThread( 
                            NULL,                   // default security attributes
@@ -1303,7 +1436,6 @@ void commands_send_packet(unsigned char *data, unsigned int len) {
   }
 }
 
-
 int commands_printf_lisp(const char* format, ...) {
   int len;
 
@@ -1381,7 +1513,7 @@ static void vesc_lbm_done_callback(eval_context_t *ctx) {
 }
 
 static lbm_value ext_vescif_print(lbm_value *args, lbm_uint argn) {
-  const int str_len = 256;
+  const unsigned int str_len = 256;
   char *print_val_buffer = malloc(str_len);
   if (!print_val_buffer) {
     return ENC_SYM_MERROR;
@@ -1489,13 +1621,13 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
     return 0;
   }
 
-  constants_memory = (lbm_uint*)malloc(constants_memory_size * sizeof(lbm_uint));
-  memset(constants_memory, 0xFF, constants_memory_size * sizeof(lbm_uint));
-  if (!lbm_const_heap_init(const_heap_write,
-                           &const_heap,constants_memory)) {
-    return 0;
-  }
-
+  lbm_image_init(image_storage,
+                 image_storage_size / sizeof(uint32_t), //sizeof(lbm_uint),
+                 image_write);
+  image_clear();
+  lbm_image_create("bepa_1");
+  lbm_image_boot();
+  
   lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(vesc_lbm_done_callback);
   lbm_set_timestamp_us_callback(timestamp);
@@ -1504,9 +1636,17 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   lbm_set_printf_callback(commands_printf_lisp);
 
   init_exts();
+  lbm_add_eval_symbols();
   lbm_add_extension("print", ext_vescif_print); // replace print
   lbm_add_extension("import", ext_vescif_import); // dummy import
 
+  if (use_bldc_stubs) {
+    load_bldc_extensions();
+  }
+  if (use_vesc_express_stubs) {
+    load_vesc_express_extensions();
+  }
+  
 #ifdef WITH_SDL
   if (!lbm_sdl_init()) {
     return 0;
@@ -2407,7 +2547,10 @@ int main(int argc, char **argv) {
   if (image_address) {
     printf("Image storage successfully allocated at %p\n", image_address);
   } else {
-    printf("error mapping fixed location for flash emulation\n");
+    DWORD error = GetLastError();
+    printf("VirtualAlloc failed for address %p: Windows error %lu\n", 
+           IMAGE_FIXED_VIRTUAL_ADDRESS, error);
+    printf("Try running with Administrator privileges or disable Windows ASLR\n");
     terminate_repl(REPL_EXIT_CRITICAL_ERROR);
   }
   image_storage = (uint32_t *)image_address;
@@ -2437,9 +2580,9 @@ int main(int argc, char **argv) {
       exit_on_alloc_failure(history_file_path);
       memcpy(history_file_path, path_env, len + 1);
     } else {
-      static const char *suffix = "/.lbm_history";
       const char *home_path = getenv("HOME");
       if (home_path != NULL) {
+        static const char *suffix = "/.lbm_history";
         history_file_path = calloc(strlen(home_path) + strlen(suffix) + 1, sizeof(char));
         exit_on_alloc_failure(history_file_path);
         strcat(history_file_path, home_path);
@@ -2613,8 +2756,9 @@ int main(int argc, char **argv) {
     char output[1024];
 
     while (1) {
-      erase();
       char *str;
+      prompt_printed_last = true;
+      readline_started = true;
       if (silent_mode) {
         str = readline("");
       } else {
@@ -2631,7 +2775,7 @@ int main(int argc, char **argv) {
           int result = append_history(1, history_file_path);
           if (result != 0) {
             // History file probably doesn't exist yet.
-            int result = write_history(history_file_path);
+            result = write_history(history_file_path);
             if (result != 0) {
               fprintf(
                       stderr,
@@ -2729,8 +2873,7 @@ int main(int argc, char **argv) {
         }
         free(str);
       } else if (strncmp(str, ":state", 6) == 0) {
-        lbm_uint state = lbm_get_eval_state();
-        switch (state) {
+        switch (lbm_get_eval_state()) {
         case EVAL_CPS_STATE_DEAD:
           printf("DEAD\n");
           break;
@@ -2875,7 +3018,8 @@ int main(int argc, char **argv) {
         lbm_create_string_char_channel(&string_tok_state,
                                        &string_tok,
                                        str);
-        (void)lbm_load_and_eval_expression(&string_tok);
+        lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
+        add_ctx(&repl_ctxs, cid);
         lbm_continue_eval();
       }
     }

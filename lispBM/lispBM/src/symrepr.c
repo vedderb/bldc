@@ -279,14 +279,14 @@ void lbm_symrepr_set_next_id(lbm_uint id) {
   next_symbol_id = id;
 }
 
-int lbm_symrepr_init(void) {
+bool lbm_symrepr_init(void) {
   symlist = NULL;
   next_symbol_id = RUNTIME_SYMBOLS_START;
   symbol_table_size_list = 0;
   symbol_table_size_list_flash = 0;
   symbol_table_size_strings = 0;
   symbol_table_size_strings_flash = 0;
-  return 1;
+  return true;
 }
 
 void lbm_symrepr_name_iterator(symrepr_name_iterator_fun f) {

@@ -1,0 +1,88 @@
+
+# discrepancies to consider
+
+## error on not supplying enough arguments
+type-of => eval_error
+list? => type_error
+number? => type_error
+to-i => eval_error
+to-float => eval_error
+sym2str => eval_error
+str2sym => eval_error
+car => eval_error
+cdr => eval_error
+length => eval_error
+ix => eval_error
+
+(// 1000) => eval_error  (one argument but needs at least 2) 
+
+## error when supplying too many arguments
+type-of => eval_error
+list? => eval_error
+number? => type_error
+to-i => eval_error
+to-float => eval_error
+sym2str => eval_error
+str2sym => eval_error
+car => eval_error
+cdr => eval_error
+length => eval_error
+ix => eval_error
+
+## error when providing incorrect type
+(sin "string") => eval_error
+(cos 'sym) => eval_error
+(tan t) => eval_error
+(asin nil) => eval_error
+(acos '(1 2 3)) => eval_error
+(exp "test") => eval_error
+(sqrt 'sym) => eval_error
+(log t) => eval_error
+(floor '(1)) => eval_error
+(ceil [|1|]) => eval_error
+(round "str") => eval_error
+(atan2 "s" 1.0) => eval_error
+(atan2 1.0 'sym) => eval_error
+(pow "a" 2.0) => eval_error
+(pow 2.0 t) => eval_error
+(deg2rad "deg") => eval_error
+(rad2deg nil) => eval_error
+(is-nan "nan") => type_error
+(is-inf 'inf) => type_error
+reverse => eval_error
+rotate => eval_error
+
+
+TODO: Look at this behavior
+      (define r17 (trap (img-rectangle img400x300 350 50 30 30 1 '(invalid-property))))
+     (define r18 (trap (img-circle img400x300 350 100 15 1 '(filled invalid))))
+
+TODO: look at tests for the img-color functionality. But I have to understand that
+       stuff myself first.
+
+
+TODO:  extraxt_n uses lbm_is_ptr and then extracts car, cdr etc.
+       Add tests that abuse this knowledge using dot notation and things
+       that are special cons cells (line byte-arrays, arrays, etc).
+
+
+TODO: look at test_lbm_prof and figure out how to improve it.
+
+TODO: generic_arc only runs if non-filled, dotted.
+TODO: dead code inside generic_arc as filled arcs go through a totally
+      different algorithm (in handle_arc_slice).
+
+
+The exported API that accepts channels is:
+* lift_char_channel  in eval_cps.c/h
+* lbm_load_and_eval_program in lbm_c_interop
+* lbm_load_and_eval_program_incremental in lbm_c_interop
+* lbm_load_and_eval_expression in lbm_c_interop
+* lbm_load_and_define_program in lbm_c_interop
+* lbm_load_and_define_expression in lbm_c_interop
+
+TODO: Think about closure creation and if there is something simple that can
+      be done to improve the handling of the captured environment. Sometimes
+      Useful patterns lead to expression size explosion (such as lambda creation inside of looprange).
+
+TODO: lbm_car uses the lbm_is_ptr condition.

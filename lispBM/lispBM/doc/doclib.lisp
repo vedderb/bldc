@@ -332,10 +332,10 @@
                  (x-code (if (is-read-eval-txt x)
                              (read-program (ix x 1))
                            x))
-                 (res (eval-program nil x-code))
+                 (res (eval-program x-code))
                  (res-str (to-str res)))
            ;(let ((c-strings (map (lambda (c) (str-merge (pretty c) "\n"))  x))
-           ;      (res (eval-program nil x))
+           ;      (res (eval-program x))
            ;      (res-str (to-str res)))
              {
              (rend "<tr>\n")
@@ -374,7 +374,7 @@
                  (x-code (if (is-read-eval-txt x)
                              (read-program (ix x 1))
                            x))
-                 (res (eval-program nil x-code))
+                 (res (eval-program x-code))
                  (res-str (to-str res))
                  (png (png-file)))
              {

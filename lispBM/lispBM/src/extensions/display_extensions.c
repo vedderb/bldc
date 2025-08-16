@@ -972,7 +972,7 @@ static void fill_triangle(image_buffer_t *img, int x0, int y0,
 }
 
 static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_start, float ang_end,
-                        int thickness, bool filled, int dot1, int dot2, int res, bool sector, bool segment, uint32_t color) {
+                        int thickness, int dot1, int dot2, int res, bool sector, bool segment, uint32_t color) {
   ang_start *= (float)M_PI / 180.0f;
   ang_end *= (float)M_PI / 180.0f;
 
@@ -1009,27 +1009,11 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
     px = px * ca - py * sa;
     py = py * ca + px_before * sa;
 
-    if (filled) {
-      if (sector) {
-        fill_triangle(img,
-                      x + (int)px_before, y + (int)py_before,
-                      x + (int)px, y + (int)py,
-                      x, y,
-                      color);
-      } else {
-        fill_triangle(img,
-                      x + (int)px_before, y + (int)py_before,
-                      x + (int)px, y + (int)py,
-                      x + (int)px_start, y + (int)py_start,
-                      color);
-      }
-    } else {
-      line(img, x + (int)px_before, y + (int)py_before,
-           x + (int)px, y + (int)py, thickness, dot1, dot2, color);
-    }
+    line(img, x + (int)px_before, y + (int)py_before,
+         x + (int)px, y + (int)py, thickness, dot1, dot2, color);
   }
 
-  if (!filled && sector) {
+  if (sector) {
     line(img, x + (int)px, y + (int)py,
          x, y,
          thickness, dot1, dot2, color);
@@ -1038,7 +1022,7 @@ static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_st
          thickness, dot1, dot2, color);
   }
 
-  if (!filled && segment) {
+  if (segment) {
     line(img, x + (int)px, y + (int)py,
          x + (int)px_start, y + (int)py_start,
          thickness, dot1, dot2, color);
@@ -1518,7 +1502,7 @@ static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0,
       thickness = 1;
     }
 
-    generic_arc(img, c_x, c_y, radius, angle0, angle1, thickness, false, dot1, dot2, resolution, sector, segment, color);
+    generic_arc(img, c_x, c_y, radius, angle0, angle1, thickness, dot1, dot2, resolution, sector, segment, color);
 
     return;
   }
@@ -1836,6 +1820,7 @@ void blit(
     int clip_x, int clip_y,    // Clip start in dest
     int clip_w, int clip_h     // Clip width and height
 ) {
+  if (scale == 0.0) return;
   int src_w = img_src->width;
   int src_h = img_src->height;
 
@@ -2042,8 +2027,9 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
     if (num_dec != num_expected) {
       return res;
     }
+    // I think this should go here ???
+    res.is_valid = true;
   }
-  res.is_valid = true;
   return res;
 }
 
@@ -2357,6 +2343,19 @@ static lbm_value ext_putpixel(lbm_value *args, lbm_uint argn) {
            lbm_dec_as_i32(arg_dec.args[1]),
            lbm_dec_as_u32(arg_dec.args[2]));
   return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_getpixel(lbm_value *args, lbm_uint argn) {
+  img_args_t arg_dec = decode_args(args, argn, 2);
+
+  if (!arg_dec.is_valid) {
+    return ENC_SYM_TERROR;
+  }
+
+  uint32_t c = getpixel(&arg_dec.img,
+                        lbm_dec_as_i32(arg_dec.args[0]),
+                        lbm_dec_as_i32(arg_dec.args[1]));
+  return lbm_enc_u32(c);
 }
 
 // lisp args: img x1 y1 x2 y2 color opt-attr1 ... opt-attrN
@@ -2949,6 +2948,7 @@ void lbm_display_extensions_init(void) {
   lbm_add_extension("img-color-getpre", ext_color_getpre);
   lbm_add_extension("img-dims", ext_image_dims);
   lbm_add_extension("img-setpix", ext_putpixel);
+  lbm_add_extension("img-getpix", ext_getpixel);
   lbm_add_extension("img-line", ext_line);
   lbm_add_extension("img-text", ext_text);
   lbm_add_extension("img-clear", ext_clear);

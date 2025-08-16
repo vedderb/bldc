@@ -38,6 +38,7 @@
         "glyps",
         "hline",
         "lbmref",
+        "lispif",
         "lmtx",
         "mkarray",
         "noreturn",
@@ -51,6 +52,7 @@
         "rptr",
         "sierp",
         "snoc",
+        "symrepr",
         "tableize",
         "TOKCOMMAAT",
         "TOKTYPEF",
@@ -59,6 +61,9 @@
         "Tpng",
         "ttfref",
         "unflattening",
+        "vescif",
+        "vesctcp",
+        "WSADATA",
         "yeet"
     ]
 }

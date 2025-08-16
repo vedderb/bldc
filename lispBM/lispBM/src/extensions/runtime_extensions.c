@@ -169,6 +169,20 @@ lbm_value ext_env_set(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_NIL;
 }
 
+lbm_value ext_env_drop(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 2 && lbm_is_symbol(args[0])) {
+    r = lbm_env_drop_binding(args[1], args[0]);
+  }
+  return r;
+}
+
+lbm_value ext_global_env_size(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn; // ignores any and all arguments.
+  return lbm_enc_u(lbm_get_global_env_size());
+}
+
 lbm_value ext_set_gc_stack_size(lbm_value *args, lbm_uint argn) {
   if (argn == 1) {
     if (lbm_is_number(args[0])) {
@@ -305,7 +319,9 @@ void lbm_runtime_extensions_init(void) {
     lbm_add_extension("lbm-heap-state", ext_lbm_heap_state);
     lbm_add_extension("env-get", ext_env_get);
     lbm_add_extension("env-set", ext_env_set);
+    lbm_add_extension("env-drop", ext_env_drop);
     lbm_add_extension("local-env-get", ext_local_env_get);
+    lbm_add_extension("global-env-size", ext_global_env_size);
     lbm_add_extension("set-gc-stack-size", ext_set_gc_stack_size);
     lbm_add_extension("is-64bit", ext_is_64bit);
     lbm_add_extension("symtab-size", ext_symbol_table_size);

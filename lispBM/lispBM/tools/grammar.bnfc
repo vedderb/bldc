@@ -1,0 +1,138 @@
+-- LispBM Grammar for BNFC (BNF Converter)
+-- Converted from grammar.txt
+-- This grammar generates parsers for the LispBM embedded Lisp language
+
+-- ==============================================================================
+-- TOP-LEVEL STRUCTURE
+-- ==============================================================================
+
+Prog.     Program ::= [Expression] ;
+
+-- ==============================================================================
+-- CORE EXPRESSIONS
+-- ==============================================================================
+
+-- Expression types
+AtomExpr.   Expression ::= Atom ;
+ListExpr.   Expression ::= List ;
+ArrayExpr.  Expression ::= Array ;
+ByteExpr.   Expression ::= ByteArray ;
+PrognExpr.  Expression ::= PrognBlock ;
+QuotedExpr. Expression ::= QuotedExpression ;
+
+-- ==============================================================================
+-- ATOMIC VALUES
+-- ==============================================================================
+
+-- Atoms
+NumAtom.    Atom ::= Number ;
+StrAtom.    Atom ::= String ;
+CharAtom.   Atom ::= LbmCharacter ;
+SymAtom.    Atom ::= LbmSymbol ;
+SpecAtom.   Atom ::= SpecialSymbol ;
+
+-- Number types with built-in type information (direct token mapping)
+Num_I.      Number ::= I_Num    ;        -- Default integer (e.g., 42, -17)
+Num_F32.    Number ::= F32_Num  ;              -- _SignedFloat ;          -- Default float (e.g., 3.14, -2.5)
+Num_B.      Number ::= Byte_Num ;           -- Byte integers (e.g., 255b)  
+Num_U.      Number ::= U_Num    ;       -- Unsigned integers (e.g., 42u)
+Num_I32.    Number ::= I32_Num  ;            -- 32-bit signed (e.g., 42i32)
+Num_U32.    Number ::= U32_Num  ;            -- 32-bit unsigned (e.g., 42u32)
+Num_I64.    Number ::= I64_Num  ;            -- 64-bit signed (e.g., 42i64)
+Num_U64.    Number ::= U64_Num  ;            -- 64-bit unsigned (e.g., 42u64)
+Num_F64.    Number ::= F64_Num  ;          -- 64-bit float (e.g., 3.14f64)
+
+-- Base signed integers and floats (no qualifier)  
+
+Float.      SignedFloat ::= F32_Num ;
+
+-- Special symbols for pattern matching and memory management
+DontCare.   SpecialSymbol ::= "_" ;
+MatchAny.   SpecialSymbol ::= "?" ;
+ConstStart. SpecialSymbol ::= "@const-start" ;
+ConstEnd.   SpecialSymbol ::= "@const-end" ;
+
+-- ==============================================================================
+-- COMPOUND DATA STRUCTURES
+-- ==============================================================================
+
+-- Lists
+EmptyList.  List ::= "(" ")" ;
+ExprList.   List ::= "(" [Expression] ")" ;
+DottedList. List ::= "(" [Expression] "." Expression ")" ;
+
+-- Lisp arrays (contain unevaluated expressions)
+EmptyArray. Array ::= "[|" "|]" ;
+ExprArray.  Array ::= "[|" [Expression] "|]" ;
+
+-- Byte arrays (contain only literal values)
+EmptyByteArray. ByteArray ::= "[" "]" ;
+LiteralArray.   ByteArray ::= "[" [LiteralValue] "]" ;
+
+-- Progn blocks (syntactic sugar for (progn ...))
+EmptyProgn. PrognBlock ::= "{" "}" ;
+ExprProgn.  PrognBlock ::= "{" [Expression] "}" ;
+
+-- Literal values (only integers and characters allowed in byte arrays)
+-- Seems to be some built in support in BNFC for basic integer lexemes.
+IntLit.     LiteralValue ::= I_Num ;
+CharLit.    LiteralValue ::= LbmCharacter ;
+
+-- ==============================================================================
+-- QUOTING AND METAPROGRAMMING
+-- ==============================================================================
+
+-- Quoted expressions
+Quote.      QuotedExpression ::= "'" Expression ;
+Quasiquote. QuotedExpression ::= "`" Expression ;
+Unquote.    QuotedExpression ::= "," Expression ;
+UnquoteSplice. QuotedExpression ::= ",@" Expression ;
+
+-- ==============================================================================
+-- LEXICAL TOKENS
+-- ==============================================================================
+
+-- Use BNFC built-in Integer and String, define custom tokens for others
+-- BNFC built-in String handles quoted strings
+
+-- Basic floating point numbers (default to f32) - now includes negative
+-- Allow float to have f32 qualifer.
+token F32_Num (('-')? digit+ '.' digit+ (('e'|'E') ('-')? digit+)?) | (('-')? digit+ '.' digit+ (('e'|'E') ('-')? digit+)?) 'f' '3' '2'  ;
+token F64_Num (('-')? digit+ '.' digit+ (('e'|'E') ('-')? digit+)? 'f' '6' '4') ;
+
+-- Negative integers are now handled by I_Num token
+
+-- Qualified integer tokens (single tokens with no spaces, including negative)
+-- Now include hex alternatives: either decimal digits or hex (0x + hex digits)
+token Byte_Num (('-')? digit+ 'b') ;
+token U_Num (('-')? digit+ 'u' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'u') ;
+token I_Num ((('-')? digit+ | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+) | (('-')? digit+ 'i' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'i')) ; 
+token I32_Num (('-')? digit+ 'i' '3' '2' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'i' '3' '2') ;
+token U32_Num (('-')? digit+ 'u' '3' '2' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'u' '3' '2') ;
+token I64_Num (('-')? digit+ 'i' '6' '4' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'i' '6' '4') ;
+token U64_Num (('-')? digit+ 'u' '6' '4' | '0' 'x' (digit | ["ABCDEF"] | ["abcdef"])+ 'u' '6' '4') ;
+
+-- Hexadecimal integers are now handled by I_Num and type-specific tokens
+
+-- Characters with escape sequences  
+token LbmCharacter ('\\' '#' ((char - '\\') | ('\\' ["0abtnvfres\"\\d"]))) ;
+
+-- Symbols (identifiers) - use upper/lower/digit instead of character classes
+token LbmSymbol ((letter | ["+-*/<>=!#"]) (letter | digit | ["+-*/<>=!?_"])*) ;
+
+-- ==============================================================================
+-- COMMENTS AND WHITESPACE  
+-- ==============================================================================
+
+-- Line comments (start with ; and continue to end of line)
+comment ";" ;
+
+-- ==============================================================================
+-- LISTS AND SEPARATORS
+-- ==============================================================================
+
+-- Expression lists (used in multiple contexts) - space separated
+separator Expression " " ;
+
+-- Literal value lists (for byte arrays) - space separated  
+separator LiteralValue " " ;

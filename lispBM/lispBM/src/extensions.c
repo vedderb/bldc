@@ -41,8 +41,8 @@ lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_EERROR;
 }
 
-int lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_storage_size) {
-  if (extension_storage == NULL || extension_storage_size == 0) return 0;
+bool lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_storage_size) {
+  if (extension_storage == NULL || extension_storage_size == 0) return false;
 
   extension_table = extension_storage;
   memset(extension_table, 0, sizeof(lbm_extension_t) * extension_storage_size);
@@ -54,7 +54,7 @@ int lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_s
   next_extension_ix = 0;
   ext_max = (lbm_uint)extension_storage_size;
 
-  return 1;
+  return true;
 }
 
 lbm_uint lbm_get_max_extensions(void) {
@@ -66,11 +66,12 @@ lbm_uint lbm_get_num_extensions(void) {
 }
 
 extension_fptr lbm_get_extension(lbm_uint sym) {
-  lbm_uint ext_next = sym - EXTENSION_SYMBOLS_START;
-  if (ext_next >= ext_max) {
-    return NULL;
+  lbm_uint ext_id = sym - EXTENSION_SYMBOLS_START;
+  extension_fptr res = lbm_extensions_default;
+  if (ext_id < ext_max) {
+    res = extension_table[ext_id].fptr; 
   }
-  return extension_table[ext_next].fptr;
+  return res;
 }
 
 bool lbm_clr_extension(lbm_uint sym_id) {
@@ -131,12 +132,6 @@ static bool lbm_is_number_all(lbm_value *args, lbm_uint argn) {
     }
   }
   return true;
-}
-
-bool lbm_check_true_false(lbm_value v) {
-  bool res = lbm_is_symbol_true(v) || lbm_is_symbol_nil(v);
-  lbm_set_error_reason((char*)lbm_error_str_not_a_boolean);
-  return res;
 }
 
 bool lbm_check_number_all(lbm_value *args, lbm_uint argn) {
