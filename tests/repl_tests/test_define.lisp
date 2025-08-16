@@ -1,0 +1,12 @@
+(define e1 (define a))
+(define e2 (trap (define)))
+(define e3 (trap (define 1 2)))
+(define e4 (trap (define + 1)))
+
+(if (and (eq nil e1)
+         (eq '(exit-error eval_error) e2)
+         (eq '(exit-error eval_error) e3)
+         (eq '(exit-error eval_error) e4))
+    (print "SUCCESS")
+    (print "FAILURE")
+    )

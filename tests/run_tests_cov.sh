@@ -121,7 +121,7 @@ echo Tests failed: $fail_count
 echo Expected fails: $expected_count
 echo Actual fails: $((fail_count - expected_count))
 
-gcovr --gcov-ignore-parse-errors
+gcovr --gcov-ignore-parse-errors --merge-mode-functions merge-use-line-max --json tests_cov.json
 
 if [ $((fail_count - expected_count)) -gt 0 ]
 then

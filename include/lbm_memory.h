@@ -119,10 +119,10 @@ extern "C" {
  * \param data_size The size of the data storage array in number of uint32_t elements.
  * \param bitmap Pointer to an array of uint32_t for memory allocator meta-data.
  * \param bitmap_size The size of the meta-data in number of uint32_t elements.
- * \return
+ * \return true on success and false otherwise.
  */
-int lbm_memory_init(lbm_uint *data, lbm_uint data_size,
-                           lbm_uint *bitmap, lbm_uint bitmap_size);
+bool lbm_memory_init(lbm_uint *data, lbm_uint data_size,
+                     lbm_uint *bitmap, lbm_uint bitmap_size);
 
 /** Set the size of the memory reserve in words.
  * \param num_words Number of words to treat as reserve.

@@ -15,7 +15,6 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/lbm_custom_type.c \
              $(LISPBM)/src/lbm_channel.c \
              $(LISPBM)/src/lbm_flat_value.c\
-             $(LISPBM)/src/lbm_flags.c\
              $(LISPBM)/src/lbm_prof.c\
              $(LISPBM)/src/lbm_defrag_mem.c\
              $(LISPBM)/src/lbm_image.c\
@@ -45,7 +44,6 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/lbm_custom_type.h \
            $(LISPBM)/include/lbm_defines.h \
            $(LISPBM)/include/lbm_defrag_mem.h \
-           $(LISPBM)/include/lbm_flags.h \
            $(LISPBM)/include/lbm_flat_value.h \
            $(LISPBM)/include/lbm_llama_ascii.h \
            $(LISPBM)/include/lbm_memory.h \

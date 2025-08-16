@@ -24,6 +24,7 @@
 (define r13 (eq (unflatten (flatten ls)) ls))
 
 ;; custom types are not flattenable at the moment.
+;; List-to-vector does not exist anymore
 (define r14 (eq '(exit-error eval_error) (trap (flatten (list-to-vector (list 1 2 3))))))
 
 (check (and r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 r13))

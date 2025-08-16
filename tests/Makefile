@@ -21,7 +21,8 @@ CCFLAGS_32 = $(CCFLAGS) -m32 -g -O2
 CCFLAGS_GC = $(CCFLAGS) -m32 -DLBM_ALWAYS_GC -g -O2
 CCFLAGS_REVGC = $(CCFLAGS) -DLBM_USE_GC_PTR_REV -m32
 CCFLAGS_64 = $(CCFLAGS) -DLBM64 -g -O2
-CCFLAGS_COV = $(CCFLAGS) -m32 --coverage -g -O0 -DLONGER_DELAY
+CCFLAGS_COV_32 = $(CCFLAGS) -m32 --coverage -g -O0 -DLONGER_DELAY
+CCFLAGS_COV_64 = $(CCFLAGS) -DLBM64 --coverage -g -O0 -DLONGER_DELAY
 CCFLAGS_TIME_32 = $(CCFLAGS) -m32 -g -O2 -DLBM_USE_TIME_QUOTA
 CCFLAGS_TIME_64 = $(CCFLAGS) -DLBM64 -g -O2 -DLBM_USE_TIME_QUOTA
 
@@ -36,10 +37,10 @@ test_lisp_code_cps_gc: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_
 	$(CC) $(CCFLAGS_GC) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_gc -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps_cov: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
-	$(CC) $(CCFLAGS_COV) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_cov -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+	$(CC) $(CCFLAGS_COV_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_cov -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
-	$(CC) $(CCFLAGS_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+	$(CC) $(CCFLAGS_COV_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps_size: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
 	$(CC) $(CCFLAGS_32) $(LBM_SIZE) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_size -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
@@ -51,7 +52,7 @@ test_lisp_code_cps_time: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_cod
 	$(CC) $(CCFLAGS_TIME_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_time -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps_64: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
-	$(CC) $(CCFLAGS_64) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_64 -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+	$(CC) $(CCFLAGS_COV_64) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_64 -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps_64_time: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
 	$(CC) $(CCFLAGS_TIME_64) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_64_time -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm

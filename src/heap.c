@@ -26,7 +26,6 @@
 #include <lbm_defrag_mem.h>
 #include <lbm_image.h>
 
-
 #include "heap.h"
 #include "symrepr.h"
 #include "stack.h"
@@ -278,22 +277,6 @@ lbm_array_header_t *lbm_dec_array_rw(lbm_value val) {
   return array;
 }
 
-lbm_array_header_t *lbm_dec_lisp_array_r(lbm_value val) {
-  lbm_array_header_t *array = NULL;
-  if (lbm_is_lisp_array_r(val)) {
-    array = (lbm_array_header_t *)lbm_car(val);
-  }
-  return array;
-}
-
-lbm_array_header_t *lbm_dec_lisp_array_rw(lbm_value val) {
-  lbm_array_header_t *array = NULL;
-  if (lbm_is_lisp_array_rw(val)) {
-    array = (lbm_array_header_t *)lbm_car(val);
-  }
-  return array;
-}
-
 lbm_char_channel_t *lbm_dec_channel(lbm_value val) {
   lbm_char_channel_t *res = NULL;
 
@@ -435,55 +418,55 @@ uint64_t lbm_dec_as_u64(lbm_value a) {
   return r;
 }
 
-lbm_uint lbm_dec_as_uint(lbm_value a) {
-  lbm_uint r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (lbm_uint)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (lbm_uint)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (lbm_uint)lbm_dec_u(a); break;
-  case LBM_TYPE_I32:
-    r = (lbm_uint)lbm_dec_i32(a); break;
-  case LBM_TYPE_U32:
-    r = (lbm_uint)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (lbm_uint)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (lbm_uint)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (lbm_uint) lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (lbm_uint)lbm_dec_double(a); break;
-  }
-  return r;
-}
+/* lbm_uint lbm_dec_as_uint(lbm_value a) { */
+/*   lbm_uint r = 0; */
+/*   switch (lbm_type_of_functional(a)) { */
+/*   case LBM_TYPE_CHAR: */
+/*     r = (lbm_uint)lbm_dec_char(a); break; */
+/*   case LBM_TYPE_I: */
+/*     r = (lbm_uint)lbm_dec_i(a); break; */
+/*   case LBM_TYPE_U: */
+/*     r = (lbm_uint)lbm_dec_u(a); break; */
+/*   case LBM_TYPE_I32: */
+/*     r = (lbm_uint)lbm_dec_i32(a); break; */
+/*   case LBM_TYPE_U32: */
+/*     r = (lbm_uint)lbm_dec_u32(a); break; */
+/*   case LBM_TYPE_FLOAT: */
+/*     r = (lbm_uint)lbm_dec_float(a); break; */
+/*   case LBM_TYPE_I64: */
+/*     r = (lbm_uint)lbm_dec_i64(a); break; */
+/*   case LBM_TYPE_U64: */
+/*     r = (lbm_uint) lbm_dec_u64(a); break; */
+/*   case LBM_TYPE_DOUBLE: */
+/*     r = (lbm_uint)lbm_dec_double(a); break; */
+/*   } */
+/*   return r; */
+/* } */
 
-lbm_int lbm_dec_as_int(lbm_value a) {
-  lbm_int r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (lbm_int)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (lbm_int)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (lbm_int)lbm_dec_u(a); break;
-  case LBM_TYPE_I32:
-    r = (lbm_int)lbm_dec_i32(a); break;
-  case LBM_TYPE_U32:
-    r = (lbm_int)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (lbm_int)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (lbm_int)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (lbm_int)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (lbm_int)lbm_dec_double(a); break;
-  }
-  return r;
-}
+/* lbm_int lbm_dec_as_int(lbm_value a) { */
+/*   lbm_int r = 0; */
+/*   switch (lbm_type_of_functional(a)) { */
+/*   case LBM_TYPE_CHAR: */
+/*     r = (lbm_int)lbm_dec_char(a); break; */
+/*   case LBM_TYPE_I: */
+/*     r = (lbm_int)lbm_dec_i(a); break; */
+/*   case LBM_TYPE_U: */
+/*     r = (lbm_int)lbm_dec_u(a); break; */
+/*   case LBM_TYPE_I32: */
+/*     r = (lbm_int)lbm_dec_i32(a); break; */
+/*   case LBM_TYPE_U32: */
+/*     r = (lbm_int)lbm_dec_u32(a); break; */
+/*   case LBM_TYPE_FLOAT: */
+/*     r = (lbm_int)lbm_dec_float(a); break; */
+/*   case LBM_TYPE_I64: */
+/*     r = (lbm_int)lbm_dec_i64(a); break; */
+/*   case LBM_TYPE_U64: */
+/*     r = (lbm_int)lbm_dec_u64(a); break; */
+/*   case LBM_TYPE_DOUBLE: */
+/*     r = (lbm_int)lbm_dec_double(a); break; */
+/*   } */
+/*   return r; */
+/* } */
 
 float lbm_dec_as_float(lbm_value a) {
   float r = 0;
@@ -538,10 +521,10 @@ double lbm_dec_as_double(lbm_value a) {
 /****************************************************/
 /* HEAP MANAGEMENT                                  */
 
-static int generate_freelist(size_t num_cells) {
+static bool generate_freelist(size_t num_cells) {
   size_t i = 0;
 
-  if (!lbm_heap_state.heap) return 0;
+  if (!lbm_heap_state.heap) return false;
 
   lbm_heap_state.freelist = lbm_enc_cons_ptr(0);
 
@@ -558,7 +541,7 @@ static int generate_freelist(size_t num_cells) {
   t = lbm_ref_cell(lbm_enc_cons_ptr(num_cells-1));
   t->cdr = ENC_SYM_NIL;
 
-  return 1;
+  return true;
 }
 
 void lbm_nil_freelist(void) {
@@ -591,10 +574,10 @@ void lbm_heap_new_freelist_length(void) {
     lbm_heap_state.gc_least_free = l;
 }
 
-int lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
+bool lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
                   lbm_uint gc_stack_size) {
 
-  if (((uintptr_t)addr % 8) != 0) return 0;
+  if (((uintptr_t)addr % 8) != 0) return false;
 
   memset(addr,0, sizeof(lbm_cons_t) * num_cells);
 
@@ -629,25 +612,23 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr
 lbm_value lbm_heap_allocate_list(lbm_uint n) {
   if (n == 0) return ENC_SYM_NIL;
   if (lbm_heap_num_free() < n) return ENC_SYM_MERROR;
+  // Here the freelist is guaranteed to be a cons_cell.
 
   lbm_value curr = lbm_heap_state.freelist;
   lbm_value res  = curr;
-  if (lbm_type_of(curr) == LBM_TYPE_CONS) {
-
-    lbm_cons_t *c_cell = NULL;
-    lbm_uint count = 0;
-    do {
-      c_cell = lbm_ref_cell(curr);
-      c_cell->car = ENC_SYM_NIL;
-      curr = c_cell->cdr;
-      count ++;
-    } while (count < n);
-    lbm_heap_state.freelist = curr;
-    c_cell->cdr = ENC_SYM_NIL;
-    lbm_heap_state.num_alloc+=count;
-    return res;
-  }
-  return ENC_SYM_FATAL_ERROR;
+  
+  lbm_cons_t *c_cell = NULL;
+  lbm_uint count = 0;
+  do {
+    c_cell = lbm_ref_cell(curr);
+    c_cell->car = ENC_SYM_NIL;
+    curr = c_cell->cdr;
+    count ++;
+  } while (count < n);
+  lbm_heap_state.freelist = curr;
+  c_cell->cdr = ENC_SYM_NIL;
+  lbm_heap_state.num_alloc+=count;
+  return res;
 }
 
 lbm_value lbm_heap_allocate_list_init_va(unsigned int n, va_list valist) {
@@ -656,22 +637,19 @@ lbm_value lbm_heap_allocate_list_init_va(unsigned int n, va_list valist) {
 
   lbm_value curr = lbm_heap_state.freelist;
   lbm_value res  = curr;
-  if (lbm_type_of(curr) == LBM_TYPE_CONS) {
 
-    lbm_cons_t *c_cell = NULL;
-    unsigned int count = 0;
-    do {
-      c_cell = lbm_ref_cell(curr);
-      c_cell->car = va_arg(valist, lbm_value);
-      curr = c_cell->cdr;
-      count ++;
-    } while (count < n);
-    lbm_heap_state.freelist = curr;
-    c_cell->cdr = ENC_SYM_NIL;
-    lbm_heap_state.num_alloc+=count;
-    return res;
-  }
-  return ENC_SYM_FATAL_ERROR;
+  lbm_cons_t *c_cell = NULL;
+  unsigned int count = 0;
+  do {
+    c_cell = lbm_ref_cell(curr);
+    c_cell->car = va_arg(valist, lbm_value);
+    curr = c_cell->cdr;
+    count ++;
+  } while (count < n);
+  lbm_heap_state.freelist = curr;
+  c_cell->cdr = ENC_SYM_NIL;
+  lbm_heap_state.num_alloc+=count;
+  return res;
 }
 
 lbm_value lbm_heap_allocate_list_init(unsigned int n, ...) {
@@ -726,77 +704,18 @@ static inline void value_assign(lbm_value *a, lbm_value b) {
    Since the heap will be "messed up" while marking, a mutex
    is introuded to keep other processes out of the heap while
    marking.
-
-   TODO: See if the extra index field in arrays can be used
-   to mark arrays without resorting to recursive mark calls.
 */
 
-
-void lbm_gc_mark_phase_nm(lbm_value root) {
-  bool work_to_do = true;
-  if (!lbm_is_ptr(root)) return;
-
-  lbm_value curr = root;
-  lbm_value prev = lbm_enc_cons_ptr(LBM_PTR_NULL);
-
-  while (work_to_do) {
-    // follow leftwards pointers
-    while (lbm_is_ptr(curr) &&
-           (lbm_dec_ptr(curr) != LBM_PTR_NULL) &&
-           ((curr & LBM_PTR_TO_CONSTANT_BIT) == 0) &&
-           !lbm_get_gc_mark(lbm_cdr(curr))) {
-      // Mark the cell if not a constant cell
-      lbm_cons_t *cell = lbm_ref_cell(curr);
-      cell->cdr = lbm_set_gc_mark(cell->cdr);
-      if (lbm_is_cons_rw(curr)) {
-        lbm_value next = 0;
-        value_assign(&next, cell->car);
-        value_assign(&cell->car, prev);
-        value_assign(&prev,curr);
-        value_assign(&curr, next);
-      } else if (lbm_type_of(curr) == LBM_TYPE_LISPARRAY) {
-        lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
-        lbm_value *arr_data = (lbm_value *)arr->data;
-        size_t  arr_size = (size_t)arr->size / sizeof(lbm_value);
-        // C stack recursion as deep as there are nested arrays.
-        // TODO: Try to do this without recursion on the C side.
-        for (size_t i = 0; i < arr_size; i ++) {
-          lbm_gc_mark_phase_nm(arr_data[i]);
-        }
-      }
-      // Will jump out next iteration as gc mark is set in curr.
-    }
-    while (lbm_is_ptr(prev) &&
-           (lbm_dec_ptr(prev) != LBM_PTR_NULL) &&
-           lbm_get_gc_flag(lbm_car(prev)) ) {
-      // clear the flag
-      lbm_cons_t *cell = lbm_ref_cell(prev);
-      cell->car = lbm_clr_gc_flag(cell->car);
-      lbm_value next = 0;
-      value_assign(&next, cell->cdr);
-      value_assign(&cell->cdr, curr);
-      value_assign(&curr, prev);
-      value_assign(&prev, next);
-    }
-    if (lbm_is_ptr(prev) &&
-        lbm_dec_ptr(prev) == LBM_PTR_NULL) {
-      work_to_do = false;
-    } else if (lbm_is_ptr(prev)) {
-      // set the flag
-      lbm_cons_t *cell = lbm_ref_cell(prev);
-      cell->car = lbm_set_gc_flag(cell->car);
-      lbm_value next = 0;
-      value_assign(&next, cell->car);
-      value_assign(&cell->car, curr);
-      value_assign(&curr, cell->cdr);
-      value_assign(&cell->cdr, next);
-    }
-  }
+static int do_nothing(lbm_value v, bool shared, void *arg) {
+  (void) v;
+  (void) shared;
+  (void) arg;
+  return TRAV_FUN_SUBTREE_CONTINUE;
 }
 
 void lbm_gc_mark_phase(lbm_value root) {
     mutex_lock(&lbm_const_heap_mutex);
-    lbm_gc_mark_phase_nm(root);
+    lbm_ptr_rev_trav(do_nothing, root, NULL);
     mutex_unlock(&lbm_const_heap_mutex);
 }
 
@@ -1107,41 +1026,6 @@ lbm_uint lbm_list_length(lbm_value c) {
   return len;
 }
 
-/* calculate the length of a list and check that each element
-   fullfills the predicate pred */
-unsigned int lbm_list_length_pred(lbm_value c, bool *pres, bool (*pred)(lbm_value)) {
-  bool res = true;
-  unsigned int len = 0;
-
-  while (lbm_is_cons(c)){
-    len ++;
-    res = res && pred(lbm_car(c));
-    c = lbm_cdr(c);
-  }
-  *pres = res;
-  return len;
-}
-
-/* reverse a proper list */
-lbm_value lbm_list_reverse(lbm_value list) {
-  if (lbm_type_of(list) == LBM_TYPE_SYMBOL) {
-    return list;
-  }
-
-  lbm_value curr = list;
-
-  lbm_value new_list = ENC_SYM_NIL;
-  while (lbm_is_cons(curr)) {
-
-    new_list = lbm_cons(lbm_car(curr), new_list);
-    if (lbm_type_of(new_list) == LBM_TYPE_SYMBOL) {
-      return ENC_SYM_MERROR;
-    }
-    curr = lbm_cdr(curr);
-  }
-  return new_list;
-}
-
 lbm_value lbm_list_destructive_reverse(lbm_value list) {
   if (lbm_type_of(list) == LBM_TYPE_SYMBOL) {
     return list;
@@ -1341,16 +1225,6 @@ const uint8_t *lbm_heap_array_get_data_ro(lbm_value arr) {
   return r;
 }
 
-uint8_t *lbm_heap_array_get_data_rw(lbm_value arr) {
-  uint8_t *r = NULL;
-  lbm_array_header_t *header = lbm_dec_array_rw(arr);
-  if (header) {
-    r = (uint8_t*)header->data;
-  }
-  return r;
-}
-
-
 /* Explicitly freeing an array.
 
    This is a highly unsafe operation and can only be safely
@@ -1386,31 +1260,6 @@ int lbm_heap_explicit_free_array(lbm_value arr) {
   }
 
   return r;
-}
-
-lbm_uint lbm_size_of(lbm_type t) {
-  lbm_uint s = 0;
-  switch(t) {
-  case LBM_TYPE_BYTE:
-    s = 1;
-    break;
-  case LBM_TYPE_I: /* fall through */
-  case LBM_TYPE_U:
-  case LBM_TYPE_SYMBOL:
-    s = sizeof(lbm_uint);
-    break;
-  case LBM_TYPE_I32: /* fall through */
-  case LBM_TYPE_U32:
-  case LBM_TYPE_FLOAT:
-    s = 4;
-    break;
-  case LBM_TYPE_I64: /* fall through */
-  case LBM_TYPE_U64:
-  case LBM_TYPE_DOUBLE:
-    s = 8;
-    break;
-  }
-  return s;
 }
 
 static bool dummy_flash_write(lbm_uint ix, lbm_uint val) {
@@ -1541,13 +1390,7 @@ lbm_uint lbm_flash_memory_usage(void) {
 //     pointer reversal. If a dynamic structure is pointing into the
 //     constant heap, the 'f' will be applied to the constant cons cell on
 //     the border and then traversal will retreat.
-//   * Traversal is for trees and graphs without cycles.
-//     - Note that if used to "flatten" a graph, the resulting flat
-//       value will encode a tree where sharing is duplicated.
-//     - NOT suitable for flattening in general, but should be
-//       a perfect fit for the flattening we do into images.
-
-// May 3 2025
+//
 //  * It may be impossible to detect all kinds of cycles
 //    if attempting to use and restore the GC in a single pass
 //    over the tree. To detect cycles all visited nodes must
@@ -1561,60 +1404,74 @@ lbm_uint lbm_flash_memory_usage(void) {
 //    in the environment.
 //
 //  * lbm_ptr_rev_trav with the "do_nothing" travfun is the same thing
-//    as a GC mark phase! Maybe utilize this for code-size purposes,
-//    atleast in the ptr_rev_gc version. This also increases the amount
-//    of testing the ptr_rev_trav function is subjected to.
+//    as a GC mark phase! Maybe utilize this for code-size
+//    purposes. This also increases the amount of testing the
+//    ptr_rev_trav function is subjected to.
 
-bool lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
+void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
 
-  bool cyclic = false;
   lbm_value curr = v;
   lbm_value prev = lbm_enc_cons_ptr(LBM_PTR_NULL);
-
   while (true) {
 
     // Run leftwards and process conses until
     // hitting a leaf in the left direction.
-    while ((lbm_is_cons_rw(curr) &&
-            !gc_marked(curr)) ||         // do not step into a loop
-           lbm_is_lisp_array_rw(curr)) { // do not step into the constant heap
+
+    // If curr is marked here there is a cycle in the graph.
+    // In case of a cycle or leaf, this first loop is exited.
+    while (((lbm_is_cons_rw(curr)) ||
+            (lbm_is_lisp_array_rw(curr))) && !gc_marked(curr)) {
       lbm_cons_t *cell = lbm_ref_cell(curr);
       if (lbm_is_cons(curr)) {
-        gc_mark(curr);
         // In-order traversal
-        f(curr, false, arg);
+        if (f(curr, false, arg) == TRAV_FUN_SUBTREE_DONE) {
+          lbm_gc_mark_phase(curr);
+          break;
+        }
+        gc_mark(curr);
+
         lbm_value next = 0;
         value_assign(&next, cell->car);
         value_assign(&cell->car, prev);
         value_assign(&prev, curr);
         value_assign(&curr, next);
       } else { // it is an array
-        gc_mark(curr);
+
         lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
         lbm_value *arr_data = (lbm_value *)arr->data;
         uint32_t index = arr->index;
         if (arr->size == 0) break;
         if (index == 0) { // index should only be 0 or there is a potential cycle
-          f(curr, false, arg);
+          if (f(curr, false, arg) == TRAV_FUN_SUBTREE_DONE) {
+            lbm_gc_mark_phase(curr);
+            break;
+          }
           arr->index = 1;
+          gc_mark(curr);
 
           lbm_value next = 0;
           value_assign(&next, arr_data[0]);
           value_assign(&arr_data[0], prev);
           value_assign(&prev, curr);
           value_assign(&curr, next);
-        } else {
-          cyclic = true;
-          break;
         }
       }
     }
+    // Currently there are a few different users of this traversal.
+    // size, flatten and detect_sharing.
+    // detect_sharing make use of the shared (true) argument in f(curr, true, arg)
+    // while the other do not. detect_sharing also assumes it is run once per env item
+    // while not resetting any GC-bits in between. This detects global sharing.
 
     if (lbm_is_ptr(curr) && gc_marked(curr)) {
-      f(curr, true, arg); // run on shared node as well.
-      cyclic = true;
+      // gc bit set so this subtree is already traversed.
+      // f is called with true to indicate visited node.
+      // if this happens during a sharing discovery phase, curr will be added to sharing table.
+      f(curr, true, arg);
+      // In this case f should not be able to return subtree continue.
+      // The only correct return value from f is PROCEED.
     } else if (!lbm_is_cons(curr) || // Found a leaf
-        (curr & LBM_PTR_TO_CONSTANT_BIT)) {
+               (curr & LBM_PTR_TO_CONSTANT_BIT)) {
       if (lbm_is_ptr(curr) && !(curr & LBM_PTR_TO_CONSTANT_BIT)) gc_mark(curr); // Mark it so that the mandatory GC does not swipe it.
       f(curr, false, arg);
     }
@@ -1724,5 +1581,4 @@ bool lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
       arr->index = arr->index + 1;
     }
   }
-  return !cyclic;
 }

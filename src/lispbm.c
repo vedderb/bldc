@@ -17,36 +17,20 @@
 
 #include "lispbm.h"
 
-int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
+bool lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
              lbm_uint *memory, lbm_uint memory_size,
              lbm_uint *memory_bitmap, lbm_uint bitmap_size,
              lbm_uint gc_stack_size,
              lbm_uint print_stack_size,
              lbm_extension_t *extension_storage,
              lbm_uint extension_storage_size) {
-
-  if (lbm_memory_init(memory, memory_size,
-                      memory_bitmap, bitmap_size) == 0)
-    return 0;
-
-  if (lbm_symrepr_init() == 0)
-    return 0;
-
-  if (lbm_heap_init(heap_storage, heap_size, gc_stack_size) == 0)
-    return 0;
-
-  if (lbm_print_init(print_stack_size) == 0)
-    return 0;
-
-  if (lbm_extensions_init(extension_storage, extension_storage_size) == 0)
-    return 0;
-
-  if (lbm_init_env() == 0)
-    return 0;
-
-  if (lbm_eval_init() == 0)
-    return 0;
-
-  return 1;
+  return
+    lbm_memory_init(memory, memory_size,
+                    memory_bitmap, bitmap_size) &&
+    lbm_symrepr_init() &&
+    lbm_heap_init(heap_storage, heap_size, gc_stack_size) &&
+    lbm_print_init(print_stack_size) &&
+    lbm_extensions_init(extension_storage, extension_storage_size) &&
+    lbm_eval_init();
 }
 

@@ -176,6 +176,7 @@
 #define SYMBOL_LINK_ENTRY (uint32_t)0x07    // [ 0x07 | C_LINK_PTR | NEXT_PTR | ID | NAME PTR ]
 #define EXTENSION_TABLE   (uint32_t)0x08    // [ 0x08 | NUM | EXT ...]
 #define VERSION_ENTRY     (uint32_t)0x09    // [ 0x09 | size | string ]
+#define SHARING_TABLE     (uint32_t)0x10    // [ 0x10 | n    | n-entries}
 // Size is in number of 32bit words, even on 64 bit images.
 
 // To be able to work on an image incrementally (even though it is not recommended)
@@ -224,7 +225,6 @@ bool write_u32(uint32_t w, int32_t *i, bool direction) {
   (*i) += direction ? -1 : 1;
   return r;
 }
-
 
 bool write_u64(uint64_t dw, int32_t *i, bool direction) {
   uint32_t *words = (uint32_t*)&dw;
@@ -435,166 +435,6 @@ static bool i_f_lbm_array(uint32_t num_bytes, uint8_t *data) {
 }
 
 
-static void size_acc(lbm_value v, bool shared, void *acc) {
-  int32_t *s = (int32_t*)acc;
-  if (shared) {
-    return;
-  }
-
-  lbm_uint t = lbm_type_of(v);
-
-  if (t >= LBM_POINTER_TYPE_FIRST && t < LBM_POINTER_TYPE_LAST) {
-    t = t & ~(LBM_PTR_TO_CONSTANT_BIT);
-  }
-
-  if (lbm_is_ptr(v) && (v & LBM_PTR_TO_CONSTANT_BIT)) {
-    *s += (int32_t)sizeof(lbm_uint) + 1;
-    return;
-  }
-
-  switch (t) {
-  case LBM_TYPE_CONS:
-    *s += 1;
-    break;
-  case LBM_TYPE_LISPARRAY:
-    *s += 4 + 1;
-    break;
-  case LBM_TYPE_BYTE:
-    *s += 2;
-    break;
-  case LBM_TYPE_U:
-    *s += (int32_t)sizeof(lbm_uint) + 1;
-    break;
-  case LBM_TYPE_I:
-    *s += (int32_t)sizeof(lbm_uint) + 1;
-    break;
-  case LBM_TYPE_U32:
-    *s += 4 + 1;
-    break;
-  case LBM_TYPE_I32:
-    *s += 4 + 1;
-    break;
-  case LBM_TYPE_U64:
-    *s += 8 + 1;
-    break;
-  case LBM_TYPE_I64:
-    *s += 8 + 1;
-    break;
-  case LBM_TYPE_FLOAT:
-    *s += 4 + 1;
-    break;
-  case LBM_TYPE_DOUBLE:
-    *s += 8 + 1;
-    break;
-  case LBM_TYPE_SYMBOL:
-    *s += (int32_t)sizeof(lbm_uint) + 1;
-    break;
-  case LBM_TYPE_ARRAY: {
-    lbm_int arr_size = lbm_heap_array_get_size(v);
-    const uint8_t *d = lbm_heap_array_get_data_ro(v);
-    if (arr_size > 0 && d != NULL) {
-      *s += 1 + 4 + arr_size;
-    }
-  }break;
-  }
-}
-
-static void flatten_node(lbm_value v, bool shared, void *res) {
-  bool *acc = (bool*)res;
-
-  if (shared) {
-    return;
-  }
-  lbm_uint t = lbm_type_of(v);
-
-  if (t >= LBM_POINTER_TYPE_FIRST && t < LBM_POINTER_TYPE_LAST) {
-    t = t & ~(LBM_PTR_TO_CONSTANT_BIT);
-  }
-
-  if (lbm_is_ptr(v) && (v & LBM_PTR_TO_CONSTANT_BIT)) {
-    *acc = *acc && fv_write_u8(S_CONSTANT_REF);
-#ifdef LBM64
-    *acc = *acc && fv_write_u64((lbm_uint)v);
-#else
-    *acc = *acc && fv_write_u32((lbm_uint)v);
-#endif
-    return;
-  }
-
-  switch (t) {
-  case LBM_TYPE_CONS:
-    *acc = *acc && i_f_cons();
-    break;
-  case LBM_TYPE_LISPARRAY: {
-    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(v);
-    if (header) {
-      uint32_t size = (uint32_t)(header->size / sizeof(lbm_value));
-      *acc = *acc && i_f_lisp_array(size);
-    } else {
-      // hmm
-    }
-  } break;
-  case LBM_TYPE_BYTE:
-    *acc = *acc && i_f_b((uint8_t)lbm_dec_as_char(v));
-    break;
-  case LBM_TYPE_U:
-    *acc = *acc && i_f_u(lbm_dec_u(v));
-    break;
-  case LBM_TYPE_I:
-    *acc = *acc && i_f_i(lbm_dec_i(v));
-    break;
-  case LBM_TYPE_U32:
-    *acc = *acc && i_f_u32(lbm_dec_as_u32(v));
-    break;
-  case LBM_TYPE_I32:
-    *acc = *acc && i_f_i32(lbm_dec_as_i32(v));
-    break;
-  case LBM_TYPE_U64:
-    *acc = *acc && i_f_u64(lbm_dec_as_u64(v));
-    break;
-  case LBM_TYPE_I64:
-    *acc = *acc && i_f_i64(lbm_dec_as_i64(v));
-    break;
-  case LBM_TYPE_FLOAT:
-    *acc = *acc && i_f_float(lbm_dec_as_float(v));
-    break;
-  case LBM_TYPE_DOUBLE:
-    *acc = *acc && i_f_double(lbm_dec_as_double(v));
-    break;
-  case LBM_TYPE_SYMBOL:
-    *acc = *acc && i_f_sym(v);
-    break;
-  case LBM_TYPE_ARRAY: {
-    lbm_int s = lbm_heap_array_get_size(v);
-    const uint8_t *d = lbm_heap_array_get_data_ro(v);
-    if (s > 0 && d != NULL) {
-      *acc = *acc && i_f_lbm_array((uint32_t)s, (uint8_t*)d);
-    }
-  }break;
-  default:
-    break;
-  }
-}
-
-// Performing GC after using the ptr_rev_trav to restore the
-// GC-bit in the value traversed.
-//
-// This is a temporary step towards proper sharing and cycle detection.
-
-static int32_t image_flatten_size(lbm_value v) {
-  int32_t s = 0;
-  bool ok = lbm_ptr_rev_trav(size_acc, v, &s);
-  lbm_perform_gc();
-  return ok ? s : 0;
-}
-
-static bool image_flatten_value(lbm_value v) {
-  bool ok = true;
-  bool trav_ok = lbm_ptr_rev_trav(flatten_node, v, &ok);
-  lbm_perform_gc();
-  return trav_ok && ok; // ok = enough space in image for flat val.
-                        // trav_ok = no cycles in input value.
-}
 
 // ////////////////////////////////////////////////////////////
 //
@@ -678,7 +518,414 @@ lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlis
   return NULL;
 }
 
+// ////////////////////////////////////////////////////////////
+// Construction site
+
+// Sharing is detected and annotated by:
+// 1. Generate an array of addresses of shared structures. (sharing table)
+//    Sharing table will contain a boolean field where "having been flattened"
+//    status is tracked.
+// 2. Flatten values and for each ptr-cell, check if it's address is in the
+//    sharing table. If the cell is in the sharing table and the boolean
+//    flag is not set: Set the flag and flatten the value with a shared tag
+//          is set: Do not flatten value, create a REF tag.
+
+// Note: the boolean field may not be needed, it may be possible to recreate that
+//       information on the fly during flattening using the GC bit.
+//       But since all complete traversals require a GC this change just moves the
+//       bookkeeping cost forward (first to the size phase).
+
+// The sharing table could be a temporary list on the LBM heap
+// if only it wasn't for GC. GC cannot be run while doing pointer
+// reversal traversals.
+// Another option would be to allocate an area in LBM mem and fill that
+// that with temporary sharing data. Only problem is that we do not know how much
+// temporary data is needed until after doing at least one traversal where we
+// also need to accumulate shared addresses in order to not count them doubly.
+// ** allocating lbm_memory_longest_free amount of temp data at flattening
+//    could be a good solution. But even then the final number of shared
+//    nodes could be written to the image so that the unflattener does not need
+//    guess and allocate in chunks.
+//    - Very little lbm mem could be available here.
+
+// Sharing is restored by:
+// 1. Allocate a new column for the sharing table in LBM mem, the size is now known.
+// 2. Unflatten flat values:
+//       if a value has a shared tag, fill in the address it is unflattened to into the
+//       new sharing table column.
+//       if a value has the ref tag, look it up in sharing table and read out the new address.
+//
+// The process is order dependent and shared tag for address 'a' must the unflattened
+// before a ref tag for the same address 'a'.
+
+// Tricky:  The traversals for size computation and flattening has to be
+//    made aware of sharing in some way. The traversal always must fully traverse
+//    a value in order to not just partially mark it (it will then be destroyed by GC).
+//  Options:
+//    1: run GC after a complete traversal of all values in env for size and flattening.
+//       This means that all the sizes must be stored temporarily...
+//    2: Give a sharing table to the traversal and have the traversal switch to gc_mark_phace
+//       at each shared node to bookkeep it and keep it safe from upcomming gc.
+
+//
+// NOTE about sharing detection: It should be possible to traverse the
+//       heap structures using the same explicit stack algorithm as
+//       lbm_gc_mark_phase uses. Because if a structure is too large
+//       to be GC'd it cannot be used anyway, so no point in
+//       serialising/deserialising it.
+//
+//       There are probably pros/cons to both approaches (ptr-rev vs
+//       explicit stack).
+//       ptr-rev -> correct
+//       explicit stack -> fast, simple but sensitive to programming style and limits
+//       programmer.
+//
+//       For full benefit of pointer reversal the -DLBM_USE_GC_PTR_REV
+//       build flag is needed.
+
+
+#ifdef LBM64
+#define SHARING_TABLE_ENTRY_SIZE (2 + 1 + 1)
+#else
+#define SHARING_TABLE_ENTRY_SIZE (1 + 1 + 1)
+#endif
+
+#define SHARING_TABLE_TRUE   0xDEADBEEFu
+#define SHARING_TABLE_FALSE  0xDEADBEEFu
+
+int32_t index_sharing_table(sharing_table *st, int32_t i) {
+  if (i < 0) return i; // maybe check if more than num?
+  return st->start - 2 - (i * SHARING_TABLE_ENTRY_SIZE);
+}
+
+// Search sharing table, O(N) where N shared nodes
+int32_t sharing_table_contains(sharing_table *st, lbm_uint addr) {
+  int32_t num = st->num;
+  uint32_t st_tag = read_u32(st->start);
+  if (st_tag == SHARING_TABLE) {
+    // sharing table tag exists but not the num field.
+    for (int32_t i = 0; i < num; i ++ ) {
+      lbm_uint a;
+      int32_t ix = index_sharing_table(st, i);
+#ifdef LBM64
+      a = read_u64(ix);
+#else
+      a = read_u32(ix);
+#endif
+      if (addr == a) {
+        return i;
+      }
+    }
+  }
+  return -1;
+}
+
+#define SHARING_TABLE_SIZED_FIELD     0
+#define SHARING_TABLE_FLATTENED_FIELD 1
+
+bool sharing_table_set_field(sharing_table *st, int32_t ix, int32_t field, uint32_t value) {
+  int32_t wix;
+#ifdef LBM64
+  wix = index_sharing_table(st, ix) - 2 - field;
+#else
+  wix = index_sharing_table(st, ix) - 1 - field;
+#endif
+  return write_u32(value, &wix, DOWNWARDS); // Dir irrelevant
+}
+
+uint32_t sharing_table_get_field(sharing_table *st, int32_t ix, int32_t field) {
+  int32_t wix;
+#ifdef LBM64
+  wix = index_sharing_table(st, ix) - 2 - field;
+#else
+  wix = index_sharing_table(st, ix) - 1 - field;
+#endif
+  return read_u32(wix);
+}
+
+static int detect_shared(lbm_value v, bool shared, void *acc) {
+  sharing_table *st = (sharing_table*)acc;
+  if (shared) {
+    if (lbm_is_ptr(v)) {
+      lbm_uint addr = v;
+      int32_t ix = sharing_table_contains(st,addr);
+      if (ix < 0) {
+        // Create place in table for a shared address and skip
+        // enough words for boolean fields.
+#ifdef LBM64
+        write_u64(addr, &write_index, DOWNWARDS);
+#else
+        write_u32(addr, &write_index, DOWNWARDS);
+#endif
+        write_index -= 2; // skip 2 words for "sized" and "flattened" booleans.
+        st->num++;
+      }
+    }
+  }
+  return TRAV_FUN_SUBTREE_PROCEED;
+}
+
+sharing_table lbm_image_sharing(void) {
+  lbm_value *env = lbm_get_global_env();
+
+  sharing_table st;
+  st.start = write_index;
+  st.num = 0;
+
+  write_u32(SHARING_TABLE, &write_index, DOWNWARDS);
+  write_index -= 1; // skip a word where size is to be written out of order.
+                    // index is now correct for starting to write sharing table rows.
+
+  if (env) {
+    for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+      lbm_value curr = env[i];
+      while(lbm_is_cons(curr)) {
+        //        lbm_value name_field = lbm_caar(curr);
+        lbm_value val_field  = lbm_cdr(lbm_car(curr));
+        if (!lbm_is_constant(val_field)) {
+          lbm_ptr_rev_trav(detect_shared, val_field, &st);
+        }
+        curr = lbm_cdr(curr);
+      }
+    }
+    // clean out all mark-bits
+    lbm_perform_gc();
+  }
+  // Write the number of shared nodes, 0 or more, to table entry.
+  int32_t wix = st.start - 1;
+  write_u32((uint32_t)st.num,&wix, DOWNWARDS);
+
+  return st;
+}
+
+// ////////////////////////////////////////////////////////////
+//
+
+typedef struct {
+  int32_t s;
+  sharing_table *st;
+} size_accumulator;
+
+static int size_acc(lbm_value v, bool shared, void *acc) {
+  (void) shared;
+  size_accumulator *sa = (size_accumulator*)acc;
+
+  int32_t ix = sharing_table_contains(sa->st, v);
+
+  if (ix >= 0) {
+    if (SHARING_TABLE_TRUE == sharing_table_get_field(sa->st, ix, SHARING_TABLE_SIZED_FIELD)) {
+      // shared node has been sized already and should return size of a ref node
+      // sizeof S_REF and addr
+#ifdef LBM64
+      sa->s += 9;
+#else
+      sa->s += 5;
+#endif
+      return TRAV_FUN_SUBTREE_DONE;
+    } else {
+      // setting the sized field to not include the size in future occurrances.
+      sharing_table_set_field(sa->st, ix, SHARING_TABLE_SIZED_FIELD,  SHARING_TABLE_TRUE);
+#ifdef LBM64
+      sa->s += 9;
+#else
+      sa->s += 5;
+#endif
+    }
+  }
+
+  lbm_uint t = lbm_type_of(v);
+
+  if (t >= LBM_POINTER_TYPE_FIRST && t < LBM_POINTER_TYPE_LAST) {
+    t = t & ~(LBM_PTR_TO_CONSTANT_BIT);
+  }
+
+  if (lbm_is_ptr(v) && (v & LBM_PTR_TO_CONSTANT_BIT)) {
+    sa->s += (int32_t)sizeof(lbm_uint) + 1;
+    return TRAV_FUN_SUBTREE_DONE;
+  }
+
+  switch (t) {
+  case LBM_TYPE_CONS:
+    sa->s += 1;
+    break;
+  case LBM_TYPE_LISPARRAY:
+    sa->s += 4 + 1;
+    break;
+  case LBM_TYPE_BYTE:
+    sa->s += 2;
+    break;
+  case LBM_TYPE_U:
+    sa->s += (int32_t)sizeof(lbm_uint) + 1;
+    break;
+  case LBM_TYPE_I:
+    sa->s += (int32_t)sizeof(lbm_uint) + 1;
+    break;
+  case LBM_TYPE_U32:
+    sa->s += 4 + 1;
+    break;
+  case LBM_TYPE_I32:
+    sa->s += 4 + 1;
+    break;
+  case LBM_TYPE_U64:
+    sa->s += 8 + 1;
+    break;
+  case LBM_TYPE_I64:
+    sa->s += 8 + 1;
+    break;
+  case LBM_TYPE_FLOAT:
+    sa->s += 4 + 1;
+    break;
+  case LBM_TYPE_DOUBLE:
+    sa->s += 8 + 1;
+    break;
+  case LBM_TYPE_SYMBOL:
+    sa->s += (int32_t)sizeof(lbm_uint) + 1;
+    break;
+  case LBM_TYPE_ARRAY: {
+    lbm_int arr_size = lbm_heap_array_get_size(v);
+    const uint8_t *d = lbm_heap_array_get_data_ro(v);
+    if (arr_size > 0 && d != NULL) {
+      sa->s += 1 + 4 + arr_size;
+    }
+  }break;
+  }
+  return TRAV_FUN_SUBTREE_CONTINUE;
+}
+
+typedef struct {
+  bool res;
+  sharing_table *st;
+  int arg;
+} flatten_node_meta_data;
+
+static int flatten_node(lbm_value v, bool shared, void *arg) {
+  (void)shared;
+  flatten_node_meta_data *md = (flatten_node_meta_data*)arg;
+  bool *acc = &md->res;
+
+  int32_t ix = sharing_table_contains(md->st, v);
+
+  if (ix >= 0) {
+    if (SHARING_TABLE_TRUE == sharing_table_get_field(md->st, ix, SHARING_TABLE_FLATTENED_FIELD)) {
+      // Shared node already flattened.
+      fv_write_u8(S_REF);
+#ifdef LBM64
+      fv_write_u64((lbm_uint)v);
+#else
+      fv_write_u32((lbm_uint)v);
+#endif
+      return TRAV_FUN_SUBTREE_DONE;
+    } else {
+      // Shared node not yet flattened.
+      sharing_table_set_field(md->st, ix, SHARING_TABLE_FLATTENED_FIELD, SHARING_TABLE_TRUE);
+      fv_write_u8(S_SHARED);
+#ifdef LBM64
+      fv_write_u64((lbm_uint)v);
+#else
+      fv_write_u32((lbm_uint)v);
+#endif
+      // Continue flattening along this subtree.
+    }
+  }
+
+  lbm_uint t = lbm_type_of(v);
+
+  if (t >= LBM_POINTER_TYPE_FIRST && t < LBM_POINTER_TYPE_LAST) {
+    t = t & ~(LBM_PTR_TO_CONSTANT_BIT);
+  }
+
+  if (lbm_is_ptr(v) && (v & LBM_PTR_TO_CONSTANT_BIT)) {
+    *acc = *acc && fv_write_u8(S_CONSTANT_REF);
+#ifdef LBM64
+    *acc = *acc && fv_write_u64((lbm_uint)v);
+#else
+    *acc = *acc && fv_write_u32((lbm_uint)v);
+#endif
+    return TRAV_FUN_SUBTREE_DONE;
+  }
+
+  switch (t) {
+  case LBM_TYPE_CONS:
+    *acc = *acc && i_f_cons();
+    break;
+  case LBM_TYPE_LISPARRAY: {
+    lbm_array_header_t *header = (lbm_array_header_t*)lbm_car(v);
+    if (header) {
+      uint32_t size = (uint32_t)(header->size / sizeof(lbm_value));
+      *acc = *acc && i_f_lisp_array(size);
+    } else {
+      // hmm
+    }
+  } break;
+  case LBM_TYPE_BYTE:
+    *acc = *acc && i_f_b((uint8_t)lbm_dec_as_char(v));
+    break;
+  case LBM_TYPE_U:
+    *acc = *acc && i_f_u(lbm_dec_u(v));
+    break;
+  case LBM_TYPE_I:
+    *acc = *acc && i_f_i(lbm_dec_i(v));
+    break;
+  case LBM_TYPE_U32:
+    *acc = *acc && i_f_u32(lbm_dec_as_u32(v));
+    break;
+  case LBM_TYPE_I32:
+    *acc = *acc && i_f_i32(lbm_dec_as_i32(v));
+    break;
+  case LBM_TYPE_U64:
+    *acc = *acc && i_f_u64(lbm_dec_as_u64(v));
+    break;
+  case LBM_TYPE_I64:
+    *acc = *acc && i_f_i64(lbm_dec_as_i64(v));
+    break;
+  case LBM_TYPE_FLOAT:
+    *acc = *acc && i_f_float(lbm_dec_as_float(v));
+    break;
+  case LBM_TYPE_DOUBLE:
+    *acc = *acc && i_f_double(lbm_dec_as_double(v));
+    break;
+  case LBM_TYPE_SYMBOL:
+    *acc = *acc && i_f_sym(v);
+    break;
+  case LBM_TYPE_ARRAY: {
+    lbm_int s = lbm_heap_array_get_size(v);
+    const uint8_t *d = lbm_heap_array_get_data_ro(v);
+    if (s > 0 && d != NULL) {
+      *acc = *acc && i_f_lbm_array((uint32_t)s, (uint8_t*)d);
+    }
+  }break;
+  default:
+    break;
+  }
+  return TRAV_FUN_SUBTREE_CONTINUE;
+}
+
+// Performing GC after using the ptr_rev_trav to restore the
+// GC-bit in the value traversed.
+static int32_t image_flatten_size(sharing_table *st, lbm_value v) {
+  size_accumulator sa;
+  sa.s = 0;
+  sa.st = st;
+  lbm_ptr_rev_trav(size_acc, v, &sa);
+  lbm_perform_gc();
+  return sa.s; // Should always be "ok" now.
+}
+
+static bool image_flatten_value(sharing_table *st, lbm_value v) {
+  flatten_node_meta_data md;
+  md.res = true;
+  md.st = st;
+  md.arg = 0;
+  lbm_ptr_rev_trav(flatten_node, v, &md);
+  lbm_perform_gc();
+  return md.res; // ok = enough space in image for flat val.
+}
+
+// ////////////////////////////////////////////////////////////
+//
 bool lbm_image_save_global_env(void) {
+
+  sharing_table st = lbm_image_sharing();
   lbm_value *env = lbm_get_global_env();
   if (env) {
     for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
@@ -692,7 +939,7 @@ bool lbm_image_save_global_env(void) {
           write_lbm_value(name_field, &write_index, DOWNWARDS);
           write_lbm_value(val_field, &write_index, DOWNWARDS);
         } else {
-          int fv_size = image_flatten_size(val_field);
+          int fv_size = image_flatten_size(&st, val_field);
           if (fv_size > 0) {
             fv_size = (fv_size % 4 == 0) ? (fv_size / 4) : (fv_size / 4) + 1; // num 32bit words
             if ((write_index - fv_size) <= (int32_t)image_const_heap.next) {
@@ -702,7 +949,7 @@ bool lbm_image_save_global_env(void) {
             write_u32((uint32_t)fv_size , &write_index, DOWNWARDS);
             write_lbm_value(name_field, &write_index, DOWNWARDS);
             write_index = write_index - fv_size;  // subtract fv_size
-            if (image_flatten_value(val_field)) { // adds fv_size backq
+            if (image_flatten_value(&st, val_field)) { // adds fv_size back
               // TODO: What error handling makes sense?
               fv_write_flush();
             }
@@ -834,6 +1081,9 @@ bool lbm_image_boot(void) {
   int32_t pos = (int32_t)image_size-1;
   last_const_heap_ix = 0;
 
+  sharing_table st;
+  lbm_uint *target_map = NULL;   // Target addresses for shared/refs from the flat values.
+
   while (pos >= 0 && pos > (int32_t)last_const_heap_ix) {
     uint32_t val = read_u32(pos);
     pos --;
@@ -903,12 +1153,41 @@ bool lbm_image_boot(void) {
       fv.buf_size = (uint32_t)s * sizeof(lbm_uint); // GEQ to actual buf
       fv.buf_pos = 0;
       lbm_value unflattened;
-      lbm_unflatten_value(&fv, &unflattened);
-      if (lbm_is_symbol_merror(unflattened)) {
-        lbm_perform_gc();
+      if (target_map) {
+        if (!lbm_unflatten_value_sharing(&st, target_map, &fv, &unflattened)) {
+          return false;
+        }
+        // When a value is unflattened it may contain shared subvalues
+        // and references to shared values. A reference may point to either
+        // values that are shared within the value that is currently unflattened
+        // or to a value that has previously been unflattened.
+        //
+        // There is an ordering property that must be maintained that the node
+        // with the S_SHARED tag is always processed before any corresponding S_REF tags.
+        // This means that if a ref node is unflattened the target to point it to will
+        // already exist.
+        //
+        // If GC needs to happen while unflattening a value, there is no danger of messing
+        // up the addresses to point references to because:
+        // 1. The S_SHARED node is local to the same value and will be recreated after GC
+        //    and the ref value in target map will be overwritten. Any local refs will be also
+        //    be recreated. Any refs to the S_Shared outside of this value, will be in values
+        //    processed in the future.
+        // 2. S_SHARED nodes that have been created as part of prvious value are untouched
+        //    by running GC as they have already been unflattened and should be reachable
+        //    on the environment. Their mapping in the target map is still valid.
+        if (lbm_is_symbol_merror(unflattened)) {
+          //memset(target_map, 0, st.num * sizeof(lbm_uint));
+          lbm_perform_gc();
+          lbm_unflatten_value_sharing(&st, target_map, &fv, &unflattened);
+        }
+      } else {
         lbm_unflatten_value(&fv, &unflattened);
+        if (lbm_is_symbol_merror(unflattened)) {
+          lbm_perform_gc();
+          lbm_unflatten_value(&fv, &unflattened);
+        }
       }
-
       lbm_uint ix_key  = lbm_dec_sym(bind_key) & GLOBAL_ENV_MASK;
       lbm_value *global_env = lbm_get_global_env();
       lbm_uint orig_env = global_env[ix_key];
@@ -1012,6 +1291,23 @@ bool lbm_image_boot(void) {
       lbm_extensions_set_next((lbm_uint)i);
       image_has_extensions = true;
     } break;
+    case SHARING_TABLE: {
+      st.start = pos +1;
+      uint32_t num = read_u32(pos); pos --;
+      st.num = (int32_t)num;
+      if (num > 0) { 
+        target_map = lbm_malloc(num * sizeof(lbm_uint));
+        if (!target_map ) {
+          return false;
+        }
+        memset(target_map, 0, num * sizeof(lbm_uint));
+      }
+#ifdef LBM64
+      pos -= (int32_t)(num + (num * 3));
+#else
+      pos -= (int32_t)num * 3;
+#endif
+    } break;
     default:
       write_index = pos+1;
       goto done_loading_image;
@@ -1019,5 +1315,6 @@ bool lbm_image_boot(void) {
     }
   }
  done_loading_image:
+  if (target_map) lbm_free(target_map);
   return true;
 }

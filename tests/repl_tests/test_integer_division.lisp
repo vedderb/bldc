@@ -1,0 +1,50 @@
+(define test1 (eq (trap (// "string" 2)) '(exit-error type_error)))
+(define test2 (eq (trap (// 10 "string")) '(exit-error type_error)))
+(define test3 (eq (trap (// 'symbol 2)) '(exit-error type_error)))
+(define test4 (eq (trap (// 10 'symbol)) '(exit-error type_error)))
+(define test5 (eq (trap (// t 2)) '(exit-error type_error)))
+(define test6 (eq (trap (// 10 t)) '(exit-error type_error)))
+(define test7 (eq (trap (// nil 2)) '(exit-error type_error)))
+(define test8 (eq (trap (// 10 nil)) '(exit-error type_error)))
+(define test9 (eq (trap (// '(1 2 3) 2)) '(exit-error type_error)))
+(define test10 (eq (trap (// 10 '(1 2 3))) '(exit-error type_error)))
+(define test11 (eq (trap (// [1 2 3] 2)) '(exit-error type_error)))
+(define test12 (eq (trap (// 10 [1 2 3])) '(exit-error type_error)))
+(define test13 (eq (trap (// [| 1 2 |] 2)) '(exit-error type_error)))
+(define test14 (eq (trap (// 10 [| 1 2 |])) '(exit-error type_error)))
+(define test15 (eq (trap (// 10 0)) '(exit-error division_by_zero)))
+(define test16 (eq (trap (// -5 0)) '(exit-error division_by_zero)))
+
+(define test17 (= (// 10 3) 3))
+(define test18 (= (// 15 4) 3))
+(define test19 (= (// 20 5) 4))
+(define test20 (= (// -10 3) -3))
+(define test21 (= (// 10 -3) -3))
+(define test22 (= (// -10 -3) 3))
+(define test23 (= (// 1 2) 0))
+(define test24 (= (// 0 5) 0))
+
+(define test25 (= (// 100 5 2) 10))
+(define test26 (= (// 24 3 2 2) 2))
+(define test27 (= (// 120 3 4 5) 2))
+(define test28 (= (// 1000 10 5 2) 10))
+(define test29 (= (// 8 2 2 2) 1))
+(define test30 (= (// 60 3 2 5) 2))
+
+(define test31 (eq (trap (// 1000)) '(exit-error eval_error)))
+
+(define test32 (eq (trap (// 20 2 0)) '(exit-error division_by_zero)))
+(define test33 (eq (trap (// 20 0 2)) '(exit-error division_by_zero)))
+(define test34 (eq (trap (// 100 5 2 0)) '(exit-error division_by_zero)))
+
+(define test35 (eq (trap (// 100 "string" 2)) '(exit-error type_error)))
+(define test36 (eq (trap (// 100 2 'symbol)) '(exit-error type_error)))
+(define test37 (eq (trap (// 100 2 nil 3)) '(exit-error type_error)))
+(define test38 (eq (trap (// "a" 2 3)) '(exit-error type_error)))
+
+(if (and test1 test2 test3 test4 test5 test6 test7 test8 test9 test10 
+         test11 test12 test13 test14 test15 test16 test17 test18 test19 test20 
+         test21 test22 test23 test24 test25 test26 test27 test28 test29 test30
+         test31 test32 test33 test34 test35 test36 test37 test38)
+    (print "SUCCESS")
+    (print "FAILURE"))

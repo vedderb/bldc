@@ -37,7 +37,7 @@
 extern "C" {
 #endif
 
-/** Initialize lispBM. This function initials all subsystems by calling:
+/** Initialize lispBM. This function subsystems by calling:
  *  - \ref lbm_print_init
  *  - \ref lbm_memory_init
  *  - \ref lbm_symrepr_init
@@ -56,16 +56,16 @@ extern "C" {
  * \param print_stack_size Size in number of lbm_uint values of the print stack.
  * \param extension_storage Array of lbm_extension_t pointers.
  * \param extension_storage_size Size of extension array.
- * \return 1 on success and 0 on failure.
+ * \return true on success and false on failure.
  */
 
-int lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
-             lbm_uint *memory, lbm_uint memory_size,
-             lbm_uint *memory_bitmap, lbm_uint bitmap_size,
-             lbm_uint gc_stack_size,
-             lbm_uint print_stack_size,
-             lbm_extension_t *extension_storage,
-             lbm_uint extension_storage_size);
+bool lbm_init(lbm_cons_t *heap_storage, lbm_uint heap_size,
+              lbm_uint *memory, lbm_uint memory_size,
+              lbm_uint *memory_bitmap, lbm_uint bitmap_size,
+              lbm_uint gc_stack_size,
+              lbm_uint print_stack_size,
+              lbm_extension_t *extension_storage,
+              lbm_uint extension_storage_size);
 
 #ifdef __cplusplus
 }

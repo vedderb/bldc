@@ -95,7 +95,7 @@ t
 <td>
 
 ```clj
-((arch newline (section 3 "is-64bit" ((para ("`is-64bit` returns true if a 64bit version of lbm is running.")) (code ((is-64bit))) nil)) newline hline) (eval-animation closure (gif c frames) (progn (setq frame-i 0) (setq frame-max frames) (call-cc (lambda
+((symbol-table-size-names-flash newline (section 3 "symtab-size-names-flash" ((para ("`symtab-size-names` returns the size in bytes of the string names stored in" "the symbol table in flash.")) (code ((symtab-size-names-flash))) nil)) newline hline) (eval
 ```
 
 
@@ -113,7 +113,7 @@ t
 <td>
 
 ```clj
-((word newline (section 3 "word-size" ((para ("`word-size` returns 4 on 32bit LBM  and 8 on 64bits.")) (code ((word-size))) nil)) newline hline))
+((chapter-symboltable section 2 "Symbol table" ((newline (section 3 "symtab-size" ((para ("`symtab-size` returns the size of the symbol table in bytes.")) (code ((symtab-size))) nil)) newline hline) (newline (section 3 "symtab-size-flash" ((para ("`symtab
 ```
 
 
@@ -131,7 +131,7 @@ t
 <td>
 
 ```clj
-((chapter-versioning section 2 "Version" ((newline (section 3 "lbm-version" ((para ("`lbm-version` returns the version of the lbm runtime system.")) (code ((lbm-version))) nil)) newline hline) (newline (section 3 "is-64bit" ((para ("`is-64bit` returns tru
+((version newline (section 3 "lbm-version" ((para ("`lbm-version` returns the version of the lbm runtime system.")) (code ((lbm-version))) nil)) newline hline))
 ```
 
 
@@ -149,7 +149,7 @@ t
 <td>
 
 ```clj
-((hide-em newline (section 3 "hide-trapped-error" ((para ("The default behavior is to print error messages even if the error is trapped." "Trapped errors can be hidden by calling this function at the beginning of a program.")) (code ((hide-trapped-error))
+((arch newline (section 3 "is-64bit" ((para ("`is-64bit` returns true if a 64bit version of lbm is running.")) (code ((is-64bit))) nil)) newline hline) (render-code-table closure (rend c) (progn (rend "<table>\n") (rend "<tr>\n") (rend "<td> Example </td>
 ```
 
 
@@ -167,7 +167,7 @@ t
 <td>
 
 ```clj
-((show-em newline (section 3 "show-trapped-errors" ((para ("If you have hidden trapped errors they can be toggled back to being showed again" "using this function.")) (code ((show-trapped-error))) nil)) newline hline) (leading-zeroes closure (n) (if (< n 
+((word newline (section 3 "word-size" ((para ("`word-size` returns 4 on 32bit LBM  and 8 on 64bits.")) (code ((word-size))) nil)) newline hline) (leading-zeroes closure (n) (if (< n 10) (str-merge "000" (to-str n)) (if (< n 100) (str-merge "00" (to-str n)
 ```
 
 
@@ -185,7 +185,7 @@ t
 <td>
 
 ```clj
-((chapter-errors section 2 "Errors" ((newline (section 3 "hide-trapped-error" ((para ("The default behavior is to print error messages even if the error is trapped." "Trapped errors can be hidden by calling this function at the beginning of a program.")) 
+((chapter-versioning section 2 "Version" ((newline (section 3 "lbm-version" ((para ("`lbm-version` returns the version of the lbm runtime system.")) (code ((lbm-version))) nil)) newline hline) (newline (section 3 "is-64bit" ((para ("`is-64bit` returns tru
 ```
 
 
@@ -203,7 +203,7 @@ t
 <td>
 
 ```clj
-((manual (section 1 "LispBM Runtime Extensions Reference Manual" ((para ("The runtime extensions, if present, can be either compiled" "in a minimal or a full mode." "In the minimal mode only `set-eval-quota` is present." "Minimal mode is the default when 
+((hide-em newline (section 3 "hide-trapped-error" ((para ("The default behavior is to print error messages even if the error is trapped." "Trapped errors can be hidden by calling this function at the beginning of a program.")) (code ((hide-trapped-error))
 ```
 
 
@@ -221,7 +221,7 @@ t
 <td>
 
 ```clj
-((render-manual closure nil (let ((h (fopen "runtimeref.md" "w")) (r (lambda (s) (fwrite-str h s)))) (progn (gc) (var t0 (systime)) (render r manual) (print "Runtime reference manual was generated in " (secs-since t0) " seconds"))) nil) (evaluation-quota 
+((show-em newline (section 3 "show-trapped-errors" ((para ("If you have hidden trapped errors they can be toggled back to being showed again" "using this function.")) (code ((show-trapped-error))) nil)) newline hline) (evaluation-quota newline (section 3 
 ```
 
 
@@ -239,7 +239,7 @@ t
 <td>
 
 ```clj
-((chapter-scheduling section 2 "Scheduling" ((newline (section 3 "set-eval-quota" ((para ("`set-eval-quota` sets the number of evaluation steps that is" "given to each context when given turn to execute by the round-robin" "scheduler.")) (code ((set-eval-
+((chapter-errors section 2 "Errors" ((newline (section 3 "hide-trapped-error" ((para ("The default behavior is to print error messages even if the error is trapped." "Trapped errors can be hidden by calling this function at the beginning of a program.")) 
 ```
 
 
@@ -257,7 +257,7 @@ t
 <td>
 
 ```clj
-((threads-mailbox-get newline (section 3 "mailbox-get" ((para ("`mailbox-get` returns the mailbox contents of a thread as a list." "The form of a `mailbox-get` expression is `(mailbox-get pid)`." "Note that `mailbox-get` does **NOT** empty the mailbox."))
+((manual (section 1 "LispBM Runtime Extensions Reference Manual" ((para ("The runtime extensions, if present, can be either compiled" "in a minimal or a full mode." "In the minimal mode only `set-eval-quota` is present." "Minimal mode is the default when 
 ```
 
 
@@ -275,7 +275,7 @@ t
 <td>
 
 ```clj
-((hline closure nil (quote hline) nil) (render-code-res-raw-pairs closure (rend cs) (match cs (nil t) (((? x) ? xs) (let ((x-str (if (is-read-eval-txt x) (ix x 1) (pretty nil 0 x))) (x-code (if (is-read-eval-txt x) (read (ix x 1)) x)) (res (eval nil x-cod
+((render-manual closure nil (let ((h (fopen "runtimeref.md" "w")) (r (lambda (s) (fwrite-str h s)))) (progn (gc) (var t0 (systime)) (render r manual) (print "Runtime reference manual was generated in " (secs-since t0) " seconds"))) nil) (hline closure nil
 ```
 
 
@@ -527,7 +527,7 @@ t
 <td>
 
 ```clj
-((local-environment-get newline (section 3 "local-env-get" ((para ("`local-env-get` can be used to reify, turn into value, the local environment.")) (code ((local-env-get))) (program (((let ((a 50)) (local-env-get))))) nil)) newline hline) (render-program
+((environment-drop newline (section 3 "env-drop" ((para ("drop a binding from an environment.")) (code ((env-drop (quote a) (quote ((a . 10) (b . 20) (c . 30)))))) nil)) newline hline) (render-program-disp-table closure (rend c) (progn (rend "<table>\n") 
 ```
 
 
@@ -545,7 +545,7 @@ t
 <td>
 
 ```clj
-((chapter-environments section 2 "Environments" ((newline (section 3 "env-get" ((para ("`env-get` can be used to reify, turn into value, parts of the global environment." "The global environment is stored as a hashtable and an index into this hashtable" "
+((program-gif closure (c) (list (quote program-gif) c) nil) (code-entry-ref closure (code) (str-merge "[`" code "`](#" (or (rest-args 0) code) ")") nil) (pretty-list closure (n c) (match c (nil [0]) (((? x)) (str-merge (pretty nil n x))) (((? x) ? y) (let
 ```
 
 
@@ -563,7 +563,7 @@ t
 <td>
 
 ```clj
-((symbol-table-size newline (section 3 "symtab-size" ((para ("`symtab-size` returns the size of the symbol table in bytes.")) (code ((symtab-size))) nil)) newline hline) (image closure (alt url) (list (quote image) alt url) nil) (intersperse closure (str 
+((local-environment-get newline (section 3 "local-env-get" ((para ("`local-env-get` can be used to reify, turn into value, the local environment.")) (code ((local-env-get))) (program (((let ((a 50)) (local-env-get))))) nil)) newline hline) (image closure 
 ```
 
 
@@ -581,7 +581,7 @@ t
 <td>
 
 ```clj
-((symbol-table-size-flash newline (section 3 "symtab-size-flash" ((para ("`symtab-size-flash` returns the size in bytes of the portion of the symbol table" "that is stored in flash.")) (code ((symtab-size-flash))) nil)) newline hline) (bullet closure (ss)
+((global-environment-size newline (section 3 "global-env-size" ((para ("Get the size (in number of bindings) of the global env.")) (code ((global-env-size))) nil)) newline hline) (bullet closure (ss) (verb (map (lambda (x) (str-merge "   - " x "\n")) ss))
 ```
 
 
@@ -599,7 +599,7 @@ t
 <td>
 
 ```clj
-((symbol-table-size-names newline (section 3 "symtab-size-names" ((para ("`symtab-size-names` returns the size in bytes of the string names stored in" "the symbol table.")) (code ((symtab-size-names))) nil)) newline hline) (set-pic-prefix closure (s) (set
+((chapter-environments section 2 "Environments" ((newline (section 3 "env-get" ((para ("`env-get` can be used to reify, turn into value, parts of the global environment." "The global environment is stored as a hashtable and an index into this hashtable" "
 ```
 
 
@@ -617,7 +617,7 @@ t
 <td>
 
 ```clj
-((symbol-table-size-names-flash newline (section 3 "symtab-size-names-flash" ((para ("`symtab-size-names` returns the size in bytes of the string names stored in" "the symbol table in flash.")) (code ((symtab-size-names-flash))) nil)) newline hline) (imag
+((symbol-table-size newline (section 3 "symtab-size" ((para ("`symtab-size` returns the size of the symbol table in bytes.")) (code ((symtab-size))) nil)) newline hline) (image-pair closure (cap0 txt0 fig0 cap1 txt1 fig1) (list (quote image-pair) cap0 txt
 ```
 
 
@@ -635,7 +635,7 @@ t
 <td>
 
 ```clj
-((chapter-symboltable section 2 "Symbol table" ((newline (section 3 "symtab-size" ((para ("`symtab-size` returns the size of the symbol table in bytes.")) (code ((symtab-size))) nil)) newline hline) (newline (section 3 "symtab-size-flash" ((para ("`symtab
+((symbol-table-size-flash newline (section 3 "symtab-size-flash" ((para ("`symtab-size-flash` returns the size in bytes of the portion of the symbol table" "that is stored in flash.")) (code ((symtab-size-flash))) nil)) newline hline) (dot-it closure (i x
 ```
 
 
@@ -653,7 +653,7 @@ t
 <td>
 
 ```clj
-((version newline (section 3 "lbm-version" ((para ("`lbm-version` returns the version of the lbm runtime system.")) (code ((lbm-version))) nil)) newline hline) (disp-render-mac macro (img x y color) (append (quote (if)) (list (quote (= frame-i frame-max))
+((symbol-table-size-names newline (section 3 "symtab-size-names" ((para ("`symtab-size-names` returns the size in bytes of the string names stored in" "the symbol table.")) (code ((symtab-size-names))) nil)) newline hline) (disp-render-mac macro (img x y 
 ```
 
 
@@ -690,7 +690,7 @@ t
 
 
 ```clj
-((word newline (section 3 "word-size" ((para ("`word-size` returns 4 on 32bit LBM  and 8 on 64bits.")) (code ((word-size))) nil)) newline hline))
+((chapter-symboltable section 2 "Symbol table" ((newline (section 3 "symtab-size" ((para ("`symtab-size` returns the size of the symbol table in bytes.")) (code ((symtab-size))) nil)) newline hline) (newline (section 3 "symtab-size-flash" ((para ("`symtab
 ```
 
 
@@ -699,6 +699,40 @@ t
 </table>
 
 Note that in the example code above there is no guarantee that the symbol `a` actually hashes to index 1 in the environment table. So `a` is most likely impossible to look up from this environment. The use case for `env-set` and `env-get` are rather that they are together.  Use `env-get` to extract index `i` from the table, then modify it in some way and end by using `env-set` to the same index `i`. 
+
+
+
+
+---
+
+
+### env-drop
+
+drop a binding from an environment. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(env-drop 'a '((a . 10) (b . 20) (c . 30)))
+```
+
+
+</td>
+<td>
+
+```clj
+((b . 20) (c . 30))
+```
+
+
+</td>
+</tr>
+</table>
 
 
 
@@ -753,7 +787,41 @@ nil
 
 
 ```clj
-((a . 50))
+((a . 50) (res-str . $placeholder) (res (a . 50) (res-str . $placeholder) (res (a . 50) (res-str . $placeholder) (res (a . 50) (res-str . $placeholder) (res (a . 50) (res-str . $placeholder) (res (a . 50) (res-str . $placeholder) (res (a . 50) (res-str . 
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### global-env-size
+
+Get the size (in number of bindings) of the global env. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(global-env-size)
+```
+
+
+</td>
+<td>
+
+```clj
+103u
 ```
 
 
@@ -859,7 +927,7 @@ nil
 <td>
 
 ```clj
-255459
+255070
 ```
 
 
@@ -893,7 +961,7 @@ nil
 <td>
 
 ```clj
-255395
+255006
 ```
 
 
@@ -997,7 +1065,7 @@ nil
 <td>
 
 ```clj
-12666u
+13771u
 ```
 
 
@@ -1015,7 +1083,7 @@ nil
 <td>
 
 ```clj
-721u
+768u
 ```
 
 
@@ -1051,7 +1119,7 @@ nil
 <td>
 
 ```clj
-4521u
+4577u
 ```
 
 
@@ -1069,7 +1137,7 @@ nil
 <td>
 
 ```clj
-9995479u
+9995423u
 ```
 
 
@@ -1105,7 +1173,7 @@ nil
 <td>
 
 ```clj
-9995479u
+9995423u
 ```
 
 
@@ -1123,7 +1191,7 @@ nil
 <td>
 
 ```clj
-9995479u
+9995423u
 ```
 
 
@@ -1229,7 +1297,7 @@ t
 <td>
 
 ```clj
-2096u
+2144u
 ```
 
 
@@ -1297,7 +1365,7 @@ t
 <td>
 
 ```clj
-2096u
+2144u
 ```
 
 
@@ -1358,7 +1426,7 @@ t
 <td>
 
 ```clj
-13369
+14159
 ```
 
 

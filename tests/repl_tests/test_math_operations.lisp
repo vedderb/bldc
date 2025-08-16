@@ -1,0 +1,13 @@
+(define sin-test (sin 0))
+(define cos-test (cos 0))
+(define sqrt-test (sqrt 4))
+(define abs-test (abs -5))
+(define exp-test (exp 0))
+
+(if (and (< (abs sin-test) 0.001)
+         (< (abs (- cos-test 1)) 0.001)
+         (= sqrt-test 2)
+         (= abs-test 5)
+         (< (abs (- exp-test 1)) 0.001))
+    (print "SUCCESS")
+  (print "FAILURE"))
