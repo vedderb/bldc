@@ -1,5 +1,5 @@
 ### 6.06
-#### TBD
+#### 2025-08-18
 * LispBM:
 	* New core extansions, optimization and much more unit testing.
 	* Many bug fixes in the reader.
