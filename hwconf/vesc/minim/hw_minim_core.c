@@ -25,9 +25,18 @@
 #include "mc_interface.h"
 #include "lispif.h"
 #include "lispbm.h"
+#include "terminal.h"
+#include "commands.h"
+
+static void terminal_shutdown_now(int argc, const char **argv);
+static void terminal_button_test(int argc, const char **argv);
 
 // Variables
 static volatile bool i2c_running = false;
+static mutex_t shutdown_mutex;
+static volatile bool shutdown_mutex_init_done = false;
+static volatile float bt_diff = 0.0;
+static volatile bool shutdown_hold_en = true;
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -84,6 +93,11 @@ static void load_extensions(bool main_found) {
 }
 
 void hw_init_gpio(void) {
+	if (!shutdown_mutex_init_done) {
+		chMtxObjectInit(&shutdown_mutex);
+		shutdown_mutex_init_done = true;
+	}
+
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -135,7 +149,6 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG);
 
@@ -164,6 +177,18 @@ void hw_init_gpio(void) {
 	OUT_3_OFF();
 
 	lispif_add_ext_load_callback(load_extensions);
+
+	terminal_register_command_callback(
+			"shutdown",
+			"Shutdown VESC now.",
+			0,
+			terminal_shutdown_now);
+
+	terminal_register_command_callback(
+			"test_button",
+			"Try sampling the shutdown button",
+			0,
+			terminal_button_test);
 }
 
 void hw_setup_adc_channels(void) {
@@ -297,3 +322,59 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
+bool hw_sample_shutdown_button(void) {
+	chMtxLock(&shutdown_mutex);
+
+	bt_diff = 0.0;
+	int samples = 10;
+
+	for (int i = 0;i < samples;i++) {
+		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_INPUT_ANALOG);
+		chThdSleep(5);
+		float val1 = ADC_VOLTS(ADC_IND_SHUTDOWN);
+		chThdSleepMilliseconds(5);
+		float val2 = ADC_VOLTS(ADC_IND_SHUTDOWN);
+
+		if (shutdown_hold_en) {
+			palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		}
+
+		chThdSleepMilliseconds(1);
+
+		bt_diff += (val1 - val2);
+	}
+
+	bt_diff /= (float)samples;
+
+	chMtxUnlock(&shutdown_mutex);
+
+	return (bt_diff < 0.355);
+}
+
+void hw_shutdown_set_hold(bool hold) {
+	shutdown_hold_en = hold;
+
+	if (hold) {
+		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		palSetPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN);
+	} else {
+		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_INPUT_ANALOG);
+	}
+}
+
+static void terminal_shutdown_now(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+	DISABLE_GATE();
+	HW_SHUTDOWN_HOLD_OFF();
+}
+
+static void terminal_button_test(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	for (int i = 0;i < 40;i++) {
+		commands_printf("BT: %d %.2f", HW_SAMPLE_SHUTDOWN(), (double)bt_diff);
+		chThdSleepMilliseconds(100);
+	}
+}
