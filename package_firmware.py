@@ -47,7 +47,6 @@ package_dict["75_300_R2"] = [['75_300_r2', default_name],
 package_dict["75_300_R3"] = [['75_300_r3', default_name],
                     ['75_300_r3_no_limits', no_limits_name]]
 package_dict["AXIOM"] = [['axiom', default_name]]
-package_dict["UAVC_OMEGA"] = [['uavc_omega', default_name]]
 package_dict["HD60"] = [['hd60', default_name],
                     ['hd60_no_limits', no_limits_name]]
 package_dict["HD75"] = [['hd75', default_name],
@@ -200,13 +199,6 @@ package_dict["STR365"] = [['str365', default_name],
                     ['str365_no_limits', no_limits_name]]
 package_dict["STR365_150"] = [['str365_150', default_name],
                     ['str365_150_no_limits', no_limits_name]]
-package_dict["SPARKF"] = [['sparkf', default_name]]
-package_dict["VESC_BASIC"] = [['basic', default_name],
-                    ['basic_no_limits', no_limits_name]]
-package_dict["VESC_BASIC_035"] = [['basic_035', default_name],
-                    ['basic_035_no_limits', no_limits_name]]
-package_dict["VESC_BASIC_025"] = [['basic_025', default_name],
-                    ['basic_025_no_limits', no_limits_name]]
 package_dict["RSR_DD_V1"] = [['RSR_DD_V1', default_name],
                     ['RSR_DD_V1_005', 'RSR_DD_V1_005.bin']]
 package_dict["RSR_DD_V2"] = [['RSR_DD_V2', default_name]]

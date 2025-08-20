@@ -30,13 +30,23 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 32u
+#define LBM_MINOR_VERSION 33u
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0u
 
 #define LBM_VERSION_STRING STR(LBM_MAJOR_VERSION) "." STR(LBM_MINOR_VERSION) "." STR(LBM_PATCH_VERSION)
 
 /*! \page changelog Changelog
+
+Aug 8 2025: VERSION 0.33.0
+  - Fix behavior of apply (laxsjo).
+  - Macos-arm platfrom files (Josef).
+  - Tile and clip in display library (Joakim).
+  - Consistent escape sequences for strings (laxsjo).
+  - Sharing and cycle detection for serialization into image.
+  - Increased testing effort.
+  - Repl prompt persistance improvements. (laxsjo)
+  
 APR 14 2025: VERSION 0.32.0
   - Fix image space calculation for flat value.
   - Fix symbol numbering restoration after image boot.

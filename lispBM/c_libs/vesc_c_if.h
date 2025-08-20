@@ -667,6 +667,8 @@ typedef struct {
 	// Set priority of current thread
 	// Range: -5 to 5, -5 is lowest, 0 is normal, 5 is highest
 	void (*thread_set_priority)(int priority);
+	// Disable shutdown (for hw with momentary button / auto shutdown support)
+	void (*shutdown_disable)(bool disable);
 } vesc_c_if;
 
 typedef struct {

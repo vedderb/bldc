@@ -330,12 +330,15 @@
 #define HW_CANTX_PIN			1
 
 // Setting limits
-#define HW_LIM_CURRENT				-200.0, 200.0
-#define HW_LIM_CURRENT_ABS			0.0, 300.0
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT	150.0	// The maximum absolute current above which a fault is generated
 #endif
+#ifndef MCCONF_L_MAX_VOLTAGE
+#define MCCONF_L_MAX_VOLTAGE		92.0	// Maximum input voltage
+#endif
 
+#define HW_LIM_CURRENT				-200.0, 200.0
+#define HW_LIM_CURRENT_ABS			0.0, 300.0
 #define HW_LIM_CURRENT_IN			-150.0, 150.0
 #define HW_LIM_VIN					6.0, 94.0
 #define HW_LIM_ERPM					-200e3, 200e3

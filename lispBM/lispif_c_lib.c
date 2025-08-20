@@ -45,6 +45,7 @@
 #include "pwm_servo.h"
 #include "flash_helper.h"
 #include "mcpwm_foc.h"
+#include "shutdown.h"
 
 // Function prototypes otherwise missing
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
@@ -707,6 +708,10 @@ static void lib_thread_set_priority(int priority) {
 	chThdSetPriority((tprio_t)((int)NORMALPRIO + priority));
 }
 
+static void lib_shutdown_disable(bool disable) {
+	SHUTDOWN_SET_SAMPLING_DISABLED(disable);
+}
+
 lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 	lbm_value res = lbm_enc_sym(SYM_EERROR);
 
@@ -1045,6 +1050,7 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 
 		// 6.06+
 		cif.cif.thread_set_priority = lib_thread_set_priority;
+		cif.cif.shutdown_disable = lib_shutdown_disable;
 
 		lib_init_done = true;
 	}

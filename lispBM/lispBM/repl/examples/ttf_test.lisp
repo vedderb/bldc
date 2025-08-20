@@ -1,6 +1,6 @@
 
 (sdl-init)
-
+ 
 (define win (sdl-create-window "TTF Font" 400 200))
 (define rend (sdl-create-soft-renderer win))
 

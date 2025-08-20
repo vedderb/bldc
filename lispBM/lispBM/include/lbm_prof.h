@@ -36,7 +36,6 @@ bool lbm_prof_init(lbm_prof_t *prof_data_buf,
 lbm_uint lbm_prof_get_num_samples(void);
 lbm_uint lbm_prof_get_num_system_samples(void);
 lbm_uint lbm_prof_get_num_sleep_samples(void);
-lbm_uint lbm_prof_stop(void);
 void lbm_prof_sample(void);
 
 #endif
