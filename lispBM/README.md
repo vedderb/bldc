@@ -6707,7 +6707,10 @@ When a SD-card is present in the VESC Express files can be listed, read, written
 (f-connect pin-mosi pin-miso pin-sck pin-cs optSpiSpeed)
 ```
 
-Connect SD-card on pin-mosi, pin-miso, pin-sck and pin-cs. The optional argument optSpiSpeed can be used to specify the SPI speed (default 20000 Hz). Returns true on success, nil otherwise.
+Connect SD-card on pin-mosi, pin-miso, pin-sck and pin-cs. The optional argument optSpiSpeed can be used to specify the SPI speed (default 20000 Hz). Returns true on success, nil otherwise.  
+  
+**NOTE**  
+This is only needed if you connect a memory card manually to hardware that does not come with one. Hardware such as the [VESC Nanolog](https://www.vesclabs.com/product/vl-nanolog/) already has the memory card connected and initialized, so you can use the file operations right away.
 
 ---
 
