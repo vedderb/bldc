@@ -48,8 +48,8 @@ static lbm_value ext_reg_v(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_reg_i(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	float adc = (float)ADC_Value[ADC_IND_12V_SENSE_I];
-	// 0.01 ohm, shunt amp same as rest of hw
-	return lbm_enc_float((adc * (V_REG / 4095.0) - (V_REG / 2.0)) / (CURRENT_AMP_GAIN * 0.01));
+	// 0.01 ohm, 20x shunt amp
+	return lbm_enc_float((adc * (V_REG / 4095.0)) / (20.0 * 0.01));
 }
 
 static lbm_value ext_reg_t(lbm_value *args, lbm_uint argn) {
