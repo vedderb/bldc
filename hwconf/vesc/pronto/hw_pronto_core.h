@@ -269,7 +269,7 @@
 #define MCCONF_L_MIN_VOLTAGE			20.0		// Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			100.0	// Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE			94.0	// Maximum input voltage
 #endif
 #ifndef MCCONF_FOC_F_ZV
 #define MCCONF_FOC_F_ZV					30000.0
@@ -301,7 +301,7 @@
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
-#define HW_LIM_TEMP_FET			-40.0, 110.0
+#define HW_LIM_TEMP_FET			-40.0, 97.0
 
 // HW-specific functions
 bool hw_sample_shutdown_button(void);
