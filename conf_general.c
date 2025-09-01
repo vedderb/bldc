@@ -1186,6 +1186,12 @@ __attribute__((section(".text2"))) int conf_general_measure_flux_linkage_openloo
 
 			linkage_sum += mcpwm_foc_get_vq() / rad_s_now;
 
+			// Phase derived from the measured back-emf
+			float phase_bemf = RAD2DEG_f(atan2f(mcpwm_foc_get_v_beta(), mcpwm_foc_get_v_alpha()));
+			phase_bemf -= 90.0;
+			utils_norm_angle(&phase_bemf);
+//			float phase_bemf = mcpwm_foc_get_phase_observer();
+
 			// Optionally use magnitude
 			//              linkage_sum += sqrtf(SQ(mcpwm_foc_get_vq()) + SQ(mcpwm_foc_get_vd())) / rad_s_now;
 
@@ -1197,17 +1203,19 @@ __attribute__((section(".text2"))) int conf_general_measure_flux_linkage_openloo
 			float diff_encoder = utils_angle_difference(encoder_read_deg(), enc_val_last);
 
 			if (fabsf(diff_encoder) >= 5.0) {
-				float diff_observer = utils_angle_difference(mcpwm_foc_get_phase_observer(), phase_val_last);
+				float diff_observer = utils_angle_difference(phase_bemf, phase_val_last);
 
 				enc_val_last = encoder_read_deg();
-				phase_val_last = mcpwm_foc_get_phase_observer();
+				phase_val_last = phase_bemf;
 
 				enc_ratio_sum += diff_observer / diff_encoder;
 				enc_samples += 1.0;
 				enc_travel += fabsf(diff_encoder);
 			}
 
-			if (enc_travel >= 20.0) {
+			const float travel_for_ratio = 40.0;
+
+			if (enc_travel >= travel_for_ratio) {
 				float ratio = roundf(SIGN(enc_ratio_sum) * enc_ratio_sum / enc_samples);
 				bool inverted = enc_ratio_sum < 0.0;
 
@@ -1218,11 +1226,11 @@ __attribute__((section(".text2"))) int conf_general_measure_flux_linkage_openloo
 				phase_tmp *= ratio;
 
 				float s, c;
-				sincosf(DEG2RAD_f(utils_angle_difference(phase_tmp, mcpwm_foc_get_phase_observer())), &s, &c);
+				sincosf(DEG2RAD_f(utils_angle_difference(phase_tmp, phase_bemf)), &s, &c);
 				enc_diff_sin += s;
 				enc_diff_cos += c;
 
-				if (enc_travel >= 380.0 && !enc_res_set) {
+				if (enc_travel >= (360.0 + travel_for_ratio) && !enc_res_set) {
 					if (enc_offset) {
 						*enc_offset = RAD2DEG_f(atan2f(enc_diff_sin, enc_diff_cos));
 						utils_norm_angle(enc_offset);
