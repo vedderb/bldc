@@ -86,6 +86,8 @@ float mcpwm_foc_get_mod_alpha_raw(void);
 float mcpwm_foc_get_mod_beta_raw(void);
 float mcpwm_foc_get_mod_alpha_measured(void);
 float mcpwm_foc_get_mod_beta_measured(void);
+float mcpwm_foc_get_v_alpha(void);
+float mcpwm_foc_get_v_beta(void);
 float mcpwm_foc_get_est_lambda(void);
 float mcpwm_foc_get_est_res(void);
 float mcpwm_foc_get_est_ind(void);
