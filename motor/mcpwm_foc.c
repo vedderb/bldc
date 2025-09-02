@@ -4557,14 +4557,19 @@ static void control_current(motor_all_state_t *motor, float dt) {
 
 	// Saturation and anti-windup. Notice that the d-axis has priority as it controls field
 	// weakening and the efficiency.
-	float vd_presat = state_m->vd;
+	//float vd_presat = state_m->vd;
 	utils_truncate_number_abs((float*)&state_m->vd, max_v_mag);
-	state_m->vd_int += (state_m->vd - vd_presat);
+	utils_truncate_number_abs((float*)&state_m->vd_int, max_v_mag);
+	//Previously, the below line removed a large amount of voltage from the integrator, proportional to the overshoot from any noise and the Kp term.
+	//It is possible (likely even!) that a better implementation exists, than simple truncation, to max_v_mag, perhaps related to applying the Ki term to the integral truncation.
+	//state_m->vd_int += (state_m->vd - vd_presat);
 
 	float max_vq = sqrtf(SQ(max_v_mag) - SQ(state_m->vd));
-	float vq_presat = state_m->vq;
+	//float vq_presat = state_m->vq;
 	utils_truncate_number_abs((float*)&state_m->vq, max_vq);
-	state_m->vq_int += (state_m->vq - vq_presat);
+	utils_truncate_number_abs((float*)&state_m->vq_int, max_vq);
+
+	//state_m->vq_int += (state_m->vq - vq_presat);
 
 	utils_saturate_vector_2d((float*)&state_m->vd, (float*)&state_m->vq, max_v_mag);
 
