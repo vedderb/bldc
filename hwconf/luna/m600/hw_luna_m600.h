@@ -99,6 +99,10 @@
 #define BRK_GPIO				GPIOB
 #define BRK_PIN					12
 
+// Display shutdown
+#define DISPLAY_PWR_GPIO		GPIOB
+#define DISPLAY_PWR_PIN			12
+
 // Shutdown pin
 #define HW_SHUTDOWN_GPIO		GPIOC
 #define HW_SHUTDOWN_PIN			15
