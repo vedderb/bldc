@@ -522,8 +522,11 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 
 		// Wait for fault codes to go away
 		if (!m_dccal_done) {
-			while (mc_interface_get_fault() != FAULT_CODE_NONE) {
+			while ((mc_interface_get_fault() != FAULT_CODE_NONE) &&
+					(mc_interface_get_fault() != FAULT_CODE_OVER_TEMP_MOTOR)) {
+
 				chThdSleepMilliseconds(1);
+
 				if (UTILS_AGE_S(cal_start_time) >= cal_start_timeout) {
 					m_dccal_done = true;
 					break;
@@ -1112,7 +1115,7 @@ float mcpwm_foc_get_tot_current_motor(bool is_second_motor) {
 
 float mcpwm_foc_get_tot_current_filtered_motor(bool is_second_motor) {
 	volatile motor_all_state_t *motor = M_MOTOR(is_second_motor);
-	return SIGN(motor->m_motor_state.vq * motor->m_motor_state.iq_filter) * motor->m_motor_state.i_abs_filter;
+	return SIGN(motor->m_motor_state.i_bus) * motor->m_motor_state.i_abs_filter;
 }
 
 float mcpwm_foc_get_tot_current_in_motor(bool is_second_motor) {
@@ -3148,18 +3151,18 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 				if (tim->CCR1 <= tim->CCR2 && tim->CCR1 <= tim->CCR3) {
 					// Curr 0 is best
-//					curr1 = curr0 * utils_fast_cos(phase_next - DEG2RAD_f(120.0)) / utils_fast_cos(phase_next);
-					curr1 = motor_now->m_motor_state.i_abs * utils_fast_sin(-phase_next - DEG2RAD_f(120.0));
+					curr1 = curr0 * utils_fast_cos(phase_next - DEG2RAD_f(120.0)) / utils_fast_cos(phase_next);
+//					curr1 = motor_now->m_motor_state.i_abs * utils_fast_sin(-phase_next - DEG2RAD_f(120.0));
 					curr2 = -(curr0 + curr1);
 				} else if (tim->CCR2 <= tim->CCR1 && tim->CCR2 <= tim->CCR3) {
 					// Curr 1 is best
-//					curr0 = curr1 * utils_fast_cos(phase_next) / utils_fast_cos(phase_next - DEG2RAD_f(120.0));
-					curr0 = motor_now->m_motor_state.i_abs * utils_fast_sin(-phase_next);
+					curr0 = curr1 * utils_fast_cos(phase_next) / utils_fast_cos(phase_next - DEG2RAD_f(120.0));
+//					curr0 = motor_now->m_motor_state.i_abs * utils_fast_sin(-phase_next);
 					curr2 = -(curr0 + curr1);
 				} else if (tim->CCR3 <= tim->CCR1 && tim->CCR3 <= tim->CCR2) {
 					// Curr 2 is best
-//					curr0 = curr2 * utils_fast_cos(phase_next) / utils_fast_cos(phase_next + DEG2RAD_f(120.0));
-					curr0 = motor_now->m_motor_state.i_abs * utils_fast_sin(-phase_next);
+					curr0 = curr2 * utils_fast_cos(phase_next) / utils_fast_cos(phase_next + DEG2RAD_f(120.0));
+//					curr0 = motor_now->m_motor_state.i_abs * utils_fast_sin(-phase_next);
 					curr1 = -(curr0 + curr2);
 				}
 			}
@@ -3170,20 +3173,28 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			tim->CCR3 > (tim->ARR - SHUNT_PICK_THR)) {
 
 			full_clarke = false;
-			float phase_next = motor_now->m_motor_state.phase + motor_now->m_speed_est_fast * dt;
+
+			float s = motor_now->m_motor_state.phase_sin;
+			float c = motor_now->m_motor_state.phase_cos;
+
+			float predict_ia = c * motor_now->m_motor_state.id - s * motor_now->m_motor_state.iq;
+			float predict_ib  = c * motor_now->m_motor_state.iq + s * motor_now->m_motor_state.id;
 
 			if (tim->CCR1 <= tim->CCR2 && tim->CCR1 <= tim->CCR3) {
 				// Curr 0 is best
-				curr1 = curr0 * utils_fast_cos(phase_next + DEG2RAD_f(120.0)) / utils_fast_cos(phase_next);
+				curr1 = -0.5 * predict_ia + SQRT3_BY_2 * predict_ib;
 				curr2 = -(curr0 + curr1);
 			} else if (tim->CCR2 <= tim->CCR1 && tim->CCR2 <= tim->CCR3) {
 				// Curr 1 is best
-				curr0 = curr1 * utils_fast_cos(phase_next) / utils_fast_cos(phase_next - DEG2RAD_f(120.0));
+				curr0 = predict_ia;
 				curr2 = -(curr0 + curr1);
 			} else if (tim->CCR3 <= tim->CCR1 && tim->CCR3 <= tim->CCR2) {
 				// Curr 2 is best
-				curr0 = curr2 * utils_fast_cos(phase_next) / utils_fast_cos(phase_next + DEG2RAD_f(120.0));
-				curr1 = -(curr0 + curr2);
+//				curr0 = predict_ia;
+//				curr1 = -(curr0 + curr2);
+
+				curr1 = -0.5 * predict_ia + SQRT3_BY_2 * predict_ib;
+				curr0 = -(curr1 + curr2);
 			}
 		}
 #endif
