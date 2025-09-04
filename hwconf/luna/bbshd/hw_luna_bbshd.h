@@ -21,7 +21,7 @@
 #ifndef HW_LUNA_BBSHD_H_
 #define HW_LUNA_BBSHD_H_
 
-#define FW_NAME				"2023.08.22"
+#define FW_NAME				"2025.09.02"
 #define HW_NAME				"LUNA_BBSHD"
 #include "mcconf_luna_bbshd.h"
 #include "appconf_luna_bbshd.h"

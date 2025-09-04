@@ -21,7 +21,7 @@
 #ifndef HW_LUNA_M600_H_
 #define HW_LUNA_M600_H_
 
-#define FW_NAME					"2024.06.26"
+#define FW_NAME					"2025.09.02"
 
 #ifdef M600_60V_BATTERY
 #include "mcconf_luna_m600_60V.h"
@@ -98,6 +98,10 @@
 
 #define BRK_GPIO				GPIOB
 #define BRK_PIN					12
+
+// Display shutdown
+#define DISPLAY_PWR_GPIO		GPIOB
+#define DISPLAY_PWR_PIN			12
 
 // Shutdown pin
 #define HW_SHUTDOWN_GPIO		GPIOC
