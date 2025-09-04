@@ -112,14 +112,13 @@
 #define ADC_IND_SENS1			3
 #define ADC_IND_SENS2			4
 #define ADC_IND_SENS3			5
-#define ADC_IND_VIN_SENS		11
+#define ADC_IND_VIN_SENS		8
 #define ADC_IND_EXT5			16
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
-#define ADC_IND_EXT3			8
-#define ADC_IND_VREFINT			12
+#define ADC_IND_EXT3			14
 #define ADC_IND_ADC_MUX			15
-#define ADC_IND_EXT4			9
+#define ADC_IND_EXT4			12
 #define ADC_IND_SHUTDOWN		13
 #define ADC_IND_EXT6			13
 
