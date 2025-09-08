@@ -1441,6 +1441,10 @@ typedef struct __attribute__((packed)) {
 	// HW-specific data
 	uint32_t hw_config_init_flag;
 	uint8_t hw_config[128];
+
+	// Encoder correction table
+	int8_t enc_corr_en;
+	int8_t enc_corr[360];
 } backup_data;
 
 #endif /* DATATYPES_H_ */

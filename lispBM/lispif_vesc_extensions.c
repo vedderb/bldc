@@ -2303,6 +2303,71 @@ static lbm_value ext_observer_error(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
 }
 
+static lbm_value ext_phase_all(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	float phase_observer = mcpwm_foc_get_phase_observer();
+	float phase_encoder = mcpwm_foc_get_phase_encoder();
+	float phase_bemf = mcpwm_foc_get_phase_bemf();
+	float pos_encoder = encoder_read_deg();
+
+	float err_observer_encoder = utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder());
+	float err_bemf_encoder = utils_angle_difference(mcpwm_foc_get_phase_bemf(), mcpwm_foc_get_phase_encoder());
+	float err_observer_bemf = utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_bemf());
+
+	lbm_value phase_all = ENC_SYM_NIL;
+	phase_all = lbm_cons(lbm_enc_float(err_observer_bemf), phase_all);
+	phase_all = lbm_cons(lbm_enc_float(err_bemf_encoder), phase_all);
+	phase_all = lbm_cons(lbm_enc_float(err_observer_encoder), phase_all);
+	phase_all = lbm_cons(lbm_enc_float(pos_encoder), phase_all);
+	phase_all = lbm_cons(lbm_enc_float(phase_bemf), phase_all);
+	phase_all = lbm_cons(lbm_enc_float(phase_encoder), phase_all);
+	phase_all = lbm_cons(lbm_enc_float(phase_observer), phase_all);
+
+	return phase_all;
+
+}
+
+static lbm_value ext_enc_corr(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_NUMBER_ALL();
+
+	if (argn != 1 && argn != 2) {
+		return ENC_SYM_TERROR;
+	}
+
+	int ind = lbm_dec_as_i32(args[0]);
+
+	if (ind < 0 || ind >= 360) {
+		return ENC_SYM_TERROR;
+	}
+
+	if (argn >= 2) {
+		int corr = lbm_dec_as_i32(args[1]);
+
+		if (corr < -120 || corr > 120) {
+			return ENC_SYM_TERROR;
+		}
+
+		g_backup.enc_corr[ind] = corr;
+	}
+
+	return lbm_enc_i(g_backup.enc_corr[ind]);
+}
+
+static lbm_value ext_enc_corr_en(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_NUMBER_ALL();
+
+	if (argn > 1) {
+		return ENC_SYM_TERROR;
+	}
+
+	if (argn == 1) {
+		g_backup.enc_corr_en = lbm_dec_as_i32(args[0]);
+	}
+
+	return lbm_enc_i(g_backup.enc_corr_en);
+}
+
 // CAN-commands
 
 static lbm_value ext_can_msg_age(lbm_value *args, lbm_uint argn) {
@@ -5876,6 +5941,9 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("phase-hall", ext_phase_hall);
 		lbm_add_extension("phase-observer", ext_phase_observer);
 		lbm_add_extension("observer-error", ext_observer_error);
+		lbm_add_extension("phase-all", ext_phase_all);
+		lbm_add_extension("enc-corr", ext_enc_corr);
+		lbm_add_extension("enc-corr-en", ext_enc_corr_en);
 
 		// Setup values
 		lbm_add_extension("setup-ah", ext_setup_ah);

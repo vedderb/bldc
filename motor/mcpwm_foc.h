@@ -78,6 +78,7 @@ int mcpwm_foc_get_tachometer_value(bool reset);
 int mcpwm_foc_get_tachometer_abs_value(bool reset);
 float mcpwm_foc_get_phase(void);
 float mcpwm_foc_get_phase_observer(void);
+float mcpwm_foc_get_phase_bemf(void);
 float mcpwm_foc_get_phase_encoder(void);
 float mcpwm_foc_get_phase_hall(void);
 float mcpwm_foc_get_vd(void);
