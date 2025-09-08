@@ -1910,6 +1910,85 @@ Returns the difference between the observer position and the encoder position ma
 
 ---
 
+#### phase-all
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06.1+ |
+
+```clj
+(phase-all)
+```
+
+Returns a list of phases and various phase errors, all sampled at the same time. This can be used for doing encoder error mapping and creating encoder error correction tables. Returns the folliwing list of values, all in degrees:
+
+```clj
+(
+    phase_observer        ; Observer phase
+    phase_encoder         ; Encoder phase, derived from current encoder settings
+    phase_bemf            ; Phase derived from the back-emf (only valid when undriven)
+    pos_encoder           ; Encoder angle reading in encoder reference frame
+    err_observer_encoder  ; Phase error between observer and encoder
+    err_bemf_encoder      ; Phase error between back-emf and encoder
+    err_observer_bemf     ; Phase error between observer and back-emf
+)
+```
+
+---
+
+#### enc-corr
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06.1+ |
+
+```clj
+(enc-corr angle optCorr)
+```
+
+Get (or set) encoder correction for angle. The angle is in the encoder reference frame and the correction is in the FOC reference frame. Returns the correction value for angle. The optional value optCorr can be used to update the correction value at angle, if it is left out only the old value will be returned. The correction is applied in the FOC reference frame, so it should be the error on the FOC motor phase that the encoder causes.
+
+Example:
+
+```clj
+; Prints encoder correction value for 10 degrees. Read only, nothing is chaged.
+(print (enc-corr 10))
+
+; Set encoder correction value for 10 degrees to -5 degrees.
+(enc-corr 10 -5)
+```
+
+---
+
+---
+
+#### enc-corr-en
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06.1+ |
+
+```clj
+(enc-corr-en optEn)
+```
+
+Returns 1 if encoder correction is enabled and 0 if it is disabled. The optional argument optEn can be used to enable or disable encoder correction.
+
+Example:
+
+```clj
+; Prints 1 if correction is enabled, 0 otherwise. Read only, nothing is chaged.
+(print (enc-corr-en))
+
+; Enable correction
+(enc-corr-en 1)
+
+; Disable correction
+(enc-corr-en 0)
+```
+
+---
+
 ### Setup Values
 
 These commands return the accumulated values from all VESC-based motor controllers on the CAN-bus. Note that the corresponding CAN status messages must be activated for these commands to work.

@@ -1396,6 +1396,13 @@ float mcpwm_foc_get_phase_observer(void) {
 	return angle;
 }
 
+float mcpwm_foc_get_phase_bemf(void) {
+	float phase_bemf = RAD2DEG_f(atan2f(mcpwm_foc_get_v_beta(), mcpwm_foc_get_v_alpha()));
+	phase_bemf -= 90.0;
+	utils_norm_angle(&phase_bemf);
+	return phase_bemf;
+}
+
 float mcpwm_foc_get_phase_encoder(void) {
 	float angle = RAD2DEG_f(get_motor_now()->m_phase_now_encoder);
 	utils_norm_angle(&angle);
@@ -3233,8 +3240,18 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		if (conf_now->foc_encoder_inverted) {
 			phase_tmp = 360.0 - phase_tmp;
 		}
+
 		phase_tmp *= conf_now->foc_encoder_ratio;
 		phase_tmp -= conf_now->foc_encoder_offset;
+
+		// Apply error correction
+		if (g_backup.enc_corr_en == 1) {
+			utils_norm_angle((float*)(&enc_ang)); // Probably not needed
+			int corr_ind = (int)enc_ang;
+			utils_truncate_number_int(&corr_ind, 0, 359);
+			phase_tmp -= (float)g_backup.enc_corr[corr_ind];
+		}
+
 		utils_norm_angle((float*)&phase_tmp);
 		motor_now->m_phase_now_encoder = DEG2RAD_f(phase_tmp);
 	}

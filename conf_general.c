@@ -1186,10 +1186,7 @@ __attribute__((section(".text2"))) int conf_general_measure_flux_linkage_openloo
 
 			linkage_sum += mcpwm_foc_get_vq() / rad_s_now;
 
-			// Phase derived from the measured back-emf
-			float phase_bemf = RAD2DEG_f(atan2f(mcpwm_foc_get_v_beta(), mcpwm_foc_get_v_alpha()));
-			phase_bemf -= 90.0;
-			utils_norm_angle(&phase_bemf);
+			float phase_bemf = mcpwm_foc_get_phase_bemf();
 //			float phase_bemf = mcpwm_foc_get_phase_observer();
 
 			// Optionally use magnitude
