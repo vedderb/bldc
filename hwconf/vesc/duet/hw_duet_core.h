@@ -71,6 +71,7 @@
 #define HW_SHUTDOWN_HOLD_ON();
 #define HW_SAMPLE_SHUTDOWN()		1
 #define HW_SHUTDOWN_HOLD_OFF()		palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
+#define HW_SHUTDOWN_NO
 
 #define DCCAL_ON()
 #define DCCAL_OFF()
