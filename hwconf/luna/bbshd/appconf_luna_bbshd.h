@@ -130,7 +130,7 @@
 #define APPCONF_ADC_VOLTAGE_END 2.54
 
 // ADC1 Abs Min Voltage
-#define APPCONF_ADC_VOLTAGE_MIN 0.4
+#define APPCONF_ADC_VOLTAGE_MIN 0.0
 
 // ADC1 Abs Max Voltage
 #define APPCONF_ADC_VOLTAGE_MAX 3
