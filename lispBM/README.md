@@ -5642,13 +5642,13 @@ Every time lispBM is restarted or when new code is uploaded the native libraries
 
 | Platforms | Firmware |
 |---|---|
-| ESC | 6.00+ |
+| ESC, Express | 6.00+, 7.00+ |
 
 ```clj
 (load-native-lib lib)
 ```
 
-Load the native library lib. lib is a byte array with the compiled binary that is created after running make on the native library.
+Load the native library lib. lib is a byte array with the compiled binary that is created after running make on the native library. Support for the Express was added in FW 7.00+. On the Express lib is a 4 bytes address that is calculated during import. Note: Express cannot load a lisp array of raw bytes. It has to be imported first and stored to OTA flash partition to be mapped to an executable region. The raw binary is uploaded with a magic header 0xCAFEBABE which allows backwards compatibility for lisp code imports.
 
 ---
 
@@ -5656,7 +5656,7 @@ Load the native library lib. lib is a byte array with the compiled binary that i
 
 | Platforms | Firmware |
 |---|---|
-| ESC | 6.00+ |
+| ESC, Express | 6.00+, 7.00+ |
 
 ```clj
 (unload-native-lib lib)
@@ -5686,6 +5686,23 @@ This example creates an extension called ext-test that takes a number as an argu
 ; The array can be loaded like this
 
 (load-native-lib example)
+
+; Now an extension called ext-test is available. Here we use it
+; with the argument 4 and print the result
+
+(print (ext-test 4)) ; Should print 12
+```
+
+For the Express:
+```clj
+; When running make in the example directory a file called example.bin
+; is created with the magic header 0xCAFEBABE
+
+(import "example.bin" 'package-lib)
+
+; The binary can be loaded like this
+
+(load-native-lib 'package-lib)
 
 ; Now an extension called ext-test is available. Here we use it
 ; with the argument 4 and print the result
