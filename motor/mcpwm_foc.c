@@ -3645,7 +3645,14 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			case FOC_SENSOR_MODE_HFI_V5:
 			case FOC_SENSOR_MODE_HFI_START:{
 				motor_now->m_motor_state.phase = motor_now->m_phase_now_observer;
-				if (fabsf(RADPS2RPM_f(motor_now->m_pll_speed)) < (conf_now->foc_sl_erpm_hfi * 1.1)) {
+
+				// The Single and double pulse modes do not appear to work well when the motor
+				// already is spinning. Therefore use the openloop ERPM value for now, as it
+				// is a much lower value by default. TODO: This is a hack, look into this properly!
+				float rpm_tres = conf_now->foc_hfi_amb_mode == FOC_AMB_MODE_SIX_VECTOR ?
+						(conf_now->foc_sl_erpm_hfi * 1.1) : conf_now->foc_openloop_rpm;
+
+				if (fabsf(RADPS2RPM_f(motor_now->m_pll_speed)) < rpm_tres) {
 					motor_now->m_hfi.est_done_cnt = 0;
 					motor_now->m_hfi.flip_cnt = 0;
 				}
