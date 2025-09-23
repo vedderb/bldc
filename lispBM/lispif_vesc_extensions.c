@@ -4335,6 +4335,7 @@ static void detect_task(void *arg) {
 static lbm_value ext_conf_detect_foc(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(6);
 	static detect_args a;
+
 	a.detect_can = lbm_dec_as_i32(args[0]);
 	a.max_power_loss = lbm_dec_as_float(args[1]);
 	a.min_current_in = lbm_dec_as_float(args[2]);
@@ -4343,8 +4344,17 @@ static lbm_value ext_conf_detect_foc(lbm_value *args, lbm_uint argn) {
 	a.sl_erpm = lbm_dec_as_float(args[5]);
 	a.id = lbm_get_current_cid();
 	a.motor = mc_interface_get_motor_thread();
+
+#ifdef HW_HAS_DUAL_MOTORS
+	if (!lispif_spawn(detect_task, 1024, "lbm_detect", &a)) {
+		return ENC_SYM_MERROR;
+	}
+	lbm_block_ctx_from_extension();
+#else
 	lbm_block_ctx_from_extension();
 	worker_execute(detect_task, &a);
+#endif
+
 	return ENC_SYM_TRUE;
 }
 
@@ -4516,8 +4526,8 @@ static lbm_value ext_conf_measure_ind(lbm_value *args, lbm_uint argn) {
 		return ENC_SYM_EERROR;
 	}
 
-	worker_execute(measure_inductance_task, &a);
 	lbm_block_ctx_from_extension();
+	worker_execute(measure_inductance_task, &a);
 	return ENC_SYM_TRUE;
 }
 
@@ -4755,8 +4765,95 @@ static lbm_value ext_conf_detect_lambda_enc(lbm_value *args, lbm_uint argn) {
 	a.id = lbm_get_current_cid();
 	a.motor = mc_interface_get_motor_thread();
 
-	worker_execute(measure_lambda_enc_task, &a);
+#ifdef HW_HAS_DUAL_MOTORS
+	if (!lispif_spawn(measure_lambda_enc_task, 1024, "lbm_detect", &a)) {
+		return ENC_SYM_MERROR;
+	}
 	lbm_block_ctx_from_extension();
+#else
+	lbm_block_ctx_from_extension();
+	worker_execute(measure_lambda_enc_task, &a);
+#endif
+
+	return ENC_SYM_TRUE;
+}
+
+typedef struct {
+	float current;
+	lbm_cid id;
+	int motor;
+} measure_hall_args;
+
+static void measure_hall_task(void *arg) {
+	int restart_cnt = lispif_get_restart_cnt();
+
+	measure_hall_args *a = (measure_hall_args*)arg;
+
+	lbm_flat_value_t v;
+	bool ok = false;
+	if (lbm_start_flatten(&v, 20)) {
+		mc_interface_select_motor_thread(a->motor);
+
+		uint8_t hall_tab[8];
+		bool result;
+		int fault = mcpwm_foc_hall_detect(a->current, hall_tab, &result);
+
+		mc_interface_select_motor_thread(1);
+
+		if (restart_cnt != lispif_get_restart_cnt()) {
+			return;
+		}
+
+		if (fault) {
+			f_i(&v, fault);
+		} else if (!result) {
+			f_sym(&v, SYM_NIL);
+		} else {
+			f_lbm_array(&v, 8, hall_tab);
+		}
+
+		lbm_finish_flatten(&v);
+		if (lbm_unblock_ctx(a->id, &v)) {
+			ok = true;
+		} else {
+			lbm_free(v.buf);
+		}
+	}
+
+	if (!ok) {
+		lbm_unblock_ctx_unboxed(a->id, ENC_SYM_NIL);
+	}
+}
+
+static lbm_value ext_conf_detect_hall(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(1);
+
+	float current = lbm_dec_as_float(args[0]);
+
+	if (!(current > 0.0 && current <= mc_interface_get_configuration()->l_current_max)) {
+		lbm_set_error_reason(lbm_error_str_incorrect_arg);
+		return ENC_SYM_TERROR;
+	}
+
+	if (mc_interface_get_configuration()->motor_type != MOTOR_TYPE_FOC) {
+		return ENC_SYM_EERROR;
+	}
+
+	static measure_hall_args a;
+	a.current = current;
+	a.id = lbm_get_current_cid();
+	a.motor = mc_interface_get_motor_thread();
+
+#ifdef HW_HAS_DUAL_MOTORS
+	if (!lispif_spawn(measure_hall_task, 1024, "lbm_detect", &a)) {
+		return ENC_SYM_MERROR;
+	}
+	lbm_block_ctx_from_extension();
+#else
+	lbm_block_ctx_from_extension();
+	worker_execute(measure_hall_task, &a);
+#endif
+
 	return ENC_SYM_TRUE;
 }
 
@@ -6040,6 +6137,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("conf-enc-sincos", ext_conf_enc_sincos);
 		lbm_add_extension("conf-get-limits", ext_conf_get_limits);
 		lbm_add_extension("conf-detect-lambda-enc", ext_conf_detect_lambda_enc);
+		lbm_add_extension("conf-detect-hall", ext_conf_detect_hall);
 
 		// Native libraries
 		lbm_add_extension("load-native-lib", ext_load_native_lib);
