@@ -90,6 +90,8 @@ static THD_FUNCTION(lib_thd, arg) {
 	lib_thd_info *t = (lib_thd_info*)arg;
 	chRegSetThreadName(t->name);
 	t->func(t->arg);
+
+	// TODO: Lock system here?
 	lbm_free(t->w_mem);
 	lbm_free(t);
 }
