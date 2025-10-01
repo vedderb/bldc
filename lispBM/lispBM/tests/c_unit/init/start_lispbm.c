@@ -1,5 +1,6 @@
 
 #include "extensions/lbm_dyn_lib.h"
+#include "platform_timestamp.h"
 
 #define IMAGE_STORAGE_SIZE              (128 * 1024) // bytes:
 #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0xA0000000
@@ -43,12 +44,6 @@ void *eval_thd_wrapper(void *v) {
 
 void critical(void) {
   printf("CRITICAL ERROR\n");
-}
-
-uint32_t timestamp(void) {
-  struct timeval tv;
-  gettimeofday(&tv,NULL);
-  return (uint32_t)(tv.tv_sec * 1000000 + tv.tv_usec);
 }
 
 typedef struct done_cid_s {
@@ -124,10 +119,17 @@ bool dynamic_loader(const char *str, const char **code) {
   return lbm_dyn_lib_find(str, code);
 }
 
+static pthread_t timestamp_thread = 0;
 pthread_t lispbm_thd = 0;
 
 int start_lispbm_for_tests(void) {
 
+  if (!timestamp_thread) {
+      pthread_create(&timestamp_thread, NULL, timestamp_cacher, NULL);
+  } else {
+    printf("Timestamp thread is already running.\n");
+  }
+ 
   // Kill the evaluator if it already exists
   if (lispbm_thd && lbm_get_eval_state() != EVAL_CPS_STATE_DEAD) {
      lbm_kill_eval();
@@ -167,7 +169,6 @@ int start_lispbm_for_tests(void) {
 
   lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(done_callback);
-  lbm_set_timestamp_us_callback(timestamp);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_printf_callback(error_print);
   lbm_set_dynamic_load_callback(dynamic_loader);

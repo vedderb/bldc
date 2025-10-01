@@ -32,7 +32,7 @@ extern "C" {
 /** LBM minor version */
 #define LBM_MINOR_VERSION 33u
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 0u
+#define LBM_PATCH_VERSION 1u
 
 #define LBM_VERSION_STRING STR(LBM_MAJOR_VERSION) "." STR(LBM_MINOR_VERSION) "." STR(LBM_PATCH_VERSION)
 

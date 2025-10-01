@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2022, 2025 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -215,10 +215,27 @@ static lbm_value ext_sdl_present(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_sdl_poll_event(lbm_value *args, lbm_uint argn) {
 
   SDL_Event event;
+  lbm_value r = lbm_enc_sym(lookup_sdl_event_symbol(0));
 
-  if (SDL_PollEvent(&event) == 0)
-    return lbm_enc_sym(lookup_sdl_event_symbol(0));
-  return lbm_enc_sym(lookup_sdl_event_symbol(event.type));
+  SDL_PumpEvents();
+
+  if (SDL_PeepEvents(&event, 1, SDL_PEEKEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT) > 0) {
+
+    if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
+      lbm_value key = lbm_enc_i(event.key.keysym.sym);
+      lbm_value sym = lbm_enc_sym(lookup_sdl_event_symbol(event.type));
+
+      lbm_value res_pair = lbm_cons(sym,key);
+      if (res_pair == ENC_SYM_MERROR) goto poll_event_exit;
+      r = res_pair;
+    } else {
+      r = lbm_enc_sym(lookup_sdl_event_symbol(event.type));
+    }
+    // This just drops the event from the queue.
+    SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT);
+  }
+ poll_event_exit:
+  return r;
 }
 
 
@@ -418,6 +435,10 @@ bool sdl_render_image(image_buffer_t *img, uint16_t x, uint16_t y, color_t *colo
     uint8_t  bpp = img->fmt;
 
     SDL_Texture* tex = SDL_CreateTexture(active_rend, SDL_PIXELFORMAT_RGB888,SDL_TEXTUREACCESS_STREAMING, w, h);
+    if (!tex) {
+      printf("lbm_sdl: Failed allocating texture\n");
+      return false;
+    }
     int pitch = 0;
 
     uint8_t* p = NULL;

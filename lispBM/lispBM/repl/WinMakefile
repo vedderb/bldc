@@ -8,7 +8,8 @@ LISPBM := ../
 include $(LISPBM)/lispbm.mk
 
 PLATFORM_INCLUDE = -I$(LISPBM)/platform/windows/include
-PLATFORM_SRC     = $(LISPBM)/platform/windows/src/platform_mutex.c
+PLATFORM_SRC     = $(LISPBM)/platform/windows/src/platform_mutex.c \
+                   $(LISPBM)/platform/windows/src/platform_timestamp.c
 
 LBMFLAGS = -DFULL_RTS_LIB \
 	   -DLBM_USE_DYN_MACROS \

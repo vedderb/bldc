@@ -1,3 +1,9 @@
+[![Website](https://img.shields.io/badge/Website-lispbm.com-blue)](https://www.lispbm.com)
+[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen)](https://www.lispbm.com/#documentation)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Server-7289da?logo=discord&logoColor=white)](https://discord.gg/urtJUUMnwQ)
+[![Gallery](https://img.shields.io/badge/Gallery-Community%20Projects-green?logo=image)](https://www.lispbm.com/gallery.html)
+[![Contributors](https://img.shields.io/badge/Contributors-Meet%20Our%20Team-blue?logo=github)](https://www.lispbm.com/contributors.html)
+
 # lispBM (LBM)
 
 LispBM is a lisp or scheme like programming language for

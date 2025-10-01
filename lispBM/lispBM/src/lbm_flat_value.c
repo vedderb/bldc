@@ -21,7 +21,11 @@
 #include <stack.h>
 
 #include <setjmp.h>
- 
+
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+
 // ------------------------------------------------------------
 // Access to GC from eval_cps
 int lbm_perform_gc(void);
@@ -250,11 +254,34 @@ int lbm_get_max_flatten_depth(void) {
   return flatten_maximum_depth;
 }
 
-void flatten_error(jmp_buf jb, int val) {
+static void flatten_error(jmp_buf jb, int val) {
   longjmp(jb, val);
 }
 
-int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, bool image) {
+/* Use of setjmp/longjmp in flatten_value_size
+
+  setjmp/longjmp behavior is undefined:
+  * If the function which  called  setjmp()  returns  before  longjmp()  is
+    called,  the  behavior  is  undefined.  Some kind of subtle or unsubtle
+    chaos is sure to result.
+
+  * If, in a multithreaded program, a longjmp() call employs an env  buffer
+    that  was  initialized by a call to setjmp() in a different thread, the
+    behavior is undefined.
+
+  The use of setjmp/longjmp in in flatten_value_size_internal/flatten_value_size
+  is avoiding undefined behviour by:
+  1. flatten_value_size_internal is static.
+  2. flatten_error is static.
+  3. flatten_error is ONLY allowed to be called from flatten_value_size_internal.
+  4. The jmpbuf is created in flatten_value_size, which is exposed API.
+  5. Only flatten_value_size calls flatten_value_size_internal.
+
+  Changes to the flat value code MUST NOT change 1 - 5 properties mentioned
+  above.
+*/
+
+static int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, bool image) {
   if (depth > flatten_maximum_depth) {
     flatten_error(jb, FLATTEN_VALUE_ERROR_MAXIMUM_DEPTH);
   }
@@ -779,7 +806,7 @@ static int lbm_unflatten_value_atom(lbm_flat_value_t *v, lbm_value *res) {
 // Initially:
 //   curr = LBM_NULL;    v->buf = { ... }
 //
-// FORWARDS PHASE: 
+// FORWARDS PHASE:
 // Cons case:
 //   Reading conses from the buffer builds a backpointing list.
 //   Placeholder element acts as a 1 bit "visited" field.
@@ -839,6 +866,9 @@ static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, 
   bool done = false;
   lbm_value val0;
   lbm_value curr = lbm_enc_cons_ptr(LBM_PTR_NULL);
+#if DEBUG
+  char buf[256];
+#endif
   while (!done) {
     int32_t set_ix = -1;
     if (v->buf[v->buf_pos] == S_SHARED) {
@@ -853,6 +883,9 @@ static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, 
 #endif
         if (b) {
           int32_t ix = sharing_table_contains(st, tmp);
+#if DEBUG
+          printf("UNFLATTEN S_SHARED: addr %x -> sharing_table index %d\n", (unsigned int)tmp, ix);
+#endif
           if (ix >= 0) {
             set_ix = ix;
           } else {
@@ -873,7 +906,14 @@ static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, 
       lbm_value tmp = curr;
       curr = lbm_cons(tmp, ENC_SYM_PLACEHOLDER);
       if (lbm_is_symbol_merror(curr)) return UNFLATTEN_GC_RETRY;
-      if (set_ix >= 0) target_map[set_ix] = curr;
+
+      if (set_ix >= 0) {
+#if DEBUG
+        lbm_print_value(buf,256,curr);
+        printf("target_map[%d] = %s\n", set_ix, buf);
+#endif
+        target_map[set_ix] = curr;
+      }
       v->buf_pos ++;
       is_leaf = false;
     } else if (v->buf[v->buf_pos] == S_LBM_LISP_ARRAY) {
@@ -883,7 +923,7 @@ static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, 
       if (b) {
         // Abort if buffer cannot possibly hold that size array.
         // a flattened byte occupies 2 bytes in fv. so smallest possible
-        // array is array of bytes. 
+        // array is array of bytes.
         if (size > 0 && v->buf_pos + (size * 2) > v->buf_size) return UNFLATTEN_MALFORMED;
         lbm_value array;
         lbm_heap_allocate_lisp_array(&array, size);
@@ -919,9 +959,19 @@ static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, 
           // Shared should have been hit before S_REF. So just look up index and copy from
           // the target_map.
           int32_t ix = sharing_table_contains(st, tmp);
+#if DEBUG
+          printf("UNFLATTEN S_REF: addr %x -> sharing_table index %d\n", (unsigned int)tmp, ix);
+#endif
           if (ix >= 0) {
             //curr = target_map[ix];
             unflattened = target_map[ix];
+#if DEBUG
+            lbm_print_value(buf,256, unflattened);
+            printf("read %s from target_map[%d]\n", buf, ix);
+            lbm_print_value(buf,256, curr);
+            printf("curr is currently: %s\n", buf);
+            printf("this is a %s\n", is_leaf ? "leaf" : "internal node");
+#endif
           } else {
             return UNFLATTEN_SHARING_TABLE_ERROR;
           }
@@ -933,6 +983,10 @@ static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, 
       }
     } else {
       int e_val = lbm_unflatten_value_atom(v, &unflattened);
+#if DEBUG
+      lbm_print_value(buf,256, unflattened);
+      printf("atom: %s\n", buf);
+#endif
       if (set_ix >= 0) {
         target_map[set_ix] = unflattened;
       }
@@ -975,6 +1029,10 @@ static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, 
         // Do nothing in this case. It has been arranged..
       } else if (lbm_cdr(curr) == ENC_SYM_PLACEHOLDER) {
         lbm_set_cdr(curr, val0);
+#if DEBUG
+        lbm_print_value(buf,256, curr);
+        printf("curr: %s\n", buf);
+#endif
       } else {
         return UNFLATTEN_MALFORMED;
       }

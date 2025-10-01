@@ -23,6 +23,10 @@
 #include <eval_cps.h>
 #include <extensions.h>
 
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+
 // Assumptions about the image memory:
 // * It is part of the address space.
 // * Image is always available at the same address (across reboots)
@@ -799,7 +803,7 @@ typedef struct {
 } flatten_node_meta_data;
 
 static int flatten_node(lbm_value v, bool shared, void *arg) {
-  (void)shared;
+  (void) shared;
   flatten_node_meta_data *md = (flatten_node_meta_data*)arg;
   bool *acc = &md->res;
 
@@ -808,6 +812,9 @@ static int flatten_node(lbm_value v, bool shared, void *arg) {
   if (ix >= 0) {
     if (SHARING_TABLE_TRUE == sharing_table_get_field(md->st, ix, SHARING_TABLE_FLATTENED_FIELD)) {
       // Shared node already flattened.
+#if DEBUG
+      printf("FLATTEN: Writing S_REF for target_map[%d] (addr %x)\n", ix, (unsigned int)v);
+#endif
       fv_write_u8(S_REF);
 #ifdef LBM64
       fv_write_u64((lbm_uint)v);
@@ -817,6 +824,9 @@ static int flatten_node(lbm_value v, bool shared, void *arg) {
       return TRAV_FUN_SUBTREE_DONE;
     } else {
       // Shared node not yet flattened.
+#if DEBUG
+      printf("FLATTEN: Writing S_SHARED for target_map[%d] (addr %x)\n", ix, (unsigned int)v);
+#endif
       sharing_table_set_field(md->st, ix, SHARING_TABLE_FLATTENED_FIELD, SHARING_TABLE_TRUE);
       fv_write_u8(S_SHARED);
 #ifdef LBM64
@@ -922,6 +932,26 @@ static bool image_flatten_value(sharing_table *st, lbm_value v) {
 }
 
 // ////////////////////////////////////////////////////////////
+// print sharing table
+#if DEBUG
+void print_sharing_table(sharing_table *st) {
+  int32_t pos = st->start;
+  int32_t num = st->num;
+  char buf[256];
+
+  for (int i = 0; i < num; i ++) {
+    int32_t ix = index_sharing_table(st, i);
+    lbm_uint a = read_u32(ix); // address
+
+    lbm_print_value(buf, 256, a);
+    printf("%d\t%x\t%s\n",i, a, buf);
+  }
+
+
+}
+#endif
+
+// ////////////////////////////////////////////////////////////
 //
 bool lbm_image_save_global_env(void) {
 
@@ -949,9 +979,25 @@ bool lbm_image_save_global_env(void) {
             write_u32((uint32_t)fv_size , &write_index, DOWNWARDS);
             write_lbm_value(name_field, &write_index, DOWNWARDS);
             write_index = write_index - fv_size;  // subtract fv_size
+#if DEBUG
+            int32_t data_start = write_index;     // Save the start position
+#endif
             if (image_flatten_value(&st, val_field)) { // adds fv_size back
-              // TODO: What error handling makes sense?
               fv_write_flush();
+#if DEBUG
+              printf("Flattenining address: %x\n", val_field);
+              for (int i = 0; i < fv_size; i ++) {
+                uint32_t v = read_u32(data_start + i);
+                uint8_t *p = &v;
+                for (int j = 0; j < 4; j ++) {
+                  printf("%x ", p[j]);
+                }
+                printf(" ");
+              }
+              printf("\n");
+#endif
+
+              // TODO: What error handling makes sense?
             }
             write_index = write_index - fv_size - 1; // subtract fv_size
           } else {
@@ -961,6 +1007,10 @@ bool lbm_image_save_global_env(void) {
         curr = lbm_cdr(curr);
       }
     }
+#if DEBUG
+    printf("Sharing table:\n");
+    print_sharing_table(&st);
+#endif
     return true;
   }
   return false;
@@ -1213,7 +1263,7 @@ bool lbm_image_boot(void) {
       uint32_t sym_id = (uint32_t)(p[1]);
       lbm_uint next_id = lbm_symrepr_get_next_id();
       if (sym_id >= RUNTIME_SYMBOLS_START && sym_id >= next_id ) {
-        lbm_symrepr_set_next_id(next_id + 1);
+        lbm_symrepr_set_next_id(sym_id + 1);
       }
       lbm_symrepr_set_symlist((lbm_uint*)(image_address + entry_pos));
       pos -= 6;
@@ -1223,7 +1273,7 @@ bool lbm_image_boot(void) {
       uint32_t sym_id = (uint32_t)(p[1]);
       lbm_uint next_id = lbm_symrepr_get_next_id();
       if (sym_id >= RUNTIME_SYMBOLS_START && sym_id >= next_id ) {
-        lbm_symrepr_set_next_id(next_id + 1);
+        lbm_symrepr_set_next_id(sym_id + 1);
       }
       lbm_symrepr_set_symlist((lbm_uint*)(image_address + entry_pos));
       pos -= 3;
@@ -1295,7 +1345,7 @@ bool lbm_image_boot(void) {
       st.start = pos +1;
       uint32_t num = read_u32(pos); pos --;
       st.num = (int32_t)num;
-      if (num > 0) { 
+      if (num > 0) {
         target_map = lbm_malloc(num * sizeof(lbm_uint));
         if (!target_map ) {
           return false;
