@@ -27,6 +27,7 @@
 #include "lispbm.h"
 #include "terminal.h"
 #include "commands.h"
+#include "utils.h"
 
 static void terminal_shutdown_now(int argc, const char **argv);
 static void terminal_button_test(int argc, const char **argv);
@@ -37,6 +38,13 @@ static mutex_t shutdown_mutex;
 static volatile bool shutdown_mutex_init_done = false;
 static volatile float bt_diff = 0.0;
 static volatile bool shutdown_hold_en = true;
+
+// Sense thread
+static THD_WORKING_AREA(sense_thread_wa, 256);
+static THD_FUNCTION(sense_thread, arg);
+static volatile bool sense_thd_running = false;
+static volatile float speed_time = 0.0;
+static volatile systime_t speed_update = 0;
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -86,9 +94,21 @@ static lbm_value ext_basic_set_out(lbm_value *args, lbm_uint argn) {
 	return res;
 }
 
+static lbm_value ext_speed_last_time(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(speed_time);
+}
+
+static lbm_value ext_speed_age(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(UTILS_AGE_S(speed_update));
+}
+
 static void load_extensions(bool main_found) {
 	if (!main_found) {
 		lbm_add_extension("hw-set-out", ext_basic_set_out);
+		lbm_add_extension("speed-last-time", ext_speed_last_time);
+		lbm_add_extension("speed-age", ext_speed_age);
 	}
 }
 
@@ -226,6 +246,43 @@ void hw_setup_adc_channels(void) {
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 3, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
+
+	if (!sense_thd_running) {
+		chThdCreateStatic(sense_thread_wa, sizeof(sense_thread_wa), NORMALPRIO, sense_thread, NULL);
+		sense_thd_running = true;
+	}
+}
+
+static THD_FUNCTION(sense_thread, arg) {
+	(void)arg;
+
+	chRegSetThreadName("hw-wheel");
+
+	float volts = ADC_VOLTS(ADC_IND_EXT3);
+	bool speed_last = volts < 1.5;
+
+	for (;;) {
+		bool speed = false;
+
+		UTILS_LP_FAST(volts, ADC_VOLTS(ADC_IND_EXT3), 0.5);
+
+		if (speed_last) {
+			speed = volts < 1.8;
+		} else {
+			speed = volts < 1.1;
+		}
+
+		if (speed && speed != speed_last) {
+			float time = UTILS_AGE_S(speed_update);
+			if (time > 0.05) { // Max 900 RPM
+				speed_time = time;
+				speed_update = chVTGetSystemTimeX();
+			}
+		}
+
+		speed_last = speed;
+		chThdSleep(1);
+	}
 }
 
 void hw_start_i2c(void) {
