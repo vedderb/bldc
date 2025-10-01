@@ -145,7 +145,7 @@ static lbm_value ext_is_nan(lbm_value *args, lbm_uint argn) {
   if (argn == 1) {
     res = ENC_SYM_TERROR;
     if (lbm_is_number(args[0])) {
-      lbm_uint t = lbm_type_of(args[0]);
+      lbm_uint t = lbm_type_of_functional(args[0]);
       switch(t) {
       case LBM_TYPE_DOUBLE:
         if (isnan(lbm_dec_double(args[0]))) {
@@ -175,7 +175,7 @@ static lbm_value ext_is_inf(lbm_value *args, lbm_uint argn) {
   if (argn == 1) {
     res = ENC_SYM_TERROR;
     if (lbm_is_number(args[0])) {
-      lbm_uint t = lbm_type_of(args[0]);
+      lbm_uint t = lbm_type_of_functional(args[0]);
       switch(t) {
       case LBM_TYPE_DOUBLE:
         if (isinf(lbm_dec_double(args[0]))) {

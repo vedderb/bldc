@@ -1426,7 +1426,7 @@ void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
         // In-order traversal
         if (f(curr, false, arg) == TRAV_FUN_SUBTREE_DONE) {
           lbm_gc_mark_phase(curr);
-          break;
+          goto trav_backtrack;
         }
         gc_mark(curr);
 
@@ -1482,6 +1482,7 @@ void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
     //
     // If the flag is not set, jump down to SWAP
 
+  trav_backtrack:
     while ((lbm_is_cons(prev) &&
             (lbm_dec_ptr(prev) != LBM_PTR_NULL) && // is LBM_NULL a cons type?
             lbm_get_gc_flag(lbm_car(prev))) ||

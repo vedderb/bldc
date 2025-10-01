@@ -77,20 +77,19 @@ do
   fi
 done
 
-echo ""
-echo "C Unit Tests Summary:"
-echo "Tests passed: $success_count"
-echo "Tests failed: $fail_count"
-echo "Expected fails: $expected_count"
-echo "Actual fails: $((fail_count - expected_count))"
-
 # Generate coverage report if gcovr is available
 if command -v gcovr &> /dev/null; then
     echo "Generating coverage report..."
     gcovr --filter ../../src --gcov-ignore-parse-errors=negative_hits.warn --json c_unit_tests_cov.json
 fi
 
-cd ..
+
+echo ""
+echo "C Unit Tests Summary:"
+echo "Tests passed: $success_count"
+echo "Tests failed: $fail_count"
+echo "Expected fails: $expected_count"
+echo "Actual fails: $((fail_count - expected_count))"
 
 if [ $((fail_count - expected_count)) -gt 0 ]; then
     exit 1

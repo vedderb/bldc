@@ -143,10 +143,8 @@ static bool lbm_wait_ctx(lbm_cid cid, lbm_uint timeout_ms) {
     }
 
     if (exists) {
-       if (sleep_callback) {
-         sleep_callback(10);
-       }
-       if (timeout_ms > 0) i ++;
+      sleep_callback(10);
+      if (timeout_ms > 0) i ++;
     }
   } while (exists && i < timeout_ms);
 
@@ -169,13 +167,6 @@ void done_callback(eval_context_t *ctx) {
   } else {
     chprintf(chp,"<< Context %d finished with value %s >>\r\n# ", cid, output);
   }
-}
-
-uint32_t timestamp_callback(void) {
-  systime_t t = chVTGetSystemTime();
-  uint32_t ts = (uint32_t) ((1000000 / CH_CFG_ST_FREQUENCY) * t);
-  //chprintf(chp,"timestamp %d\r\n ", ts);
-  return ts;
 }
 
 static THD_FUNCTION(eval, arg) {
@@ -268,7 +259,6 @@ int main(void) {
   }
 
   lbm_set_ctx_done_callback(done_callback);
-  lbm_set_timestamp_us_callback(timestamp_callback);
   lbm_set_usleep_callback(sleep_callback);
 
   lbm_set_verbose(true);
