@@ -1,0 +1,128 @@
+/** \page Integration LispBM Integration Safety Manual
+
+<h1>LispBM Integration Safety Manual</h1>
+
+<h2>Document Information</h2>
+
+<table>
+<tr><td><b>Document Version:</b></td><td>DRAFT</td></tr>
+<tr><td><b>LispBM Version:</b></td><td>0.33.0</td></tr>
+<tr><td><b>Last Updated:</b></td><td>September 2025</td></tr>
+</table>
+
+<h3>Revision History</h3>
+
+<!--
+<table>
+<tr><th>Version</th><th>Date</th><th>Changes</th><th>Author</th></tr>
+<tr><td>1.0</td><td>Sept 2025</td><td>Initial version - covers LispBM 0.33.0 integration patterns</td><td>LipBM project</td></tr>
+</table>
+-->
+
+<p><i>Future versions of this document will include change logs 
+highlighting modifications to integration requirements, safety considerations, 
+and API changes that may affect existing integrations.</i></p>
+
+<h2>Overview</h2>
+
+<p>LispBM is designed to be integrated into larger systems as a sandboxed 
+scripting runtime that interacts with the host system through well-defined, 
+controlled mechanisms. This manual describes how to integrate LispBM correctly 
+to maintain system safety and reliability.</p>
+
+<p>An incorrectly integrated LispBM can compromise sandboxing, cause system 
+instability, memory corruption, or unpredictable behavior. This document 
+provides safety-focused integration guidelines.</p>
+
+<h2> Sandboxed runtime system </h2>
+
+<p>The LispBM runtime system is designed such that it cannot access or manipulate any memory
+not explicitly assigned to the runtime system for use as Heap, Arrays memory or image storage.
+</p>
+
+<p>The programs running on the LispBM runtime system can communicate with the host application
+through usage of extensions or message-passing (via an events system). Note that extensions
+are implemented in C and can access, read/write, any memory. The extensions form the interface
+between the host application and the LispBM applications. The lispBM runtime system can do nothing
+to ensure that extensions are well behaved in relation to memory.
+</p>
+
+<h2>Integration requirements</h2>
+
+<p> LispBM requires the following functionality to be supplied by a HAL or RTOS: </p>
+
+<ul>
+<li>A <b>Thread</b> abstraction.</li>
+<li>A <b>Mutex</b> implementation.</li>
+</ul>
+
+<p>If Chibios, FreeRTOS, Zephyr is used, LispBM can use the threading support supplied by these RTOSes.
+   The threading abstraction is used at the border-line between the C application and the LispBM runtime system.
+   The C application will start a thread for running the LispBM runtime system and scheduler. 
+</p>     
+
+<p>Mutexes are used on the inside of lispbm (as well as in the C application) to ensure that
+   communication between C and LispBM is safe. As mutexes are used internally, a LispBM mutex abstraction
+   is defined in the <code>platform</code> directory.
+</p>
+
+<p>The LispBM mutex abstraction consists of: </p>
+<ul>
+<li> A type: <code>mutex_t</code>. </li>
+<li> Initialization function: <code>bool mutex_init(mutex_t *m)</code>.</li>
+<li> Lock function: <code>void mutex_lock(mutex_t *m)</code>.</li>
+<li> Unlock function: <code>void mutex_unlock(mutex_t *m)</code>.</li>
+</ul>
+
+<p>Here a FreeRTOS implementation of the LispBM mutex abstraction is shown as an example: </p>
+
+@code
+
+// In header file platform/freertos/include/platform_mutex.h
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+#include <stdbool.h>
+
+typedef SemaphoreHandle_t mutex_t;
+
+extern bool mutex_init(mutex_t *m);
+extern void mutex_lock(mutex_t *m);
+extern void mutex_unlock(mutex_t *m);
+
+// In source file platform/freertos/src/platform_mutex.c
+#include "platform_mutex.h"
+
+bool mutex_init(mutex_t *m) {
+  *m = xSemaphoreCreateMutex();
+  if (*m != NULL)
+    return true;
+  return false;
+}
+
+void mutex_lock(mutex_t *m) {
+  xSemaphoreTake(*m, portMAX_DELAY);
+}
+
+void mutex_unlock(mutex_t *m) {
+  xSemaphoreGive(*m);
+}
+@endcode
+
+<p>Porting LispBM to a different HAL or RTOS, X,  requires an
+implementation of <code>platform/X/include/platform_mutex.h</code>
+and <code>platform/X/src/platform_mutex.c</code>.
+
+<h2>Building the LispBM runtime system</h2>
+
+<p>LispBM is compiled into an application by the integrator. While the LispBM
+runtime system is thoroughly tested, differences in compiler version or libraries
+could reveal bugs. A final set of integration tests on the system as a whole is
+strongly recommended.</p>
+
+<p>Practical building instructions can be found here \ref Building.</p>
+
+<h2>Configuring the LispBM runtime system</h2>
+
+
+
+*/

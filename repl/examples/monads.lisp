@@ -43,32 +43,29 @@
 (defun test4 () (>>= listmonad (list "bunny" "rabbit") (generation 2)))
 
 ;; macro
-(defmacro do (m body)
-  (match body
-         ( (((? a) <- (? b)) . (? xs)) 
-           `(>>= ,m ,b (lambda (,a) (do ,m ,xs))))
+(defmacro do (m)
+  (match (rest-args)
+         ( (((? a) <- (? b)) . (? xs))
+           `(>>= ,m ,b (lambda (,a) (do ,m ,@xs))))
          ( ((? a) . nil) a)
          ( ((? a) . (? xs))
-           `(>>= ,m ,a (lambda (_) (do ,m ,xs))))
+           `(>>= ,m ,a (lambda (_) (do ,m ,@xs))))
          ))
 
 (defun test5 ()
   (do listmonad
-    (
      (a <- (list 1 2 3 4))
      (b <- (list 5 6 7 8))
      (mret listmonad (* a b))
-     )
     ))
 
 ;; Generic monad operation
 
 (defun zip-combos (m f ma mb)
   (do m
-      (
        (a <- ma)
        (b <- mb)
-       (mret m (f a b)))))
+       (mret m (f a b))))
 
 (defun test6 ()
   (zip-combos listmonad (lambda (a b) (* a b)) (list 1 2 3 4) (list 5 6 7 8)))
@@ -87,11 +84,10 @@
 
 (defun test8 ()
   (do idmonad
-      (
        (print "hello")
-       (a <- (+ 1 2))
-       (print "the result of (+ 1 2) is " a)
-       )))
+       (kurt <- (+ 1 2))
+       (print "the result of (+ 1 2) is " kurt)
+       ))
 
 (defun test9 () ;; PROGN is { } in LBM
   {
@@ -130,7 +126,6 @@
 
 (defun test10 ()
   (do statemonad
-      (
        (a <- (get))
        (mret statemonad (print "state0 is " a))
        (put 1)
@@ -142,7 +137,6 @@
        (put 100)
        (a <- (get))
        (mret statemonad (print "state3 is " a))
-       )
       ))
 
 
@@ -150,14 +144,12 @@
 (defun lift1 (m f)
   (lambda (ma)
     (do m
-        (
          (a <- ma)
          (mret m (f a))
-         ))))
+         )))
 
 (defun test11 ()
   (do statemonad
-      (
        (put 111)
        ((lift1 statemonad (lambda (x) (print "state is " x))) (get))
-       )))
+       ))
