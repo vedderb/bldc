@@ -24,7 +24,6 @@
 #include "extensions/math_extensions.h"
 #include "extensions/runtime_extensions.h"
 
-uint32_t timestamp(void);
 
 int init_exts(void);
 

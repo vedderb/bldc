@@ -16,6 +16,48 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*
+  eval_cps uses setjmp/longjmp for error handling.
+
+  setjmp/longjmp behavior is undefined:
+  * If the function which  called  setjmp()  returns  before  longjmp()  is
+    called,  the  behavior  is  undefined.  Some kind of subtle or unsubtle
+    chaos is sure to result.
+
+  * If, in a multithreaded program, a longjmp() call employs an env  buffer
+    that  was  initialized by a call to setjmp() in a different thread, the
+    behavior is undefined.
+
+  As I understand it MISRA C guidelines prohibit (quite completely) any use
+  of setjmp/longjmp for safety-critical applications.
+
+  The LispBM eval_cps evaluator is careful to not fall into either of the
+  undefined behavior situations by:
+  1. setjmp is called in the lbm_run_eval() function which is responsible
+     for running all evaluation.
+  2. longjmp is called as part of the ERROR_CTX/ERROR_AT_CTX macros which
+     are executed by the evaluator in error cases.
+  3. the jump buffers are static (error_jmp_buf, critical_error_jmp_buf).
+  4. The error_ctx/error_at_ctx functions are static.
+  5. The ERROR_CTX/ERROR_AT_CTX/READ_ERROR_CTX macros are only called in
+     static functions.
+     TODO Check static functions that call ERROR_CTX are not called by any
+      non-static function, The only call-chain that leads to a longjmp must
+      originate in lbm_run_eval().
+  => (if the TODO is dealt with) it is impossible to trigger the undefined
+     conditions.
+
+  Possible alternative to setjmp/longjmp is to cram all of the stuff
+  that eval_cps does into a single function and use GOTO to jump between the
+  different continuation and evaluation and error cases. This would be even
+  worse from a "structured programming" viewpoint, but it would also possibly
+  be a bit a faster.
+
+  The setjmp/longjmp error handling applied here is well contained and has
+  been rigorously tested over time. There is a bit more to do in terms of
+  documenting the error handling choices and it would also be nice to statically
+  check/verify that we are ruling out the undefined use cases.
+*/
 #include <lbm_memory.h>
 #include <lbm_types.h>
 #include "symrepr.h"
@@ -29,6 +71,7 @@
 #include "lbm_channel.h"
 #include "print.h"
 #include "platform_mutex.h"
+#include "platform_timestamp.h"
 #include "lbm_flat_value.h"
 
 #include <setjmp.h>
@@ -292,10 +335,6 @@ static bool dynamic_load_nonsense(const char *sym, const char **code) {
   return false;
 }
 
-static uint32_t timestamp_nonsense(void) {
-  return 0;
-}
-
 static int printf_nonsense(const char *fmt, ...) {
   (void) fmt;
   return 0;
@@ -311,7 +350,6 @@ static void critical_nonsense(void) {
 
 static void (*critical_error_callback)(void) = critical_nonsense;
 static void (*usleep_callback)(uint32_t) = usleep_nonsense;
-static uint32_t (*timestamp_us_callback)(void) = timestamp_nonsense;
 static void (*ctx_done_callback)(eval_context_t *) = ctx_done_nonsense;
 int (*lbm_printf_callback)(const char *, ...) = printf_nonsense;
 static bool (*dynamic_load_callback)(const char *, const char **) = dynamic_load_nonsense;
@@ -324,11 +362,6 @@ void lbm_set_critical_error_callback(void (*fptr)(void)) {
 void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
   if (fptr == NULL) usleep_callback = usleep_nonsense;
   else usleep_callback = fptr;
-}
-
-void lbm_set_timestamp_us_callback(uint32_t (*fptr)(void)) {
-  if (fptr == NULL) timestamp_us_callback = timestamp_nonsense;
-  else timestamp_us_callback = fptr;
 }
 
 void lbm_set_ctx_done_callback(void (*fptr)(eval_context_t *)) {
@@ -410,10 +443,9 @@ bool lbm_event_unboxed(lbm_value unboxed) {
       t == LBM_TYPE_U ||
       t == LBM_TYPE_CHAR) {
     if (lbm_event_handler_pid > 0) {
-      if (lbm_mailbox_free_space_for_cid(lbm_event_handler_pid) <= lbm_event_queue_item_count()) {
-        return false;
+      if (lbm_mailbox_free_space_for_cid(lbm_event_handler_pid) > lbm_event_queue_item_count()) {
+        return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)unboxed, 0);
       }
-      return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)unboxed, 0);
     }
   }
   return false;
@@ -421,25 +453,24 @@ bool lbm_event_unboxed(lbm_value unboxed) {
 
 bool lbm_event(lbm_flat_value_t *fv) {
   if (lbm_event_handler_pid > 0) {
-    if (lbm_mailbox_free_space_for_cid(lbm_event_handler_pid) <= lbm_event_queue_item_count()) {
-      return false;
+    if (lbm_mailbox_free_space_for_cid(lbm_event_handler_pid) > lbm_event_queue_item_count()) {
+      return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)fv->buf, fv->buf_size);
     }
-    return event_internal(LBM_EVENT_FOR_HANDLER, 0, (lbm_uint)fv->buf, fv->buf_size);
   }
   return false;
 }
 
 static bool lbm_event_pop(lbm_event_t *event) {
   mutex_lock(&lbm_events_mutex);
-  if (lbm_events_head == lbm_events_tail && !lbm_events_full) {
-    mutex_unlock(&lbm_events_mutex);
-    return false;
+  bool r = false;
+  if (lbm_events_head != lbm_events_tail || lbm_events_full) {
+    *event = lbm_events[lbm_events_tail];
+    lbm_events_tail = (lbm_events_tail + 1) % lbm_events_max;
+    lbm_events_full = false;
+    r = true;
   }
-  *event = lbm_events[lbm_events_tail];
-  lbm_events_tail = (lbm_events_tail + 1) % lbm_events_max;
-  lbm_events_full = false;
   mutex_unlock(&lbm_events_mutex);
-  return true;
+  return r;
 }
 
 bool lbm_event_queue_is_empty(void) {
@@ -478,10 +509,10 @@ void lbm_set_hide_trapped_error(bool hide) {
 }
 
 lbm_cid lbm_get_current_cid(void) {
+  lbm_cid cid = -1;
   if (ctx_running)
-    return ctx_running->id;
-  else
-    return -1;
+    cid = ctx_running->id;
+  return cid;
 }
 
 eval_context_t *lbm_get_current_context(void) {
@@ -755,7 +786,7 @@ static void atomic_error(void) {
 // Blocking while in an atomic block would have bad consequences.
 static void block_current_ctx(uint32_t state, lbm_uint sleep_us,  bool do_cont) {
   if (is_atomic) atomic_error();
-  ctx_running->timestamp = timestamp_us_callback();
+  ctx_running->timestamp = timestamp();
   ctx_running->sleep_us = sleep_us;
   ctx_running->state  = state;
   ctx_running->app_cont = do_cont;
@@ -1228,13 +1259,7 @@ static eval_context_t *dequeue_ctx_nm(eval_context_queue_t *q) {
 
 static void wake_up_ctxs_nm(void) {
   lbm_uint t_now;
-
-  if (timestamp_us_callback) {
-    t_now = timestamp_us_callback();
-  } else {
-    t_now = 0;
-  }
-
+  t_now = timestamp();
   eval_context_queue_t *q = &blocked;
   eval_context_t *curr = q->first;
 
@@ -1288,15 +1313,9 @@ static void wake_up_ctxs_nm(void) {
 
 static void yield_ctx(lbm_uint sleep_us) {
   if (is_atomic) atomic_error();
-  if (timestamp_us_callback) {
-    ctx_running->timestamp = timestamp_us_callback();
-    ctx_running->sleep_us = sleep_us;
-    ctx_running->state = LBM_THREAD_STATE_SLEEPING;
-  } else {
-    ctx_running->timestamp = 0;
-    ctx_running->sleep_us = 0;
-    ctx_running->state = LBM_THREAD_STATE_SLEEPING;
-  }
+  ctx_running->timestamp = timestamp();
+  ctx_running->sleep_us = sleep_us;
+  ctx_running->state = LBM_THREAD_STATE_SLEEPING;
   ctx_running->r = ENC_SYM_TRUE;
   ctx_running->app_cont = true;
   enqueue_ctx(&blocked,ctx_running);
@@ -2519,10 +2538,10 @@ static void cont_wait(eval_context_t *ctx) {
 
 /**
  * @brief Setup application of cont object (created by call-cc)
- * 
+ *
  * The "function" form, e.g. `(SYM_CONT . cont-array)`, is expected to be stored
  * in `ctx->r`.
- * 
+ *
  * @param args List of the arguments to apply with.
  * @return lbm_value The resulting argument value which should either be
  *   evaluated or passed on directly depending on how you use this.
@@ -2536,7 +2555,7 @@ static lbm_value setup_cont(eval_context_t *ctx, lbm_value args) {
   if (!lbm_is_lisp_array_r(c)) {
     ERROR_CTX(ENC_SYM_FATAL_ERROR);
   }
-  
+
   lbm_value arg;
   lbm_uint arg_count = lbm_list_length(args);
   switch (arg_count) {
@@ -2559,16 +2578,16 @@ static lbm_value setup_cont(eval_context_t *ctx, lbm_value args) {
 
   lbm_value atomic = ctx->K.data[--ctx->K.sp];
   is_atomic = atomic ? 1 : 0;
-  
+
   return arg;
 }
 
 /**
  * @brief Setup application of cont sp object (created by call-cc-unsafe)
- * 
+ *
  * The "function" form, e.g. `(SYM_CONT_SP . stack_ptr)` is expected to be
  * stored in `ctx->r`.
- * 
+ *
  * @param args List of the arguments to apply with.
  * @return lbm_value The resulting argument value which should either be
  *   evaluated or passed on directly depending on how you use this.
@@ -2598,7 +2617,7 @@ static lbm_value setup_cont_sp(eval_context_t *ctx, lbm_value args) {
     lbm_set_error_reason(lbm_error_str_num_args);
     ERROR_CTX(ENC_SYM_EERROR);
   }
-  
+
   if (sp > 0 && sp <= ctx->K.sp && IS_CONTINUATION(ctx->K.data[sp-1])) {
     is_atomic = atomic ? 1 : 0; // works fine with nil/true
     ctx->K.sp = sp;
@@ -2610,13 +2629,13 @@ static lbm_value setup_cont_sp(eval_context_t *ctx, lbm_value args) {
 
 /**
  * @brief Setup application of macro
- * 
+ *
  * The macro form, e.g. `(macro (...) ...)`, is expected to be stored in
  * `ctx->r`.
- * 
+ *
  * @param args List of the arguments to apply the macro with.
  * @param curr_env The environment to re-evaluate the result of the macro
- *   experssion in. 
+ *   experssion in.
  */
 static inline __attribute__ ((always_inline)) void setup_macro(eval_context_t *ctx, lbm_value args, lbm_value curr_env) {
   /*
@@ -2651,11 +2670,17 @@ static inline __attribute__ ((always_inline)) void setup_macro(eval_context_t *c
     curr_param = cdr_curr_param;
     curr_arg   = cdr_curr_arg;
   }
+#ifdef LBM_USE_MACRO_REST_ARGS
+  if (lbm_is_cons(curr_arg)) {
+    expand_env = allocate_binding(ENC_SYM_REST_ARGS, curr_arg, expand_env);
+  }
+#endif
+
   /* Two rounds of evaluation is performed.
    * First to instantiate the arguments into the macro body.
    * Second to evaluate the resulting program.
    */
-  
+
   sptr[1] = EVAL_R;
   lbm_value exp = get_cadr(get_cdr(ctx->r));
   ctx->curr_exp = exp;
@@ -2918,6 +2943,7 @@ static void apply_eval(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 
 static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 1) {
+    // here ctx->r = args[0];
     lbm_value prg = args[0]; // No check that this is a program.
     lbm_value app_cont;
     lbm_value app_cont_prg;
@@ -3550,7 +3576,7 @@ static void cont_closure_application_args(eval_context_t *ctx) {
 // s[sp-5] = environment to evaluate args in
 // s[sp-4] = body
 // s[sp-3] = closure environment
-// s[sp-2] = argument list 
+// s[sp-2] = argument list
 // s[sp-1] = last cell in rest-args list so far.
 static void cont_closure_args_rest(eval_context_t *ctx) {
   lbm_uint* sptr = get_stack_ptr(ctx, 5);
@@ -3903,7 +3929,7 @@ static void cont_loop_env_prep(eval_context_t *ctx) {
   stack_reserve(ctx,1)[0] = LOOP_CONDITION;
   ctx->curr_exp = sptr[1];
 }
- 
+
 static void cont_merge_rest(eval_context_t *ctx) {
   lbm_uint *sptr = get_stack_ptr(ctx, 9);
 
@@ -4848,7 +4874,7 @@ static void cont_read_dot_terminate(eval_context_t *ctx) {
     READ_ERROR_CTX(lbm_channel_row(str), lbm_channel_column(str));
   } else if (lbm_is_cons(last_cell)) {
     lbm_ref_cell(last_cell)->cdr = ctx->r;
-    //lbm_set_cdr(last_cell, ctx->r); 
+    //lbm_set_cdr(last_cell, ctx->r);
     ctx->r = sptr[0]; // first cell
     lbm_value *rptr = stack_reserve(ctx, 3);
     sptr[0] = stream;
@@ -4957,7 +4983,7 @@ static void cont_application_start(eval_context_t *ctx) {
         ERROR_AT_CTX(ENC_SYM_EERROR, ctx->r);
       }
     } break;
-    case ENC_SYM_CONT:{  
+    case ENC_SYM_CONT:{
       ctx->curr_exp = setup_cont(ctx, args);
     } break;
     case ENC_SYM_CONT_SP: {
@@ -5246,7 +5272,7 @@ static void cont_qq_expand_start(eval_context_t *ctx) {
   ctx->app_cont = true;
 }
 
-lbm_value quote_it(lbm_value qquoted) {
+static lbm_value quote_it(lbm_value qquoted) {
   if (lbm_is_symbol(qquoted) &&
       lbm_is_special(qquoted)) return qquoted;
 
@@ -5254,13 +5280,13 @@ lbm_value quote_it(lbm_value qquoted) {
   return cons_with_gc(ENC_SYM_QUOTE, val, ENC_SYM_NIL);
 }
 
-bool is_append(lbm_value a) {
-  return (lbm_is_cons(a) && 
+static bool is_append(lbm_value a) {
+  return (lbm_is_cons(a) &&
           lbm_is_symbol(lbm_ref_cell(a)->car) &&
           (lbm_ref_cell(a)->car == ENC_SYM_APPEND));
 }
 
-lbm_value append(lbm_value front, lbm_value back) {
+static lbm_value append(lbm_value front, lbm_value back) {
   if (lbm_is_symbol_nil(front)) return back;
   if (lbm_is_symbol_nil(back)) return front;
 
@@ -5447,7 +5473,7 @@ static void cont_pop_reader_flags(eval_context_t *ctx) {
 //
 // s[sp-2] retval  - a list of 2 elements created by eval_trap
 // s[sp-1] flags   - context flags stored by eval_trap
-// 
+//
 static void cont_exception_handler(eval_context_t *ctx) {
   lbm_value *sptr = pop_stack_ptr(ctx, 2);
   lbm_value retval = sptr[0];
@@ -5681,7 +5707,7 @@ static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
         // so, even if this isn't always how you would expect apply to work.
         // For instance, `(apply and '(a))` would try evaluating the symbol `a`,
         // instead of just returning the symbol `a` outright.
-        
+
         // Evaluator functions expect the current expression to equal the special
         // form, i.e. including the function symbol.
         lbm_value fun_and_args = cons_with_gc(fun, arg_list, ENC_SYM_NIL);
@@ -5703,19 +5729,19 @@ static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     } else if (lbm_is_cons(fun)) {
       lbm_cons_t *fun_cell = lbm_ref_cell(fun);
       switch (fun_cell->car) {
-        case ENC_SYM_CLOSURE: {          
+        case ENC_SYM_CLOSURE: {
           lbm_value closure[3];
           extract_n(fun_cell->cdr, closure, 3);
-          
+
           // Only placed here to protect from GC. Will be overriden later.
           // ctx->r = arg_list; // Should already be placed there.
           ctx->curr_exp = fun;
-          
+
           lbm_value env = closure[CLO_ENV];
-          
+
           lbm_value current_params = closure[CLO_PARAMS];
           lbm_value current_args = arg_list;
-          
+
           while (true) {
             bool more_params = lbm_is_cons(current_params);
             bool more_args = lbm_is_cons(current_args);
@@ -5726,14 +5752,14 @@ static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
               lbm_value car_args = a_cell->car;
               lbm_value cdr_params = p_cell->cdr;
               lbm_value cdr_args = a_cell->cdr;
-              
+
               // More parameters to bind
               env = allocate_binding(
                 car_params,
                 car_args,
                 env
               );
-              
+
               current_params = cdr_params;
               current_args = cdr_args;
             } else if (!more_params && more_args) {
@@ -5749,7 +5775,7 @@ static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
               ERROR_AT_CTX(ENC_SYM_EERROR, fun);
             }
           }
-          
+
           ctx->curr_env = env;
           ctx->curr_exp = closure[CLO_BODY];
           return;
@@ -5974,16 +6000,12 @@ void lbm_run_eval(void){
       // the current timestamp has overflowed back to being small, giving a
       // "positive" (closer to min value) result, meaning the context will be
       // switched.
-      uint32_t unsigned_difference = timestamp_us_callback() - eval_current_quota;
-      bool is_negative = unsigned_difference & (1u << 31); 
+      uint32_t unsigned_difference = timestamp() - eval_current_quota;
+      bool is_negative = unsigned_difference & (1u << 31);
       if (is_negative && ctx_running) {
         evaluation_step();
       } else {
         if (eval_cps_state_changed) break;
-        // On overflow of timer, task will get a no-quota.
-        // Could lead to busy-wait here until timestamp and quota
-        // are on same side of overflow.
-        eval_current_quota = timestamp_us_callback() + eval_time_refill;
         if (!is_atomic) {
           if (gc_requested) {
             gc();
@@ -6004,6 +6026,16 @@ void lbm_run_eval(void){
             lbm_system_sleeping = false;
           }
         }
+        // Assign a new quota last.
+        // This means that the time it takes in finding a context to dequeue
+        // and the other work above is not included in the woken up contexts quota.
+        //
+        // Earlier the new quota was assigned at the top of this branch,
+        // If that happened such that timestamp + eval_time_refil ends
+        // up to be just shy of an overflow, going through all the rest of
+        // logic could potentially overflow the timestamp and create a situation
+        // where the scheduled task has a humongous quota!
+        eval_current_quota = timestamp() + eval_time_refill;
       }
 #else
       if (eval_steps_quota && ctx_running) {

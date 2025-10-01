@@ -562,10 +562,7 @@ int test_callback_setters_null() {
   
   // Test lbm_set_usleep_callback with NULL
   lbm_set_usleep_callback(NULL);
-  
-  // Test lbm_set_timestamp_us_callback with NULL
-  lbm_set_timestamp_us_callback(NULL);
-  
+    
   // Test lbm_set_ctx_done_callback with NULL
   lbm_set_ctx_done_callback(NULL);
   

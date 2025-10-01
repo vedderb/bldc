@@ -28,6 +28,7 @@ These should be added as a -D... flag to the C compiler for the LispBM compilati
 <li>LBM_USE_TIME_QUOTA - Use scheduler with time-based quotas instead of evaluator steps.</li>
 <li>LBM_USE_EXT_MAILBOX_GET - loads the mailbox-get extension that allows introspection into mailboxes.</li>
 <li>LBM_USE_ERROR_LINENO - Reports the line in eval_cps.c where the error was triggered. For debug use.</li>
+<li>LBM_USE_MACRO_REST_ARGS - allow macros to access a rest-args list just like lambda defined functions.</li>
 </ul>
 
 The following preprocessor flags control code size optimizions on a per subsystem basis.

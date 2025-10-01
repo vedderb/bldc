@@ -139,7 +139,8 @@ LBMSRC = ../../src/env.c \
          ../../src/lbm_flat_value.c \
          ../../src/lbm_defrag_mem.c \
          ../../src/lbm_image.c \
-         ../../platform/chibios/src/platform_mutex.c
+         ../../platform/chibios/src/platform_mutex.c \
+         ../../platform/chibios/src/platform_timestamp.c
 
 CSRC = $(ALLCSRC) \
        $(TESTSRC) \

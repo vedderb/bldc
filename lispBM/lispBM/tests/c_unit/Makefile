@@ -5,7 +5,8 @@ LISPBM := ../../
 include $(LISPBM)/lispbm.mk
 
 PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
-PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c
+PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c \
+                   $(LISPBM)/platform/linux/src/platform_timestamp.c
 
 #CCFLAGS = -g -O2 -Wall -Wextra -Wshadow -Wconversion -Wclobbered -pedantic -std=c99
 

@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <stdatomic.h>
 
 #ifndef LBM_WIN
 #include <sys/time.h>
@@ -41,6 +42,7 @@
 #include "eval_cps.h"
 #include "lbm_image.h"
 #include "lbm_flat_value.h"
+#include "platform_timestamp.h"
 
 #include <png.h>
 
@@ -156,12 +158,7 @@ static lbm_value ext_bits_dec_int(lbm_value *args, lbm_uint argn) {
 
 
 // TIME
-
-uint32_t timestamp(void) {
-  struct timeval tv;
-  gettimeofday(&tv,NULL);
-  return (uint32_t)(tv.tv_sec * 1000000 + tv.tv_usec);
-}
+extern void sleep_callback(uint32_t us);
 
 static lbm_value ext_systime(lbm_value *args, lbm_uint argn) {
 
@@ -293,18 +290,24 @@ static lbm_value ext_load_file(lbm_value *args, lbm_uint argn) {
       rewind(h->fp);
 
       if (size > 0) {
-        uint8_t *data = lbm_malloc((size_t)size);
+        uint8_t *data = lbm_malloc((size_t)size+1);
         if (data) {
+          memset(data, 0, (unsigned int)size+1) ;
 
           lbm_value val;
-          lbm_lift_array(&val, (char*)data, (lbm_uint)size);
-          if (!lbm_is_symbol(val)) {
-            size_t n = fread(data, 1, (size_t)size, h->fp);
-            if ( n > 0) {
-              res = val;
-            } else {
-              res = ENC_SYM_NIL; // or some empty indicator?
+          if (lbm_lift_array(&val, (char*)data, (lbm_uint)size+1)) {
+            if (!lbm_is_symbol(val)) {
+              size_t n = fread(data, 1, (size_t)size, h->fp);
+              if ( n > 0) {
+                res = val;
+              } else {
+                lbm_free(data);
+                res = ENC_SYM_NIL; // or some empty indicator?
+              }
             }
+          } else {
+            lbm_free(data);
+            res = ENC_SYM_MERROR;
           }
         } else {
           res = ENC_SYM_MERROR;
