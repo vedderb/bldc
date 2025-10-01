@@ -711,6 +711,7 @@ typedef struct {
 } size_accumulator;
 
 static int size_acc(lbm_value v, bool shared, void *acc) {
+  (void) shared;
   size_accumulator *sa = (size_accumulator*)acc;
 
   int32_t ix = sharing_table_contains(sa->st, v);
@@ -802,6 +803,7 @@ typedef struct {
 } flatten_node_meta_data;
 
 static int flatten_node(lbm_value v, bool shared, void *arg) {
+  (void) shared;
   flatten_node_meta_data *md = (flatten_node_meta_data*)arg;
   bool *acc = &md->res;
 
