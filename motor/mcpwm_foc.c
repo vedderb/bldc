@@ -1034,7 +1034,7 @@ float mcpwm_foc_get_duty_cycle_now(void) {
 }
 
 float mcpwm_foc_get_pid_speed_set(void) {
-	return get_motor_now()->m_speed_pid_set_rpm;
+	return get_motor_now()->m_speed_command_rpm;
 }
 
 float mcpwm_foc_get_pid_pos_set(void) {
