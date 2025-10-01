@@ -1298,7 +1298,7 @@ bool lbm_image_boot(void) {
       *((lbm_uint*)link_ptr) = sym_id;
       lbm_uint next_id = lbm_symrepr_get_next_id();
       if (sym_id >= RUNTIME_SYMBOLS_START && sym_id >= next_id ) {
-        lbm_symrepr_set_next_id(next_id + 1);
+        lbm_symrepr_set_next_id(sym_id + 1);
       }
       lbm_symrepr_set_symlist((lbm_uint*)(image_address + (pos - 7)));
       pos -= 8;
@@ -1308,7 +1308,7 @@ bool lbm_image_boot(void) {
       *((lbm_uint*)link_ptr) = sym_id;
       lbm_uint next_id = lbm_symrepr_get_next_id();
       if (sym_id >= RUNTIME_SYMBOLS_START && sym_id >= next_id ) {
-        lbm_symrepr_set_next_id(next_id + 1);
+        lbm_symrepr_set_next_id(sym_id + 1);
       }
       lbm_symrepr_set_symlist((lbm_uint*)(image_address + (pos - 3)));
       pos -= 4;
