@@ -20,10 +20,6 @@ default_name = "VESC_default.bin"
 # Add directories and targets to the dictionary
 # package_dict["group name diplayed in firmware tab of the vesc tool"] = [['.c filename minus the hw_', 'compiled .bin filename']]
 package_dict = {}
-package_dict["46_o_47"] = [['46', default_name],
-                    ['46_33k', 'VESC_33k.bin'],
-                    ['46_0005ohm', 'VESC_0005ohm.bin']]
-package_dict["48"] = [['48', default_name]]
 package_dict["410_o_411_o_412"] = [['410', default_name],
                     ['410_no_limits', no_limits_name],
                     ['410_0005ohm', 'VESC_0005ohm.bin'],
@@ -39,18 +35,14 @@ package_dict["60_MK5"] = [['60_mk5', default_name],
 package_dict["60_MK6"] = [['60_mk6', default_name],
                     ['60_mk6_no_limits', no_limits_name]]
 package_dict["60_MK6_MAX"] = [['60_mk6_max', default_name]]
-package_dict["DAS_RS"] = [['das_rs', default_name]]
 package_dict["75_300"] = [['75_300', default_name],
                     ['75_300_no_limits', no_limits_name]]
 package_dict["75_300_R2"] = [['75_300_r2', default_name],
                     ['75_300_r2_no_limits', no_limits_name]]
 package_dict["75_300_R3"] = [['75_300_r3', default_name],
                     ['75_300_r3_no_limits', no_limits_name]]
-package_dict["AXIOM"] = [['axiom', default_name]]
 package_dict["HD60"] = [['hd60', default_name],
                     ['hd60_no_limits', no_limits_name]]
-package_dict["HD75"] = [['hd75', default_name],
-                    ['hd75_no_limits', no_limits_name]]
 package_dict["A50S_6S"] = [['a50s_v22_6s', default_name]]
 package_dict["A50S_6S_HG"] = [['a50s_v22_6s_hg', default_name]]
 package_dict["A50S_12S"] = [['a50s_v22_12s', default_name]]
@@ -110,7 +102,6 @@ package_dict["Thor400v2"] = [['Thor400v2', default_name]]
 package_dict["JetFleetF6_20s"] = [['JetFleetF6_20s', default_name]]
 package_dict["JetFleetF6_24s"] = [['JetFleetF6_24s', default_name]]
 package_dict["JetFleetF6_32s"] = [['JetFleetF6_32s', default_name]]
-package_dict["UXV_SR"] = [['uxv_sr', default_name]]
 package_dict["GESC"] = [['gesc', default_name]]
 package_dict["Warrior6"] = [['warrior6', default_name]]
 package_dict["Raiden7"] = [['raiden7', default_name]]
@@ -191,14 +182,8 @@ package_dict["MKSESC_100_300_HP"] = [['mksesc_100_300_hp', default_name],
                     ['mksesc_100_300_hp_no_limits', no_limits_name]] 
 package_dict["STR500"] = [['str500', default_name],
                     ['str500_no_limits', no_limits_name]]
-package_dict["STR500_01"] = [['str500_01', default_name]]
-package_dict["STR500_HP"] = [['str500_hp', default_name],
-                    ['str500_hp_no_limits', no_limits_name]]
-package_dict["RB"] = [['rb', default_name]]
 package_dict["STR365"] = [['str365', default_name],
                     ['str365_no_limits', no_limits_name]]
-package_dict["STR365_150"] = [['str365_150', default_name],
-                    ['str365_150_no_limits', no_limits_name]]
 package_dict["RSR_DD_V1"] = [['RSR_DD_V1', default_name],
                     ['RSR_DD_V1_005', 'RSR_DD_V1_005.bin']]
 package_dict["RSR_DD_V2"] = [['RSR_DD_V2', default_name]]
