@@ -32,6 +32,7 @@
 #define HW_HAS_3_SHUNTS
 #define INVERTED_SHUNT_POLARITY
 #define HW_HAS_PHASE_FILTERS
+#define HW_BOOT_VESC_CAN
 
 // Macros
 #define LED_GREEN_GPIO			GPIOC
