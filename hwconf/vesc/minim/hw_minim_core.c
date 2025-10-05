@@ -253,6 +253,7 @@ void hw_setup_adc_channels(void) {
 	}
 }
 
+// ADC-version with filtering and hysteresis
 static THD_FUNCTION(sense_thread, arg) {
 	(void)arg;
 
@@ -267,9 +268,9 @@ static THD_FUNCTION(sense_thread, arg) {
 		UTILS_LP_FAST(volts, ADC_VOLTS(ADC_IND_EXT3), 0.5);
 
 		if (speed_last) {
-			speed = volts < 1.8;
+			speed = volts < 1.3;
 		} else {
-			speed = volts < 1.1;
+			speed = volts < 0.6;
 		}
 
 		if (speed && speed != speed_last) {
@@ -284,6 +285,30 @@ static THD_FUNCTION(sense_thread, arg) {
 		chThdSleep(1);
 	}
 }
+
+// Digital version
+//static THD_FUNCTION(sense_thread, arg) {
+//	(void)arg;
+//
+//	chRegSetThreadName("hw-wheel");
+//
+//	int speed_last = palReadPad(HW_ADC_EXT3_GPIO, HW_ADC_EXT3_PIN);
+//
+//	for (;;) {
+//		bool speed = palReadPad(HW_ADC_EXT3_GPIO, HW_ADC_EXT3_PIN);
+//
+//		if (speed && speed != speed_last) {
+//			float time = UTILS_AGE_S(speed_update);
+//			if (time > 0.05) { // Max 900 RPM
+//				speed_time = time;
+//				speed_update = chVTGetSystemTimeX();
+//			}
+//		}
+//
+//		speed_last = speed;
+//		chThdSleep(1);
+//	}
+//}
 
 void hw_start_i2c(void) {
 	i2cAcquireBus(&HW_I2C_DEV);
@@ -405,7 +430,7 @@ bool hw_sample_shutdown_button(void) {
 
 	chMtxUnlock(&shutdown_mutex);
 
-	return (bt_diff < 0.355);
+	return (bt_diff < 0.31);
 }
 
 void hw_shutdown_set_hold(bool hold) {

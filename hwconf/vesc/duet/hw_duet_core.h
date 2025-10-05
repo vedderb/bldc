@@ -27,6 +27,7 @@
 
 #define INVERTED_SHUNT_POLARITY
 #define HW_HAS_3_SHUNTS
+#define HW_BOOT_VESC_CAN
 
 #define HW_DEAD_TIME_NSEC               300.0
 
@@ -336,6 +337,9 @@
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE		92.0	// Maximum input voltage
+#endif
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV				23000.0
 #endif
 
 #define HW_LIM_CURRENT				-200.0, 200.0
