@@ -3857,15 +3857,21 @@ The following selection of app and motor parameters can be read and set from Lis
 'controller-id          ; VESC CAN ID
 'timeout-msec           ; Motor timeout in milliseconds (Added in FW 6.06)
 'can-baud-rate          ; CAN-bus baud rate (Added in FW 6.05)
-                        ; 0: 125K
-                        ; 1: 250K
-                        ; 2: 500K
-                        ; 3: 1M
-                        ; 4: 10K
-                        ; 5: 20K
-                        ; 6: 50K
-                        ; 7: 75K
-                        ; 8: 100K
+                        ;    0: 125K
+                        ;    1: 250K
+                        ;    2: 500K
+                        ;    3: 1M
+                        ;    4: 10K
+                        ;    5: 20K
+                        ;    6: 50K
+                        ;    7: 75K
+                        ;    8: 100K
+'can-mode               ; CAN-bus mode (FW 6.05.3+)
+                        ;    0: 125K
+                        ;    1: VESC
+                        ;    2: UAVCAN
+                        ;    3: COMM Bridge
+                        ;    4: Unused
 'can-status-rate-1      ; CAN status rate 1 in Hz (Added in FW 6.05)
 'can-status-msgs-r1     ; Bitfield with the status messages (Added in FW 6.05)
                         ; Bit0: Status 1 (RPM, Current, Duty)
@@ -3922,20 +3928,20 @@ The following selection of app and motor parameters can be read and set from Lis
 ; Express settings (Added in 6.05)
 'controller-id          ; VESC CAN ID
 'can-baud-rate          ; CAN-bus baud rate
-                        ; 0: 125K
-                        ; 1: 250K
-                        ; 2: 500K
-                        ; 3: 1M
-                        ; 4: 10K
-                        ; 5: 20K
-                        ; 6: 50K
-                        ; 7: 75K
-                        ; 8: 100K
+                        ;    0: 125K
+                        ;    1: 250K
+                        ;    2: 500K
+                        ;    3: 1M
+                        ;    4: 10K
+                        ;    5: 20K
+                        ;    6: 50K
+                        ;    7: 75K
+                        ;    8: 100K
 'can-status-rate-hz     ; CAN status message rate
 'wifi-mode              ; Wifi mode
-                        ; 0: Disabled
-                        ; 1: Station
-                        ; 2: Access Point
+                        ;    0: Disabled
+                        ;    1: Station
+                        ;    2: Access Point
 'wifi-sta-ssid          ; Wifi station SSID
 'wifi-sta-key           ; Wifi station Key
 'wifi-ap-ssid           ; Wifi access point SSID
@@ -3947,10 +3953,10 @@ The following selection of app and motor parameters can be read and set from Lis
 'tcp-hub-id             ; TCP hub connection ID
 'tcp-hub-pass           ; TCP hub password
 'ble-mode               ; BLE mode
-                        ; 0: Disabled
-                        ; 1: Enabled
-                        ; 2: Enabled and encrypted with pin
-                        ; 3: Enabled with scripting
+                        ;    0: Disabled
+                        ;    1: Enabled
+                        ;    2: Enabled and encrypted with pin
+                        ;    3: Enabled with scripting
 'ble-name               ; Device name (also the name that shows up in VESC Tool)
 'ble-pin                ; BLE pin code
 'ble-service-capacity   ; BLE Service Capacity

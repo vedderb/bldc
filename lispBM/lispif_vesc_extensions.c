@@ -227,6 +227,7 @@ typedef struct {
 	lbm_uint controller_id;
 	lbm_uint timeout_msec;
 	lbm_uint can_baud_rate;
+	lbm_uint can_mode;
 	lbm_uint can_status_rate_1;
 	lbm_uint can_status_msgs_r1;
 	lbm_uint can_status_rate_2;
@@ -602,6 +603,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("timeout-msec", comp);
 		} else if (comp == &syms_vesc.can_baud_rate) {
 			lbm_add_symbol_const("can-baud-rate", comp);
+		} else if (comp == &syms_vesc.can_mode) {
+			lbm_add_symbol_const("can-mode", comp);
 		} else if (comp == &syms_vesc.can_status_rate_1) {
 			lbm_add_symbol_const("can-status-rate-1", comp);
 		} else if (comp == &syms_vesc.can_status_msgs_r1) {
@@ -3885,6 +3888,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.can_baud_rate)) {
 			appconf->can_baud_rate = lbm_dec_as_i32(args[1]);
 			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.can_mode)) {
+			appconf->can_mode = lbm_dec_as_i32(args[1]);
+			changed_app = 2;
 		} else if (compare_symbol(name, &syms_vesc.app_to_use)) {
 			appconf->app_to_use = lbm_dec_as_i32(args[1]);
 			changed_app = 2;
@@ -4235,6 +4241,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_i(appconf->timeout_msec);
 	} else if (compare_symbol(name, &syms_vesc.can_baud_rate)) {
 		res = lbm_enc_i(appconf->can_baud_rate);
+	} else if (compare_symbol(name, &syms_vesc.can_mode)) {
+		res = lbm_enc_i(appconf->can_mode);
 	} else if (compare_symbol(name, &syms_vesc.can_status_rate_1)) {
 		res = lbm_enc_u(appconf->can_status_rate_1);
 	} else if (compare_symbol(name, &syms_vesc.can_status_msgs_r1)) {
