@@ -3779,6 +3779,7 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    12: SENSOR_PORT_MODE_CUSTOM_ENCODER
                         ;    13: SENSOR_PORT_MODE_PWM
                         ;    14: SENSOR_PORT_MODE_PWM_ABI
+'m-fault-stop-time-ms   ; Milliseconds to stop the motor for after fauls (FW6.06.5)
 'si-motor-poles         ; Number of motor poles, must be multiple of 2
 'si-gear-ratio          ; Gear ratio (Added in FW 6.05)
 'si-wheel-diameter      ; Wheel diameter in meters (Added in FW 6.05)
@@ -3900,6 +3901,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'ppm-pulse-center       ; Pulse corresponding to center throttle in ms
 'ppm-ramp-time-pos      ; Positive ramping time in seconds
 'ppm-ramp-time-neg      ; Negative ramping time in seconds
+'ppm-hyst               ; Input deadband, range 0 to 1 (Added in FW 6.06.5)
 'adc-ctrl-type          ; ADC Control Type (Added in FW 6.02)
                         ;    0:  ADC_CTRL_TYPE_NONE
                         ;    1:  ADC_CTRL_TYPE_CURRENT
@@ -3918,7 +3920,7 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    14: ADC_CTRL_TYPE_PID_REV_BUTTON
 'adc-ramp-time-pos      ; Positive ramping time in seconds (Added in FW 6.05)
 'adc-ramp-time-neg      ; Negative ramping time in seconds (Added in FW 6.05)
-'adc-thr-hyst           ; Throttle hysteresis, range 0 to 1 (Added in FW 6.05)
+'adc-thr-hyst           ; Throttle deadband, range 0 to 1 (Added in FW 6.05)
 'adc-v1-start           ; Throttle 1 start voltage (Added in FW 6.05)
 'adc-v1-end             ; Throttle 1 end voltage (Added in FW 6.05)
 'adc-v1-min             ; Throttle 1 low fault voltage (Added in FW 6.05)
