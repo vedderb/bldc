@@ -141,9 +141,6 @@ static inline lbm_uint status(lbm_uint i) {
   lbm_uint bit_ix  = ix & WORD_MOD_MASK;              // % 32
 
   lbm_uint mask = ((lbm_uint)3) << bit_ix;       // 000110..0
-  if (word_ix > bitmap_size) {
-    return (lbm_uint)NULL;
-  }
   return (bitmap[word_ix] & mask) >> bit_ix;
 }
 
@@ -185,7 +182,7 @@ lbm_uint lbm_memory_longest_free(void) {
   lbm_uint max_length = 0;
 
   lbm_uint curr_length = 0;
-  for (unsigned int i = 0; i < (bitmap_size << BITMAP_SIZE_SHIFT); i ++) {
+  for (unsigned int i = 0; i < memory_size; i ++) {
 
     // The status field is 2 bits and this 4 cases is exhaustive!
     switch(status(i)) {
@@ -219,7 +216,11 @@ lbm_uint lbm_memory_longest_free(void) {
   mutex_unlock(&lbm_mem_mutex);
   if (memory_num_free - max_length < memory_reserve_level) {
     lbm_uint n = memory_reserve_level - (memory_num_free - max_length);
-    max_length -= n;
+    if (n >= max_length) {
+      max_length = 0;
+    } else {
+      max_length -= n;
+    }
   }
   return max_length;
 }
@@ -236,9 +237,8 @@ static lbm_uint *lbm_memory_allocate_internal(lbm_uint num_words) {
   lbm_uint end_ix = 0;
   lbm_uint free_length = 0;
   unsigned int state = INIT;
-  lbm_uint loop_max = (bitmap_size << BITMAP_SIZE_SHIFT);
 
-  for (lbm_uint i = 0; i < loop_max; i ++) {
+  for (lbm_uint i = 0; i < memory_size; i ++) {
     switch(status(alloc_offset)) {
     case FREE_OR_USED:
       switch (state) {
@@ -279,7 +279,7 @@ static lbm_uint *lbm_memory_allocate_internal(lbm_uint num_words) {
     if (state == ALLOC_DONE) break;
 
     alloc_offset++;
-    if (alloc_offset == loop_max ) {
+    if (alloc_offset == memory_size ) {
       free_length = 0;
       alloc_offset = 0;
       state = INIT;
@@ -319,7 +319,7 @@ int lbm_memory_free(lbm_uint *ptr) {
     switch(status(ix)) {
     case START:
       set_status(ix, FREE_OR_USED);
-      for (lbm_uint i = ix; i < (bitmap_size << BITMAP_SIZE_SHIFT); i ++) {
+      for (lbm_uint i = ix; i < memory_size; i ++) {
         count_freed ++;
         if (status(i) == END) {
           set_status(i, FREE_OR_USED);
@@ -396,7 +396,7 @@ int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
   bool done = false;
   unsigned int i = 0;
 
-  for (i = 0; i < ((bitmap_size << BITMAP_SIZE_SHIFT) - ix); i ++) {
+  for (i = 0; i < (memory_size - ix); i ++) {
     if (status(ix+i) == END && i < n) {
       mutex_unlock(&lbm_mem_mutex);
       return 0; // cannot shrink allocation to a larger size
@@ -421,7 +421,7 @@ int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
   lbm_uint count = 0;
   if (!done) {
     i++; // move to next position, prev position should be END or START_END
-    for (;i < ((bitmap_size << BITMAP_SIZE_SHIFT) - ix); i ++) {
+    for (;i < (memory_size - ix); i ++) {
       count ++;
       if (status(ix+i) == END) {
         set_status(ix+i, FREE_OR_USED);

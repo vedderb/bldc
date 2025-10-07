@@ -214,13 +214,13 @@
 
 (compile-fun '((f 1 2 3)))
 
-(let ((y 10))
-  (compile-fun (lambda (x) (+ x y)))
-  )
+;;(let ((y 10))
+;;  (compile-fun (lambda (x) (+ x y)))
+;;  )
 
-(define f (lambda (x) (+ x 1)))
+;;(define f (lambda (x) (+ x 1)))
 
-(define f-c (compile-fun f))
+;;(define f-c (compile-fun f))
 
-(compile-fun (lambda (xs) (length xs)))
+;;(compile-fun (lambda (xs) (length xs)))
 

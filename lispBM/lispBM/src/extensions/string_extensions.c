@@ -87,7 +87,7 @@ static lbm_value ext_str_from_n(lbm_value *args, lbm_uint argn) {
   char buffer[100];
   size_t len = 0;
 
-  switch (lbm_type_of(args[0])) {
+  switch (lbm_type_of_functional(args[0])) {
   case LBM_TYPE_DOUBLE: /* fall through */
   case LBM_TYPE_FLOAT:
     if (!format) {

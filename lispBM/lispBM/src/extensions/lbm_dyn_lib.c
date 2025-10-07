@@ -59,9 +59,11 @@ static const char* lbm_dyn_fun[] = {
 
   "(defun abs (x) (if (< x 0) (- x) x))",
 #ifdef LBM_USE_DYN_DEFSTRUCT
-  "(defun create-struct (dm name num-fields) { "
-  "(var arr (if dm (mkarray dm (+ 1 num-fields)) (mkarray (+ 1 num-fields)))) "
+  "(defun create-struct (name num-fields initials) { "
+  "(var arr (mkarray (+ 1 num-fields))) "
   "(setix arr 0 name) "
+  "(var num_inits (length initials))"
+  "(if initials (loopfor i 0 (and (< i num-fields) (< i num_inits)) (+ i 1) (setix arr (+ i 1) (ix initials i))))"
   "arr "
   "})",
 
@@ -115,7 +117,7 @@ static const char* lbm_dyn_macros[] = {
   "(var new-pred-sym (str2sym (str-merge name-as-string \"?\")))"
   "(var field-ix (zip list-of-fields (range 1 (+ num-fields 1))))"
   "`(progn"
-  "(define ,new-create-sym (lambda () (create-struct (rest-args 0) ',name ,num-fields)))"
+  "(define ,new-create-sym (lambda () (create-struct ',name ,num-fields (rest-args))))"
   "(define ,new-pred-sym (lambda (struct) (is-struct struct ',name)))"
   ",@(map (lambda (x) (list define (accessor-sym name-as-string (car x))"
   "(access-set (cdr x)))) field-ix)"

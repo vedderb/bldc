@@ -30,6 +30,7 @@
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_FILTERS
 #define HW_HAS_PHASE_SHUNTS
+#define HW_BOOT_VESC_CAN
 
 #define COMM_USE_USB				0
 
@@ -112,14 +113,13 @@
 #define ADC_IND_SENS1			3
 #define ADC_IND_SENS2			4
 #define ADC_IND_SENS3			5
-#define ADC_IND_VIN_SENS		11
+#define ADC_IND_VIN_SENS		8
 #define ADC_IND_EXT5			16
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
-#define ADC_IND_EXT3			8
-#define ADC_IND_VREFINT			12
+#define ADC_IND_EXT3			14
 #define ADC_IND_ADC_MUX			15
-#define ADC_IND_EXT4			9
+#define ADC_IND_EXT4			12
 #define ADC_IND_SHUTDOWN		13
 #define ADC_IND_EXT6			13
 
@@ -269,7 +269,7 @@
 #define MCCONF_L_MIN_VOLTAGE			20.0		// Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			100.0	// Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE			94.0	// Maximum input voltage
 #endif
 #ifndef MCCONF_FOC_F_ZV
 #define MCCONF_FOC_F_ZV					30000.0
@@ -297,7 +297,7 @@
 #define HW_LIM_CURRENT			-200.0, 200.0
 #define HW_LIM_CURRENT_IN		-200.0, 200.0
 #define HW_LIM_CURRENT_ABS		0.0, 300.0
-#define HW_LIM_VIN				20.0, 110.0
+#define HW_LIM_VIN				20.0, 97.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99

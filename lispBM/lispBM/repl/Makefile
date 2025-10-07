@@ -4,7 +4,8 @@ LISPBM := ../
 include $(LISPBM)/lispbm.mk
 
 PLATFORM_INCLUDE = -I$(LISPBM)/platform/linux/include
-PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c
+PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c \
+                   $(LISPBM)/platform/linux/src/platform_timestamp.c
 
 LBMFLAGS = -DFULL_RTS_LIB \
 	   -DLBM_USE_DYN_MACROS \
@@ -13,7 +14,8 @@ LBMFLAGS = -DFULL_RTS_LIB \
            -DLBM_USE_DYN_ARRAYS \
            -DLBM_USE_DYN_DEFSTRUCT \
            -DLBM_USE_TIME_QUOTA \
-           -DLBM_USE_ERROR_LINENO
+           -DLBM_USE_ERROR_LINENO \
+           -DLBM_USE_MACRO_REST_ARGS
 
 LDFLAGS =
 
@@ -25,7 +27,9 @@ ifeq ($(PLATFORM), macos-arm64)
 endif
 
 
-CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -fno-pie -no-pie
+# -Wjump-misses-init
+# -fsanitize=address
+CCFLAGS = -g -O2 -Wall -Wextra -Wshadow  -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -fno-pie -no-pie
 
 PICCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11
 PI64CCFLAGS = -O2 -Wall -Wconversion -pedantic -std=c11 -DLBM64
