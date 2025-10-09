@@ -24,9 +24,56 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#ifdef IS_VESC_LIB
-typedef uint32_t systime_t;
+#define NATIVE_LIB_MAGIC 0xCAFEBABE
 
+#if defined(ESP_PLATFORM) || defined(IS_VESC_LIB)
+typedef uint32_t systime_t;
+typedef enum {
+	FAULT_CODE_NONE = 0,
+	FAULT_CODE_OVER_VOLTAGE,
+	FAULT_CODE_UNDER_VOLTAGE,
+	FAULT_CODE_DRV,
+	FAULT_CODE_ABS_OVER_CURRENT,
+	FAULT_CODE_OVER_TEMP_FET,
+	FAULT_CODE_OVER_TEMP_MOTOR,
+	FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE,
+	FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE,
+	FAULT_CODE_MCU_UNDER_VOLTAGE,
+	FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET,
+	FAULT_CODE_ENCODER_SPI,
+	FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE,
+	FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE,
+	FAULT_CODE_FLASH_CORRUPTION,
+	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1,
+	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2,
+	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3,
+	FAULT_CODE_UNBALANCED_CURRENTS,
+	FAULT_CODE_BRK,
+	FAULT_CODE_RESOLVER_LOT,
+	FAULT_CODE_RESOLVER_DOS,
+	FAULT_CODE_RESOLVER_LOS,
+	FAULT_CODE_FLASH_CORRUPTION_APP_CFG,
+	FAULT_CODE_FLASH_CORRUPTION_MC_CFG,
+	FAULT_CODE_ENCODER_NO_MAGNET,
+	FAULT_CODE_ENCODER_MAGNET_TOO_STRONG,
+	FAULT_CODE_PHASE_FILTER,
+} mc_fault_code;
+
+typedef struct {
+	double lat;
+	double lon;
+	float height;
+	float speed;
+	float hdop;
+	int32_t ms_today;
+	int8_t yy;
+	int8_t mo;
+	int8_t dd;
+	systime_t last_update;
+} gnss_data;
+#endif
+
+#ifdef IS_VESC_LIB
 typedef struct {
 	int id;
 	systime_t rx_time;
@@ -80,37 +127,6 @@ typedef enum {
 	HW_TYPE_CUSTOM_MODULE
 } HW_TYPE;
 
-typedef enum {
-	FAULT_CODE_NONE = 0,
-	FAULT_CODE_OVER_VOLTAGE,
-	FAULT_CODE_UNDER_VOLTAGE,
-	FAULT_CODE_DRV,
-	FAULT_CODE_ABS_OVER_CURRENT,
-	FAULT_CODE_OVER_TEMP_FET,
-	FAULT_CODE_OVER_TEMP_MOTOR,
-	FAULT_CODE_GATE_DRIVER_OVER_VOLTAGE,
-	FAULT_CODE_GATE_DRIVER_UNDER_VOLTAGE,
-	FAULT_CODE_MCU_UNDER_VOLTAGE,
-	FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET,
-	FAULT_CODE_ENCODER_SPI,
-	FAULT_CODE_ENCODER_SINCOS_BELOW_MIN_AMPLITUDE,
-	FAULT_CODE_ENCODER_SINCOS_ABOVE_MAX_AMPLITUDE,
-	FAULT_CODE_FLASH_CORRUPTION,
-	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_1,
-	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_2,
-	FAULT_CODE_HIGH_OFFSET_CURRENT_SENSOR_3,
-	FAULT_CODE_UNBALANCED_CURRENTS,
-	FAULT_CODE_BRK,
-	FAULT_CODE_RESOLVER_LOT,
-	FAULT_CODE_RESOLVER_DOS,
-	FAULT_CODE_RESOLVER_LOS,
-	FAULT_CODE_FLASH_CORRUPTION_APP_CFG,
-	FAULT_CODE_FLASH_CORRUPTION_MC_CFG,
-	FAULT_CODE_ENCODER_NO_MAGNET,
-	FAULT_CODE_ENCODER_MAGNET_TOO_STRONG,
-	FAULT_CODE_PHASE_FILTER,
-} mc_fault_code;
-
 typedef union {
 	uint32_t as_u32;
 	int32_t as_i32;
@@ -145,19 +161,6 @@ typedef enum {
 	CAN_BAUD_75K,
 	CAN_BAUD_100K
 } CAN_BAUD;
-
-typedef struct {
-	double lat;
-	double lon;
-	float height;
-	float speed;
-	float hdop;
-	int32_t ms_today;
-	int8_t yy;
-	int8_t mo;
-	int8_t dd;
-	systime_t last_update;
-} gnss_data;
 
 // LBM
 typedef uint32_t lbm_value;
@@ -297,7 +300,7 @@ typedef enum {
 	CFG_PARAM_si_battery_cells,
 	CFG_PARAM_si_battery_ah,
 	CFG_PARAM_si_motor_nl_current,
-
+	
 	// Motor FOC Parameters
 	CFG_PARAM_foc_motor_r,
 	CFG_PARAM_foc_motor_l,
@@ -383,18 +386,21 @@ typedef struct {
 	void (*request_terminate)(lib_thread thd);
 	bool (*should_terminate)(void);
 	void** (*get_arg)(uint32_t prog_addr);
-	
+
+	#ifndef ESP_PLATFORM
 	// ST IO
 	void (*set_pad_mode)(void *gpio, uint32_t pin, uint32_t mode);
 	void (*set_pad)(void *gpio, uint32_t pin);
 	void (*clear_pad)(void *gpio, uint32_t pin);
 	
+    
 	// Abstract IO
 	bool (*io_set_mode)(VESC_PIN pin, VESC_PIN_MODE mode);
 	bool (*io_write)(VESC_PIN pin, int state);
 	bool (*io_read)(VESC_PIN pin);
 	float (*io_read_analog)(VESC_PIN pin);
 	bool (*io_get_st_pin)(VESC_PIN vesc_pin, void **gpio, uint32_t *pin);
+	#endif
 
 	// CAN
 	void (*can_set_sid_cb)(bool (*p_func)(uint32_t id, uint8_t *data, uint8_t len));
@@ -425,6 +431,7 @@ typedef struct {
 	can_status_msg_6* (*can_get_status_msg_6_index)(int index);
 	can_status_msg_6* (*can_get_status_msg_6_id)(int id);
 
+	#ifndef ESP_PLATFORM
 	// Motor Control
 	int (*mc_motor_now)(void);
 	void (*mc_select_motor_thread)(int motor);
@@ -486,17 +493,25 @@ typedef struct {
 	float (*mc_stat_temp_motor_max)(void);
 	float (*mc_stat_count_time)(void);
 	void (*mc_stat_reset)(void);
+	#endif
 
 	// Comm
 	void (*commands_process_packet)(unsigned char *data, unsigned int len,
 			void(*reply_func)(unsigned char *data, unsigned int len));
+	#ifdef ESP_PLATFORM
+	void (*send_app_data)(unsigned char *data, unsigned int len, int interface, int can_id);
+	#else
 	void (*send_app_data)(unsigned char *data, unsigned int len);
+	#endif
+	
 	bool (*set_app_data_handler)(void(*func)(unsigned char *data, unsigned int len));
 
+	#ifndef ESP_PLATFORM
 	// UART
 	bool (*uart_start)(uint32_t baudrate, bool half_duplex);
 	bool (*uart_write)(const uint8_t *data, uint32_t size);
 	int32_t (*uart_read)(void);
+	#endif
 
 	// Packets
 	void (*packet_init)(void (*s_func)(unsigned char *, unsigned int),
@@ -534,10 +549,12 @@ typedef struct {
 	bool (*read_eeprom_var)(eeprom_var *v, int address);
 	bool (*store_eeprom_var)(eeprom_var *v, int address);
 
+	#ifndef ESP_PLATFORM
 	// Timeout
 	void (*timeout_reset)(void);
 	bool (*timeout_has_timeout)(void);
 	float (*timeout_secs_since_update)(void);
+	#endif
 
 	// Plot
 	void (*plot_init)(const char *namex, const char *namey);
@@ -552,23 +569,29 @@ typedef struct {
 			int (*get_cfg_xml)(uint8_t **data));
 	void (*conf_custom_clear_configs)(void);
 
+	#ifndef ESP_PLATFORM
 	// Settings (TODO: Add more types)
 	float (*get_cfg_float)(CFG_PARAM p);
 	int (*get_cfg_int)(CFG_PARAM p);
 	bool (*set_cfg_float)(CFG_PARAM p, float value);
 	bool (*set_cfg_int)(CFG_PARAM p, int value);
 	bool (*store_cfg)(void);
+	#endif
 
+	#ifndef ESP_PLATFORM
 	// GNSS-struct that can be both read and updated
 	volatile gnss_data* (*mc_gnss)(void);
+	#endif
 
 	// Mutex
 	lib_mutex (*mutex_create)(void); // Use VESC_IF->free on the mutex when done with it
 	void (*mutex_lock)(lib_mutex);
 	void (*mutex_unlock)(lib_mutex);
 
+	#ifndef ESP_PLATFORM
 	// Get ST io-pin from lbm symbol (this is only safe from extensions)
 	bool (*lbm_symbol_to_io)(lbm_uint sym, void **gpio, uint32_t *pin);
+	#endif
 
 	// High resolution timer for short busy-wait sleeps and time measurement
 	uint32_t (*timer_time_now)(void);
@@ -592,26 +615,31 @@ typedef struct {
 	float (*ahrs_get_pitch)(const ATTITUDE_INFO *att);
 	float (*ahrs_get_yaw)(const ATTITUDE_INFO *att);
 
+	#ifndef ESP_PLATFORM
 	// Set custom encoder callbacks
 	void (*encoder_set_custom_callbacks)(
 			float (*read_deg)(void),
 			bool (*has_fault)(void),
 			char* (*print_info)(void));
+	#endif
 
 	// Store backup data
 	bool (*store_backup_data)(void);
 
-	// Input Devices
+		// Input Devices
 	remote_state (*get_remote_state)(void);
 	float (*get_ppm)(void); // Get decoded PPM, range -1.0 to 1.0. If the decoder is not running it will be started.
 	float (*get_ppm_age)(void); // Get time since a pulse was decoded in seconds
 	bool (*app_is_output_disabled)(void); // True if apps should disable their output.
 
+	#ifndef ESP_PLATFORM
 	// NVM
 	bool (*read_nvm)(uint8_t *v, unsigned int len, unsigned int address);
 	bool (*write_nvm)(uint8_t *v, unsigned int len, unsigned int address);
 	bool (*wipe_nvm)(void);
+	#endif
 
+	#ifndef ESP_PLATFORM
 	// FOC
 	float (*foc_get_id)(void);
 	float (*foc_get_iq)(void);
@@ -621,6 +649,7 @@ typedef struct {
 	void (*foc_set_openloop_phase)(float current, float phase);
 	void (*foc_set_openloop_duty)(float dutyCycle, float rpm);
 	void (*foc_set_openloop_duty_phase)(float dutyCycle, float phase);
+	#endif
 
 	// Functions below were added in firmware 6.05
 
@@ -647,6 +676,7 @@ typedef struct {
 	systime_t (*system_time_ticks)(void);
 	void (*sleep_ticks)(systime_t ticks);
 
+	#ifndef ESP_PLATFORM
 	// FOC Audio
 	bool (*foc_beep)(float freq, float time, float voltage);
 	bool (*foc_play_tone)(int channel, float freq, float voltage);
@@ -654,6 +684,7 @@ typedef struct {
 	bool (*foc_set_audio_sample_table)(int channel, const float *samples, int len);
 	const float* (*foc_get_audio_sample_table)(int channel);
 	bool (*foc_play_audio_samples)(const int8_t *samples, int num_samp, float f_samp, float voltage);
+	#endif
 
 	// Semaphore
 	lib_semaphore (*sem_create)(void); // Use VESC_IF->free on the semaphore when done with it
@@ -667,8 +698,20 @@ typedef struct {
 	// Set priority of current thread
 	// Range: -5 to 5, -5 is lowest, 0 is normal, 5 is highest
 	void (*thread_set_priority)(int priority);
+	#ifndef ESP_PLATFORM
 	// Disable shutdown (for hw with momentary button / auto shutdown support)
 	void (*shutdown_disable)(bool disable);
+	#endif
+
+	#ifdef ESP_PLATFORM
+	// Functions below were added in firmware 7.00 and are VESC Express specific
+	bool (*rgbled_init)(int pin);
+	void (*rgbled_deinit)();
+	void (*rgbled_update)(uint8_t * data, size_t size);
+	int (*aes_ctr_crypt)(const uint8_t *key, size_t key_len,
+                              uint8_t counter[16],
+                              uint8_t *buf, size_t start, size_t len);
+	#endif
 } vesc_c_if;
 
 typedef struct {
@@ -677,11 +720,18 @@ typedef struct {
 	uint32_t base_addr;
 } lib_info;
 
-// System tick rate. Can be used to convert system ticks to time
-#define SYSTEM_TICK_RATE_HZ 10000
+
 
 // VESC-interface with function pointers
+#ifdef ESP_PLATFORM
+// System tick rate. Can be used to convert system ticks to time
+#define SYSTEM_TICK_RATE_HZ 1000
+#define VESC_IF		((vesc_c_if*)(0x3FCCF800))
+#else
+// System tick rate. Can be used to convert system ticks to time
+#define SYSTEM_TICK_RATE_HZ 10000
 #define VESC_IF		((vesc_c_if*)(0x1000F800))
+#endif
 
 // Put this at the beginning of your source file
 #define HEADER		volatile int __attribute__((__section__(".program_ptr"))) prog_ptr;
