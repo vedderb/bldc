@@ -1,4 +1,4 @@
-import QtQuick 2.7
+import Vedder.vesc.vescinterface 1.0;import "qrc:/mobile";import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 import Qt.labs.settings 1.0 as QSettings
@@ -7,10 +7,12 @@ import Vedder.vesc.bleuart 1.0
 import Vedder.vesc.commands 1.0
 import Vedder.vesc.configparams 1.0
 import Vedder.vesc.utility 1.0
+
 Item {
     id: mainItem
     anchors.fill: parent
     //anchors.margins: 10    //fix this
+
     property BleUart mBle: VescIf.bleDevice()
     property Commands mCommands: VescIf.commands()
     property var fwVersion: mCommands.getFwVersion()
@@ -18,6 +20,7 @@ Item {
     property ConfigParams mAppConf: VescIf.appConfig()
     property ConfigParams mInfoConf: VescIf.infoConfig()
     property bool isHorizontal: width > height
+
     property bool scheduleConfWrite: false
     property bool fixedThrottle: false
     property var parentTabBar: parent.tabBarItem
@@ -25,41 +28,43 @@ Item {
     Component.onCompleted: {
         parentTabBar.visible = true
         parentTabBar.enabled = true
-        readSettings()
     }
-
+    
     ColumnLayout {
         anchors.fill: parent
         anchors.topMargin: parentTabBar ? parentTabBar.height / 2 : 0
-
         TabBar {
             id: tabBar
+            //parent: parentTabBar
+            //anchors.fill: parent
+
             currentIndex: swipeView.currentIndex
             Layout.fillWidth: true
             implicitWidth: 0
             clip: true
-            property int buttons: 5
+
+            property int buttons: 4
             property int buttonWidth: 100
 
             TabButton {
                 text: qsTr("Ride")
-                width: Math.max(tabBar.buttonWidth,tabBar.width / tabBar.buttons)
+                width: Math.max(tabBar.buttonWidth,
+                                tabBar.width / tabBar.buttons)
             }
             TabButton {
                 text: qsTr("Tune")
-                width: Math.max(tabBar.buttonWidth,tabBar.width / tabBar.buttons)
+                width: Math.max(tabBar.buttonWidth,
+                                tabBar.width / tabBar.buttons)
             }
             TabButton {
                 text: qsTr("Bike CFG")
-                width: Math.max(tabBar.buttonWidth,tabBar.width / tabBar.buttons)
-            }
-            TabButton {
-                text: qsTr("Logging")
-                width: Math.max(tabBar.buttonWidth,tabBar.width / tabBar.buttons)
+                width: Math.max(tabBar.buttonWidth,
+                                tabBar.width / tabBar.buttons)
             }
             TabButton {
                 text: qsTr("Firmware")
-                width: Math.max(tabBar.buttonWidth,tabBar.width / tabBar.buttons)
+                width: Math.max(tabBar.buttonWidth,
+                                tabBar.width / tabBar.buttons)
             }
         }
 
@@ -68,13 +73,15 @@ Item {
             currentIndex: tabBar.currentIndex
             Layout.fillHeight: true
             Layout.fillWidth: true
-            clip: true              
-                                        Page {
-                        RtDataSetup {
-                            anchors.fill: parent
-                            updateData: swipeView.currentIndex == 0
-                        }
-                    }
+
+            clip: true
+
+            Page {
+                RtDataSetup {
+                anchors.fill: parent
+                }
+            }
+
             Page {
                 background: Rectangle {
                     opacity: 0.0
@@ -82,19 +89,23 @@ Item {
 
                 ColumnLayout {
                     anchors.topMargin: 5
-                    anchors.bottomMargin: 1
+                    anchors.bottomMargin: 1 //leave space for statusbar?
                     anchors.fill: parent
 
                     clip: false
+                    visible: true
                     spacing: 5
 
                     TabBar {
                         id: profilesBar
                         currentIndex: profileSwipeView.currentIndex
+
                         property var lastProfileIndex: currentIndex
+
                         Layout.fillWidth: true
                         implicitWidth: 0
                         clip: true
+
                         property int buttons: 3
                         property int buttonWidth: 100
 
@@ -117,25 +128,30 @@ Item {
                                        profilesBar.width / profilesBar.buttons)
                         }
                     }
+
                     SwipeView {
                         id: profileSwipeView
                         currentIndex: profilesBar.currentIndex
                         Layout.fillHeight: true
                         Layout.fillWidth: true
+
                         clip: true
-                        interactive: false
+
+
                         // Street Legal
-                        Page 
+                        Page
                         {
                             ColumnLayout {
                                 anchors.topMargin: 5
-                                anchors.bottomMargin: 1
+                                anchors.bottomMargin: 1 //leave space for statusbar?
                                 anchors.fill: parent
 
                                 clip: false
+                                visible: true
                                 spacing: 5
 
                                 ScrollView {
+                                    //anchors.fill: parent
                                     clip: true
                                     contentWidth: parent.width
                                     Layout.fillHeight: true
@@ -157,6 +173,7 @@ Item {
 
                                         GroupBox {
                                             id: streetTorqueBox
+                                            //title: qsTr("Throttle Torque")
                                             Layout.fillWidth: true
 
                                             RowLayout {
@@ -165,6 +182,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Throttle\nAmps"
@@ -176,14 +194,15 @@ Item {
                                                     id: streetTorqueSlider
                                                     stepSize: 10
                                                     from: 20
-                                                    value: 30
-                                                    to: 100 //max phase amps
+                                                    value: 40
+                                                    to: 150 //max phase amps
                                                     Layout.fillWidth: true
 
                                                     ToolTip {
                                                         parent: streetTorqueSlider.handle
                                                         visible: streetTorqueSlider.pressed
-                                                        text: streetTorqueSlider.value.toFixed(1)+" A"
+                                                        text: streetTorqueSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
@@ -197,6 +216,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "PAS\nAmps"
@@ -216,7 +236,8 @@ Item {
                                                     ToolTip {
                                                         parent: streetPasSlider.handle
                                                         visible: streetPasSlider.pressed
-                                                        text: streetPasSlider.value.toFixed(1)+" A"
+                                                        text: streetPasSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
@@ -230,6 +251,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Power"
@@ -241,46 +263,49 @@ Item {
                                                     id: streetPowerSlider
                                                     stepSize: 250
                                                     from: 0
-                                                    value: 500
-                                                    to: 2500
+                                                    value: 750
+                                                    to: 7500 //could be updated from batt current limit + max voltage
                                                     Layout.fillWidth: true
 
                                                     ToolTip {
                                                         parent: streetPowerSlider.handle
                                                         visible: streetPowerSlider.pressed
-                                                        text: streetPowerSlider.value.toFixed(1)+" W"
+                                                        text: streetPowerSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
                                         }
 
                                         GroupBox {
-                                            id: streetSpeedBox
+                                            id: streetRpmBox
                                             Layout.fillWidth: true
-                                            visible : false
+
                                             RowLayout {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
-                                                    text: "Speed\nLimit"
+                                                    text: "RPM"
                                                     color:{color=Utility.getAppHexColor("lightText")}
                                                     horizontalAlignment: Text.AlignHCenter
                                                     Layout.minimumWidth: 100
                                                 }
                                                 Slider {
-                                                    id: streetSpeedSlider
-                                                    stepSize: 1
-                                                    from: 20
-                                                    value: 20
-                                                    to: 60
+                                                    id: streetRpmSlider
+                                                    stepSize: 250
+                                                    from: 500
+                                                    value: 3000
+                                                    to: 6500
                                                     Layout.fillWidth: true
 
                                                     ToolTip {
-                                                        parent: streetSpeedSlider.handle
-                                                        visible: streetSpeedSlider.pressed
-                                                        text: streetSpeedSlider.value.toFixed(1) + (VescIf.useImperialUnits() ? " mph":" km/h")
+                                                        parent: streetRpmSlider.handle
+                                                        visible: streetRpmSlider.pressed
+                                                        text: streetRpmSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
@@ -294,6 +319,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Throttle\nResponse"
@@ -312,7 +338,8 @@ Item {
                                                     ToolTip {
                                                         parent: streetThrottleResponseSlider.handle
                                                         visible: streetThrottleResponseSlider.pressed
-                                                        text: streetThrottleResponseSlider.value.toFixed(1)+" sec"
+                                                        text: streetThrottleResponseSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
@@ -326,6 +353,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Throttle\nLinearity"
@@ -337,73 +365,14 @@ Item {
                                                     id: streetThrottleExpoSlider
                                                     stepSize: 1
                                                     from: 0
-                                                    value: 100
+                                                    value: 90
                                                     to: 100
                                                     Layout.fillWidth: true
 
                                                     ToolTip {
                                                         parent: streetThrottleExpoSlider.handle
                                                         visible: streetThrottleExpoSlider.pressed
-                                                        text: streetThrottleExpoSlider.value.toFixed(1)+"%"
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        GroupBox {
-                                            id: streetPasResponseBox
-                                            Layout.fillWidth: true
-
-                                            RowLayout {
-                                                anchors.fill: parent
-
-                                                clip: false
-                                                spacing: 5
-                                                Text {
-                                                    text: "PAS\nResponse"
-                                                    color:{color=Utility.getAppHexColor("lightText")}
-                                                    horizontalAlignment: Text.AlignHCenter
-                                                    Layout.minimumWidth: 100
-                                                }
-                                                Slider {
-                                                    id: streetPasResponseSlider
-                                                    stepSize: 0.1
-                                                    from: 1.5
-                                                    value: 0.8
-                                                    to: 0.3
-                                                    Layout.fillWidth: true
-
-                                                    ToolTip {
-                                                        parent: streetPasResponseSlider.handle
-                                                        visible: streetPasResponseSlider.pressed
-                                                        text: streetPasResponseSlider.value.toFixed(1)+" sec"
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        GroupBox {
-                                            id: streetFWExpoBox
-                                            Layout.fillWidth: true
-                                            RowLayout {
-                                                anchors.fill: parent
-                                                clip: false
-                                                spacing: 5
-                                                Text {
-                                                    text: "Field\nWeakening"
-                                                    color:{color=Utility.getAppHexColor("lightText")}
-                                                    horizontalAlignment: Text.AlignHCenter
-                                                    Layout.minimumWidth: 100
-                                                }
-                                                Slider {
-                                                    id: streetFWSlider
-                                                    stepSize: 1
-                                                    from: 0
-                                                    value: 2
-                                                    to: 7
-                                                    Layout.fillWidth: true
-                                                    ToolTip {
-                                                        parent: streetFWSlider.handle
-                                                        visible: streetFWSlider.pressed
-                                                        text: streetFWSlider.value.toFixed(1)+" A"
+                                                        text: streetThrottleExpoSlider.value.toFixed(1)
                                                     }
                                                 }
                                             }
@@ -414,6 +383,7 @@ Item {
                                             RowLayout {
                                                 anchors.fill: parent
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Fixed Throttle\nAmps"
@@ -430,20 +400,22 @@ Item {
                                         }
                                     }
                                 }
-                            }                        
+                            }
                         }
 
                         // Trail
                         Page {
                             ColumnLayout {
                                 anchors.topMargin: 5
-                                anchors.bottomMargin: 1
+                                anchors.bottomMargin: 1 //leave space for statusbar?
                                 anchors.fill: parent
 
                                 clip: false
+                                visible: true
                                 spacing: 5
 
                                 ScrollView {
+                                    //anchors.fill: parent
                                     clip: true
                                     contentWidth: parent.width
                                     Layout.fillHeight: true
@@ -454,6 +426,7 @@ Item {
                                         anchors.fill: parent
 
                                         clip: false
+                                        visible: true
                                         spacing: 5
 
                                         Item {
@@ -464,6 +437,7 @@ Item {
 
                                         GroupBox {
                                             id: trailTorqueBox
+                                            //title: qsTr("Throttle Torque")
                                             Layout.fillWidth: true
 
                                             RowLayout {
@@ -472,6 +446,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Throttle\nAmps"
@@ -483,14 +458,15 @@ Item {
                                                     id: trailTorqueSlider
                                                     stepSize: 10
                                                     from: 20
-                                                    value: 70
-                                                    to: 100 //max phase amps
+                                                    value: 100
+                                                    to: 150 //max phase amps
                                                     Layout.fillWidth: true
 
                                                     ToolTip {
                                                         parent: trailTorqueSlider.handle
                                                         visible: trailTorqueSlider.pressed
-                                                        text: trailTorqueSlider.value.toFixed(1)+" A"
+                                                        text: trailTorqueSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
@@ -504,6 +480,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "PAS\nAmps"
@@ -515,7 +492,7 @@ Item {
                                                     id: trailPasSlider
                                                     stepSize: 1
                                                     from: 0
-                                                    value: 60
+                                                    value: 25
                                                     to: trailTorqueSlider.value.toFixed(
                                                             1) //% of phase amps
                                                     Layout.fillWidth: true
@@ -523,7 +500,8 @@ Item {
                                                     ToolTip {
                                                         parent: trailPasSlider.handle
                                                         visible: trailPasSlider.pressed
-                                                        text: trailPasSlider.value.toFixed(1)+" A"
+                                                        text: trailPasSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
@@ -537,6 +515,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Power"
@@ -548,46 +527,49 @@ Item {
                                                     id: trailPowerSlider
                                                     stepSize: 250
                                                     from: 0
-                                                    value: 2000
-                                                    to: 2500
+                                                    value: 2500
+                                                    to: 7500 //could be updated from batt current limit + max voltage
                                                     Layout.fillWidth: true
 
                                                     ToolTip {
                                                         parent: trailPowerSlider.handle
                                                         visible: trailPowerSlider.pressed
-                                                        text: trailPowerSlider.value.toFixed(1)+" W"
+                                                        text: trailPowerSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
                                         }
 
                                         GroupBox {
-                                            id: trailSpeedBox
+                                            id: trailRpmBox
                                             Layout.fillWidth: true
-                                            visible : false
+
                                             RowLayout {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
-                                                    text: "Speed\nLimit"
+                                                    text: "RPM"
                                                     color:{color=Utility.getAppHexColor("lightText")}
                                                     horizontalAlignment: Text.AlignHCenter
                                                     Layout.minimumWidth: 100
                                                 }
                                                 Slider {
-                                                    id: trailSpeedSlider
-                                                    stepSize: 1
-                                                    from: 20
-                                                    value: 60
-                                                    to: 60
+                                                    id: trailRpmSlider
+                                                    stepSize: 250
+                                                    from: 500
+                                                    value: 5000
+                                                    to: 6500
                                                     Layout.fillWidth: true
 
                                                     ToolTip {
-                                                        parent: trailSpeedSlider.handle
-                                                        visible: trailSpeedSlider.pressed
-                                                        text: trailSpeedSlider.value.toFixed(1) + (VescIf.useImperialUnits() ? " mph":" km/h")
+                                                        parent: trailRpmSlider.handle
+                                                        visible: trailRpmSlider.pressed
+                                                        text: trailRpmSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
@@ -601,6 +583,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Throttle\nResponse"
@@ -619,7 +602,8 @@ Item {
                                                     ToolTip {
                                                         parent: trailThrottleResponseSlider.handle
                                                         visible: trailThrottleResponseSlider.pressed
-                                                        text: trailThrottleResponseSlider.value.toFixed(1)+" sec"
+                                                        text: trailThrottleResponseSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
@@ -633,6 +617,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Throttle\nLinearity"
@@ -644,73 +629,15 @@ Item {
                                                     id: trailThrottleExpoSlider
                                                     stepSize: 1
                                                     from: 0
-                                                    value: 100
+                                                    value: 90
                                                     to: 100
                                                     Layout.fillWidth: true
 
                                                     ToolTip {
                                                         parent: trailThrottleExpoSlider.handle
                                                         visible: trailThrottleExpoSlider.pressed
-                                                        text: trailThrottleExpoSlider.value.toFixed(1)+"%"
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        GroupBox {
-                                            id: trailPasResponseBox
-                                            Layout.fillWidth: true
-
-                                            RowLayout {
-                                                anchors.fill: parent
-
-                                                clip: false
-                                                spacing: 5
-                                                Text {
-                                                    text: "PAS\nResponse"
-                                                    color:{color=Utility.getAppHexColor("lightText")}
-                                                    horizontalAlignment: Text.AlignHCenter
-                                                    Layout.minimumWidth: 100
-                                                }
-                                                Slider {
-                                                    id: trailPasResponseSlider
-                                                    stepSize: 0.1
-                                                    from: 1.5
-                                                    value: 0.6
-                                                    to: 0.3
-                                                    Layout.fillWidth: true
-
-                                                    ToolTip {
-                                                        parent: trailPasResponseSlider.handle
-                                                        visible: trailPasResponseSlider.pressed
-                                                        text: trailPasResponseSlider.value.toFixed(1)+" sec"
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        GroupBox {
-                                            id: trailFWExpoBox
-                                            Layout.fillWidth: true
-                                            RowLayout {
-                                                anchors.fill: parent
-                                                clip: false
-                                                spacing: 5
-                                                Text {
-                                                    text: "Field\nWeakening"
-                                                    color:{color=Utility.getAppHexColor("lightText")}
-                                                    horizontalAlignment: Text.AlignHCenter
-                                                    Layout.minimumWidth: 100
-                                                }
-                                                Slider {
-                                                    id: trailFWSlider
-                                                    stepSize: 1
-                                                    from: 0
-                                                    value: 7
-                                                    to: 7
-                                                    Layout.fillWidth: true
-                                                    ToolTip {
-                                                        parent: trailFWSlider.handle
-                                                        visible: trailFWSlider.pressed
-                                                        text: trailFWSlider.value.toFixed(1)+" A"
+                                                        text: trailThrottleExpoSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
@@ -721,6 +648,7 @@ Item {
                                             RowLayout {
                                                 anchors.fill: parent
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Fixed Throttle\nAmps"
@@ -734,9 +662,11 @@ Item {
                                                     Layout.fillWidth: true
                                                 }
                                             }
-                                        }                                        
+                                        }
                                     }
                                 }
+
+
                             }
                         }
 
@@ -748,9 +678,11 @@ Item {
                                 anchors.fill: parent
 
                                 clip: false
+                                visible: true
                                 spacing: 5
 
                                 ScrollView {
+                                    //anchors.fill: parent
                                     clip: true
                                     contentWidth: parent.width
                                     Layout.fillHeight: true
@@ -761,6 +693,7 @@ Item {
                                         anchors.fill: parent
 
                                         clip: false
+                                        visible: true
                                         spacing: 5
 
                                         Item {
@@ -771,6 +704,7 @@ Item {
 
                                         GroupBox {
                                             id: torqueBox
+                                            //title: qsTr("Throttle Torque")
                                             Layout.fillWidth: true
 
                                             RowLayout {
@@ -779,6 +713,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Throttle\nAmps"
@@ -790,14 +725,15 @@ Item {
                                                     id: torqueSlider
                                                     stepSize: 10
                                                     from: 20
-                                                    value: 100
-                                                    to: 100 //max phase amps
+                                                    value: 150
+                                                    to: 150 //max phase amps
                                                     Layout.fillWidth: true
 
                                                     ToolTip {
                                                         parent: torqueSlider.handle
                                                         visible: torqueSlider.pressed
-                                                        text: torqueSlider.value.toFixed(1)+" A"
+                                                        text: torqueSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
@@ -811,6 +747,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "PAS\nAmps"
@@ -822,7 +759,7 @@ Item {
                                                     id: pasSlider
                                                     stepSize: 1
                                                     from: 0
-                                                    value: 90
+                                                    value: 35
                                                     to: torqueSlider.value.toFixed(
                                                             1) //% of phase amps
                                                     Layout.fillWidth: true
@@ -830,7 +767,8 @@ Item {
                                                     ToolTip {
                                                         parent: pasSlider.handle
                                                         visible: pasSlider.pressed
-                                                        text: pasSlider.value.toFixed(1)+" A"
+                                                        text: pasSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
@@ -844,6 +782,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Power"
@@ -855,46 +794,49 @@ Item {
                                                     id: powerSlider
                                                     stepSize: 250
                                                     from: 0
-                                                    value: 2500
-                                                    to: 2500
+                                                    value: 7500
+                                                    to: 7500 //could be updated from batt current limit + max voltage
                                                     Layout.fillWidth: true
 
                                                     ToolTip {
                                                         parent: powerSlider.handle
                                                         visible: powerSlider.pressed
-                                                        text: powerSlider.value.toFixed(1)+" W"
+                                                        text: powerSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
                                         }
 
                                         GroupBox {
-                                            id: speedBox
+                                            id: rpmBox
                                             Layout.fillWidth: true
-                                            visible : false
+
                                             RowLayout {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
-                                                    text: "Speed\nLimit"
+                                                    text: "RPM"
                                                     color:{color=Utility.getAppHexColor("lightText")}
                                                     horizontalAlignment: Text.AlignHCenter
                                                     Layout.minimumWidth: 100
                                                 }
                                                 Slider {
-                                                    id: speedSlider
-                                                    stepSize: 1
-                                                    from: 20
-                                                    value: 60
-                                                    to: 60
+                                                    id: rpmSlider
+                                                    stepSize: 250
+                                                    from: 500
+                                                    value: 6500
+                                                    to: 6500
                                                     Layout.fillWidth: true
 
                                                     ToolTip {
-                                                        parent: speedSlider.handle
-                                                        visible: speedSlider.pressed
-                                                        text: speedSlider.value.toFixed(1) + (VescIf.useImperialUnits() ? " mph":" km/h")
+                                                        parent: rpmSlider.handle
+                                                        visible: rpmSlider.pressed
+                                                        text: rpmSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
@@ -908,6 +850,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Throttle\nResponse"
@@ -926,7 +869,8 @@ Item {
                                                     ToolTip {
                                                         parent: throttleResponseSlider.handle
                                                         visible: throttleResponseSlider.pressed
-                                                        text: throttleResponseSlider.value.toFixed(1)+" sec"
+                                                        text: throttleResponseSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
@@ -940,6 +884,7 @@ Item {
                                                 anchors.fill: parent
 
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Throttle\nLinearity"
@@ -951,73 +896,15 @@ Item {
                                                     id: throttleExpoSlider
                                                     stepSize: 1
                                                     from: 0
-                                                    value: 95
+                                                    value: 90
                                                     to: 100
                                                     Layout.fillWidth: true
 
                                                     ToolTip {
                                                         parent: throttleExpoSlider.handle
                                                         visible: throttleExpoSlider.pressed
-                                                        text: throttleExpoSlider.value.toFixed(1)+"%"
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        GroupBox {
-                                            id: pasResponseBox
-                                            Layout.fillWidth: true
-
-                                            RowLayout {
-                                                anchors.fill: parent
-
-                                                clip: false
-                                                spacing: 5
-                                                Text {
-                                                    text: "PAS\nResponse"
-                                                    color:{color=Utility.getAppHexColor("lightText")}
-                                                    horizontalAlignment: Text.AlignHCenter
-                                                    Layout.minimumWidth: 100
-                                                }
-                                                Slider {
-                                                    id: pasResponseSlider
-                                                    stepSize: 0.1
-                                                    from: 1.5
-                                                    value: 0.3
-                                                    to: 0.3
-                                                    Layout.fillWidth: true
-
-                                                    ToolTip {
-                                                        parent: pasResponseSlider.handle
-                                                        visible: pasResponseSlider.pressed
-                                                        text: pasResponseSlider.value.toFixed(1)+" sec"
-                                                    }
-                                                }
-                                            }
-                                        }                                        
-                                        GroupBox {
-                                            id: fWExpoBox
-                                            Layout.fillWidth: true
-                                            RowLayout {
-                                                anchors.fill: parent
-                                                clip: false
-                                                spacing: 5
-                                                Text {
-                                                    text: "Field\nWeakening"
-                                                    color:{color=Utility.getAppHexColor("lightText")}
-                                                    horizontalAlignment: Text.AlignHCenter
-                                                    Layout.minimumWidth: 100
-                                                }
-                                                Slider {
-                                                    id: fWSlider
-                                                    stepSize: 1
-                                                    from: 0
-                                                    value: 7
-                                                    to: 7
-                                                    Layout.fillWidth: true
-                                                    ToolTip {
-                                                        parent: fWSlider.handle
-                                                        visible: fWSlider.pressed
-                                                        text: fWSlider.value.toFixed(1)+" A"
+                                                        text: throttleExpoSlider.value.toFixed(
+                                                                  1)
                                                     }
                                                 }
                                             }
@@ -1028,6 +915,7 @@ Item {
                                             RowLayout {
                                                 anchors.fill: parent
                                                 clip: false
+                                                visible: true
                                                 spacing: 5
                                                 Text {
                                                     text: "Fixed Throttle\nAmps"
@@ -1041,7 +929,7 @@ Item {
                                                     Layout.fillWidth: true
                                                 }
                                             }
-                                        }                                        
+                                        }
                                     }
                                 }
                             }
@@ -1060,19 +948,113 @@ Item {
                             Layout.preferredHeight: 80
                             Layout.fillWidth: true
                             onClicked: {
-                                readSettings()                              
+                                tuneWriteSettingsButton.enabled = true
+                                bikeWriteSettingsButton.enabled = true
+
+                                mCommands.getMcconf()
+                                mCommands.getAppConf()
+
+                                // check for a match in power and phase current to select the profile
+                                var useImperial = VescIf.useImperialUnits()
+                                var impFact = useImperial ? 39.3701 : 1000.0
+
+                                var power = mMcConf.getParamDouble("l_watt_max")
+                                var torque = mMcConf.getParamDouble("l_current_max")
+                                var rpm = mMcConf.getParamDouble("l_max_erpm") / 4.0 //(4 pole pairs)
+                                var pas = mAppConf.getParamDouble("app_pas_conf.current_scaling") * torque
+                                var throttleResponse = mAppConf.getParamDouble("app_adc_conf.ramp_time_pos")
+                                var throttleExpo = 100.0 - (mAppConf.getParamDouble("app_adc_conf.throttle_exp")) * -20.0
+                                var battCurr = mMcConf.getParamDouble("l_in_current_max")
+                                var battCells = mMcConf.getParamInt("si_battery_cells")
+                                var battOvervoltage = mMcConf.getParamDouble("l_max_vin")
+                                var battUndervoltageStart = mMcConf.getParamDouble("l_battery_cut_start")
+                                var battUndervoltageEnd = mMcConf.getParamDouble("l_battery_cut_end")
+                                var wheelDiameter = mMcConf.getParamDouble("si_wheel_diameter") * impFact
+
+                                if ((power == streetPowerSlider.value) && (torque == streetTorqueSlider.value)) {
+                                    profilesBar.setCurrentIndex(0)
+
+                                    streetTorqueSlider.value = torque
+                                    streetPowerSlider.value = power
+                                    streetRpmSlider.value = rpm
+                                    streetPasSlider.value = pas
+                                    streetThrottleResponseSlider.value = throttleResponse
+                                    streetThrottleExpoSlider.value = throttleExpo
+                                }
+                                if ((power == trailPowerSlider.value) && (torque == trailTorqueSlider.value)) {
+                                    profilesBar.setCurrentIndex(1)
+
+                                    trailTorqueSlider.value = torque
+                                    trailPowerSlider.value = power
+                                    trailRpmSlider.value = rpm
+                                    trailPasSlider.value = pas
+                                    trailThrottleResponseSlider.value = throttleResponse
+                                    trailThrottleExpoSlider.value = throttleExpo
+                                }
+                                if ((power == powerSlider.value) && (torque == torqueSlider.value)) {
+                                    profilesBar.setCurrentIndex(2)
+                                    torqueSlider.value = torque
+                                    powerSlider.value = power
+                                    rpmSlider.value = rpm
+                                    pasSlider.value = pas
+                                    throttleResponseSlider.value = throttleResponse
+                                    throttleExpoSlider.value = throttleExpo
+                                }
+                                battCurrBox.realValue = mMcConf.getParamDouble("l_in_current_max")
+                                battCellsBox.realValue = mMcConf.getParamInt("si_battery_cells")
+                                battOvervoltageBox.realValue = mMcConf.getParamDouble("l_max_vin")
+                                battUndervoltageStartBox.realValue = mMcConf.getParamDouble("l_battery_cut_start")
+                                battUndervoltageEndBox.realValue = mMcConf.getParamDouble("l_battery_cut_end")
+                                wheelDiameterBox.realValue = mMcConf.getParamDouble("si_wheel_diameter") * impFact
                             }
                         }
                         Button {
-                            id: tuneWriteSettingsButton                            
+                            id: tuneWriteSettingsButton
                             text: "Write\nSettings"
+                            enabled: false
                             Layout.columnSpan: 2
                             Layout.preferredWidth: 200
                             Layout.preferredHeight: 80
                             Layout.fillWidth: true
                             onClicked: {
-                                writeSettings()
-                            }
+                                var useImperial = VescIf.useImperialUnits()
+                                var impFact = useImperial ? 39.3701 : 1000.0
+
+                                if(profilesBar.currentIndex == 0) {
+                                    mMcConf.updateParamDouble("l_current_max", streetTorqueSlider.value)
+                                    mMcConf.updateParamDouble("l_watt_max", streetPowerSlider.value)
+                                    mMcConf.updateParamDouble("l_max_erpm", streetRpmSlider.value * 4.0)
+                                    mAppConf.updateParamDouble("app_pas_conf.current_scaling", streetPasSlider.value / streetTorqueSlider.value)
+                                    mAppConf.updateParamDouble("app_adc_conf.ramp_time_pos", streetThrottleResponseSlider.value)
+                                    mAppConf.updateParamDouble("app_adc_conf.throttle_exp", (100.0 - streetThrottleExpoSlider.value) / -20.0)
+                                    fixedThrottle = streetFixedThrottleCheckbox.checked
+                                }
+                                if(profilesBar.currentIndex == 1) {
+                                    mMcConf.updateParamDouble("l_current_max", trailTorqueSlider.value)
+                                    mMcConf.updateParamDouble("l_watt_max", trailPowerSlider.value)
+                                    mMcConf.updateParamDouble("l_max_erpm", trailRpmSlider.value * 4.0)
+                                    mAppConf.updateParamDouble("app_pas_conf.current_scaling", trailPasSlider.value / trailTorqueSlider.value)
+                                    mAppConf.updateParamDouble("app_adc_conf.ramp_time_pos", trailThrottleResponseSlider.value)
+                                    mAppConf.updateParamDouble("app_adc_conf.throttle_exp", (100.0 - trailThrottleExpoSlider.value) / -20.0)
+                                    fixedThrottle = trailFixedThrottleCheckbox.checked
+                                }
+                                if(profilesBar.currentIndex == 2) {
+                                    mMcConf.updateParamDouble("l_current_max", torqueSlider.value)
+                                    mMcConf.updateParamDouble("l_watt_max", powerSlider.value)
+                                    mMcConf.updateParamDouble("l_max_erpm", rpmSlider.value * 4.0)
+                                    mAppConf.updateParamDouble("app_pas_conf.current_scaling", pasSlider.value / torqueSlider.value)
+                                    mAppConf.updateParamDouble("app_adc_conf.ramp_time_pos", throttleResponseSlider.value)
+                                    mAppConf.updateParamDouble("app_adc_conf.throttle_exp", (100.0 - throttleExpoSlider.value) / -20.0)
+                                    fixedThrottle = fixedThrottleCheckbox.checked
+                                }
+                                mMcConf.updateParamDouble("l_in_current_max", battCurrBox.realValue)
+                                mMcConf.updateParamInt("si_battery_cells", battCellsBox.realValue)
+                                mMcConf.updateParamDouble("l_max_vin",battOvervoltageBox.realValue)
+                                mMcConf.updateParamDouble("l_battery_cut_start",battUndervoltageStartBox.realValue)
+                                mMcConf.updateParamDouble("l_battery_cut_end",battUndervoltageEndBox.realValue)
+                                mMcConf.updateParamDouble("si_wheel_diameter",wheelDiameterBox.realValue / impFact)
+                                scheduleConfWrite = true
+                                }
                         }
                     }
                 }
@@ -1085,19 +1067,22 @@ Item {
 
                 ColumnLayout {
                     anchors.topMargin: 5
-                    anchors.bottomMargin: 1
+                    anchors.bottomMargin: 1 //leave space for statusbar?
                     anchors.fill: parent
 
                     ScrollView {
+                        //anchors.fill: parent
                         clip: true
                         contentWidth: parent.width
                         Layout.fillHeight: true
+                        //boundsBehavior: StopAtBounds
                         GridLayout {
                             id: grid2
                             anchors.fill: parent
-                            columns: 1
+                            columns: 1 //isHorizontal ? 1 : 1
                             columnSpacing: 5
                             rowSpacing: 10
+
                             GroupBox {
                                 id: battSelectorBox
                                 title: qsTr("Battery Presets")
@@ -1106,44 +1091,65 @@ Item {
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    spacing: 10
+                                    spacing: 3
 
                                     Button {
                                         id: wolfButton
-                                        text: "LUNA X2\n48V"
+                                        text: "Wolf\n52V"
                                         Layout.columnSpan: 2
                                         Layout.preferredWidth: 200
                                         Layout.preferredHeight: 70
                                         Layout.fillWidth: true
 
                                         onClicked: {
-                                            battCurrBox.realValue = 60.0
-                                            battCellsBox.realValue = 13
+                                            battCurrBox.realValue = 70.0
+                                            battCellsBox.realValue = 14
                                             battOvervoltageBox.realValue = 60.0
-                                            battUndervoltageStartBox.realValue = 40
-                                            battUndervoltageEndBox.realValue = 39
+                                            battUndervoltageStartBox.realValue = 44.2
+                                            battUndervoltageEndBox.realValue = 40.3
+                                            //mCommands.getMcconf()
+                                            //mCommands.getAppConf()
                                         }
                                     }
 
                                     Button {
-                                        text: "LUNA X2.5\n60V"
+                                        text: "Dire Wolf\n52V"
                                         Layout.columnSpan: 2
                                         Layout.preferredWidth: 200
                                         Layout.preferredHeight: 70
                                         Layout.fillWidth: true
                                         onClicked: {
-                                            battCurrBox.realValue = 50.0
-                                            battCellsBox.realValue = 16
-                                            battOvervoltageBox.realValue = 72.0
-                                            battUndervoltageStartBox.realValue = 49.0
-                                            battUndervoltageEndBox.realValue = 48.0
+                                            battCurrBox.realValue = 105.0
+                                            battCellsBox.realValue = 14
+                                            battOvervoltageBox.realValue = 60.0
+                                            battUndervoltageStartBox.realValue = 44.2
+                                            battUndervoltageEndBox.realValue = 40.3
+                                            //mCommands.getMcconf()
+                                            //mCommands.getAppConf()
+                                        }
+                                    }
+                                    Button {
+                                        text: "Power Wolf\n72V"
+                                        Layout.columnSpan: 2
+                                        Layout.preferredWidth: 200
+                                        Layout.preferredHeight: 70
+                                        Layout.fillWidth: true
+                                        onClicked: {
+                                            battCurrBox.realValue = 60.0
+                                            battCellsBox.realValue = 20
+                                            battOvervoltageBox.realValue = 86.0
+                                            battUndervoltageStartBox.realValue = 63.1
+                                            battUndervoltageEndBox.realValue = 57.6
+                                            //mCommands.getMcconf()
+                                            //mCommands.getAppConf()
                                         }
                                     }
                                 }
                             }
+
                             GroupBox {
                                 id: battCurrentBox
-                                title: qsTr("Battery")
+                                // title: qsTr("Battery")
                                 Layout.fillWidth: true
                                 Layout.columnSpan: 1
 
@@ -1162,9 +1168,9 @@ Item {
                                         id: battCurrBox
                                         Layout.fillWidth: true
                                         decimals: 2
-                                        realValue: 60.0
+                                        realValue: 105.0
                                         realFrom: 0.0
-                                        realTo: 60.0
+                                        realTo: 105.0
                                         prefix: "I: "
                                         suffix: " A"
                                     }
@@ -1187,7 +1193,7 @@ Item {
                                         id: battCellsBox
                                         Layout.fillWidth: true
                                         decimals: 0
-                                        realValue: 13.0
+                                        realValue: 14.0
                                         realFrom: 13.0
                                         realTo: 20.0
                                         suffix: "s"
@@ -1213,7 +1219,7 @@ Item {
                                         id: battOvervoltageBox
                                         Layout.fillWidth: true
                                         decimals: 2
-                                        realValue: 55.0
+                                        realValue: 60.0
                                         realFrom: 0.0
                                         realTo: 86.0
                                         prefix: "V: "
@@ -1240,7 +1246,7 @@ Item {
                                         id: battUndervoltageStartBox
                                         Layout.fillWidth: true
                                         decimals: 2
-                                        realValue: 40.0
+                                        realValue: 44.2
                                         realFrom: 0.0
                                         realTo: 86.0
                                         prefix: "V: "
@@ -1267,7 +1273,7 @@ Item {
                                         id: battUndervoltageEndBox
                                         Layout.fillWidth: true
                                         decimals: 2
-                                        realValue: 39.0
+                                        realValue: 40.3
                                         realFrom: 0.0
                                         realTo: 86.0
                                         prefix: "V: "
@@ -1286,84 +1292,31 @@ Item {
                                     spacing: 0
 
                                     Text {
-                                        text: "Wheel\nSize"
+                                        text: "Wheel\nDiameter"
                                         color:{color=Utility.getAppHexColor("lightText")}
                                         horizontalAlignment: Text.AlignHCenter
                                         Layout.minimumWidth: 100
                                     }
 
-ComboBox {
-    id: wheelDiameterBox
-    textRole: "text"
-    currentIndex: 1
-    model: ListModel {
-        id: wheelDiameterModel
-        ListElement{text:"26\"";value:0.676}
-        ListElement{text:"27.5\"";value:0.714}
-        ListElement{text:"29\"";value:0.752}
-    }
-}
-}
-                            }
-
-                            GroupBox {
-                                id: encoderBox
-                                title: qsTr("Encoder")
-                                Layout.fillWidth: true
-                                Layout.columnSpan: 1
-                                RowLayout {
-                                    anchors.fill: parent
-                                    spacing: 0
-
-                                    Button {
-                                        id: encoderOffsetButton
-                                        text: "Offset\ncorrection"
-                                        Layout.preferredHeight: 70
-                                        Layout.preferredWidth: 120
-                                        onClicked: {
-                                            m600detectDialog.open()
-                                        }
-                                    }
-
                                     DoubleSpinBox {
-                                        id: encoderOffsetBox
+                                        id: wheelDiameterBox
                                         Layout.fillWidth: true
-                                        decimals: 1
-                                        realValue: 0.0
+                                        decimals: VescIf.useImperialUnits(
+                                                      ) ? 2 : 0
+                                        realValue: VescIf.useImperialUnits(
+                                                       ) ? 26.0 : 660.0
                                         realFrom: 0.0
-                                        realTo: 460.0
-                                        suffix: "°"
+                                        realTo: 1500.0
+                                        prefix: "⌀: "
+                                        suffix: VescIf.useImperialUnits(
+                                                    ) ? "inch" : "mm"
                                     }
                                 }
                             }
-                            GroupBox {
-                                id: torqueSensorBox
-                                title: qsTr("Torque Sensor")
-                                Layout.fillWidth: true
-                                Layout.columnSpan: 1
-                                RowLayout {
-                                    anchors.fill: parent
-                                    spacing: 0
 
-                                    Button {
-                                        id: torqueSensorOffsetButton
-                                        text: "Offset\ncorrection"
-                                        Layout.preferredHeight: 70
-                                        Layout.preferredWidth: 120
-                                        onClicked: {
-                                            m600torqueSensorCalibrationDialog.open()
-                                        }
-                                    }
-                                    Button {
-                                        id: tsOffsetBox
-                                        text:"Not acquired"
-                                        flat:true
-                                        Layout.preferredHeight: 70
-                                        Layout.preferredWidth: 120
-                                     }
-                                }
-                            }
                             GroupBox {
+                                id: batt5Box
+                                title: qsTr("Misc")
                                 Layout.fillWidth: true
                                 Layout.columnSpan: 1
                                 RowLayout {
@@ -1371,86 +1324,31 @@ ComboBox {
                                     spacing: 0
 
                                     Text {
-                                        text: "Invert Motor\nDirection"
+                                        text: "Default\nPower Level"
                                         color:{color=Utility.getAppHexColor("lightText")}
                                         horizontalAlignment: Text.AlignHCenter
                                         Layout.minimumWidth: 100
                                     }
 
-                                    Switch {
-                                        id: motorDirectionBox
+                                    DoubleSpinBox {
+                                        id: battCurr5Box
                                         Layout.fillWidth: true
+                                        decimals: 0
+                                        realValue: 1.0
+                                        realFrom: 0.0
+                                        realTo: 9.0
                                     }
                                 }
                             }
-
-                            Item {
-                                // Spacer
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                            }
-                        }
-                    }
-
-                    RowLayout {
-                        id: bikeCfgRow
-                        clip: false
-                        visible: true
-                        spacing: 5
-
-                        Button {
-                            text: "Read\nSettings"
-                            Layout.columnSpan: 2
-                            Layout.preferredWidth: 200
-                            Layout.preferredHeight: 80
-                            Layout.fillWidth: true
-                            onClicked: {
-                                readSettings()
-                            }
-                        }
-                        Button {
-                            id: bikeWriteSettingsButton
-                            text: "Write\nSettings"
-                            Layout.columnSpan: 2
-                            Layout.preferredWidth: 200
-                            Layout.preferredHeight: 80
-                            Layout.fillWidth: true
-                            onClicked: {
-                                writeSettings()
-                                bikeWriteSettingsButton.background.color = Utility.getAppHexColor("lightBackground");
-                            }
-                        }
-                    }
-                }
-
-            }
-
-            // Logging
-            Page {
-                background: Rectangle {
-                    opacity: 0.0
-                }
-
-                    ScrollView {
-                        clip: true
-                        contentWidth: parent.width
-                        Layout.fillHeight: true
-                        GridLayout {
-                            id: gridLog
-                            anchors.fill: parent
-                            columns: 1
-                            columnSpacing: 5
-                            rowSpacing: 10
-                            
                             GroupBox {
                                 id: batt6Box
                                 title: "Data Logging"
                                 Layout.fillWidth: true
                                 Layout.columnSpan: 1
-                                
+
                             Switch {
                             id: rtLogEnBox
-                            text: "Enable Data Logging"
+                            text: "Enable RT Data Logging"
                             anchors.centerIn: parent
                             Layout.fillWidth: true
                             Layout.columnSpan: 2
@@ -1476,24 +1374,28 @@ ComboBox {
                                 repeat: true
                                 running: true
                                 interval: 500
+
                                 onTriggered: {
                                     if (rtLogEnBox.checked
                                             && !VescIf.isRtLogOpen()) {
                                         Utility.stopGnssForegroundService()
+
                                         if (!VescIf.useWakeLock()) {
                                             VescIf.setWakeLock(false)
                                         }
                                     }
+
                                     rtLogEnBox.checked = VescIf.isRtLogOpen()
                                 }
                             }
                         }
-}  
-
+                }
                             GroupBox {
+                               // id: batt6Box
+                               // title: "Data Logging"
                                 Layout.fillWidth: true
                                 Layout.columnSpan: 1
-                                
+
                                 RowLayout {
                                     anchors.fill: parent
                                     spacing: 5
@@ -1504,11 +1406,15 @@ ComboBox {
 
                                         Layout.preferredWidth: 120
                                         onClicked: {
-                                            if (Utility.requestFilePermission()) {
+                                            if (Utility.requestFilePermission(
+                                                        )) {
                                                 logFilePicker.enabled = true
                                                 logFilePicker.visible = true
                                             } else {
-                                                VescIf.emitMessageDialog("File Permissions","Unable to request file system permission.",false,false)
+                                                VescIf.emitMessageDialog(
+                                                            "File Permissions",
+                                                            "Unable to request file system permission.",
+                                                            false, false)
                                             }
                                         }
                                     }
@@ -1516,58 +1422,183 @@ ComboBox {
                                     TextInput {
                                         color:{color=Utility.getAppHexColor("lightText")}
                                         id: rtLogFileText
+                                        //anchors.fill: parent
+                                        //anchors.margins: 7
                                         font.pointSize: 12
                                         text: "./log"
 
                                         QSettings.Settings {
                                             property alias rtLog: rtLogFileText.text
                                             property alias rtLogEnable: rtLogEnBox.checked
-                                            property alias m600profileIndex: profilesBar.currentIndex
+                                            property alias profileIndex: profilesBar.currentIndex
 
-                                            property alias m600streetTorque: streetTorqueSlider.value
-                                            property alias m600streetPas: streetPasSlider.value
-                                            property alias m600streetPower: streetPowerSlider.value
-                                            property alias m600streetSpeed: streetSpeedSlider.value
-                                            property alias m600streetThrottleResponse: streetThrottleResponseSlider.value
-                                            property alias m600streetThrottleExpo: streetThrottleExpoSlider.value
-                                            property alias m600streetPasResponseSlider: streetPasResponseSlider.value
-                                            property alias m600streetFW: streetFWSlider.value
-                                            property alias m600streetFixedThrottle: streetFixedThrottleCheckbox.checked
+                                            property alias streetTorque: streetTorqueSlider.value
+                                            property alias streetPas: streetPasSlider.value
+                                            property alias streetPower: streetPowerSlider.value
+                                            property alias streetRpm: streetRpmSlider.value
+                                            property alias streetThrottleResponse: streetThrottleResponseSlider.value
+                                            property alias streetThrottleExpo: streetThrottleExpoSlider.value
+                                            property alias streetFixedThrottle: streetFixedThrottleCheckbox.checked
 
-                                            property alias m600trailTorque: trailTorqueSlider.value
-                                            property alias m600trailPas: trailPasSlider.value
-                                            property alias m600trailPower: trailPowerSlider.value
-                                            property alias m600trailSpeed: trailSpeedSlider.value
-                                            property alias m600trailThrottleResponse: trailThrottleResponseSlider.value
-                                            property alias m600trailThrottleExpo: trailThrottleExpoSlider.value 
-                                            property alias m600trailPasResponseSlider: streetPasResponseSlider.value
-                                            property alias m600trailFW: trailFWSlider.value
-                                            property alias m600trailFixedThrottle: trailFixedThrottleCheckbox.checked
+                                            property alias trailTorque: trailTorqueSlider.value
+                                            property alias trailPas: trailPasSlider.value
+                                            property alias trailPower: trailPowerSlider.value
+                                            property alias trailRpm: trailRpmSlider.value
+                                            property alias trailThrottleResponse: trailThrottleResponseSlider.value
+                                            property alias trailThrottleExpo: trailThrottleExpoSlider.value
+                                            property alias trailFixedThrottle: trailFixedThrottleCheckbox.checked
 
-                                            property alias m600ludiTorque: torqueSlider.value
-                                            property alias m600ludiPas: pasSlider.value
-                                            property alias m600ludiPower: powerSlider.value
-                                            property alias m600ludiSpeed: speedSlider.value
-                                            property alias m600ludiThrottleResponse: throttleResponseSlider.value
-                                            property alias m600ludiThrottleExpo: throttleExpoSlider.value
-                                            property alias m600ludiPasResponseSlider: pasResponseSlider.value
-                                            property alias m600ludiFW: fWSlider.value
-                                            property alias m600ludiFixedThrottle: fixedThrottleCheckbox.checked
+                                            property alias ludiTorque: torqueSlider.value
+                                            property alias ludiPas: pasSlider.value
+                                            property alias ludiPower: powerSlider.value
+                                            property alias ludiRpm: rpmSlider.value
+                                            property alias ludiThrottleResponse: throttleResponseSlider.value
+                                            property alias ludiThrottleExpo: throttleExpoSlider.value
+                                            property alias ludiFixedThrottle: fixedThrottleCheckbox.checked
 
-                                            property alias m600battCurrentMaxSetting: battCurrBox.realValue
-                                            property alias m600battCellseSetting: battCellsBox.realValue
-                                            property alias m600overVoltageSetting: battOvervoltageBox.realValue
-                                            property alias m600underVoltageStartSetting: battUndervoltageStartBox.realValue
-                                            property alias m600underVoltageEndSetting: battUndervoltageEndBox.realValue
-                                            property alias m600wheelDiameterSetting: wheelDiameterBox.currentIndex
-                                            property alias m600encoderOffsetSetting: encoderOffsetBox.realValue
-                                            property alias m600motorDirectionSetting: motorDirectionBox.position      
+                                            property alias battCurrentMaxSetting: battCurrBox.realValue
+                                            property alias battCellseSetting: battCellsBox.realValue
+                                            property alias overVoltageSetting: battOvervoltageBox.realValue
+                                            property alias underVoltageStartSetting: battUndervoltageStartBox.realValue
+                                            property alias underVoltageEndSetting: battUndervoltageEndBox.realValue
+                                            property alias wheelDiameterSetting: wheelDiameterBox.realValue
                                         }
                                     }
                                 }
-                            }                              
-    }
-    }                
+                            }
+
+                            Item {
+                                // Spacer
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        id: bikeCfgRow
+                        clip: false
+                        visible: true
+                        spacing: 5
+
+                        Button {
+                            text: "Read\nSettings"
+                            Layout.columnSpan: 2
+                            Layout.preferredWidth: 200
+                            Layout.preferredHeight: 80
+                            Layout.fillWidth: true
+                            onClicked: {
+                                tuneWriteSettingsButton.enabled = true
+                                bikeWriteSettingsButton.enabled = true
+
+                                mCommands.getMcconf()
+                                mCommands.getAppConf()
+
+                                // check for a match in power and phase current to select the profile
+                                var useImperial = VescIf.useImperialUnits()
+                                var impFact = useImperial ? 39.3701 : 1000.0
+
+                                var power = mMcConf.getParamDouble("l_watt_max")
+                                var torque = mMcConf.getParamDouble("l_current_max")
+                                var rpm = mMcConf.getParamDouble("l_max_erpm") / 4.0 //(4 pole pairs)
+                                var pas = mAppConf.getParamDouble("app_pas_conf.current_scaling") * torque
+                                var throttleResponse = mAppConf.getParamDouble("app_adc_conf.ramp_time_pos")
+                                var throttleExpo = 100.0 - (mAppConf.getParamDouble("app_adc_conf.throttle_exp")) * -20.0
+                                var battCurr = mMcConf.getParamDouble("l_in_current_max")
+                                var battOvervoltage = mMcConf.getParamDouble("l_max_vin")
+                                var battUndervoltageStart = mMcConf.getParamDouble("l_battery_cut_start")
+                                var battUndervoltageEnd = mMcConf.getParamDouble("l_battery_cut_end")
+                                var battCells = mMcConf.getParamInt("si_battery_cells")
+                                var wheelDiameter = mMcConf.getParamDouble("si_wheel_diameter") * impFact
+                                var fixedThrottle
+
+                                if ((power == streetPowerSlider.value) && (torque == streetTorqueSlider.value)) {
+                                    profilesBar.setCurrentIndex(0)
+
+                                    streetTorqueSlider.value = torque
+                                    streetPowerSlider.value = power
+                                    streetRpmSlider.value = rpm
+                                    streetPasSlider.value = pas
+                                    streetThrottleResponseSlider.value = throttleResponse
+                                    streetThrottleExpoSlider.value = throttleExpo
+                                }
+                                if ((power == trailPowerSlider.value) && (torque == trailTorqueSlider.value)) {
+                                    profilesBar.setCurrentIndex(1)
+
+                                    trailTorqueSlider.value = torque
+                                    trailPowerSlider.value = power
+                                    trailRpmSlider.value = rpm
+                                    trailPasSlider.value = pas
+                                    trailThrottleResponseSlider.value = throttleResponse
+                                    trailThrottleExpoSlider.value = throttleExpo
+                                }
+                                if ((power == powerSlider.value) && (torque == torqueSlider.value)) {
+                                    profilesBar.setCurrentIndex(2)
+                                    torqueSlider.value = torque
+                                    powerSlider.value = power
+                                    rpmSlider.value = rpm
+                                    pasSlider.value = pas
+                                    throttleResponseSlider.value = throttleResponse
+                                    throttleExpoSlider.value = throttleExpo
+                                }
+                                battCurrBox.realValue = mMcConf.getParamDouble("l_in_current_max")
+                                battCellsBox.realValue = mMcConf.getParamInt("si_battery_cells")
+                                battOvervoltageBox.realValue = mMcConf.getParamDouble("l_max_vin")
+                                battUndervoltageStartBox.realValue = mMcConf.getParamDouble("l_battery_cut_start")
+                                battUndervoltageEndBox.realValue = mMcConf.getParamDouble("l_battery_cut_end")
+                                wheelDiameterBox.realValue = mMcConf.getParamDouble("si_wheel_diameter") * impFact
+                            }
+                        }
+                        Button {
+                            id: bikeWriteSettingsButton
+                            text: "Write\nSettings"
+                            enabled: false
+                            Layout.columnSpan: 2
+                            Layout.preferredWidth: 200
+                            Layout.preferredHeight: 80
+                            Layout.fillWidth: true
+                            onClicked: {
+                                var useImperial = VescIf.useImperialUnits()
+                                var impFact = useImperial ? 39.3701 : 1000.0
+
+                                if(profilesBar.currentIndex == 0) {
+                                    mMcConf.updateParamDouble("l_current_max", streetTorqueSlider.value)
+                                    mMcConf.updateParamDouble("l_watt_max", streetPowerSlider.value)
+                                    mMcConf.updateParamDouble("l_max_erpm", streetRpmSlider.value * 4.0)
+                                    mAppConf.updateParamDouble("app_pas_conf.current_scaling", streetPasSlider.value / streetTorqueSlider.value)
+                                    mAppConf.updateParamDouble("app_adc_conf.ramp_time_pos", streetThrottleResponseSlider.value)
+                                    mAppConf.updateParamDouble("app_adc_conf.throttle_exp", (100.0 - streetThrottleExpoSlider.value) / -20.0)
+                                    fixedThrottle = streetFixedThrottleCheckbox.checked
+                                }
+                                if(profilesBar.currentIndex == 1) {
+                                    mMcConf.updateParamDouble("l_current_max", trailTorqueSlider.value)
+                                    mMcConf.updateParamDouble("l_watt_max", trailPowerSlider.value)
+                                    mMcConf.updateParamDouble("l_max_erpm", trailRpmSlider.value * 4.0)
+                                    mAppConf.updateParamDouble("app_pas_conf.current_scaling", trailPasSlider.value / trailTorqueSlider.value)
+                                    mAppConf.updateParamDouble("app_adc_conf.ramp_time_pos", trailThrottleResponseSlider.value)
+                                    mAppConf.updateParamDouble("app_adc_conf.throttle_exp", (100.0 - trailThrottleExpoSlider.value) / -20.0)
+                                    fixedThrottle = trailFixedThrottleCheckbox.checked
+                                }
+                                if(profilesBar.currentIndex == 2) {
+                                    mMcConf.updateParamDouble("l_current_max", torqueSlider.value)
+                                    mMcConf.updateParamDouble("l_watt_max", powerSlider.value)
+                                    mMcConf.updateParamDouble("l_max_erpm", rpmSlider.value * 4.0)
+                                    mAppConf.updateParamDouble("app_pas_conf.current_scaling", pasSlider.value / torqueSlider.value)
+                                    mAppConf.updateParamDouble("app_adc_conf.ramp_time_pos", throttleResponseSlider.value)
+                                    mAppConf.updateParamDouble("app_adc_conf.throttle_exp", (100.0 - throttleExpoSlider.value) / -20.0)
+                                    fixedThrottle = fixedThrottleCheckbox.checked
+                                }
+                                mMcConf.updateParamDouble("l_in_current_max", battCurrBox.realValue)
+                                mMcConf.updateParamInt("si_battery_cells", battCellsBox.realValue)
+                                mMcConf.updateParamDouble("l_max_vin",battOvervoltageBox.realValue)
+                                mMcConf.updateParamDouble("l_battery_cut_start",battUndervoltageStartBox.realValue)
+                                mMcConf.updateParamDouble("l_battery_cut_end",battUndervoltageEndBox.realValue)
+                                mMcConf.updateParamDouble("si_wheel_diameter",wheelDiameterBox.realValue / impFact)
+                                scheduleConfWrite = true
+                            }
+                        }
+                    }
+                }
                 DirectoryPicker {
                     id: logFilePicker
                     anchors.fill: parent
@@ -1581,7 +1612,6 @@ ComboBox {
                 }
             }
 
-            // FW update
             Page {
                 background: Rectangle {
                     opacity: 0.0
@@ -1589,148 +1619,14 @@ ComboBox {
 
                 FwUpdate {
                     anchors.fill: parent
-                    showUploadAllButton: false
                 }
             }
-            // Support    
         }
     }
-
-function readSettings() {
-    mCommands.getMcconf()
-    mCommands.getAppConf()
-
-    var useImperial = VescIf.useImperialUnits()
-    var impFact = useImperial?1.60934:1.0
-
-    var power = mMcConf.getParamDouble("l_watt_max")
-    var torque = mMcConf.getParamDouble("l_current_max")           
-    var speed = -mMcConf.getParamDouble("l_min_erpm") / impFact
-    var pas = mAppConf.getParamDouble("app_pas_conf.current_scaling") * torque
-    var throttleResponse = mAppConf.getParamDouble("app_adc_conf.ramp_time_pos")
-    var pasResponse = mAppConf.getParamDouble("app_pas_conf.ramp_time_pos")
-    var throttleExpo = 100.0-(mAppConf.getParamDouble("app_adc_conf.throttle_exp")) * -20.0
-    var battCurr = mMcConf.getParamDouble("l_in_current_max")
-    var battOvervoltage = mMcConf.getParamDouble("l_max_vin")
-    var battUndervoltageStart = mMcConf.getParamDouble("l_battery_cut_start")
-    var battUndervoltageEnd = mMcConf.getParamDouble("l_battery_cut_end")
-    var battCells = mMcConf.getParamInt("si_battery_cells")
-    var encoderOffset = mMcConf.getParamDouble("foc_encoder_offset")
-    var fieldWeak = mMcConf.getParamDouble("foc_fw_current_max")
-    var fixedThrottle
-    var motorDirection = mMcConf.getParamBool("m_invert_direction")
-
-    if ((power == streetPowerSlider.value) && (torque == streetTorqueSlider.value)) {
-        profilesBar.setCurrentIndex(0)
-        streetTorqueSlider.value = torque
-        streetPowerSlider.value = power                                                                
-        streetSpeedSlider.value = speed
-        streetPasSlider.value = pas
-        streetThrottleResponseSlider.value = throttleResponse
-        streetPasResponseSlider.value = pasResponse
-        streetFWSlider.value = fieldWeak
-        streetThrottleExpoSlider.value = throttleExpo
-        }
-    if ((power == trailPowerSlider.value) && (torque == trailTorqueSlider.value)) {
-        profilesBar.setCurrentIndex(1)
-        trailTorqueSlider.value = torque
-        trailPowerSlider.value = power                                                                
-        trailSpeedSlider.value = speed
-        trailPasSlider.value = pas
-        trailThrottleResponseSlider.value = throttleResponse
-        trailPasResponseSlider.value = pasResponse
-        trailFWSlider.value = fieldWeak
-        trailThrottleExpoSlider.value = throttleExpo
-        }
-    if ((power == powerSlider.value) && (torque == torqueSlider.value)) {    
-        profilesBar.setCurrentIndex(2)
-        torqueSlider.value = torque
-        powerSlider.value = power                                                               
-        speedSlider.value = speed
-        pasSlider.value = pas
-        throttleResponseSlider.value = throttleResponse
-        pasResponseSlider.value = pasResponse
-        fWSlider.value = fieldWeak
-        throttleExpoSlider.value = throttleExpo
-        }
-    battCurrBox.realValue = mMcConf.getParamDouble("l_in_current_max")
-    battCellsBox.realValue = mMcConf.getParamInt("si_battery_cells")
-    battOvervoltageBox.realValue = mMcConf.getParamDouble("l_max_vin")
-    battUndervoltageStartBox.realValue = mMcConf.getParamDouble("l_battery_cut_start")
-    battUndervoltageEndBox.realValue = mMcConf.getParamDouble("l_battery_cut_end")
-    motorDirectionBox.position = mMcConf.getParamBool("m_invert_direction")    
-    if(mMcConf.getParamDouble("si_wheel_diameter") <= 0.7){wheelDiameterBox.currentIndex=0}                           
-    if(mMcConf.getParamDouble("si_wheel_diameter") >= 0.7){wheelDiameterBox.currentIndex=1}                           
-    if(mMcConf.getParamDouble("si_wheel_diameter") >= 0.75){wheelDiameterBox.currentIndex=2}  
-    if(encoderOffset >= 360.1) {
-        encoderOffsetBox.realValue = 0.0
-        encoderOffsetBox.prefix ="ERROR ("
-        encoderOffsetBox.suffix ="°)"
-        tabBar.currentIndex = 2
-        encoderOffsetButton.background.color = "#ff9595";
-        VescIf.emitMessageDialog("Offset Calibration Required","Go to BIKE CFG tab, run Offset Calibration and then Write Settings.\n\nLet the rear wheel rotate freely during calibration.",false, false)
-    } else {
-        encoderOffsetBox.realValue = encoderOffset      
-        encoderOffsetBox.prefix =""
-        encoderOffsetBox.suffix ="°"  
-        encoderOffsetButton.background.color = Utility.getAppHexColor("lightBackground");
-    }
-    mCommands.sendTerminalCmd("torque_sensor")
-}
-
-function writeSettings() {
-    var useImperial = VescIf.useImperialUnits()
-    var impFact = useImperial ? 1.60934 : 1.0
-
-    if(profilesBar.currentIndex == 0) {
-        mMcConf.updateParamDouble("l_current_max", streetTorqueSlider.value)
-        mMcConf.updateParamDouble("l_watt_max", streetPowerSlider.value)
-        //mMcConf.updateParamDouble("l_min_erpm", -streetSpeedSlider.value * impFact)
-        mMcConf.updateParamDouble("foc_fw_current_max", streetFWSlider.value)
-        mAppConf.updateParamDouble("app_pas_conf.current_scaling", streetPasSlider.value / streetTorqueSlider.value)
-        mAppConf.updateParamDouble("app_adc_conf.ramp_time_pos", streetThrottleResponseSlider.value)                                                                        
-        mAppConf.updateParamDouble("app_pas_conf.ramp_time_pos", streetPasResponseSlider.value)                                                                        
-        mAppConf.updateParamDouble("app_pas_conf.ramp_time_neg", streetPasResponseSlider.value / 2)                                                                        
-        mAppConf.updateParamDouble("app_adc_conf.throttle_exp", (100.0 - streetThrottleExpoSlider.value) / -20.0)
-        fixedThrottle = streetFixedThrottleCheckbox.checked
-    }
-    if(profilesBar.currentIndex == 1) {
-        mMcConf.updateParamDouble("l_current_max", trailTorqueSlider.value)
-        mMcConf.updateParamDouble("l_watt_max", trailPowerSlider.value)
-        //mMcConf.updateParamDouble("l_min_erpm", -trailSpeedSlider.value * impFact)
-        mMcConf.updateParamDouble("foc_fw_current_max", trailFWSlider.value)
-        mAppConf.updateParamDouble("app_pas_conf.current_scaling", trailPasSlider.value / trailTorqueSlider.value)
-        mAppConf.updateParamDouble("app_adc_conf.ramp_time_pos", trailThrottleResponseSlider.value)
-        mAppConf.updateParamDouble("app_pas_conf.ramp_time_pos", trailPasResponseSlider.value)                                                                        
-        mAppConf.updateParamDouble("app_pas_conf.ramp_time_neg", trailPasResponseSlider.value / 2)                                    
-        mAppConf.updateParamDouble("app_adc_conf.throttle_exp", (100.0 - trailThrottleExpoSlider.value) / -20.0)
-        fixedThrottle = trailFixedThrottleCheckbox.checked
-        }
-    if(profilesBar.currentIndex == 2) {
-        mMcConf.updateParamDouble("l_current_max", torqueSlider.value)
-        mMcConf.updateParamDouble("l_watt_max", powerSlider.value)
-        //mMcConf.updateParamDouble("l_min_erpm", -speedSlider.value * impFact)
-        mMcConf.updateParamDouble("foc_fw_current_max", fWSlider.value)
-        mAppConf.updateParamDouble("app_pas_conf.current_scaling", pasSlider.value / torqueSlider.value)
-        mAppConf.updateParamDouble("app_adc_conf.ramp_time_pos", throttleResponseSlider.value)
-        mAppConf.updateParamDouble("app_pas_conf.ramp_time_pos", pasResponseSlider.value)                                                                        
-        mAppConf.updateParamDouble("app_pas_conf.ramp_time_neg", pasResponseSlider.value / 8 + 0.15)
-        mAppConf.updateParamDouble("app_adc_conf.throttle_exp", (100.0 - throttleExpoSlider.value) / -20.0)
-        fixedThrottle = fixedThrottleCheckbox.checked
-    }
-    mMcConf.updateParamDouble("l_in_current_max", battCurrBox.realValue)
-    mMcConf.updateParamInt("si_battery_cells", battCellsBox.realValue)
-    mMcConf.updateParamDouble("l_max_vin",battOvervoltageBox.realValue)
-    mMcConf.updateParamDouble("l_battery_cut_start",battUndervoltageStartBox.realValue)
-    mMcConf.updateParamDouble("l_battery_cut_end",battUndervoltageEndBox.realValue)
-    mMcConf.updateParamDouble("si_wheel_diameter",wheelDiameterModel.get(wheelDiameterBox.currentIndex).value)
-    mMcConf.updateParamDouble("foc_encoder_offset",encoderOffsetBox.realValue)
-    mMcConf.updateParamBool("m_invert_direction", motorDirectionBox.position)
-    scheduleConfWrite = true
-}
 
     Connections {
         target: mMcConf
+
         function onUpdated() {
             confTimer.mcConfRx = true
         }
@@ -1738,9 +1634,9 @@ function writeSettings() {
 
     Connections {
         target: mAppConf
+
         function onUpdated() {
             confTimer.appConfRx = true
-
         }
     }
 
@@ -1761,6 +1657,9 @@ function writeSettings() {
         running: true
         repeat: true
         onTriggered: {
+           // if (!statusTimer.running && connectedText.text !== VescIf.getConnectedPortName()) {
+             //   connectedText.text = VescIf.getConnectedPortName()
+            //}
         }
     }
 
@@ -1776,7 +1675,7 @@ function writeSettings() {
 
         onTriggered: {
             VescIf.setSpeedGaugeUseNegativeValues(false)
-            if(tabBar.currentIndex !== 3) {
+            if(tabBar.currentIndex !== 3) {// don't poll in the firmware update page
                 if (VescIf.isPortConnected() && VescIf.getLastFwRxParams().hwTypeStr() === "VESC") {
                     if(scheduleConfWrite) {
                         if(writingStage === 0) {
@@ -1784,11 +1683,11 @@ function writeSettings() {
                             writingStage = 1
                         } else {
                             if(writingStage === 1) {
-                                mCommands.getMcconf()
+                                mCommands.getMcconf()//update current_scale now
                                 writingStage = 2
                             } else {
                                 if(writingStage === 2) {
-                                    mCommands.setAppConf(true)                                    
+                                    mCommands.setAppConf(true)
                                     writingStage = 3
                                 } else {
                                     if(fixedThrottle) {
@@ -1800,7 +1699,7 @@ function writeSettings() {
                                     scheduleConfWrite = false
                                 }
                             }
-                        }                        
+                        }
                     }
                     if (!mcConfRx) {
                         mCommands.getMcconf()
@@ -1810,7 +1709,6 @@ function writeSettings() {
                     }
                 }
             }
-            //timeText.text=Qt.formatTime(new Date(),"hh:mm")
         }
     }
     Timer {
@@ -1820,105 +1718,20 @@ function writeSettings() {
         repeat: true
         onTriggered: {
             if (VescIf.isPortConnected()) {
+                // Sample RT data when the corresponding page is selected, or when
+                // RT logging is active.
                 if (VescIf.isRtLogOpen()) {
                     interval = 50
                     mCommands.getValues()
                     mCommands.getValuesSetup()
+                    //mCommands.getImuData(0xFFFF)
+                    //mCommands.bmsGetValues()
                 } else {
                     if (tabBar.currentIndex == 0) {
                         interval = 50
                         mCommands.getValuesSetup()
-                    }                    
+                    }
                 }
-            }
-        }
-    }
-    
-        Dialog {
-        id: m600detectDialog
-        standardButtons: Dialog.Ok | Dialog.Cancel
-        modal: true
-        focus: true
-        closePolicy: Popup.CloseOnEscape
-        title: "Detect Magnetic Encoder Offset"
-        x:10
-        y:Math.max((parent.height-height)/2,10)
-        parent: ApplicationWindow.overlay
-        width: parent.width - 20
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 10
-            spacing: 10
-            Text {
-                id: detectLambdaLabel
-                color:{color=Utility.getAppHexColor("lightText")}
-                verticalAlignment: Text.AlignVCenter
-                Layout.fillWidth: true
-                wrapMode: Text.WordWrap
-                text:
-                    "This will turn the motor slowly. Lift the rear wheel and make " +
-                    "sure that nothing is in the way.\nAfter detection, write the settings and powercycle the controller"
-            }
-        }
-
-        onAccepted: {
-            mCommands.measureEncoder(15.0)
-        }
-    }
-        Dialog {
-        id: m600torqueSensorCalibrationDialog
-        standardButtons: Dialog.Ok | Dialog.Cancel
-        modal: true
-        focus: true
-        closePolicy: Popup.CloseOnEscape
-        title: "Correct Torque Sensor Offset"
-        x:10
-        y:Math.max((parent.height-height)/2,10)
-        parent: ApplicationWindow.overlay
-        width: parent.width - 20
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 10
-            spacing: 10
-            Text {
-                id: detectTSOffsetLabel
-                color:{color=Utility.getAppHexColor("lightText")}
-                verticalAlignment: Text.AlignVCenter
-                Layout.fillWidth: true
-                wrapMode: Text.WordWrap
-                text:
-                    "This will measure the torque sensor output at rest to calibrate the zero offset. Make " +
-                    "sure that no pressure is applied to the pedals."
-            }
-        }
-
-        onAccepted: {
-            tsOffsetBox.text = "(Measuring...)"
-            mCommands.sendTerminalCmd("calibrate_torque_sensor")
-        }
-    }
-        Connections {
-        target: mCommands
-
-        function onEncoderParamReceived(res) {
-            VescIf.emitStatusMessage("Encoder Result Received", true)
-            encoderOffsetBox.realValue = res.offset
-            encoderOffsetBox.prefix =""
-            encoderOffsetBox.suffix ="°"        
-            encoderOffsetBox.decimals = 1
-            encoderOffsetButton.background.color = Utility.getAppHexColor("lightBackground");
-            bikeWriteSettingsButton.background.color = "#ff9595";
-        }
-    }
-        Connections {
-        target: mCommands
-
-        function onPrintReceived(str) {
-            if (str.startsWith("Measured offset: ")) {
-                tsOffsetBox.text = str.slice("Measured offset: ".length);
-            }
-            if (str.startsWith("Torque sensor lower range: ")) {
-                tsOffsetBox.text = str.slice("Torque sensor lower range: ".length);
             }
         }
     }

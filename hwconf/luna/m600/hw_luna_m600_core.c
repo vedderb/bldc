@@ -546,3 +546,17 @@ static void hw_override_pairing_done(void) {
 		mempools_free_appconf(appconf);
 	}
 }
+
+float hw_get_ADC_value(uint8_t channel){
+	float adc_volts;
+
+	adc_volts = ((float)ADC_Value[channel] / 4096.0 * V_REG);
+	if(channel == ADC_IND_EXT){
+		float min_voltage = app_get_configuration()->app_adc_conf.voltage_min;
+		float max_voltage = app_get_configuration()->app_adc_conf.voltage_max;
+		if(adc_volts <= min_voltage || adc_volts > max_voltage){
+			adc_volts = min_voltage;
+		}
+	}
+	return adc_volts;
+}
