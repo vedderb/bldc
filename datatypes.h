@@ -1443,8 +1443,16 @@ typedef struct __attribute__((packed)) {
 	uint8_t hw_config[128];
 
 	// Encoder correction table
+	uint32_t enc_corr_init_flag;
 	int8_t enc_corr_en;
 	int8_t enc_corr[360];
+
+	// CAN settings
+	uint32_t can_init_flag;
+	uint8_t can_baud;
+	uint8_t can_id;
+
+	uint8_t dummy;
 } backup_data;
 
 #endif /* DATATYPES_H_ */
