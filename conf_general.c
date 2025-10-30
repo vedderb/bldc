@@ -164,7 +164,7 @@ __attribute__((section(".text2"))) bool conf_general_store_backup_data(void) {
 	mc_interface_release_motor_override_both();
 
 	if (!mc_interface_wait_for_motor_release_both(3.0)) {
-		return 100;
+		return false;
 	}
 
 	utils_sys_lock_cnt();
