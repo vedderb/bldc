@@ -4019,6 +4019,20 @@ Store the current configuration to flash. This will stop the motor. Note: On the
 
 ---
 
+#### store-backup
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06.6+ |
+
+```clj
+(store-backup)
+```
+
+Store backup data, such as odometer and runtime counter, to flash. This will stop the motor. conf-store will also store this data, but this function alone is much faster as the configurations are not stored.
+
+---
+
 #### conf-detect-foc
 
 | Platforms | Firmware |

@@ -4326,9 +4326,12 @@ static lbm_value ext_conf_store(lbm_value *args, lbm_uint argn) {
 	bool res_app = conf_general_store_app_configuration(appconf);
 	mempools_free_appconf(appconf);
 
-	conf_general_store_backup_data();
-
 	return lbm_enc_sym((res_mc && res_app) ? SYM_TRUE : SYM_NIL);
+}
+
+static lbm_value ext_store_backup(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_sym(conf_general_store_backup_data() ? SYM_TRUE : SYM_NIL);
 }
 
 typedef struct {
@@ -6150,6 +6153,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("conf-set", ext_conf_set);
 		lbm_add_extension("conf-get", ext_conf_get);
 		lbm_add_extension("conf-store", ext_conf_store);
+		lbm_add_extension("store-backup", ext_store_backup);
 		lbm_add_extension("conf-detect-foc", ext_conf_detect_foc);
 		lbm_add_extension("conf-set-pid-offset", ext_conf_set_pid_offset);
 		lbm_add_extension("conf-measure-res", ext_conf_measure_res);
