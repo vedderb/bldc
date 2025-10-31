@@ -44,5 +44,10 @@ export PYTHON
 # Configure shell commands
 ############################
 
+# Set the shell to be cmd.exe
+SHELL = cmd
+# Override the SEHLL variable for any sub-make calls
+MAKEOVERRIDES += SHELL=cmd
+
 RM := del
 MKDIR := powershell -noprofile -command New-Item -Force -itemtype "directory"
