@@ -84,8 +84,6 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->foc_start_curr_dec_rpm, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_openloop_rpm, &ind);
 	buffer_append_float16(buffer, conf->foc_openloop_rpm_low, 1000, &ind);
-	buffer_append_float16(buffer, conf->foc_d_gain_scale_start, 1000, &ind);
-	buffer_append_float16(buffer, conf->foc_d_gain_scale_max_mod, 1000, &ind);
 	buffer_append_float16(buffer, conf->foc_sl_openloop_hyst, 100, &ind);
 	buffer_append_float16(buffer, conf->foc_sl_openloop_time_lock, 100, &ind);
 	buffer_append_float16(buffer, conf->foc_sl_openloop_time_ramp, 100, &ind);
@@ -424,8 +422,6 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_start_curr_dec_rpm = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_openloop_rpm = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_openloop_rpm_low = buffer_get_float16(buffer, 1000, &ind);
-	conf->foc_d_gain_scale_start = buffer_get_float16(buffer, 1000, &ind);
-	conf->foc_d_gain_scale_max_mod = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_sl_openloop_hyst = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_sl_openloop_time_lock = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_sl_openloop_time_ramp = buffer_get_float16(buffer, 100, &ind);
@@ -760,8 +756,6 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_start_curr_dec_rpm = MCCONF_FOC_START_CURR_DEC_RPM;
 	conf->foc_openloop_rpm = MCCONF_FOC_OPENLOOP_RPM;
 	conf->foc_openloop_rpm_low = MCCONF_FOC_OPENLOOP_RPM_LOW;
-	conf->foc_d_gain_scale_start = MCCONF_FOC_D_GAIN_SCALE_START;
-	conf->foc_d_gain_scale_max_mod = MCCONF_FOC_D_GAIN_SCALE_MAX_MOD;
 	conf->foc_sl_openloop_hyst = MCCONF_FOC_SL_OPENLOOP_HYST;
 	conf->foc_sl_openloop_time_lock = MCCONF_FOC_SL_OPENLOOP_T_LOCK;
 	conf->foc_sl_openloop_time_ramp = MCCONF_FOC_SL_OPENLOOP_T_RAMP;

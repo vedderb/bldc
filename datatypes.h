@@ -463,8 +463,6 @@ typedef struct {
 	float foc_start_curr_dec_rpm;
 	float foc_openloop_rpm;
 	float foc_openloop_rpm_low;
-	float foc_d_gain_scale_start;
-	float foc_d_gain_scale_max_mod;
 	float foc_sl_openloop_hyst;
 	float foc_sl_openloop_time;
 	float foc_sl_openloop_time_lock;
