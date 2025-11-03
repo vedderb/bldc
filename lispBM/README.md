@@ -3825,6 +3825,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-hall-t6            ; Hall table index 6 (Added in FW 6.05)
 'foc-hall-t7            ; Hall table index 7 (Added in FW 6.05)
 'foc-sl-erpm-hfi        ; ERPM where to move to sensorless in HFI mode
+'foc-hfi-reset-erpm     ; Reset HFI ambiguity resolution below this ERPM (FW 7.0)
 'foc-openloop-rpm       ; Use openloop commutation below this ERPM
 'foc-openloop-rpm-low   ; Openloop ERPM and minimum current
 'foc-sl-openloop-time-lock ; Locking time at the start of openloop

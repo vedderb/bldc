@@ -196,6 +196,7 @@ typedef struct {
 	lbm_uint foc_hall_t6;
 	lbm_uint foc_hall_t7;
 	lbm_uint foc_sl_erpm_hfi;
+	lbm_uint foc_hfi_reset_erpm;
 	lbm_uint foc_openloop_rpm;
 	lbm_uint foc_openloop_rpm_low;
 	lbm_uint foc_sl_openloop_time_lock;
@@ -543,6 +544,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("foc-hall-t7", comp);
 		} else if (comp == &syms_vesc.foc_sl_erpm_hfi) {
 			lbm_add_symbol_const("foc-sl-erpm-hfi", comp);
+		} else if (comp == &syms_vesc.foc_hfi_reset_erpm) {
+			lbm_add_symbol_const("foc-hfi-reset-erpm", comp);
 		} else if (comp == &syms_vesc.foc_openloop_rpm) {
 			lbm_add_symbol_const("foc-openloop-rpm", comp);
 		} else if (comp == &syms_vesc.foc_openloop_rpm_low) {
@@ -3861,6 +3864,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.foc_sl_erpm_hfi)) {
 			mcconf->foc_sl_erpm_hfi = lbm_dec_as_float(args[1]);
 			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_hfi_reset_erpm)) {
+			mcconf->foc_hfi_reset_erpm = lbm_dec_as_float(args[1]);
+			changed_mc = 2;
 		} else if (compare_symbol(name, &syms_vesc.foc_openloop_rpm)) {
 			mcconf->foc_openloop_rpm = lbm_dec_as_float(args[1]);
 			changed_mc = 2;
@@ -4191,6 +4197,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_i(mcconf->foc_hall_table[7]);
 	} else if (compare_symbol(name, &syms_vesc.foc_sl_erpm_hfi)) {
 		res = lbm_enc_float(mcconf->foc_sl_erpm_hfi);
+	} else if (compare_symbol(name, &syms_vesc.foc_hfi_reset_erpm)) {
+		res = lbm_enc_float(mcconf->foc_hfi_reset_erpm);
 	} else if (compare_symbol(name, &syms_vesc.foc_openloop_rpm)) {
 		res = lbm_enc_float(mcconf->foc_openloop_rpm);
 	} else if (compare_symbol(name, &syms_vesc.foc_openloop_rpm_low)) {
