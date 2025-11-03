@@ -74,7 +74,12 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 	} else {
 		UTILS_LP_FAST(cfg->state.signal_above_max_error_rate, 0.0, timestep);
 		UTILS_LP_FAST(cfg->state.signal_low_error_rate, 0.0, timestep);
-		cfg->state.last_enc_angle = RAD2DEG_f(utils_fast_atan2(sin, cos)) + 180.0;
+
+		float delay_comp = ((1.0 - cfg->filter_constant) * RPM2RADPS_f(mc_interface_get_rpm()) * timestep) / (cfg->filter_constant * cfg->ratio);
+		float angle = RAD2DEG_f(utils_fast_atan2(sin, cos) + delay_comp * cfg->delay_comp_sign) + 180.0;
+		utils_norm_angle(&angle);
+
+		cfg->state.last_enc_angle = angle;
 	}
 
 	return cfg->state.last_enc_angle;

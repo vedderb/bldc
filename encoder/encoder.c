@@ -192,6 +192,8 @@ bool encoder_init(volatile mc_configuration *conf) {
 		encoder_cfg_sincos.c_gain = 1.0 /conf->m_encoder_cos_amp;
 		encoder_cfg_sincos.c_offset =  conf->m_encoder_cos_offset;
 		encoder_cfg_sincos.filter_constant = conf->m_encoder_sincos_filter_constant;
+		encoder_cfg_sincos.ratio = conf->foc_encoder_ratio;
+		encoder_cfg_sincos.delay_comp_sign = conf->foc_encoder_inverted ? -1.0 : 1.0;
 		sincosf(DEG2RAD_f(conf->m_encoder_sincos_phase_correction), &encoder_cfg_sincos.sph, &encoder_cfg_sincos.cph);
 
 		if (!enc_sincos_init(&encoder_cfg_sincos)) {
@@ -325,6 +327,8 @@ void encoder_update_config(volatile mc_configuration *conf) {
 		encoder_cfg_sincos.c_gain = 1.0 /conf->m_encoder_cos_amp;
 		encoder_cfg_sincos.c_offset =  conf->m_encoder_cos_offset;
 		encoder_cfg_sincos.filter_constant = conf->m_encoder_sincos_filter_constant;
+		encoder_cfg_sincos.ratio = conf->foc_encoder_ratio;
+		encoder_cfg_sincos.delay_comp_sign = conf->foc_encoder_inverted ? -1.0 : 1.0;
 		sincosf(DEG2RAD_f(conf->m_encoder_sincos_phase_correction), &encoder_cfg_sincos.sph, &encoder_cfg_sincos.cph);
 	} break;
 
