@@ -794,7 +794,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_hfi_max_err = MCCONF_FOC_HFI_MAX_ERR;
 	conf->foc_hfi_hyst = MCCONF_FOC_HFI_HYST;
 	conf->foc_sl_erpm_hfi = MCCONF_FOC_SL_ERPM_HFI;
-	conf->foc_hfi_reset_erpm = MCCONF_FOC_SL_ERPM_HFI;
+	conf->foc_hfi_reset_erpm = MCCONF_FOC_HFI_RESET_ERPM;
 	conf->foc_hfi_start_samples = MCCONF_FOC_HFI_START_SAMPLES;
 	conf->foc_hfi_obs_ovr_sec = MCCONF_FOC_HFI_OBS_OVR_SEC;
 	conf->foc_hfi_samples = MCCONF_FOC_HFI_SAMPLES;

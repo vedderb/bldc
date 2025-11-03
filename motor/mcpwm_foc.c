@@ -3678,6 +3678,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_motor_state.id_target = 0.0;
 		motor_now->m_motor_state.id_override_hfi = false;
 		motor_now->m_hfi.angle = motor_now->m_motor_state.phase;
+		motor_now->m_hfi.double_integrator = -motor_now->m_speed_est_fast;
 
 		float s = motor_now->m_motor_state.phase_sin;
 		float c = motor_now->m_motor_state.phase_cos;
