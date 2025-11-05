@@ -1989,6 +1989,54 @@ Example:
 
 ---
 
+#### enc-sample
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(enc-sample buffer samples)
+```
+
+This function is used for building correction tables for encoders. It will take about 10k samples per seconds if the difference between the motor position derived from the back-emf as well as the motor position derived from the encoder and store those samples in the argument buffer, which is a byte array. The argument samples sets how many samples to take - given that the rate is around 10k passing the argument 1000 will run this function for 0.1 seconds.
+
+The format of buffer is a byte array with 720 floats, meaning that its size has to be 720x4 = 2880 bytes. There is one float for the accumulater error on every encoder postion in whole degrees as well as one float for the number of samples taken at that postion.
+
+Note: This function only works when the motor is spinning but undriven, so either it has to be used by externally driving the motor or by spinning it up first, releasing it and then running this function while it is spinning down.
+
+Example:
+
+```clj
+; Create buffer for samples
+(def samples (bufcreate (* 360 8)))
+(bufclear samples)
+
+; Spin up motor for 3 seconds
+(looprange i 0 30 {
+        (set-rpm 6000)
+        (sleep 0.1)
+})
+
+; Stop driving motors so that it is coasting
+(set-current 0.0)
+
+; Collect 800 samples
+(enc-sample samples 800)
+
+; This function can be used to get the accumulated value for
+; a given encoder position
+(defun get-val (pos) (bufget-f32 samples (* pos 8)))
+
+; This function can be used to get the number of samples for
+; a given encoder position
+(defun get-samp (pos) (bufget-f32 samples (+ (* pos 8) 4)))
+```
+
+Note that the example above is not complete and many more than 800 samples are required for generating a complete encoder correction table. VESC Tool includes an example file named test_encoder.lbm with a complete implementation that works by spinning up the motor multiple times and collecting samples.
+
+---
+
 ### Setup Values
 
 These commands return the accumulated values from all VESC-based motor controllers on the CAN-bus. Note that the corresponding CAN status messages must be activated for these commands to work.

@@ -2340,6 +2340,67 @@ static lbm_value ext_phase_all(lbm_value *args, lbm_uint argn) {
 
 }
 
+typedef struct {
+	int samples;
+	uint8_t *data;
+	lbm_cid id;
+} enc_sample_args;
+
+static void enc_sample_task(void *arg) {
+	enc_sample_args *a = (enc_sample_args*)arg;
+	int restart_cnt = lispif_get_restart_cnt();
+
+	bool ok = true;
+	for (int i = 0;i < a->samples;i++) {
+		float err_bemf_encoder = utils_angle_difference(mcpwm_foc_get_phase_bemf(), mcpwm_foc_get_phase_encoder());
+		float pos_encoder = encoder_read_deg();
+
+		int32_t ind = (int)pos_encoder;
+		if (ind < 0 || ind > 360) {
+			ok = false;
+			break;
+		}
+
+		ind *= 8;
+		int32_t ind2 = ind;
+
+		buffer_append_float32_auto(a->data, buffer_get_float32_auto(a->data, &ind) + err_bemf_encoder, &ind2);
+		buffer_append_float32_auto(a->data, buffer_get_float32_auto(a->data, &ind) + 1, &ind2);
+
+		chThdSleep(1);
+	}
+
+	if (restart_cnt == lispif_get_restart_cnt()) {
+		lbm_unblock_ctx_unboxed(a->id, ok ? ENC_SYM_TRUE : ENC_SYM_EERROR);
+	}
+}
+
+static lbm_value ext_enc_sample(lbm_value *args, lbm_uint argn) {
+	if (argn != 2 || !lbm_is_array_rw(args[0]) || !lbm_is_number(args[1])) {
+		return ENC_SYM_TERROR;
+	}
+
+	lbm_array_header_t *array = lbm_dec_array_rw(args[0]);
+	if (array->size < (360 * 2 * 4)) {
+		return ENC_SYM_TERROR;
+	}
+
+	int samples = lbm_dec_as_i32(args[1]);
+	if (samples <= 0 || samples > 300000) {
+		return ENC_SYM_TERROR;
+	}
+
+	static enc_sample_args a;
+	a.samples = samples;
+	a.data = (uint8_t*)array->data;
+	a.id = lbm_get_current_cid();
+
+	lbm_block_ctx_from_extension();
+	worker_execute(enc_sample_task, &a);
+
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_enc_corr(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_NUMBER_ALL();
 
@@ -6074,6 +6135,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("phase-observer", ext_phase_observer);
 		lbm_add_extension("observer-error", ext_observer_error);
 		lbm_add_extension("phase-all", ext_phase_all);
+		lbm_add_extension("enc-sample", ext_enc_sample);
 		lbm_add_extension("enc-corr", ext_enc_corr);
 		lbm_add_extension("enc-corr-en", ext_enc_corr_en);
 
