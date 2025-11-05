@@ -2005,24 +2005,12 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 
 	// Watt and ah counters
 	if (fabsf(current_filtered) > 1.0) {
-		// Some extra filtering
-		static float curr_diff_sum = 0.0;
-		static float curr_diff_samples = 0;
-
-		curr_diff_sum += current_in_filtered * t_samp;
-		curr_diff_samples += t_samp;
-
-		if (curr_diff_samples >= 0.01) {
-			if (curr_diff_sum > 0.0) {
-				motor->m_amp_seconds += curr_diff_sum;
-				motor->m_watt_seconds += curr_diff_sum * input_voltage;
-			} else {
-				motor->m_amp_seconds_charged -= curr_diff_sum;
-				motor->m_watt_seconds_charged -= curr_diff_sum * input_voltage;
-			}
-
-			curr_diff_samples = 0.0;
-			curr_diff_sum = 0.0;
+		if (current_in_filtered > 0.0) {
+			motor->m_amp_seconds += current_in_filtered * t_samp;
+			motor->m_watt_seconds += current_in_filtered * t_samp * input_voltage;
+		} else {
+			motor->m_amp_seconds_charged -= current_in_filtered * t_samp;
+			motor->m_watt_seconds_charged -= current_in_filtered * t_samp * input_voltage;
 		}
 	}
 
