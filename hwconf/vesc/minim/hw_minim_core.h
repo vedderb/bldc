@@ -64,6 +64,17 @@
 #define OUT_3_ON()			palSetPad(OUT_3_GPIO, OUT_3_PIN)
 #define OUT_3_OFF()		    palClearPad(OUT_3_GPIO, OUT_3_PIN)
 
+// Shutdown pin
+#define HW_SHUTDOWN_GPIO		GPIOA
+#define HW_SHUTDOWN_PIN			5
+#define HW_SHUTDOWN_HOLD_ON()	hw_shutdown_set_hold(true)
+#define HW_SHUTDOWN_HOLD_OFF()	hw_shutdown_set_hold(false)
+#define HW_SAMPLE_SHUTDOWN()	hw_sample_shutdown_button()
+#define HW_SHUTDOWN_NO
+
+// Hold shutdown pin early to wake up on short pulses
+#define HW_EARLY_INIT()			HW_SHUTDOWN_HOLD_ON()
+
 /*
  * ADC Vector
  *
@@ -80,7 +91,7 @@
  * 10 (2):	IN15
  * 11 (3):	IN13
  * 12 (1):	Vrefint
- * 13 (2):	IN0
+ * 13 (2):	IN7 Wheel speed
  * 14 (3):	IN1
  * 15 (1):  IN8
  * 16 (2):  IN9
@@ -101,9 +112,11 @@
 #define ADC_IND_VIN_SENS		11
 #define ADC_IND_EXT				8
 #define ADC_IND_EXT2			15
+#define ADC_IND_EXT3			13
 #define ADC_IND_TEMP_MOS		10
 #define ADC_IND_TEMP_MOTOR		16
 #define ADC_IND_VREFINT			12
+#define ADC_IND_SHUTDOWN		6
 
 // ADC macros and settings
 
@@ -140,8 +153,10 @@
 // COMM-port ADC GPIOs
 #define HW_ADC_EXT_GPIO			GPIOA
 #define HW_ADC_EXT_PIN			3
-#define HW_ADC_EXT2_GPIO		GPIOA
-#define HW_ADC_EXT2_PIN			6
+#define HW_ADC_EXT2_GPIO		GPIOB
+#define HW_ADC_EXT2_PIN			0
+#define HW_ADC_EXT3_GPIO		GPIOA
+#define HW_ADC_EXT3_PIN			7
 
 // UART Peripheral
 #define HW_UART_DEV				SD3
@@ -202,8 +217,8 @@
 #define HW_SPI_GPIO_AF			GPIO_AF_SPI1
 #define HW_SPI_PORT_NSS			GPIOB
 #define HW_SPI_PIN_NSS			11
-#define HW_SPI_PORT_SCK			GPIOA
-#define HW_SPI_PIN_SCK			5
+#define HW_SPI_PORT_SCK			GPIOB
+#define HW_SPI_PIN_SCK			2
 #define HW_SPI_PORT_MOSI		GPIOB
 #define HW_SPI_PIN_MOSI			2
 #define HW_SPI_PORT_MISO		GPIOA
@@ -220,7 +235,6 @@
 #define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
-// Override dead time. See the stm32f4 reference manual for calculating this value.
 #define HW_DEAD_TIME_NSEC		200.0
 
 // Default setting overrides
@@ -237,23 +251,26 @@
 #define MCCONF_FOC_F_ZV					30000.0
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT		120.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT		80.0	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX			50.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MAX			45.0	// Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN			-50.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN			-45.0	// Input current limit in Amperes (Lower)
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-80.0, 80.0
-#define HW_LIM_CURRENT_IN		-80.0, 80.0
-#define HW_LIM_CURRENT_ABS		0.0, 120.0
+#define HW_LIM_CURRENT			-65.0, 65.0
+#define HW_LIM_CURRENT_IN		-60.0, 60.0
+#define HW_LIM_CURRENT_ABS		0.0, 110.0
 #define HW_LIM_VIN				11.0, 94.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
+
+bool hw_sample_shutdown_button(void);
+void hw_shutdown_set_hold(bool hold);
 
 #endif /* HW_MINIM_CORE_H_ */

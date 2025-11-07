@@ -18,7 +18,7 @@
 
 (define r9 (eq terr (trap (str-part))))
 
-(define r10 (eq eerr (trap (str-split))))
+(define r10 (eq terr (trap (str-split))))
 
 (define r11 (eq eerr (trap (str-replace))))
 

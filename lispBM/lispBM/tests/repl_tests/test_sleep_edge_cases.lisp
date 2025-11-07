@@ -1,0 +1,16 @@
+
+(define r1 (trap (yield)))
+(define r2 (trap (yield 1 2 3)))
+(define r3 (trap (yield 'apa)))
+(define r4 (trap (sleep)))
+(define r5 (trap (sleep 1 2 3)))
+(define r6 (trap (sleep 'apa)))
+
+(if (and (eq r1 '(exit-error type_error))
+         (eq r2 '(exit-error type_error))
+         (eq r3 '(exit-error type_error))
+         (eq r4 '(exit-error type_error))
+         (eq r5 '(exit-error type_error))
+         (eq r6 '(exit-error type_error)))
+    (print "SUCCESS")
+    (print "FAILURE"))

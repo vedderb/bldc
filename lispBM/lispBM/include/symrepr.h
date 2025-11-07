@@ -64,9 +64,9 @@ bool store_symbol_name_flash(char *name, lbm_uint *res);
 
 /** Initialize the symbol table.
  *
- * \return 1
+ * \return true on success and false on failure.
  */
-int lbm_symrepr_init(void);
+bool lbm_symrepr_init(void);
 /** Iterate over all symbol names as strings
  *
  * \param symrepr_name_iterator_fun function taking a string

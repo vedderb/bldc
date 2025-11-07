@@ -1910,6 +1910,133 @@ Returns the difference between the observer position and the encoder position ma
 
 ---
 
+#### phase-all
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06.1+ |
+
+```clj
+(phase-all)
+```
+
+Returns a list of phases and various phase errors, all sampled at the same time. This can be used for doing encoder error mapping and creating encoder error correction tables. Returns the folliwing list of values, all in degrees:
+
+```clj
+(
+    phase_observer        ; Observer phase
+    phase_encoder         ; Encoder phase, derived from current encoder settings
+    phase_bemf            ; Phase derived from the back-emf (only valid when undriven)
+    pos_encoder           ; Encoder angle reading in encoder reference frame
+    err_observer_encoder  ; Phase error between observer and encoder
+    err_bemf_encoder      ; Phase error between back-emf and encoder
+    err_observer_bemf     ; Phase error between observer and back-emf
+)
+```
+
+---
+
+#### enc-corr
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06.1+ |
+
+```clj
+(enc-corr angle optCorr)
+```
+
+Get (or set) encoder correction for angle. The angle is in the encoder reference frame and the correction is in the FOC reference frame. Returns the correction value for angle. The optional value optCorr can be used to update the correction value at angle, if it is left out only the old value will be returned. The correction is applied in the FOC reference frame, so it should be the error on the FOC motor phase that the encoder causes.
+
+Example:
+
+```clj
+; Prints encoder correction value for 10 degrees. Read only, nothing is chaged.
+(print (enc-corr 10))
+
+; Set encoder correction value for 10 degrees to -5 degrees.
+(enc-corr 10 -5)
+```
+
+---
+
+---
+
+#### enc-corr-en
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06.1+ |
+
+```clj
+(enc-corr-en optEn)
+```
+
+Returns 1 if encoder correction is enabled and 0 if it is disabled. The optional argument optEn can be used to enable or disable encoder correction.
+
+Example:
+
+```clj
+; Prints 1 if correction is enabled, 0 otherwise. Read only, nothing is chaged.
+(print (enc-corr-en))
+
+; Enable correction
+(enc-corr-en 1)
+
+; Disable correction
+(enc-corr-en 0)
+```
+
+---
+
+#### enc-sample
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(enc-sample buffer samples)
+```
+
+This function is used for building correction tables for encoders. It will take about 10k samples per seconds if the difference between the motor position derived from the back-emf as well as the motor position derived from the encoder and store those samples in the argument buffer, which is a byte array. The argument samples sets how many samples to take - given that the rate is around 10k passing the argument 1000 will run this function for 0.1 seconds.
+
+The format of buffer is a byte array with 720 floats, meaning that its size has to be 720x4 = 2880 bytes. There is one float for the accumulater error on every encoder postion in whole degrees as well as one float for the number of samples taken at that postion.
+
+Note: This function only works when the motor is spinning but undriven, so either it has to be used by externally driving the motor or by spinning it up first, releasing it and then running this function while it is spinning down.
+
+Example:
+
+```clj
+; Create buffer for samples
+(def samples (bufcreate (* 360 8)))
+(bufclear samples)
+
+; Spin up motor for 3 seconds
+(looprange i 0 30 {
+        (set-rpm 6000)
+        (sleep 0.1)
+})
+
+; Stop driving motors so that it is coasting
+(set-current 0.0)
+
+; Collect 800 samples
+(enc-sample samples 800)
+
+; This function can be used to get the accumulated value for
+; a given encoder position
+(defun get-val (pos) (bufget-f32 samples (* pos 8)))
+
+; This function can be used to get the number of samples for
+; a given encoder position
+(defun get-samp (pos) (bufget-f32 samples (+ (* pos 8) 4)))
+```
+
+Note that the example above is not complete and many more than 800 samples are required for generating a complete encoder correction table. VESC Tool includes an example file named test_encoder.lbm with a complete implementation that works by spinning up the motor multiple times and collecting samples.
+
+---
+
 ### Setup Values
 
 These commands return the accumulated values from all VESC-based motor controllers on the CAN-bus. Note that the corresponding CAN status messages must be activated for these commands to work.
@@ -2482,12 +2609,18 @@ Example:
 
 ```clj
 ; Configuration update on ID54:
-(can-cmd 54 "(conf-set max-speed 10.0)")
+(can-cmd 54 "(conf-set 'max-speed 10.0)")
 
 ; The string-functions can be used for setting something from a variable
 (def max-speed-kmh 25.0)
 (can-cmd 54 (str-from-n (/ max-speed-kmh 3.6) "(conf-set 'max-speed %.3f)"))
 ```
+  
+**Note**  
+can-cmd is limited to two commands per second per device. If commands are sent more often that that they are ignored.  
+  
+**Note2**  
+A better way to achieve something similar to can-cmd but with much less overhead and unlimited rate is using the [Code Server](https://github.com/vedderb/vesc_pkg/tree/main/lib_code_server) library.
 
 ---
 
@@ -3694,6 +3827,7 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    12: SENSOR_PORT_MODE_CUSTOM_ENCODER
                         ;    13: SENSOR_PORT_MODE_PWM
                         ;    14: SENSOR_PORT_MODE_PWM_ABI
+'m-fault-stop-time-ms   ; Milliseconds to stop the motor for after fauls (FW6.06.5)
 'si-motor-poles         ; Number of motor poles, must be multiple of 2
 'si-gear-ratio          ; Gear ratio (Added in FW 6.05)
 'si-wheel-diameter      ; Wheel diameter in meters (Added in FW 6.05)
@@ -3739,6 +3873,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-hall-t6            ; Hall table index 6 (Added in FW 6.05)
 'foc-hall-t7            ; Hall table index 7 (Added in FW 6.05)
 'foc-sl-erpm-hfi        ; ERPM where to move to sensorless in HFI mode
+'foc-hfi-reset-erpm     ; Reset HFI ambiguity resolution below this ERPM (FW 7.0)
 'foc-openloop-rpm       ; Use openloop commutation below this ERPM
 'foc-openloop-rpm-low   ; Openloop ERPM and minimum current
 'foc-sl-openloop-time-lock ; Locking time at the start of openloop
@@ -3772,15 +3907,21 @@ The following selection of app and motor parameters can be read and set from Lis
 'controller-id          ; VESC CAN ID
 'timeout-msec           ; Motor timeout in milliseconds (Added in FW 6.06)
 'can-baud-rate          ; CAN-bus baud rate (Added in FW 6.05)
-                        ; 0: 125K
-                        ; 1: 250K
-                        ; 2: 500K
-                        ; 3: 1M
-                        ; 4: 10K
-                        ; 5: 20K
-                        ; 6: 50K
-                        ; 7: 75K
-                        ; 8: 100K
+                        ;    0: 125K
+                        ;    1: 250K
+                        ;    2: 500K
+                        ;    3: 1M
+                        ;    4: 10K
+                        ;    5: 20K
+                        ;    6: 50K
+                        ;    7: 75K
+                        ;    8: 100K
+'can-mode               ; CAN-bus mode (FW 6.05.3+)
+                        ;    0: 125K
+                        ;    1: VESC
+                        ;    2: UAVCAN
+                        ;    3: COMM Bridge
+                        ;    4: Unused
 'can-status-rate-1      ; CAN status rate 1 in Hz (Added in FW 6.05)
 'can-status-msgs-r1     ; Bitfield with the status messages (Added in FW 6.05)
                         ; Bit0: Status 1 (RPM, Current, Duty)
@@ -3809,6 +3950,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'ppm-pulse-center       ; Pulse corresponding to center throttle in ms
 'ppm-ramp-time-pos      ; Positive ramping time in seconds
 'ppm-ramp-time-neg      ; Negative ramping time in seconds
+'ppm-hyst               ; Input deadband, range 0 to 1 (Added in FW 6.06.5)
 'adc-ctrl-type          ; ADC Control Type (Added in FW 6.02)
                         ;    0:  ADC_CTRL_TYPE_NONE
                         ;    1:  ADC_CTRL_TYPE_CURRENT
@@ -3827,7 +3969,7 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    14: ADC_CTRL_TYPE_PID_REV_BUTTON
 'adc-ramp-time-pos      ; Positive ramping time in seconds (Added in FW 6.05)
 'adc-ramp-time-neg      ; Negative ramping time in seconds (Added in FW 6.05)
-'adc-thr-hyst           ; Throttle hysteresis, range 0 to 1 (Added in FW 6.05)
+'adc-thr-hyst           ; Throttle deadband, range 0 to 1 (Added in FW 6.05)
 'adc-v1-start           ; Throttle 1 start voltage (Added in FW 6.05)
 'adc-v1-end             ; Throttle 1 end voltage (Added in FW 6.05)
 'adc-v1-min             ; Throttle 1 low fault voltage (Added in FW 6.05)
@@ -3837,20 +3979,20 @@ The following selection of app and motor parameters can be read and set from Lis
 ; Express settings (Added in 6.05)
 'controller-id          ; VESC CAN ID
 'can-baud-rate          ; CAN-bus baud rate
-                        ; 0: 125K
-                        ; 1: 250K
-                        ; 2: 500K
-                        ; 3: 1M
-                        ; 4: 10K
-                        ; 5: 20K
-                        ; 6: 50K
-                        ; 7: 75K
-                        ; 8: 100K
+                        ;    0: 125K
+                        ;    1: 250K
+                        ;    2: 500K
+                        ;    3: 1M
+                        ;    4: 10K
+                        ;    5: 20K
+                        ;    6: 50K
+                        ;    7: 75K
+                        ;    8: 100K
 'can-status-rate-hz     ; CAN status message rate
 'wifi-mode              ; Wifi mode
-                        ; 0: Disabled
-                        ; 1: Station
-                        ; 2: Access Point
+                        ;    0: Disabled
+                        ;    1: Station
+                        ;    2: Access Point
 'wifi-sta-ssid          ; Wifi station SSID
 'wifi-sta-key           ; Wifi station Key
 'wifi-ap-ssid           ; Wifi access point SSID
@@ -3862,10 +4004,10 @@ The following selection of app and motor parameters can be read and set from Lis
 'tcp-hub-id             ; TCP hub connection ID
 'tcp-hub-pass           ; TCP hub password
 'ble-mode               ; BLE mode
-                        ; 0: Disabled
-                        ; 1: Enabled
-                        ; 2: Enabled and encrypted with pin
-                        ; 3: Enabled with scripting
+                        ;    0: Disabled
+                        ;    1: Enabled
+                        ;    2: Enabled and encrypted with pin
+                        ;    3: Enabled with scripting
 'ble-name               ; Device name (also the name that shows up in VESC Tool)
 'ble-pin                ; BLE pin code
 'ble-service-capacity   ; BLE Service Capacity
@@ -3923,6 +4065,20 @@ Get the value of param. optDefLim is an optional argument that can be set to 1 o
 ```
 
 Store the current configuration to flash. This will stop the motor. Note: On the express most settings require a reboot to be applied. Remember to use conf-store before rebooting.
+
+---
+
+#### store-backup
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06.6+ |
+
+```clj
+(store-backup)
+```
+
+Store backup data, such as odometer and runtime counter, to flash. This will stop the motor. conf-store will also store this data, but this function alone is much faster as the configurations are not stored.
 
 ---
 
@@ -4176,6 +4332,20 @@ Example:
 ; Use result of resistance and inductance measurement
 (print (conf-detect-lambda-enc 40 0.3 1500 (conf-measure-res 30) (first (conf-measure-ind 20))))
 ```
+
+---
+
+#### conf-detect-hall
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06.1+ |
+
+```clj
+(conf-detect-hall current)
+```
+
+Runs hall sensor detection using current in openloop. Returns the hall sensor table as a byte array on success or nil on failure.
 
 ---
 
@@ -6707,7 +6877,10 @@ When a SD-card is present in the VESC Express files can be listed, read, written
 (f-connect pin-mosi pin-miso pin-sck pin-cs optSpiSpeed)
 ```
 
-Connect SD-card on pin-mosi, pin-miso, pin-sck and pin-cs. The optional argument optSpiSpeed can be used to specify the SPI speed (default 20000 Hz). Returns true on success, nil otherwise.
+Connect SD-card on pin-mosi, pin-miso, pin-sck and pin-cs. The optional argument optSpiSpeed can be used to specify the SPI speed (default 20000 Hz). Returns true on success, nil otherwise.  
+  
+**NOTE**  
+This is only needed if you connect a memory card manually to hardware that does not come with one. Hardware such as the [VESC Nanolog](https://www.vesclabs.com/product/vl-nanolog/) already has the memory card connected and initialized, so you can use the file operations right away.
 
 ---
 

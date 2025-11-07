@@ -51,9 +51,9 @@ extern lbm_extension_t *extension_table;
 /** Initialize the extensions subsystem. Extension storage is allocated on lbm_memory.
  *
  * \param extension_storage_size Size of function pointer array.
- * \return 1 on success and 0 for failure
+ * \return true on success and false for failure
  */
-int lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_storage_size);
+bool lbm_extensions_init(lbm_extension_t *extension_storage, lbm_uint extension_storage_size);
 /** Set the next index to be given out to the next added extension.
  * \param i Next index.
  */
@@ -99,15 +99,9 @@ bool lbm_add_extension(char *sym_str, extension_fptr ext);
  */
 static inline bool lbm_is_extension(lbm_value exp) {
   return ((lbm_type_of(exp) == LBM_TYPE_SYMBOL) &&
-          (lbm_get_extension(lbm_dec_sym(exp)) != NULL));
+          ((lbm_dec_sym(exp) - EXTENSION_SYMBOLS_START) < lbm_get_num_extensions()));
 }
 
-
-/** Check if a value is the symbol t or the symbol nil
- * \param v The value.
- * \return true if the value is t or nil otherwise false.
- */
-bool lbm_check_true_false(lbm_value v);
 /** Check if all arguments are numbers. Sets error-reason if result is false.
  * \param args The argument array.
  * \param argn The number of arguments.

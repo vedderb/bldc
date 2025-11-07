@@ -1,12 +1,18 @@
 /**
 @mainpage LispBM
-@author Bo Joel Svensson.
+@author LispBM project
 
 http://www.lispbm.com
 
 https://github.com/svenssonjoel/lispBM
 
+<h2> Build LispBM </h2>
+
 Building instructions: \ref Building
+
+<h2> Integration safety manual </h2>
+
+Integration safety manual: \ref Integration
 
 <h2> Implementation documentation </h2>
 

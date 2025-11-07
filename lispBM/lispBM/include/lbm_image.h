@@ -128,4 +128,21 @@ bool lbm_image_boot(void);
  */
 char *lbm_image_get_version(void);
 
+
+
+/**
+ * Sharing table The sharing table lists addresses that are shared
+ * (referenced in more than one place). Additionally the sharing
+ * table has a number of "fields" that be written to once(if the
+ * sharing table is in flash) and read multiple times.
+ */
+typedef struct {
+  int32_t start;
+  int32_t num;
+} sharing_table;
+
+int32_t sharing_table_contains(sharing_table *st, lbm_uint addr);
+bool sharing_table_set_field(sharing_table *st, int32_t ix, int32_t field, uint32_t value);
+uint32_t sharing_table_get_field(sharing_table *st, int32_t ix, int32_t field);
+
 #endif

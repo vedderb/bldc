@@ -33,7 +33,7 @@
 // Private variables
 bool volatile m_button_pressed = false;
 static volatile float m_inactivity_time = 0.0;
-static THD_WORKING_AREA(shutdown_thread_wa, 128);
+static THD_WORKING_AREA(shutdown_thread_wa, 256);
 static mutex_t m_sample_mutex;
 static volatile bool m_init_done = false;
 static volatile bool m_sampling_disabled = false;
@@ -150,8 +150,20 @@ static THD_FUNCTION(shutdown_thread, arg) {
 			break;
 
 		case SHUTDOWN_MODE_ALWAYS_ON:
-			m_inactivity_time += dt;
 			HW_SHUTDOWN_HOLD_ON();
+			break;
+
+		default:
+			if (clicked) {
+				gates_disabled_here = do_shutdown(false);
+			}
+			break;
+		}
+
+		switch (conf->shutdown_mode) {
+		case SHUTDOWN_MODE_ALWAYS_OFF:
+		case SHUTDOWN_MODE_ALWAYS_ON: {
+			m_inactivity_time += dt;
 			// Without a shutdown switch use inactivity timer to estimate
 			// when device is stopped. Check also distance between store
 			// to prevent excessive flash write cycles.
@@ -163,12 +175,8 @@ static THD_FUNCTION(shutdown_thread, arg) {
 					odometer_old = mc_interface_get_odometer();
 				}
 			}
-			break;
-
+		}
 		default:
-			if (clicked) {
-				gates_disabled_here = do_shutdown(false);
-			}
 			break;
 		}
 

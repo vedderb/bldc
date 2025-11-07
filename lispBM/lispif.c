@@ -37,7 +37,7 @@
 #define LBM_MEMORY_BITMAP_SIZE_28K LBM_MEMORY_BITMAP_SIZE(448)
 
 #ifndef EXTENSION_STORAGE_SIZE
-#define EXTENSION_STORAGE_SIZE		306
+#define EXTENSION_STORAGE_SIZE		312
 #endif
 
 #ifndef ADC_SAMPLE_MAX_LEN
@@ -83,7 +83,6 @@ static int restart_cnt = 0;
 static volatile bool const_write_error = false;
 
 // Private functions
-static uint32_t timestamp_callback(void);
 static void sleep_callback(uint32_t us);
 static bool image_write(uint32_t w, int32_t ix, bool const_heap);
 
@@ -737,7 +736,6 @@ bool lispif_restart(bool print, bool load_code, bool load_imports) {
 				PRINT_STACK_SIZE, extension_storage,
 				EXTENSION_STORAGE_SIZE);
 
-		lbm_set_timestamp_us_callback(timestamp_callback);
 		lbm_set_usleep_callback(sleep_callback);
 		lbm_set_printf_callback(commands_printf_lisp);
 		lbm_set_ctx_done_callback(done_callback);
@@ -865,11 +863,6 @@ bool lispif_is_eval_task(void) {
 
 lbm_uint lispif_const_heap_max_ind(void)  {
 	return image_max_ind;
-}
-
-static uint32_t timestamp_callback(void) {
-	systime_t t = chVTGetSystemTimeX();
-	return (uint32_t) ((1000000 / CH_CFG_ST_FREQUENCY) * t);
 }
 
 static void sleep_callback(uint32_t us) {

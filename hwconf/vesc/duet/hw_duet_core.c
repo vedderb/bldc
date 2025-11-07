@@ -23,6 +23,7 @@
 #include "ledpwm.h"
 #include "utils_math.h"
 #include "main.h"
+#include "app.h"
 
 typedef enum {
 	SWITCH_BOOTED = 0,
@@ -34,9 +35,9 @@ typedef enum {
 
 // Variables
 static volatile bool i2c_running = false;
-static THD_WORKING_AREA(smart_switch_thread_wa, 128);
+static THD_WORKING_AREA(smart_switch_thread_wa, 256);
 static THD_WORKING_AREA(mux_thread_wa, 256);
-static THD_WORKING_AREA(switch_color_thread_wa, 128);
+static THD_WORKING_AREA(switch_color_thread_wa, 256);
 static THD_FUNCTION(mux_thread, arg);
 static THD_FUNCTION(switch_color_thread, arg);
 static volatile switch_states switch_state = SWITCH_BOOTED;
@@ -382,10 +383,12 @@ void smart_switch_shut_down(void) {
 }
 
 bool smart_switch_is_pressed(void) {
-	if(palReadPad(SWITCH_IN_GPIO, SWITCH_IN_PIN) == 1  && (mc_interface_temp_fet_filtered() < 68.0))
+	if (palReadPad(SWITCH_IN_GPIO, SWITCH_IN_PIN) == 1 &&
+			(mc_interface_temp_fet_filtered() < 68.0) /* why?? */) {
 		return true;
-	else
+	} else {
 		return false;
+	}
 }
 
 static THD_FUNCTION(switch_color_thread, arg) {
@@ -414,18 +417,20 @@ static THD_FUNCTION(switch_color_thread, arg) {
 	float switch_blue_old = switch_blue;
 	float wh_left;
 	float left = mc_interface_get_battery_level(&wh_left);
-	if(left < 0.5){
+
+	if (left < 0.5) {
 		float intense = utils_map(left,0.0, 0.5, 0.0, 1.0);
 		utils_truncate_number(&intense,0,1);
 		switch_blue = intense;
 		switch_red  = 1.0-intense;
-	}else{
+	} else {
 		float intense = utils_map(left , 0.5, 1.0, 0.0, 1.0);
 		utils_truncate_number(&intense,0,1);
 		switch_green = intense;
 		switch_blue  = 1.0-intense;
 	}
-	for(int i = 0; i < 100; i++) {
+
+	for (int i = 0; i < 100; i++) {
 		float red_now = utils_map((float) i,0.0, 100.0, switch_red_old, switch_red);
 		float blue_now = utils_map((float) i,0.0, 100.0, switch_blue_old, switch_blue);
 		float green_now = utils_map((float) i,0.0, 100.0, switch_green_old, switch_green);
@@ -440,6 +445,7 @@ static THD_FUNCTION(switch_color_thread, arg) {
 		mc_interface_select_motor_thread(2);
 		mc_fault_code fault2 = mc_interface_get_fault();
 		mc_interface_select_motor_thread(1);
+
 		if (fault != FAULT_CODE_NONE || fault2 != FAULT_CODE_NONE) {
 			ledpwm_set_intensity(LED_HW2, 0);
 			ledpwm_set_intensity(LED_HW1, 0);
@@ -490,10 +496,13 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 	unsigned int millis_switch_pressed = 0;
 
 	for (;;) {
+		const app_configuration *conf = app_get_configuration();
+
 		switch (switch_state) {
 		case SWITCH_BOOTED:
 			switch_state = SWITCH_TURN_ON_DELAY_ACTIVE;
 			break;
+
 		case SWITCH_TURN_ON_DELAY_ACTIVE:
 			switch_state = SWITCH_HELD_AFTER_TURN_ON;
 			mc_interface_select_motor_thread(2);
@@ -507,31 +516,41 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 			mc_interface_unlock();
 			mc_interface_select_motor_thread(1);
 			mc_interface_unlock();
-			//Wait for other systems to boot up before proceeding
+
+			// Wait for other systems to boot up before proceeding
 			while (!main_init_done()) {
 				chThdSleepMilliseconds(200);
 			}
 			break;
+
 		case SWITCH_HELD_AFTER_TURN_ON:
-			if(smart_switch_is_pressed()){
+			if (smart_switch_is_pressed()) {
 				switch_state = SWITCH_HELD_AFTER_TURN_ON;
 			} else {
 				switch_state = SWITCH_TURNED_ON;
 			}
 			break;
-		case SWITCH_TURNED_ON:
-			if (smart_switch_is_pressed()) {
-				millis_switch_pressed++;
-				switch_bright = 0.5;
-			} else {
-				millis_switch_pressed = 0;
-				switch_bright = 1.0;
-			}
 
-			if (millis_switch_pressed > SMART_SWITCH_MSECS_PRESSED_OFF) {
-				switch_state = SWITCH_SHUTTING_DOWN;
+		case SWITCH_TURNED_ON:
+			if (conf->shutdown_mode == SHUTDOWN_MODE_ALWAYS_OFF) {
+				if (!smart_switch_is_pressed()) {
+					switch_state = SWITCH_SHUTTING_DOWN;
+				}
+			} else {
+				if (smart_switch_is_pressed()) {
+					millis_switch_pressed++;
+					switch_bright = 0.5;
+				} else {
+					millis_switch_pressed = 0;
+					switch_bright = 1.0;
+				}
+
+				if (millis_switch_pressed > SMART_SWITCH_MSECS_PRESSED_OFF) {
+					switch_state = SWITCH_SHUTTING_DOWN;
+				}
 			}
 			break;
+
 		case SWITCH_SHUTTING_DOWN:
 			switch_bright = 0;
 			while (smart_switch_is_pressed()) {
@@ -543,9 +562,11 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 			smart_switch_keep_on();
 			switch_state = SWITCH_TURN_ON_DELAY_ACTIVE;
 			break;
+
 		default:
 			break;
 		}
+
 		chThdSleepMilliseconds(1);
 	}
 }

@@ -8,7 +8,8 @@ LISPBM := ../
 include $(LISPBM)/lispbm.mk
 
 PLATFORM_INCLUDE = -I$(LISPBM)/platform/windows/include
-PLATFORM_SRC     = $(LISPBM)/platform/windows/src/platform_mutex.c
+PLATFORM_SRC     = $(LISPBM)/platform/windows/src/platform_mutex.c \
+                   $(LISPBM)/platform/windows/src/platform_timestamp.c
 
 LBMFLAGS = -DFULL_RTS_LIB \
 	   -DLBM_USE_DYN_MACROS \
@@ -39,7 +40,7 @@ INC = -Iwindows/readline/include \
       -Iwindows/SDL2/include/SDL2 \
       -Iwindows/SDL2_image/include
 
-CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -fno-pie -no-pie
+CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -fno-pie -no-pie -Wl,--disable-dynamicbase
 
 LISPBM_SRC += $(LISPBM_EVAL_CPS_SRC)
 
@@ -47,7 +48,10 @@ REPL_SRC= repl.c \
 	  repl_exts.c \
           crc.c \
           packet.c \
-	  lbm_sdl.c
+	  lbm_sdl.c \
+          vesc_express_extension_stubs.c \
+          bldc_extension_stubs.c
+
 
 
 all:  windows/build/lbm32.exe
@@ -75,6 +79,15 @@ windows/build/libpng16-16.dll:
 #windows/build/lbm64.exe: repl_win.c
 #	$(CC64) -DLBM_WIN -DLBM64 $(CCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(REPL_SRC) -o windows/build/lbm64.exe $(PLATFORM_INCLUDE) $(LISPBM_INC) $(INC) $(LIBS)
 
+# Instructions for Windows users:
+# 1. Open Command Prompt (cmd) or PowerShell
+# 2. Navigate to the windows/build directory
+# 3. Run: lbm32.exe
+# 
+# If VirtualAlloc fails:
+# - Run Command Prompt as Administrator
+# - If still failing, try disabling Windows ASLR: bcdedit /set nointegritychecks on
+# - All required DLLs are included in the build directory
 
 clean:
 	rm -f windows/build/lbm32.exe

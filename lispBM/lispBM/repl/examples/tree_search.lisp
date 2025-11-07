@@ -23,14 +23,17 @@
       (or (search (left-tree tree) n)
           (search (right-tree tree) n)))))
 
-(defun search-ret (tree n)
+;; The continuation is caught outside of the recursive function.
+;; I think this is more efficient than what is possible with defunret.
+(defun search-cc (cc tree n)
   (if (eq tree NIL) nil
     (if (= (car tree) n)
-        (pop-ret 't) ;; saves a lot of oring on the way up from discovery.
-      (or (search (left-tree tree) n)
-          (search (right-tree tree) n)))))
-
+        (cc 't) ;; saves a lot of oring on the way up from discovery.
+      {
+      (search-cc cc (left-tree tree) n)
+      (search-cc cc (right-tree tree) n)
+      })))
 
 (defun search-efficient (tree n)
-  (push-ret (search-ret tree n)))
+  (call-cc (lambda (cc)  (search-cc cc tree n))))
 

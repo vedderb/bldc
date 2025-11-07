@@ -31,7 +31,7 @@
 #define SHUTDOWN_SET_SAMPLING_DISABLED(d)	shutdown_set_sampling_disabled(d)
 #else
 #define SHUTDOWN_BUTTON_PRESSED				false
-#define SHUTDOWN_SET_SAMPLING_DISABLED(d)
+#define SHUTDOWN_SET_SAMPLING_DISABLED(d)	(void)d
 #endif
 
 #define SHUTDOWN_SAVE_BACKUPDATA_TIMEOUT 60*3 

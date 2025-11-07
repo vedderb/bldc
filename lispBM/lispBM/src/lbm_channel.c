@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2022, 2025 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -163,7 +163,7 @@ bool buffered_read(lbm_char_channel_t *chan, char *res) {
     *res = buffer[st->read_pos];
     st->column++;
     if (*res == '\n') {
-      st->column = 0;
+      st->column = 1;
       st->row ++;
     }
     st->read_pos = (st->read_pos + 1) % TOKENIZER_BUFFER_SIZE;
@@ -349,7 +349,7 @@ int string_write(lbm_char_channel_t *chan, char c) {
   lbm_string_channel_state_t *st = (lbm_string_channel_state_t*)chan->state;
   char *str = st->str;
 
-  if (st->write_pos < st->length - 1) {
+  if (st->write_pos < st->length) {
     str[st->write_pos] = c;
     st->write_pos = st->write_pos + 1;
   } else {

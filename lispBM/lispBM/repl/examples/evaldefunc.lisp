@@ -75,7 +75,8 @@
         (new-env (add-bindings (append env1 env) arg-env)))
     (evald new-env body k)))
 
-(defun apply (env ls k)
+;; apply is now a built in operation in LBM. calling this apply-f
+(defun apply-f (env ls k)
    (let ((f (car ls)))
      (if (is-operator f)
          (apply-cont k (eval ls))
@@ -94,7 +95,7 @@
          ((list-cont (? env) (? r) (? acc) (? k1))
           (eval-list env r (append acc (list e)) k1))
          ((application-cont (? env) (? k1))
-          (apply env e k1))
+          (apply-f env e k1))
          ((if-cont (? env) (? then-branch) (? else-branch) (? k1))
           (if e
               (evald env then-branch k1)

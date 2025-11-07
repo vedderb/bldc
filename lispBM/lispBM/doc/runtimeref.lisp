@@ -179,6 +179,15 @@
                           ))
               end)))
 
+(define environment-drop
+  (ref-entry "env-drop"
+             (list
+              (para (list "drop a binding from an environment."
+                          ))
+              (code '((env-drop 'a '((a . 10) (b . 20) (c . 30)))
+                      ))
+              end)))
+
 
 (define local-environment-get
   (ref-entry "local-env-get"
@@ -192,11 +201,23 @@
                          ))
               end)))
 
+(define global-environment-size
+  (ref-entry "global-env-size"
+             (list
+              (para (list "Get the size (in number of bindings) of the global env."
+                          ))
+              (code '((global-env-size)
+                      ))
+              end)))
+
+
 (define chapter-environments
   (section 2 "Environments"
            (list environment-get
                  environment-set
+                 environment-drop
                  local-environment-get
+                 global-environment-size
                  )))
 
 

@@ -127,11 +127,26 @@ __attribute__((section(".text2"))) void conf_general_init(void) {
 		if (g_backup.hw_config_init_flag == BACKUP_VAR_INIT_CODE) {
 			memcpy((void*)backup_tmp.hw_config, (uint8_t*)g_backup.hw_config, sizeof(g_backup.hw_config));
 		}
+
+		if (g_backup.enc_corr_init_flag == BACKUP_VAR_INIT_CODE) {
+			memcpy((void*)backup_tmp.enc_corr, (uint8_t*)g_backup.enc_corr, sizeof(g_backup.enc_corr));
+			backup_tmp.enc_corr_en = g_backup.enc_corr_en;
+		}
+
+		if (g_backup.can_init_flag == BACKUP_VAR_INIT_CODE) {
+			backup_tmp.can_baud = g_backup.can_baud;
+			backup_tmp.can_id = g_backup.can_id;
+		} else {
+			backup_tmp.can_baud = APPCONF_CAN_BAUD_RATE;
+			backup_tmp.can_id = HW_DEFAULT_ID;
+		}
 	}
 
 	backup_tmp.odometer_init_flag = BACKUP_VAR_INIT_CODE;
 	backup_tmp.runtime_init_flag = BACKUP_VAR_INIT_CODE;
 	backup_tmp.hw_config_init_flag = BACKUP_VAR_INIT_CODE;
+	backup_tmp.enc_corr_init_flag = BACKUP_VAR_INIT_CODE;
+	backup_tmp.can_init_flag = BACKUP_VAR_INIT_CODE;
 
 	g_backup = backup_tmp;
 	conf_general_store_backup_data();
@@ -149,7 +164,7 @@ __attribute__((section(".text2"))) bool conf_general_store_backup_data(void) {
 	mc_interface_release_motor_override_both();
 
 	if (!mc_interface_wait_for_motor_release_both(3.0)) {
-		return 100;
+		return false;
 	}
 
 	utils_sys_lock_cnt();
@@ -347,6 +362,8 @@ __attribute__((section(".text2"))) void conf_general_read_app_configuration(app_
 	// Set the default configuration
 	if (!is_ok) {
 		confgenerator_set_defaults_appconf(conf);
+		conf->can_baud_rate = g_backup.can_baud;
+		conf->controller_id = g_backup.can_id;
 	}
 }
 
@@ -371,6 +388,13 @@ __attribute__((section(".text2"))) bool conf_general_store_app_configuration(app
 	uint8_t *conf_addr = (uint8_t*)conf;
 	uint16_t var;
 
+	// Some hardware does not have USB and/or UART broken out. On that hardware we always boot with
+	// VESC CAN mode to make it harder to lock yourself out of the device.
+#ifdef HW_BOOT_VESC_CAN
+	CAN_MODE can_mode_before = conf->can_mode;
+	conf->can_mode = CAN_MODE_VESC;
+#endif
+
 	conf->crc = app_calc_crc(conf);
 
 	FLASH_Unlock();
@@ -387,10 +411,18 @@ __attribute__((section(".text2"))) bool conf_general_store_app_configuration(app
 		}
 	}
 
+#ifdef HW_BOOT_VESC_CAN
+	conf->can_mode = can_mode_before;
+#endif
+
 	FLASH_Lock();
 	timeout_configure_IWDT();
 	mc_interface_ignore_input_both(100);
 	utils_sys_unlock_cnt();
+
+	g_backup.can_id = conf->controller_id;
+	g_backup.can_baud = conf->can_baud_rate;
+	conf_general_store_backup_data();
 
 	return is_ok;
 }
@@ -985,6 +1017,7 @@ __attribute__((section(".text2"))) int conf_general_measure_flux_linkage_openloo
 	mcconf->foc_current_kp = kp;
 	mcconf->foc_current_ki = ki;
 	mcconf->foc_cc_decoupling = FOC_CC_DECOUPLING_DISABLED;
+	mcconf->m_encoder_sincos_filter_constant = 1.0;
 	mc_interface_set_configuration(mcconf);
 
 	// Wait maximum 5s for fault code to disappear
@@ -1186,6 +1219,9 @@ __attribute__((section(".text2"))) int conf_general_measure_flux_linkage_openloo
 
 			linkage_sum += mcpwm_foc_get_vq() / rad_s_now;
 
+			float phase_bemf = mcpwm_foc_get_phase_bemf();
+//			float phase_bemf = mcpwm_foc_get_phase_observer();
+
 			// Optionally use magnitude
 			//              linkage_sum += sqrtf(SQ(mcpwm_foc_get_vq()) + SQ(mcpwm_foc_get_vd())) / rad_s_now;
 
@@ -1197,17 +1233,19 @@ __attribute__((section(".text2"))) int conf_general_measure_flux_linkage_openloo
 			float diff_encoder = utils_angle_difference(encoder_read_deg(), enc_val_last);
 
 			if (fabsf(diff_encoder) >= 5.0) {
-				float diff_observer = utils_angle_difference(mcpwm_foc_get_phase_observer(), phase_val_last);
+				float diff_observer = utils_angle_difference(phase_bemf, phase_val_last);
 
 				enc_val_last = encoder_read_deg();
-				phase_val_last = mcpwm_foc_get_phase_observer();
+				phase_val_last = phase_bemf;
 
 				enc_ratio_sum += diff_observer / diff_encoder;
 				enc_samples += 1.0;
 				enc_travel += fabsf(diff_encoder);
 			}
 
-			if (enc_travel >= 20.0) {
+			const float travel_for_ratio = 40.0;
+
+			if (enc_travel >= travel_for_ratio) {
 				float ratio = roundf(SIGN(enc_ratio_sum) * enc_ratio_sum / enc_samples);
 				bool inverted = enc_ratio_sum < 0.0;
 
@@ -1218,11 +1256,11 @@ __attribute__((section(".text2"))) int conf_general_measure_flux_linkage_openloo
 				phase_tmp *= ratio;
 
 				float s, c;
-				sincosf(DEG2RAD_f(utils_angle_difference(phase_tmp, mcpwm_foc_get_phase_observer())), &s, &c);
+				sincosf(DEG2RAD_f(utils_angle_difference(phase_tmp, phase_bemf)), &s, &c);
 				enc_diff_sin += s;
 				enc_diff_cos += c;
 
-				if (enc_travel >= 380.0 && !enc_res_set) {
+				if (enc_travel >= (360.0 + travel_for_ratio) && !enc_res_set) {
 					if (enc_offset) {
 						*enc_offset = RAD2DEG_f(atan2f(enc_diff_sin, enc_diff_cos));
 						utils_norm_angle(enc_offset);

@@ -25,9 +25,26 @@
 #include "mc_interface.h"
 #include "lispif.h"
 #include "lispbm.h"
+#include "terminal.h"
+#include "commands.h"
+#include "utils.h"
+
+static void terminal_shutdown_now(int argc, const char **argv);
+static void terminal_button_test(int argc, const char **argv);
 
 // Variables
 static volatile bool i2c_running = false;
+static mutex_t shutdown_mutex;
+static volatile bool shutdown_mutex_init_done = false;
+static volatile float bt_diff = 0.0;
+static volatile bool shutdown_hold_en = true;
+
+// Sense thread
+static THD_WORKING_AREA(sense_thread_wa, 256);
+static THD_FUNCTION(sense_thread, arg);
+static volatile bool sense_thd_running = false;
+static volatile float speed_time = 0.0;
+static volatile systime_t speed_update = 0;
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -36,58 +53,71 @@ static const I2CConfig i2cfg = {
 		STD_DUTY_CYCLE
 };
 
-static lbm_value ext_basic_read_brake(lbm_value *args, lbm_uint argn) {
+static lbm_value ext_basic_set_out(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(2);
+
+	int pin = lbm_dec_as_i32(args[0]);
+	int state = lbm_dec_as_i32(args[1]);
+
+	lbm_value res = ENC_SYM_TRUE;
+
+	switch (pin) {
+	case 1:
+		if (state) {
+			OUT_1_ON();
+		} else {
+			OUT_1_OFF();
+		}
+		break;
+
+	case 2:
+		if (state) {
+			OUT_2_ON();
+		} else {
+			OUT_2_OFF();
+		}
+		break;
+
+	case 3:
+		if (state) {
+			OUT_3_ON();
+		} else {
+			OUT_3_OFF();
+		}
+		break;
+
+	default:
+		res = ENC_SYM_TERROR;
+		break;
+	}
+
+	return res;
+}
+
+static lbm_value ext_speed_last_time(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
-
-	return lbm_enc_i(ADC_VOLTS(ADC_IND_EXT2) < 0.5 ? 1 : 0);
+	return lbm_enc_float(speed_time);
 }
 
-static lbm_value ext_basic_set_out1(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1);
-
-	if (lbm_dec_as_i32(args[0])) {
-		OUT_1_ON();
-	} else {
-		OUT_1_OFF();
-	}
-
-	return ENC_SYM_TRUE;
-}
-
-static lbm_value ext_basic_set_out2(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1);
-
-	if (lbm_dec_as_i32(args[0])) {
-		OUT_2_ON();
-	} else {
-		OUT_2_OFF();
-	}
-
-	return ENC_SYM_TRUE;
-}
-
-static lbm_value ext_basic_set_out3(lbm_value *args, lbm_uint argn) {
-	LBM_CHECK_ARGN_NUMBER(1);
-
-	if (lbm_dec_as_i32(args[0])) {
-		OUT_3_ON();
-	} else {
-		OUT_3_OFF();
-	}
-
-	return ENC_SYM_TRUE;
+static lbm_value ext_speed_age(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(UTILS_AGE_S(speed_update));
 }
 
 static void load_extensions(bool main_found) {
 	if (!main_found) {
-		lbm_add_extension("basic-read-brake", ext_basic_read_brake);
-		lbm_add_extension("basic-set-out1", ext_basic_set_out1);
-		lbm_add_extension("basic-set-out2", ext_basic_set_out2);
-		lbm_add_extension("basic-set-out3", ext_basic_set_out3);
+		lbm_add_extension("hw-set-out", ext_basic_set_out);
+		lbm_add_extension("speed-last-time", ext_speed_last_time);
+		lbm_add_extension("speed-age", ext_speed_age);
 	}
 }
 
 void hw_init_gpio(void) {
+	if (!shutdown_mutex_init_done) {
+		chMtxObjectInit(&shutdown_mutex);
+		shutdown_mutex_init_done = true;
+	}
+
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -139,8 +169,8 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG);
 
 	palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG);
@@ -167,6 +197,18 @@ void hw_init_gpio(void) {
 	OUT_3_OFF();
 
 	lispif_add_ext_load_callback(load_extensions);
+
+	terminal_register_command_callback(
+			"shutdown",
+			"Shutdown VESC now.",
+			0,
+			terminal_shutdown_now);
+
+	terminal_register_command_callback(
+			"test_button",
+			"Try sampling the shutdown button",
+			0,
+			terminal_button_test);
 }
 
 void hw_setup_adc_channels(void) {
@@ -183,7 +225,7 @@ void hw_setup_adc_channels(void) {
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 2, ADC_SampleTime_15Cycles);  //4
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 3, ADC_SampleTime_15Cycles);  //7
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 4, ADC_SampleTime_15Cycles); //10
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_0, 5, ADC_SampleTime_15Cycles);  //13
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_7, 5, ADC_SampleTime_15Cycles);  //13
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_9, 6, ADC_SampleTime_15Cycles);  //16
 
 	// ADC3 regular channels
@@ -204,7 +246,69 @@ void hw_setup_adc_channels(void) {
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 3, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
+
+	if (!sense_thd_running) {
+		chThdCreateStatic(sense_thread_wa, sizeof(sense_thread_wa), NORMALPRIO, sense_thread, NULL);
+		sense_thd_running = true;
+	}
 }
+
+// ADC-version with filtering and hysteresis
+static THD_FUNCTION(sense_thread, arg) {
+	(void)arg;
+
+	chRegSetThreadName("hw-wheel");
+
+	float volts = ADC_VOLTS(ADC_IND_EXT3);
+	bool speed_last = volts < 1.5;
+
+	for (;;) {
+		bool speed = false;
+
+		UTILS_LP_FAST(volts, ADC_VOLTS(ADC_IND_EXT3), 0.5);
+
+		if (speed_last) {
+			speed = volts < 1.3;
+		} else {
+			speed = volts < 0.6;
+		}
+
+		if (speed && speed != speed_last) {
+			float time = UTILS_AGE_S(speed_update);
+			if (time > 0.05) { // Max 900 RPM
+				speed_time = time;
+				speed_update = chVTGetSystemTimeX();
+			}
+		}
+
+		speed_last = speed;
+		chThdSleep(1);
+	}
+}
+
+// Digital version
+//static THD_FUNCTION(sense_thread, arg) {
+//	(void)arg;
+//
+//	chRegSetThreadName("hw-wheel");
+//
+//	int speed_last = palReadPad(HW_ADC_EXT3_GPIO, HW_ADC_EXT3_PIN);
+//
+//	for (;;) {
+//		bool speed = palReadPad(HW_ADC_EXT3_GPIO, HW_ADC_EXT3_PIN);
+//
+//		if (speed && speed != speed_last) {
+//			float time = UTILS_AGE_S(speed_update);
+//			if (time > 0.05) { // Max 900 RPM
+//				speed_time = time;
+//				speed_update = chVTGetSystemTimeX();
+//			}
+//		}
+//
+//		speed_last = speed;
+//		chThdSleep(1);
+//	}
+//}
 
 void hw_start_i2c(void) {
 	i2cAcquireBus(&HW_I2C_DEV);
@@ -300,3 +404,59 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
+bool hw_sample_shutdown_button(void) {
+	chMtxLock(&shutdown_mutex);
+
+	bt_diff = 0.0;
+	int samples = 10;
+
+	for (int i = 0;i < samples;i++) {
+		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_INPUT_ANALOG);
+		chThdSleep(5);
+		float val1 = ADC_VOLTS(ADC_IND_SHUTDOWN);
+		chThdSleepMilliseconds(5);
+		float val2 = ADC_VOLTS(ADC_IND_SHUTDOWN);
+
+		if (shutdown_hold_en) {
+			palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		}
+
+		chThdSleepMilliseconds(1);
+
+		bt_diff += (val1 - val2);
+	}
+
+	bt_diff /= (float)samples;
+
+	chMtxUnlock(&shutdown_mutex);
+
+	return (bt_diff < 0.31);
+}
+
+void hw_shutdown_set_hold(bool hold) {
+	shutdown_hold_en = hold;
+
+	if (hold) {
+		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		palSetPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN);
+	} else {
+		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_INPUT_ANALOG);
+	}
+}
+
+static void terminal_shutdown_now(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+	DISABLE_GATE();
+	HW_SHUTDOWN_HOLD_OFF();
+}
+
+static void terminal_button_test(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	for (int i = 0;i < 40;i++) {
+		commands_printf("BT: %d %.2f", HW_SAMPLE_SHUTDOWN(), (double)bt_diff);
+		chThdSleepMilliseconds(100);
+	}
+}

@@ -384,7 +384,7 @@
 			"Any extensions to the local environment performed by an expression in the sequence is only visible within that expression itself."
 			))
 	    (bullet (list "**let**: `(let ((s1 e1) (s2 e2) ... (sN eN) e)` eI are evaluated in order into `vI`. The local environment is extended with `(sI . vI)`. `sI` is visible in `eJ` for `J >= I`. `e` is then evaluated in the extended local environment."
-			  "**setq**: `(setq s e)` is evaluated by first evaluating `e` into `v`. The environments are then scanned for a bining of `s`. local environment is searched first followed by global. If a binding of `s` is found it is modified into `(s . v)`."
+			  "**setq**: `(setq s e)` is evaluated by first evaluating `e` into `v`. The environments are then scanned for a binding of `s`. local environment is searched first followed by global. If a binding of `s` is found it is modified into `(s . v)`."
 			  ))
 	    (para (list "If no binding of `s` is found when evaluating `(setq s e)` a `variable_not_bound` error is triggered."
 			))
@@ -1014,9 +1014,6 @@
               (code '((read-eval "'(+ 1 2)")
                       (read-eval "(eval '(+ 1 2))")
                       (read-eval "'kurt")
-                      (quote (+ 1 2))
-                      (eval (quote (+ 1 2)))
-                      (quote kurt)
                       ))
               end)))
 
@@ -1176,9 +1173,7 @@
                           "A `program-expr` is a list of expressions where each element in the list"
                           "can be evaluated by `eval`."
                           ))
-              (para (list "An optional environment can be passed in as the first argument:"
-                          "`(eval-program env-expr program-expr)`."
-                          ))
+              (para (list "Note that eval-program can not take any extra environment argument."))
               (code '((eval-program (list (list + 1 2) (list + 3 4)))
                       (eval-program '( (+ 1 2) (+ 3 4)))
                       (eval-program (list (list define 'a 10) (list + 'a 1)))
