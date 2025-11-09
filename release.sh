@@ -15,6 +15,14 @@ print_elapsed () {
     printf "elapsed: %s\n\n" "$(date -d@$ELAPSED -u +%H\ hours\ %M\ min\ %S\ sec)"
 }
 
+directories=("tests"
+             "tests/c_unit"
+             "repl")
+
+for d in "${directories[@]}"; do
+    echo "Running clean in: "$d""
+    (cd $d && make clean)
+done
 
 reportdir=./test_reports/version_$release
 
@@ -53,7 +61,8 @@ failing_unit_tests_log_file="failing_32bit_unit_tests_log_${release}.txt"
 
 echo "Running 32bit tests"
 
-./run_tests.sh ../$reportdir/$failing_unit_tests_log_file >> ../$reportdir/$unit_tests_log_file 2> /dev/null
+#./run_tests.sh ../$reportdir/$failing_unit_tests_log_file >> ../$reportdir/$unit_tests_log_file 2> /dev/null
+./run_tests_generic_parallel.sh 32bit ../$reportdir/$failing_unit_tests_log_file >> ../$reportdir/$unit_tests_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## 32BIT UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$unit_tests_log_file >> ../$reportdir/$release_readme
@@ -67,7 +76,8 @@ failing_unit_tests_time_log_file="failing_32bit_time_unit_tests_log_${release}.t
 
 echo "Running 32bit tests with time scheduler"
 
-./run_tests_time.sh ../$reportdir/$failing_unit_tests_time_log_file >> ../$reportdir/$unit_tests_time_log_file 2> /dev/null
+#./run_tests_time.sh ../$reportdir/$failing_unit_tests_time_log_file >> ../$reportdir/$unit_tests_time_log_file 2> /dev/null
+./run_tests_generic_parallel.sh 32bit_time ../$reportdir/$failing_unit_tests_time_log_file >> ../$reportdir/$unit_tests_time_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## 32BIT TIME BASED SCHEDULER UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$unit_tests_time_log_file >> ../$reportdir/$release_readme
@@ -81,7 +91,8 @@ failing_unit_tests_64_log_file="failing_64bit_unit_tests_log_${release}.txt"
 
 echo "Running 64bit tests"
 
-./run_tests64.sh ../$reportdir/$failing_unit_tests_64_log_file >> ../$reportdir/$unit_tests_64_log_file 2> /dev/null
+#./run_tests64.sh ../$reportdir/$failing_unit_tests_64_log_file >> ../$reportdir/$unit_tests_64_log_file 2> /dev/null
+./run_tests_generic_parallel.sh 64bit ../$reportdir/$failing_unit_tests_64_log_file >> ../$reportdir/$unit_tests_64_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## 64BIT UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$unit_tests_64_log_file >> ../$reportdir/$release_readme 
@@ -95,7 +106,8 @@ failing_unit_tests_64_time_log_file="failing_64bit_time_unit_tests_log_${release
 
 echo "Running 64bit tests with time scheduler"
 
-./run_tests64_time.sh ../$reportdir/$failing_unit_tests_64_time_log_file >> ../$reportdir/$unit_tests_64_time_log_file 2> /dev/null
+#./run_tests64_time.sh ../$reportdir/$failing_unit_tests_64_time_log_file >> ../$reportdir/$unit_tests_64_time_log_file 2> /dev/null
+./run_tests_generic_parallel.sh 64bit_time ../$reportdir/$failing_unit_tests_64_time_log_file >> ../$reportdir/$unit_tests_64_time_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## 64BIT TIME BASED SCHEDULER UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$unit_tests_64_time_log_file >> ../$reportdir/$release_readme 
@@ -109,7 +121,8 @@ failing_gc_unit_tests_log_file="failing_gc_unit_tests_log_${release}.txt"
 
 echo "Running always gc tests"
 
-./run_tests_gc.sh ../$reportdir/$failing_gc_unit_tests_log_file >> ../$reportdir/$gc_unit_tests_log_file 2> /dev/null
+#./run_tests_gc.sh ../$reportdir/$failing_gc_unit_tests_log_file >> ../$reportdir/$gc_unit_tests_log_file 2> /dev/null
+./run_tests_generic_parallel.sh gc ../$reportdir/$failing_gc_unit_tests_log_file >> ../$reportdir/$gc_unit_tests_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## ALWAYS GC UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$gc_unit_tests_log_file >> ../$reportdir/$release_readme
@@ -123,20 +136,13 @@ failing_revgc_unit_tests_log_file="failing_revgc_unit_tests_log_${release}.txt"
 
 echo "Running ptr-rev gc tests"
 
-./run_tests_gc_rev.sh ../$reportdir/$failing_revgc_unit_tests_log_file >> ../$reportdir/$revgc_unit_tests_log_file 2> /dev/null
+#./run_tests_gc_rev.sh ../$reportdir/$failing_revgc_unit_tests_log_file >> ../$reportdir/$revgc_unit_tests_log_file 2> /dev/null
+./run_tests_generic_parallel.sh revgc ../$reportdir/$failing_revgc_unit_tests_log_file >> ../$reportdir/$revgc_unit_tests_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## POINTER REVERSAL GC UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
 tail -n 4 ../$reportdir/$revgc_unit_tests_log_file >> ../$reportdir/$release_readme 
 
 print_elapsed
-
-# ############################################################
-# # Run the 32bit tests for a coverage report.
-# echo "Collecting coverage data for tests"
-
-# ./run_tests_cov.sh &> /dev/null
-
-# print_elapsed
 
 ############################################################
 #
@@ -200,7 +206,7 @@ print_elapsed
 
 echo "Gathering coverage data and assembling report"
 
-./collect_coverage.sh
+./collect_coverage.sh  >> ../$reportdir/collect_coverage_log_${release}.txt
 
 cd ..
 cp -r tests/coverage $reportdir/coverage
@@ -216,7 +222,7 @@ make clean &> /dev/null
 if command -v scan-build-19
 then
     echo "## scan-build version 19" >> ./$reportdir/$release_readme
-    scan-build-18 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt 2> /dev/null
+    scan-build-19 -o ./$reportdir/scan-build make -j4 >> ./$reportdir/scan_build_$release.txt 2> /dev/null
 else
     if command -v scan-build-18
     then

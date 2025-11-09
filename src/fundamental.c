@@ -245,6 +245,17 @@ static bool array_struct_equality(lbm_value a, lbm_value b) {
   return res;
 }
 
+// ////////////////////////////////////////////////////////////
+// Added pointer comparison before recurring on arrays and lists.
+// struct_eq can exhaust stack! but the pointer check makes it
+// a highly unlikely event occurring normally.
+//
+// To run out of C stack now you would have to
+// create in memory two identical structures that are
+// large and pointer-wise unique but structuraly identical.
+//
+// Unknowns that impact this is argument is that
+// the stack depth is unknown to me (it is a result of the integrator's choices).
 bool struct_eq(lbm_value a, lbm_value b) {
 
   bool res = false;
@@ -262,6 +273,10 @@ bool struct_eq(lbm_value a, lbm_value b) {
     case LBM_TYPE_CHAR:
       res = (lbm_dec_char(a) == lbm_dec_char(b)); break;
     case LBM_TYPE_CONS:
+      if (a == b) { // quick path if pointers equal (pointers equal => structural equal)
+        res = true;
+        break;
+      }
       res = ( struct_eq(lbm_car(a),lbm_car(b)) &&
               struct_eq(lbm_cdr(a),lbm_cdr(b)) ); break;
     case LBM_TYPE_I32:
@@ -279,6 +294,10 @@ bool struct_eq(lbm_value a, lbm_value b) {
     case LBM_TYPE_ARRAY:
       res =  bytearray_equality(a, b); break;
     case LBM_TYPE_LISPARRAY:
+      if (a == b) { // quick path if pointers equal (pointers equal => structural equal)
+        res = true;
+        break;
+      }
       res =  array_struct_equality(a, b); break;
     }
   }
@@ -865,9 +884,10 @@ static lbm_value fundamental_set_ix(lbm_value *args, lbm_uint nargs, eval_contex
       }
       lbm_uint ix = (lbm_uint)ix_pre;
       while (lbm_is_cons_rw(curr)) { // rw as we are going to modify
-        lbm_value next = lbm_cdr(curr);
+        lbm_cons_t *curr_cell = lbm_ref_cell(curr);
+        lbm_value next = curr_cell->cdr;
         if (i == ix) {
-          lbm_set_car(curr, args[2]);
+          curr_cell->car = args[2];
           result = args[0]; // Acts as true and as itself.
           break;
         } else if (lbm_is_symbol_nil(next)) {
@@ -934,11 +954,12 @@ static lbm_value set_assoc(lbm_value assoc_list, lbm_value keyval) {
   lbm_value curr = assoc_list;
   lbm_value key = lbm_car(keyval);
   while (lbm_is_cons(curr)) {
-    if (struct_eq(key, lbm_caar(curr))) {
-      lbm_set_car(curr, keyval);
+    lbm_cons_t *curr_cell = lbm_ref_cell(curr);
+    if (struct_eq(key, lbm_car(curr_cell->car))) {
+      curr_cell->car = keyval;
       return assoc_list;
     }
-    curr = lbm_cdr(curr);
+    curr = curr_cell->cdr;
   }
   // Assoc-list does not contain key.
   // Note: Memory errors are implicitly handled by the caller.
@@ -1485,11 +1506,12 @@ static lbm_value fundamental_member(lbm_value *args, lbm_uint argn, eval_context
     lbm_value curr = args[1];
 
     while (lbm_is_cons(curr)) {
-      if (struct_eq(lbm_car(curr), args[0])) {
+      lbm_cons_t *cell = lbm_ref_cell(curr);
+      if (struct_eq(cell->car, args[0])) {
         res = args[1];
         break;
       }
-      curr = lbm_cdr(curr);
+      curr = cell->cdr;
     }
   }
   return res;

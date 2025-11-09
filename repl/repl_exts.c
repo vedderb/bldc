@@ -38,11 +38,13 @@
 #include "extensions/lbm_dyn_lib.h"
 #include "extensions/ttf_extensions.h"
 #include "extensions/random_extensions.h"
+#include "extensions/dsp_extensions.h"
 
 #include "eval_cps.h"
 #include "lbm_image.h"
 #include "lbm_flat_value.h"
 #include "platform_timestamp.h"
+#include "print.h"
 
 #include <png.h>
 
@@ -161,14 +163,16 @@ static lbm_value ext_bits_dec_int(lbm_value *args, lbm_uint argn) {
 extern void sleep_callback(uint32_t us);
 
 static lbm_value ext_systime(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
 
-  uint32_t time = timestamp();
+  uint32_t time = lbm_timestamp();
 
   return lbm_enc_u32(time);
 }
 
 static lbm_value ext_secs_since(lbm_value *args, lbm_uint argn) {
-  uint32_t t_now = timestamp();
+  uint32_t t_now = lbm_timestamp();
 
   if (argn != 1 || !lbm_is_number(args[0])) return ENC_SYM_EERROR;
 
@@ -192,11 +196,10 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 
   for (unsigned int i = 0; i < argn; i ++) {
     lbm_value t = args[i];
-
-    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY) {
-      lbm_array_header_t *array = (lbm_array_header_t *)lbm_car(t);
-      char *data = (char*)array->data;
-      lbm_printf_callback("%s", data);
+    char *str;    
+    if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY &&
+        lbm_value_is_printable_string(t, &str)) {
+      lbm_printf_callback("%s", str);
     } else {
       lbm_print_value(output, 1024, t);
       lbm_printf_callback("%s", output);
@@ -846,6 +849,7 @@ lbm_value ext_image_save_const_heap_ix(lbm_value *args, lbm_uint argn) {
 
 
 int dummy_f(lbm_value v, bool shared, void *arg) {
+  (void) arg;
   if (shared) {
     lbm_printf_callback("shared node detected\n");
   }
@@ -882,6 +886,7 @@ int init_exts(void) {
   lbm_dyn_lib_init();
   lbm_ttf_extensions_init();
   lbm_random_extensions_init();
+  lbm_dsp_extensions_init();
 
   //lbm_value sym_seek_set;
   //lbm_value sym_seek_cur;

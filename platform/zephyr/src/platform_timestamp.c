@@ -17,6 +17,6 @@
 
 #include "platform_timestamp.h"
 
-uint32_t timestamp(void) {
+uint32_t lbm_timestamp(void) {
   return (uint32_t)k_cyc_to_us_floor32(k_cycle_get_32());
 }

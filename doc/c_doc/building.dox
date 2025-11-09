@@ -107,11 +107,11 @@ Type :quit to exit.
      :info for statistics.
      :load [filename] to load lisp source.
 #
-</pre>
+@endcode
     
 <p> Try to evaluate some expressions. Type <code>(+ 1 2)</code> and press enter. </p>
 
-<pre>
+@code
 Lisp REPL started! (LBM Version: 0.27.1)
 Type :quit to exit.
      :info for statistics.

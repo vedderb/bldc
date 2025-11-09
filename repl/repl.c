@@ -74,6 +74,15 @@
 #include "lbm_sdl.h"
 #endif
 
+#ifdef WITH_ALSA
+#include "lbm_sound.h"
+#include "lbm_midi.h"
+#endif
+
+#ifndef LBM_WIN
+#include "lbm_gnuplot.h"
+#endif
+
 #include "platform_mutex.h"
 #include "platform_timestamp.h"
 
@@ -136,7 +145,7 @@ static int iobuffer_tail = 0;
 static bool iobuffer_full = false;
 static bool iobuffer_mutex_initialized = false;
 
-static mutex_t iobuffer_mutex; // use platform_mutex
+static lbm_mutex_t iobuffer_mutex; // use platform_mutex
 
 static void iobuffer_init(void) {
 
@@ -144,7 +153,7 @@ static void iobuffer_init(void) {
   iobuffer_tail = 0;
   iobuffer_full = false;
   if (!iobuffer_mutex_initialized) {
-    mutex_init(&iobuffer_mutex);
+    lbm_mutex_init(&iobuffer_mutex);
     iobuffer_mutex_initialized = true;
   }
 }
@@ -175,9 +184,9 @@ static void iobuffer_put(char c) {
 }
 
 static void iobuffer_print(void) {
-  mutex_lock(&iobuffer_mutex);
+  lbm_mutex_lock(&iobuffer_mutex);
   if ((iobuffer_tail == iobuffer_head) && !iobuffer_full) {
-    mutex_unlock(&iobuffer_mutex);
+    lbm_mutex_unlock(&iobuffer_mutex);
     return; // empty
   }
 
@@ -196,15 +205,15 @@ static void iobuffer_print(void) {
   iobuffer_head = 0;
   iobuffer_tail = 0;
   iobuffer_full = false;
-  mutex_unlock(&iobuffer_mutex);
+  lbm_mutex_unlock(&iobuffer_mutex);
 }
 
 static void iobuffer_write(char *str) {
-  mutex_lock(&iobuffer_mutex);
+  lbm_mutex_lock(&iobuffer_mutex);
   for (; *str != 0; str++) {
     iobuffer_put(*str);
   }
-  mutex_unlock(&iobuffer_mutex);
+  lbm_mutex_unlock(&iobuffer_mutex);
 }
 
 
@@ -409,8 +418,8 @@ bool const_heap_write(lbm_uint ix, lbm_uint w) {
   return false;
 }
 
-bool image_write(uint32_t w, int32_t ix, bool const_heap) { // ix >= 0 and ix <= image_size
-  (void) const_heap;
+bool image_write(uint32_t w, int32_t ix, bool is_const_heap) { // ix >= 0 and ix <= image_size
+  (void) is_const_heap;
   if (image_storage[ix] == 0xffffffff) {
     image_storage[ix] = w;
     return true;
@@ -469,6 +478,7 @@ DWORD WINAPI eval_thd_wrapper_win(LPVOID lpParam) {
 }
 #else
 void *eval_thd_wrapper(void *v) {
+  (void) v;
   if (!silent_mode) {
     printf("Lisp REPL started! (LBM Version: %u.%u.%u)\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
 #ifdef WITH_SDL
@@ -561,6 +571,7 @@ DWORD WINAPI prof_thd(LPVOID lpParam) {
 }
 #else
 void *prof_thd(void *v) {
+  (void) v;
   while (prof_running) {
     lbm_prof_sample();
     sleep_callback(200);
@@ -779,7 +790,7 @@ void parse_opts(int argc, char **argv) {
   while ((c = getopt_long(argc, argv, "H:M:C:hs:e:",options, &opt_index)) != -1) {
     switch (c) {
     case 'H':
-      heap_size = (size_t)atoi((char*)optarg);
+      heap_size = (unsigned int)atoi((char*)optarg);
       break;
     case 'C':
       constants_memory_size = (size_t)atoi((char*)optarg);
@@ -918,6 +929,7 @@ void parse_opts(int argc, char **argv) {
              "  If the path is set to the empty string, then writing the history is disabled.\n");
       printf("\n");
       terminate_repl(REPL_EXIT_SUCCESS);
+      break;
     case 's':
       if (!src_list_add((char*)optarg)) {
         printf("Error adding source file to source list\n");
@@ -1091,7 +1103,7 @@ int init_repl(void) {
 
   //Load an image
   lbm_image_init(image_storage,
-                 image_storage_size / sizeof(uint32_t), //sizeof(lbm_uint),
+                 (uint32_t)(image_storage_size / sizeof(uint32_t)), //sizeof(lbm_uint),
                  image_write);
 
   if (image_input_file) {
@@ -1151,7 +1163,11 @@ int init_repl(void) {
   }
 #endif
 
-  /* Load clean_cl library into heap */
+#ifndef LBM_WIN
+  lbm_gnuplot_init();
+#endif
+  
+/* Load clean_cl library into heap */
 #ifdef CLEAN_UP_CLOSURES
   if (!load_flat_library(clean_cl_env, clean_cl_env_len)) {
     printf("Error loading a flat library\n");
@@ -1367,7 +1383,7 @@ void startup_procedure(void) {
 }
 
 
-int store_env(char *filename) {
+int store_env(void) {
   FILE *fp = fopen(env_output_file, "w");
   if (!fp) {
     terminate_repl(REPL_EXIT_UNABLE_TO_OPEN_ENV_FILE);
@@ -1436,7 +1452,7 @@ void shutdown_procedure(void) {
   handle_repl_output();
 
   if (env_output_file) {
-    int r = store_env(env_output_file);
+    int r = store_env();
     if (r != REPL_EXIT_SUCCESS) terminate_repl(r);
   }
   return;
@@ -1533,7 +1549,7 @@ int commands_printf_lisp(const char* format, ...) {
   return len_to_print - 1;
 }
 
-#define UTILS_AGE_S(x)		((float)(timestamp() - x) / 1000.0f)
+#define UTILS_AGE_S(x)		((float)(lbm_timestamp() - x) / 1000.0f)
 //static uint32_t repl_time = 0;
 
 static void vesc_lbm_done_callback(eval_context_t *ctx) {
@@ -1656,7 +1672,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   }
 
   lbm_image_init(image_storage,
-                 image_storage_size / sizeof(uint32_t), //sizeof(lbm_uint),
+                 (uint32_t)(image_storage_size / sizeof(uint32_t)), //sizeof(lbm_uint),
                  image_write);
   image_clear();
   lbm_image_create("bepa_1");
@@ -1808,7 +1824,7 @@ float get_cpu_usage(void) {
       long unsigned int tot_cpu = ucpu + scpu ;
 
       long unsigned int ticks = tot_cpu - get_cpu_last_ticks;
-      unsigned int t_now = timestamp();
+      unsigned int t_now = lbm_timestamp();
       unsigned int t_diff = t_now - get_cpu_last_time;
 
       // Not sure about this :)
@@ -2359,7 +2375,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     int result = 0;
     uint32_t offset = buffer_get_uint32(data, &ind);
 
-    size_t num = len - (size_t)ind; // length of data;
+    unsigned int num = (unsigned int)((int32_t)len - ind); // length of data;
     if (num + offset < vescif_program_flash_size) {
       memcpy((uint8_t*)vescif_program_flash+offset, data+ind, num);
       vescif_program_flash_code_len = num;
@@ -2535,6 +2551,7 @@ DWORD WINAPI vesctcp_client_handler(LPVOID lpParam) {
 }
 #else
 void *vesctcp_client_handler(void *arg) {
+  (void) arg;
   uint8_t buffer[1024];
   packet_init(send_tcp_bytes, process_packet_local,&packet);
   send_func = send_packet_local;
@@ -2607,9 +2624,9 @@ static void handle_repl_output(void) {
   // Save current readline state
   int saved_point = rl_point;
   char *saved_line = rl_copy_text(0, rl_end);
-  mutex_lock(&iobuffer_mutex);
+  lbm_mutex_lock(&iobuffer_mutex);
   int num = iobuffer_num();
-  mutex_unlock(&iobuffer_mutex);
+  lbm_mutex_unlock(&iobuffer_mutex);
   if (num > 0) {
 
     // Clear current line and print output to real stdout
@@ -2643,12 +2660,12 @@ int main(int argc, char **argv) {
   timestamp_thread = CreateThread(
                NULL,
                0,
-               timestamp_cacher,
+               lbm_timestamp_cacher,
                NULL,
                0,
                NULL);
 #else
-  pthread_create(&timestamp_thread, NULL, timestamp_cacher, NULL);
+  pthread_create(&timestamp_thread, NULL, lbm_timestamp_cacher, NULL);
 #endif
 
 #ifdef LBM_WIN
@@ -2864,6 +2881,12 @@ int main(int argc, char **argv) {
 #endif
   } else {
 
+#ifdef WITH_ALSA
+    lbm_sound_init();
+    lbm_midi_init();
+#endif
+
+    
     char output[1024];
 
     if (silent_mode) {

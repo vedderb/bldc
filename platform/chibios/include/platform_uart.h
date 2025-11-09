@@ -24,6 +24,6 @@
 
 #include "platform_chibios_conf.h"
 
-bool platform_uart_init(void);
+bool lbm_uart_init(void);
 
 #endif

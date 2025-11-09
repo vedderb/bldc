@@ -19,12 +19,13 @@
 #define PLATFORM_TIMESTAMP_H_
 
 #include <stdint.h>
+#include <windows.h>
 
 // Only on OS where timestamp is expensive
-extern void *timestamp_cacher(void *v);
+extern DWORD WINAPI lbm_timestamp_cacher(LPVOID v);
 
 // timestamp interface
-extern uint32_t timestamp(void);
+extern uint32_t lbm_timestamp(void);
 
 
 #endif
