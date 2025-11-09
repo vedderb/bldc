@@ -460,7 +460,7 @@ int main(int argc, char **argv) {
   pthread_t lispbm_thd;
   lbm_cons_t *heap_storage = NULL;
 
-  pthread_create(&timestamp_thread, NULL, timestamp_cacher, NULL);
+  pthread_create(&timestamp_thread, NULL, lbm_timestamp_cacher, NULL);
 
   int c;
   opterr = 1;

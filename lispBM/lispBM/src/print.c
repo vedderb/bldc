@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020 - 2024      Joel Svensson    svenssonjoel@yahoo.se
+    Copyright 2018, 2020 - 2025      Joel Svensson    svenssonjoel@yahoo.se
                            2022      Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -39,7 +39,7 @@
 #define CONTINUE_ARRAY 8
 #define END_ARRAY      9
 
-static lbm_stack_t print_stack = { NULL, 0, 0};
+static lbm_stack_t print_stack;
 static bool print_has_stack = false;
 
 const char *failed_str = "Error: print failed\n";
@@ -91,6 +91,10 @@ static int push_n(lbm_stack_t *s, lbm_uint *values, lbm_uint n) {
 }
 
 int lbm_print_init(lbm_uint print_stack_size) {
+
+  print_stack.sp = 0;
+  print_stack.size = 0;
+  print_stack.data = NULL;
 
   if (print_stack_size == 0)
     return 0;

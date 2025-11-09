@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2022 2025 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,10 +22,10 @@
 #include <freertos/semphr.h>
 #include <stdbool.h>
 
-typedef SemaphoreHandle_t mutex_t;
+typedef SemaphoreHandle_t lbm_mutex_t;
 
-extern bool mutex_init(mutex_t *m);
-extern void mutex_lock(mutex_t *m);
-extern void mutex_unlock(mutex_t *m);
+extern bool lbm_mutex_init(lbm_mutex_t *m);
+extern void lbm_mutex_lock(lbm_mutex_t *m);
+extern void lbm_mutex_unlock(lbm_mutex_t *m);
 
 #endif

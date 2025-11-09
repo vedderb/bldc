@@ -1,5 +1,5 @@
 /*
-    Copyright 2021 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2021 2025 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,17 +17,17 @@
 
 #include "platform_mutex.h"
 
-bool mutex_init(mutex_t *m){
+bool lbm_mutex_init(lbm_mutex_t *m){
   if (k_mutex_init(m) != 0) {
     return false;
   }
   return true;
 }
 
-void mutex_lock(mutex_t *m){
+void lbm_mutex_lock(lbm_mutex_t *m){
   k_mutex_lock(m, K_FOREVER);
 }
 
-void mutex_unlock(mutex_t *m){
+void lbm_mutex_unlock(lbm_mutex_t *m){
   k_mutex_unlock(m);
 }

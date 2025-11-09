@@ -60,7 +60,7 @@ void critical(void) {
   printf("CRITICAL ERROR\n");
 }
 
-uint32_t timestamp(void) {
+uint32_t lbm_timestamp(void) {
   struct timeval tv;
   gettimeofday(&tv,NULL);
   return (uint32_t)(tv.tv_sec * 1000000 + tv.tv_usec);

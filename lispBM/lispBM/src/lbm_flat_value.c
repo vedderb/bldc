@@ -1002,7 +1002,7 @@ static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, 
         if ( lbm_type_of(curr) == LBM_TYPE_LISPARRAY) {
           lbm_array_header_extended_t *header = (lbm_array_header_extended_t*)lbm_car(curr);
           lbm_value *arrdata = (lbm_value*)header->data;
-          uint32_t arrlen = header->size / sizeof(lbm_value);
+          uint32_t arrlen = (uint32_t)(header->size / sizeof(lbm_value));
           if (header->index == arrlen - 1) {
             lbm_value prev = arrdata[arrlen-1];
             header->index = 0;

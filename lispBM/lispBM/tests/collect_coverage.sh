@@ -2,11 +2,37 @@
 mkdir -p coverage
 rm -f coverage/*
 
-tc1="--json-add-tracefile tests_cov_32.json"
-tc2="--json-add-tracefile tests_cov_64.json"
-tc3="--json-add-tracefile ../repl/repl_tests_cov.json"
-tc4="--json-add-tracefile ../repl/image_tests_cov.json"
-tc5="--json-add-tracefile ./c_unit/c_unit_tests_cov.json"
-tc6="--json-add-tracefile ../repl/sdl_tests_cov.json"
+cov_files=("tests_cov_32.json"
+           "tests_cov_64.json"
+           "../repl/repl_tests_cov.json"
+           "../repl/image_tests_cov.json"
+           "./c_unit/c_unit_tests_cov.json"
+           "../repl/sdl_tests_cov.json")
 
-gcovr --filter ../src --merge-mode-functions merge-use-line-max $tc1 $tc2 $tc3 $tc4 $tc5 $tc6 --html-details coverage/coverage.html
+echo "Checking if cov files exist:"
+for c in "${cov_files[@]}" ; do
+    if [ -e $c ]; then
+        echo "  File $c exists"
+    else
+        echo "  WARNING! File $c does not exist"
+    fi
+done
+
+echo ""
+echo "Collect cov file meta data:"
+for c in "${cov_files[@]}" ; do
+    if [ -e $c ]; then
+        echo " "$c""
+        echo "    Modified: $(stat -c '%y' "$c")"
+        echo "    Changed:  $(stat -c '%z' "$c")"
+    fi
+done
+
+tc_args=()
+for c in "${cov_files[@]}"; do
+    tc_args+=("--json-add-tracefile" "$c")
+done
+
+echo ""
+echo "Running gcovr"
+gcovr --filter ../src --merge-mode-functions merge-use-line-max "${tc_args[@]}" --html-details coverage/coverage.html

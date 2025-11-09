@@ -122,7 +122,7 @@ lbm_value ext_lbm_heap_state(lbm_value *args, lbm_uint argn) {
     } else if (s == sym_heap_bytes) {
       res = lbm_enc_u(hs.heap_bytes);
     } else if (s == sym_num_alloc_cells) {
-      res = lbm_enc_u(hs.num_alloc);
+      res = lbm_enc_u(hs.heap_size - hs.num_free);
     } else if (s == sym_num_alloc_arrays) {
       res = lbm_enc_u(hs.num_alloc_arrays);
     } else if (s == sym_num_gc) {

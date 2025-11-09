@@ -29,8 +29,10 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/tjpgd.c \
              $(LISPBM)/src/extensions/mutex_extensions.c \
              $(LISPBM)/src/extensions/lbm_dyn_lib.c \
+             $(LISPBM)/src/extensions/ttf_extensions.c \
+             $(LISPBM)/src/extensions/ttf_backend.c \
              $(LISPBM)/src/extensions/schrift.c \
-             $(LISPBM)/src/extensions/ttf_extensions.c
+	     $(LISPBM)/src/extensions/dsp_extensions.c
 
 LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/eval_cps.h \

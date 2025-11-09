@@ -84,18 +84,18 @@ lbm_const_heap_t *lbm_const_heap_state;
 
 lbm_cons_t *lbm_heaps[2] = {NULL, NULL};
 
-static mutex_t lbm_const_heap_mutex;
+static lbm_mutex_t lbm_const_heap_mutex;
 static bool    lbm_const_heap_mutex_initialized = false;
 
-static mutex_t lbm_mark_mutex;
+static lbm_mutex_t lbm_mark_mutex;
 static bool    lbm_mark_mutex_initialized = false;
 
 #ifdef USE_GC_PTR_REV
 void lbm_gc_lock(void) {
-  mutex_lock(&lbm_mark_mutex);
+  lbm_mutex_lock(&lbm_mark_mutex);
 }
 void lbm_gc_unlock(void) {
-  mutex_unlock(&lbm_mark_mutex);
+  lbm_mutex_unlock(&lbm_mark_mutex);
 }
 #else
 void lbm_gc_lock(void) {
@@ -418,56 +418,6 @@ uint64_t lbm_dec_as_u64(lbm_value a) {
   return r;
 }
 
-/* lbm_uint lbm_dec_as_uint(lbm_value a) { */
-/*   lbm_uint r = 0; */
-/*   switch (lbm_type_of_functional(a)) { */
-/*   case LBM_TYPE_CHAR: */
-/*     r = (lbm_uint)lbm_dec_char(a); break; */
-/*   case LBM_TYPE_I: */
-/*     r = (lbm_uint)lbm_dec_i(a); break; */
-/*   case LBM_TYPE_U: */
-/*     r = (lbm_uint)lbm_dec_u(a); break; */
-/*   case LBM_TYPE_I32: */
-/*     r = (lbm_uint)lbm_dec_i32(a); break; */
-/*   case LBM_TYPE_U32: */
-/*     r = (lbm_uint)lbm_dec_u32(a); break; */
-/*   case LBM_TYPE_FLOAT: */
-/*     r = (lbm_uint)lbm_dec_float(a); break; */
-/*   case LBM_TYPE_I64: */
-/*     r = (lbm_uint)lbm_dec_i64(a); break; */
-/*   case LBM_TYPE_U64: */
-/*     r = (lbm_uint) lbm_dec_u64(a); break; */
-/*   case LBM_TYPE_DOUBLE: */
-/*     r = (lbm_uint)lbm_dec_double(a); break; */
-/*   } */
-/*   return r; */
-/* } */
-
-/* lbm_int lbm_dec_as_int(lbm_value a) { */
-/*   lbm_int r = 0; */
-/*   switch (lbm_type_of_functional(a)) { */
-/*   case LBM_TYPE_CHAR: */
-/*     r = (lbm_int)lbm_dec_char(a); break; */
-/*   case LBM_TYPE_I: */
-/*     r = (lbm_int)lbm_dec_i(a); break; */
-/*   case LBM_TYPE_U: */
-/*     r = (lbm_int)lbm_dec_u(a); break; */
-/*   case LBM_TYPE_I32: */
-/*     r = (lbm_int)lbm_dec_i32(a); break; */
-/*   case LBM_TYPE_U32: */
-/*     r = (lbm_int)lbm_dec_u32(a); break; */
-/*   case LBM_TYPE_FLOAT: */
-/*     r = (lbm_int)lbm_dec_float(a); break; */
-/*   case LBM_TYPE_I64: */
-/*     r = (lbm_int)lbm_dec_i64(a); break; */
-/*   case LBM_TYPE_U64: */
-/*     r = (lbm_int)lbm_dec_u64(a); break; */
-/*   case LBM_TYPE_DOUBLE: */
-/*     r = (lbm_int)lbm_dec_double(a); break; */
-/*   } */
-/*   return r; */
-/* } */
-
 float lbm_dec_as_float(lbm_value a) {
   float r = 0;
   switch (lbm_type_of_functional(a)) {
@@ -546,7 +496,7 @@ static bool generate_freelist(size_t num_cells) {
 
 void lbm_nil_freelist(void) {
   lbm_heap_state.freelist = ENC_SYM_NIL;
-  lbm_heap_state.num_alloc = lbm_heap_state.heap_size;
+  lbm_heap_state.num_free = 0;
 }
 
 static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
@@ -557,7 +507,7 @@ static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
 
   lbm_stack_create(&lbm_heap_state.gc_stack, gc_stack_storage, gc_stack_size);
 
-  lbm_heap_state.num_alloc           = 0;
+  lbm_heap_state.num_free            = num_cells;
   lbm_heap_state.num_alloc_arrays    = 0;
   lbm_heap_state.gc_num              = 0;
   lbm_heap_state.gc_marked           = 0;
@@ -568,10 +518,9 @@ static void heap_init_state(lbm_cons_t *addr, lbm_uint num_cells,
 }
 
 void lbm_heap_new_freelist_length(void) {
-  lbm_uint l = lbm_heap_state.heap_size - lbm_heap_state.num_alloc;
-  lbm_heap_state.gc_last_free = l;
-  if (l < lbm_heap_state.gc_least_free)
-    lbm_heap_state.gc_least_free = l;
+  lbm_heap_state.gc_last_free = lbm_heap_state.num_free;
+  if (lbm_heap_state.num_free < lbm_heap_state.gc_least_free)
+      lbm_heap_state.gc_least_free = lbm_heap_state.num_free;
 }
 
 bool lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
@@ -599,7 +548,7 @@ lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr
   if (cell) {
     lbm_uint heap_ix = lbm_dec_ptr(cell);
     lbm_heap_state.freelist = lbm_heap_state.heap[heap_ix].cdr;
-    lbm_heap_state.num_alloc++;
+    lbm_heap_state.num_free--;
     lbm_heap_state.heap[heap_ix].car = car;
     lbm_heap_state.heap[heap_ix].cdr = cdr;
     r = lbm_set_ptr_type(cell, ptr_type);
@@ -627,7 +576,7 @@ lbm_value lbm_heap_allocate_list(lbm_uint n) {
   } while (count < n);
   lbm_heap_state.freelist = curr;
   c_cell->cdr = ENC_SYM_NIL;
-  lbm_heap_state.num_alloc+=count;
+  lbm_heap_state.num_free-=count;
   return res;
 }
 
@@ -648,7 +597,7 @@ lbm_value lbm_heap_allocate_list_init_va(unsigned int n, va_list valist) {
   } while (count < n);
   lbm_heap_state.freelist = curr;
   c_cell->cdr = ENC_SYM_NIL;
-  lbm_heap_state.num_alloc+=count;
+  lbm_heap_state.num_free-=count;
   return res;
 }
 
@@ -661,7 +610,7 @@ lbm_value lbm_heap_allocate_list_init(unsigned int n, ...) {
 }
 
 lbm_uint lbm_heap_num_allocated(void) {
-  return lbm_heap_state.num_alloc;
+  return lbm_heap_state.heap_size - lbm_heap_state.num_free;
 }
 lbm_uint lbm_heap_size(void) {
   return lbm_heap_state.heap_size;
@@ -714,27 +663,44 @@ static int do_nothing(lbm_value v, bool shared, void *arg) {
 }
 
 void lbm_gc_mark_phase(lbm_value root) {
-    mutex_lock(&lbm_const_heap_mutex);
+    lbm_mutex_lock(&lbm_const_heap_mutex);
     lbm_ptr_rev_trav(do_nothing, root, NULL);
-    mutex_unlock(&lbm_const_heap_mutex);
+    lbm_mutex_unlock(&lbm_const_heap_mutex);
 }
 
 #else
-/* ************************************************************
-   Explicit stack "recursive" mark phase
+// ////////////////////////////////////////////////////////////
+// Check if a value is currently on the stack
+// This is a temporary hack to make arrays with cycles work
+// with Garbage collection. It is an O(stack_size) sollution, there
+// are O(1) sollutions that has a constant cost even in non-array cases.
 
-   Trees are marked in a left subtree before rigth subtree, car first then cdr,
-   way to favor lisp lists. This means that stack will grow slowly when
-   marking right-leaning (cdr-recursive) data-structures while left-leaning
-   (car-recursive) structures uses a lot of stack.
+bool active_ptr(lbm_value p) {
+  lbm_stack_t *s = &lbm_heap_state.gc_stack;
+  bool r = false;
+  for (lbm_uint i = 0; i < s->sp; i ++) {
+    if (p == s->data[i]) {
+      r = true;
+      break;
+    }
+  }
+  return r;
+}
 
-   Lisp arrays contain an extra book-keeping field to keep track
-   of how far into the array the marking process has gone.
+// ////////////////////////////////////////////////////////////
+// Explicit stack "recursive" mark phase
 
-   TODO: DSW should be used as a last-resort if the GC stack is exhausted.
-         If we use DSW as last-resort can we get away with a way smaller
-         GC stack and unchanged performance (on sensible programs)?
-*/
+// Trees are marked in a left subtree before rigth subtree, car first then cdr,
+// way to favor lisp lists. This means that stack will grow slowly when
+// marking right-leaning (cdr-recursive) data-structures while left-leaning
+// (car-recursive) structures uses a lot of stack.
+
+// Lisp arrays contain an extra book-keeping field to keep track
+// of how far into the array the marking process has gone.
+
+// TODO: DSW should be used as a last-resort if the GC stack is exhausted.
+//       If we use DSW as last-resort can we get away with a way smaller
+//       GC stack and unchanged performance (on sensible programs)?
 
 extern eval_context_t *ctx_running;
 void lbm_gc_mark_phase(lbm_value root) {
@@ -765,6 +731,11 @@ void lbm_gc_mark_phase(lbm_value root) {
     // value per array that keeps track of how far into the array GC
     // has progressed.
     if (t_ptr == LBM_TYPE_LISPARRAY) {
+      // O(stack_size) cost when seeing array. This protects
+      // against gc recursing into arrays via cycles.
+      if (active_ptr(curr)) {
+        continue; // Already in process of marking this array, abort cycle!
+      }
       lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
       uint32_t index = arr->index;
@@ -778,6 +749,7 @@ void lbm_gc_mark_phase(lbm_value root) {
           lbm_cons_t *elt = &lbm_heap_state.heap[lbm_dec_ptr(arrdata[index])];
           if (!lbm_get_gc_mark(elt->cdr)) {
             curr = arrdata[index];
+            arr->index++;
             goto mark_shortcut;
           }
         }
@@ -912,7 +884,7 @@ int lbm_gc_sweep_phase(void) {
       heap[i].car = ENC_SYM_RECOVERED;
       heap[i].cdr = lbm_heap_state.freelist;
       lbm_heap_state.freelist = addr;
-      lbm_heap_state.num_alloc --;
+      lbm_heap_state.num_free++;
       lbm_heap_state.gc_recovered ++;
     }
   }
@@ -983,59 +955,25 @@ lbm_value lbm_cddr(lbm_value c) {
   return c ? ENC_SYM_TERROR : c;
 }
 
-int lbm_set_car(lbm_value c, lbm_value v) {
-  int r = 0;
-
-  if (lbm_type_of(c) == LBM_TYPE_CONS) {
-    lbm_cons_t *cell = lbm_ref_cell(c);
-    cell->car = v;
-    r = 1;
-  }
-  return r;
-}
-
-int lbm_set_cdr(lbm_value c, lbm_value v) {
-  int r = 0;
-  if (lbm_is_cons_rw(c)){
-    lbm_cons_t *cell = lbm_ref_cell(c);
-    cell->cdr = v;
-    r = 1;
-  }
-  return r;
-}
-
-int lbm_set_car_and_cdr(lbm_value c, lbm_value car_val, lbm_value cdr_val) {
-  int r = 0;
-  if (lbm_is_cons_rw(c)) {
-    lbm_cons_t *cell = lbm_ref_cell(c);
-    cell->car = car_val;
-    cell->cdr = cdr_val;
-    r = 1;
-  }
-  return r;
-}
-
 /* calculate length of a proper list */
 lbm_uint lbm_list_length(lbm_value c) {
   lbm_uint len = 0;
 
   while (lbm_is_cons(c)){
     len ++;
-    c = lbm_cdr(c);
+    c = lbm_ref_cell(c)->cdr;
   }
   return len;
 }
 
 lbm_value lbm_list_destructive_reverse(lbm_value list) {
-  if (lbm_type_of(list) == LBM_TYPE_SYMBOL) {
-    return list;
-  }
   lbm_value curr = list;
   lbm_value last_cell = ENC_SYM_NIL;
 
   while (lbm_is_cons_rw(curr)) {
-    lbm_value next = lbm_cdr(curr);
-    lbm_set_cdr(curr, last_cell);
+    lbm_cons_t *cell = lbm_ref_cell(curr);
+    lbm_value next = cell->cdr;
+    cell->cdr = last_cell;
     last_cell = curr;
     curr = next;
   }
@@ -1058,13 +996,13 @@ lbm_value lbm_list_copy(int *m, lbm_value list) {
   lbm_value curr_targ = new_list;
 
   while (lbm_is_cons(curr) && copy_n > 0) {
-    lbm_value v = lbm_car(curr);
-    lbm_set_car(curr_targ, v);
-    curr_targ = lbm_cdr(curr_targ);
-    curr = lbm_cdr(curr);
+    lbm_cons_t *curr_cell = lbm_ref_cell(curr);
+    lbm_cons_t *targ_cell = lbm_ref_cell(curr_targ);
+    targ_cell->car = curr_cell->car;
+    curr_targ = targ_cell->cdr;
+    curr = curr_cell->cdr;
     copy_n --;
   }
-
   return new_list;
 }
 
@@ -1076,8 +1014,10 @@ lbm_value lbm_list_append(lbm_value list1, lbm_value list2) {
      lbm_is_list(list2)) {
 
     lbm_value curr = list1;
-    while(lbm_type_of(lbm_cdr(curr)) == LBM_TYPE_CONS) {
-      curr = lbm_cdr(curr);
+    lbm_cons_t *cell = lbm_ref_cell(curr);
+    while(lbm_is_cons_rw(cell->cdr)) {
+      curr = cell->cdr;
+      cell = lbm_ref_cell(cell->cdr);
     }
     if (lbm_is_symbol_nil(curr)) return list2;
     lbm_set_cdr(curr, list2);
@@ -1088,9 +1028,8 @@ lbm_value lbm_list_append(lbm_value list1, lbm_value list2) {
 
 lbm_value lbm_list_drop(unsigned int n, lbm_value ls) {
   lbm_value curr = ls;
-  while (lbm_type_of_functional(curr) == LBM_TYPE_CONS &&
-         n > 0) {
-    curr = lbm_cdr(curr);
+  while (lbm_is_cons(curr) && n > 0) {
+    curr = lbm_ref_cell(curr)->cdr;
     n --;
   }
   return curr;
@@ -1105,13 +1044,12 @@ lbm_value lbm_index_list(lbm_value l, int32_t n) {
     if (n < 0) return ENC_SYM_NIL;
   }
 
-  while (lbm_is_cons(curr) &&
-          n > 0) {
-    curr = lbm_cdr(curr);
+  while (lbm_is_cons(curr) && n > 0) {
+    curr = lbm_ref_cell(curr)->cdr;
     n --;
   }
   if (lbm_is_cons(curr)) {
-    return lbm_car(curr);
+    return lbm_ref_cell(curr)->car;
   } else {
     return ENC_SYM_NIL;
   }
@@ -1276,12 +1214,12 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
   if (((uintptr_t)addr % 4) != 0) return 0;
 
   if (!lbm_const_heap_mutex_initialized) {
-    mutex_init(&lbm_const_heap_mutex);
+    lbm_mutex_init(&lbm_const_heap_mutex);
     lbm_const_heap_mutex_initialized = true;
   }
 
   if (!lbm_mark_mutex_initialized) {
-    mutex_init(&lbm_mark_mutex);
+    lbm_mutex_init(&lbm_mark_mutex);
     lbm_mark_mutex_initialized = true;
   }
 
@@ -1300,7 +1238,7 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
 lbm_flash_status lbm_allocate_const_cell(lbm_value *res) {
   lbm_flash_status r = LBM_FLASH_FULL;
 
-  mutex_lock(&lbm_const_heap_mutex);
+  lbm_mutex_lock(&lbm_const_heap_mutex);
   // waste a cell if we have ended up unaligned after writing an array to flash.
   if (lbm_const_heap_state->next % 2 == 1) {
     lbm_const_heap_state->next++;
@@ -1314,7 +1252,7 @@ lbm_flash_status lbm_allocate_const_cell(lbm_value *res) {
     *res = (cell << LBM_ADDRESS_SHIFT) | LBM_PTR_BIT | LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT;
     r = LBM_FLASH_WRITE_OK;
   }
-  mutex_unlock(&lbm_const_heap_mutex);
+  lbm_mutex_unlock(&lbm_const_heap_mutex);
   return r;
 }
 
