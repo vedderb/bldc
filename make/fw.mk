@@ -218,6 +218,7 @@ endif
 MCU  = cortex-m4
 
 TRGT = $(TCHAIN_PREFIX)
+#TRGT = /home/benjamin/Dokument/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
 # Enable loading with g++ only if you need C++ runtime support.

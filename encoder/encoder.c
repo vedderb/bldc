@@ -405,39 +405,66 @@ void encoder_set_custom_callbacks (
 float encoder_read_deg(void) {
 	float res = 0.0;
 
-	if (m_encoder_type_now == ENCODER_TYPE_AS504x) {
+	switch (m_encoder_type_now) {
+	case ENCODER_TYPE_NONE:
+		break;
+
+	case ENCODER_TYPE_AS504x:
 		res = AS504x_LAST_ANGLE(&encoder_cfg_as504x);
-	} else if (m_encoder_type_now == ENCODER_TYPE_MT6816) {
+		break;
+
+	case ENCODER_TYPE_MT6816:
 		res = MT6816_LAST_ANGLE(&encoder_cfg_mt6816);
-	} else if (m_encoder_type_now == ENCODER_TYPE_TLE5012) {
+		break;
+
+	case ENCODER_TYPE_TLE5012:
 		res = TLE5012_LAST_ANGLE(&encoder_cfg_tle5012);
-	} else if (m_encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
+		break;
+
+	case ENCODER_TYPE_AD2S1205_SPI:
 		res = AD2S1205_LAST_ANGLE(&encoder_cfg_ad2s1205);
-	} else if (m_encoder_type_now == ENCODER_TYPE_ABI) {
+		break;
+
+	case ENCODER_TYPE_ABI:
 		res = enc_abi_read_deg(&encoder_cfg_ABI);
-	} else if (m_encoder_type_now == ENCODER_TYPE_SINCOS) {
+		break;
+
+	case ENCODER_TYPE_SINCOS:
 		res = enc_sincos_read_deg(&encoder_cfg_sincos);
-	} else if (m_encoder_type_now == ENCODER_TYPE_TS5700N8501) {
+		break;
+
+	case ENCODER_TYPE_TS5700N8501:
 		res = enc_ts5700n8501_read_deg(&encoder_cfg_TS5700N8501);
-	} else if (m_encoder_type_now == ENCODER_TYPE_AS5x47U) {
+		break;
+
+	case ENCODER_TYPE_AS5x47U:
 		res = AS5x47U_LAST_ANGLE(&encoder_cfg_as5x47u);
-	} else if (m_encoder_type_now == ENCODER_TYPE_BISSC) {
+		break;
+
+	case ENCODER_TYPE_BISSC:
 		res = BISSC_LAST_ANGLE(&encoder_cfg_bissc);
-	} else if (m_encoder_type_now == ENCODER_TYPE_CUSTOM) {
+		break;
+
+	case ENCODER_TYPE_CUSTOM:
 		if (m_enc_custom_read_deg) {
 			res = m_enc_custom_read_deg();
 		} else {
 			res = m_enc_custom_pos;
 		}
-	} else if (m_encoder_type_now == ENCODER_TYPE_PWM) {
+		break;
+
+	case ENCODER_TYPE_PWM:
 		res = enc_pwm_read_deg();
-	} else if (m_encoder_type_now == ENCODER_TYPE_PWM_ABI) {
+		break;
+
+	case ENCODER_TYPE_PWM_ABI:
 		if (enc_pwm_update_cnt() >= 2) {
 			encoder_cfg_ABI.state.index_found = true;
 			enc_pwm_deinit();
 		}
 
 		res = enc_abi_read_deg(&encoder_cfg_ABI);
+		break;
 	}
 
 	return res;

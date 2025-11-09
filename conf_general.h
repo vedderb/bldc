@@ -170,6 +170,50 @@
 extern bool conf_general_permanent_nrf_found;
 extern volatile backup_data g_backup;
 
+// FOC Profiling
+//#define FOC_PROFILE_EN
+
+#ifdef FOC_PROFILE_EN
+#define FOC_PROFILE_LOCATIONS 45
+
+typedef struct {
+	uint32_t t_start;
+	bool running;
+	bool trigger_start;
+	int ind;
+	int line[FOC_PROFILE_LOCATIONS];
+	uint32_t time[FOC_PROFILE_LOCATIONS];
+} foc_profile;
+
+extern foc_profile g_foc_profile;
+
+#define FOC_PROFILE_TRIGGER() g_foc_profile.trigger_start = true;
+
+#define FOC_PROFILE_BEGIN() \
+		g_foc_profile.running = false; \
+		if (g_foc_profile.trigger_start && !is_v7) { \
+			g_foc_profile.t_start = timer_time_now(); \
+			g_foc_profile.running = true; \
+			g_foc_profile.trigger_start = false; \
+			g_foc_profile.ind = 0; \
+		}
+
+#define FOC_PROFILE_LINE() \
+		if (g_foc_profile.running) { \
+			g_foc_profile.line[g_foc_profile.ind] = __LINE__; \
+			g_foc_profile.time[g_foc_profile.ind++] = timer_time_now(); \
+		}
+
+//#define FOC_PROFILE_LINE_FINE() FOC_PROFILE_LINE()
+#define FOC_PROFILE_LINE_FINE()
+
+#else
+#define FOC_PROFILE_TRIGGER()
+#define FOC_PROFILE_BEGIN()
+#define FOC_PROFILE_LINE()
+#define FOC_PROFILE_LINE_FINE()
+#endif
+
 // Functions
 void conf_general_init(void);
 bool conf_general_store_backup_data(void);

@@ -44,7 +44,6 @@
 
 // Private variables
 static volatile bool m_dccal_done = false;
-static volatile float m_last_adc_isr_duration;
 static volatile bool m_init_done = false;
 static volatile motor_all_state_t m_motor_1;
 #ifdef HW_HAS_DUAL_MOTORS
@@ -2825,11 +2824,10 @@ void mcpwm_foc_print_state(void) {
 	commands_printf("off_delay: %.2f", (double)get_motor_now()->m_current_off_delay);
 }
 
-float mcpwm_foc_get_last_adc_isr_duration(void) {
-	return m_last_adc_isr_duration;
-}
-
 #pragma GCC pop_options
+
+#pragma GCC push_options
+//#pragma GCC optimize ("O3")
 
 void mcpwm_foc_tim_sample_int_handler(void) {
 	if (m_init_done) {
@@ -2847,9 +2845,10 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	(void)p;
 	(void)flags;
 
-	uint32_t t_start = timer_time_now();
-
 	bool is_v7 = !(TIM1->CR1 & TIM_CR1_DIR);
+
+	FOC_PROFILE_BEGIN();
+
 	bool is_second_motor = false;
 	int norm_curr_ofs = 0;
 
@@ -2876,6 +2875,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	mc_configuration *conf_other = motor_other->m_conf;
 
 	bool skip_interpolation = motor_other->m_cc_was_hfi;
+
+	FOC_PROFILE_LINE_FINE();
 
 	// Update modulation for V7 and collect current samples. This is used by the HFI.
 	if (motor_other->m_duty_next_set) {
@@ -2921,6 +2922,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	}
 #endif
 #endif
+
+	FOC_PROFILE_LINE_FINE();
 
 #ifdef HW_HAS_PHASE_SHUNTS
 	float dt;
@@ -2970,6 +2973,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	if (do_return) {
 		return;
 	}
+
+	FOC_PROFILE_LINE_FINE();
 
 #if FOC_CONTROL_LOOP_FREQ_DIVIDER > 1
 	static int skip = 0;
@@ -3058,6 +3063,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 #else
 	bool full_clarke = false;
 #endif
+
+	FOC_PROFILE_LINE_FINE();
 
 	// Use the best current samples depending on the modulation state.
 #ifdef HW_HAS_3_SHUNTS
@@ -3209,6 +3216,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	}
 #endif
 	
+	FOC_PROFILE_LINE_FINE();
+
 	// Store the currents for sampling
 	ADC_curr_norm_value[0 + norm_curr_ofs] = curr0;
 	ADC_curr_norm_value[1 + norm_curr_ofs] = curr1;
@@ -3235,6 +3244,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		}
 	}
 
+	FOC_PROFILE_LINE_FINE();
+
 	if (encoder_is_being_used) {
 		float phase_tmp = enc_ang;
 		if (conf_now->foc_encoder_inverted) {
@@ -3256,6 +3267,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_phase_now_encoder = DEG2RAD_f(phase_tmp);
 	}
 
+	FOC_PROFILE_LINE_FINE();
+
 	if (motor_now->m_state == MC_STATE_RUNNING) {
 		if (full_clarke) {
 			// Full Clarke Transform
@@ -3275,6 +3288,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			motor_now->m_motor_state.i_beta = 0.5 * (motor_now->m_motor_state.i_beta + motor_now->m_i_beta_sample_next);
 			motor_now->m_i_alpha_beta_has_offset = false;
 		}
+
+		FOC_PROFILE_LINE_FINE();
 
 		const float duty_now = motor_now->m_motor_state.duty_now;
 		const float duty_abs = fabsf(duty_now);
@@ -3299,6 +3314,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		bool control_duty = motor_now->m_control_mode == CONTROL_MODE_DUTY ||
 				motor_now->m_control_mode == CONTROL_MODE_OPENLOOP_DUTY ||
 				motor_now->m_control_mode == CONTROL_MODE_OPENLOOP_DUTY_PHASE;
+
+		FOC_PROFILE_LINE_FINE();
 
 		// Short all phases (duty=0) the moment the direction or modulation changes sign. That will avoid
 		// active braking or changing direction. Keep all phases shorted (duty == 0) until the
@@ -3331,6 +3348,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			control_duty = true;
 			duty_set = 0.0;
 		}
+
+		FOC_PROFILE_LINE_FINE();
 
 		// Reset integrator when leaving duty cycle mode, as the windup protection is not too fast. Making
 		// better windup protection is probably better, but not easy.
@@ -3408,6 +3427,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			iq_set_tmp = -SIGN(speed_fast_now) * fabsf(iq_set_tmp);
 		}
 
+		FOC_PROFILE_LINE_FINE();
+
 		// Set motor phase
 		{
 			if (!motor_now->m_phase_override) {
@@ -3420,6 +3441,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 				motor_now->m_phase_now_observer += motor_now->m_pll_speed * dt * (0.5 + conf_now->foc_observer_offset);
 				utils_norm_angle_rad((float*)&motor_now->m_phase_now_observer);
 			}
+
+			FOC_PROFILE_LINE_FINE();
 
 			switch (conf_now->foc_sensor_mode) {
 			case FOC_SENSOR_MODE_ENCODER:
@@ -3536,6 +3559,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 					(float*)&motor_now->m_motor_state.phase_cos);
 		}
 
+		FOC_PROFILE_LINE_FINE();
+
 		// Apply MTPA. See: https://github.com/vedderb/bldc/pull/179
 		const float ld_lq_diff = conf_now->foc_motor_ld_lq_diff;
 		if (conf_now->foc_mtpa_mode != MTPA_MODE_OFF && ld_lq_diff != 0.0 &&
@@ -3552,6 +3577,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		}
 
 		const float mod_q = motor_now->m_motor_state.mod_q_filter;
+
+		FOC_PROFILE_LINE_FINE();
 
 		// Running FW from the 1 khz timer seems fast enough.
 //		run_fw(motor_now, dt);
@@ -3582,7 +3609,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		}
 		motor_now->m_motor_state.iq_target = iq_set_tmp;
 
+		FOC_PROFILE_LINE_FINE();
 		control_current(motor_now, dt);
+		FOC_PROFILE_LINE_FINE();
 	} else {
 		// Motor is not running
 
@@ -3733,6 +3762,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	// Run PLL for speed estimation
 	foc_pll_run(phase_for_speed_est, dt, &motor_now->m_pll_phase, &motor_now->m_pll_speed, conf_now);
 
+	FOC_PROFILE_LINE_FINE();
+
 	// Low latency speed estimation, for e.g. HFI and speed control.
 	{
 		float diff = utils_angle_difference_rad(phase_for_speed_est, motor_now->m_phase_before_speed_est);
@@ -3756,6 +3787,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_phase_before_speed_est = phase_for_speed_est;
 		motor_now->m_phase_before_speed_est_corrected = motor_now->m_motor_state.phase;
 	}
+
+	FOC_PROFILE_LINE_FINE();
 
 	// Update tachometer (resolution = 60 deg as for BLDC)
 	float ph_tmp = motor_now->m_motor_state.phase;
@@ -3786,6 +3819,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		angle_now = RAD2DEG_f(motor_now->m_motor_state.phase);
 	}
 
+	FOC_PROFILE_LINE_FINE();
+
 	utils_norm_angle(&angle_now);
 
 	if (conf_now->p_pid_ang_div > 0.98 && conf_now->p_pid_ang_div < 1.02) {
@@ -3810,15 +3845,20 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	palSetPad(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN);
 #endif
 
+	FOC_PROFILE_LINE();
+
 #ifdef HW_HAS_DUAL_MOTORS
 	mc_interface_mc_timer_isr(is_second_motor);
 #else
 	mc_interface_mc_timer_isr(false);
 #endif
 
+	FOC_PROFILE_LINE();
+
 	m_isr_motor = 0;
-	m_last_adc_isr_duration = timer_seconds_elapsed_since(t_start);
 }
+
+#pragma GCC pop_options
 
 // Private functions
 
@@ -4472,6 +4512,8 @@ static void control_current(motor_all_state_t *motor, float dt) {
 
 	float abs_rpm = fabsf(RADPS2RPM_f(motor->m_speed_est_fast));
 
+	FOC_PROFILE_LINE_FINE();
+
 	bool do_hfi = (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI ||
 			conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V2 ||
 			conf_now->foc_sensor_mode == FOC_SENSOR_MODE_HFI_V3 ||
@@ -4484,6 +4526,8 @@ static void control_current(motor_all_state_t *motor, float dt) {
 							abs_rpm < (conf_now->foc_sl_erpm_hfi * (motor->m_cc_was_hfi ? 1.8 : 1.5));
 
 	bool hfi_est_done = motor->m_hfi.est_done_cnt >= conf_now->foc_hfi_start_samples;
+
+	FOC_PROFILE_LINE_FINE();
 
 	// Only allow Q axis current after the HFI ambiguity is resolved. This causes
 	// a short delay when starting.
@@ -4540,6 +4584,8 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	float dec_vq = 0.0;
 	float dec_bemf = 0.0;
 
+	FOC_PROFILE_LINE_FINE();
+
 	if (motor->m_control_mode < CONTROL_MODE_HANDBRAKE && conf_now->foc_cc_decoupling != FOC_CC_DECOUPLING_DISABLED) {
 		switch (conf_now->foc_cc_decoupling) {
 		case FOC_CC_DECOUPLING_CROSS:
@@ -4585,7 +4631,11 @@ static void control_current(motor_all_state_t *motor, float dt) {
 
 	//state_m->vq_int += (state_m->vq - vq_presat);
 
+	FOC_PROFILE_LINE_FINE();
+
 	utils_saturate_vector_2d((float*)&state_m->vd, (float*)&state_m->vq, max_v_mag);
+
+	FOC_PROFILE_LINE_FINE();
 
 	// mod_d and mod_q are normalized such that 1 corresponds to the max possible voltage:
 	//    voltage_normalize = 1/(2/3*V_bus)
@@ -4612,7 +4662,11 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	state_m->mod_alpha_raw = c * state_m->mod_d - s * state_m->mod_q;
 	state_m->mod_beta_raw  = c * state_m->mod_q + s * state_m->mod_d;
 
+	FOC_PROFILE_LINE_FINE();
+
 	update_valpha_vbeta(motor, state_m->mod_alpha_raw, state_m->mod_beta_raw);
+
+	FOC_PROFILE_LINE_FINE();
 
 	// Dead time compensated values for vd and vq. Note that these are not used to control the switching times.
 	state_m->vd = c * motor->m_motor_state.v_alpha + s * motor->m_motor_state.v_beta;
@@ -4671,6 +4725,8 @@ static void control_current(motor_all_state_t *motor, float dt) {
 		break;
 
 	}
+
+	FOC_PROFILE_LINE_FINE();
 
 	// HFI
 	if (do_hfi) {
@@ -4893,6 +4949,8 @@ static void control_current(motor_all_state_t *motor, float dt) {
 		motor->m_hfi.double_integrator = 0.0;
 	}
 
+	FOC_PROFILE_LINE_FINE();
+
 	// Set output (HW Dependent)
 	uint32_t duty1, duty2, duty3, top;
 	top = TIM1->ARR;
@@ -4901,6 +4959,8 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	// be able to fully utilize the bus voltage. See https://microchipdeveloper.com/mct5001:start
 	foc_svm(state_m->mod_alpha_raw, state_m->mod_beta_raw, conf_now->l_max_duty, top,
 			&duty1, &duty2, &duty3, (uint32_t*)&state_m->svm_sector);
+
+	FOC_PROFILE_LINE_FINE();
 
 	if (motor == &m_motor_1) {
 		TIMER_UPDATE_DUTY_M1(duty1, duty2, duty3);
@@ -4912,6 +4972,8 @@ static void control_current(motor_all_state_t *motor, float dt) {
 		TIMER_UPDATE_DUTY_M2(duty1, duty2, duty3);
 #endif
 	}
+
+	FOC_PROFILE_LINE_FINE();
 
 	if (virtual_motor_is_connected() == false) {
 		// If all duty cycles are equal the phases should be shorted. Instead of

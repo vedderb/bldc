@@ -151,11 +151,14 @@ static inline void utils_step_towards(float *value, float goal, float step) {
  * The angle to normalize.
  */
 static inline void utils_norm_angle(float *angle) {
-	*angle = fmodf(*angle, 360.0);
+//	*angle = fmodf(*angle, 360.0);
+//	if (*angle < 0.0) {
+//		*angle += 360.0;
+//	}
 
-	if (*angle < 0.0) {
-		*angle += 360.0;
-	}
+	// This is much faster than fmodf
+	while (*angle < 0.0) { *angle += 360.0; }
+	while (*angle > 360.0) { *angle -= 360.0; }
 }
 
 /**
