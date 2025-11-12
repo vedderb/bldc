@@ -171,6 +171,7 @@ lbm_value make_list(int num, ...) {
     res = lbm_cons(va_arg(arguments, lbm_value), res);
   }
   va_end (arguments);
+  if (lbm_is_symbol(res)) return res;
   return lbm_list_destructive_reverse(res);
 }
 
