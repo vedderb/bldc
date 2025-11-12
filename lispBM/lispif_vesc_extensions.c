@@ -2276,6 +2276,11 @@ static lbm_value ext_get_encoder_error_rate(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(encoder_get_error_rate());
 }
 
+static lbm_value ext_encoder_index_found(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_i(encoder_index_found() ? 1 : 0);
+}
+
 static lbm_value ext_pos_pid_now(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_pid_pos_now());
@@ -6151,6 +6156,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("get-encoder", ext_get_encoder);
 		lbm_add_extension("set-encoder", ext_set_encoder);
 		lbm_add_extension("get-encoder-error-rate", ext_get_encoder_error_rate);
+		lbm_add_extension("encoder-index-found", ext_encoder_index_found);
 		lbm_add_extension("pos-pid-now", ext_pos_pid_now);
 		lbm_add_extension("pos-pid-set", ext_pos_pid_set);
 		lbm_add_extension("pos-pid-error", ext_pos_pid_error);

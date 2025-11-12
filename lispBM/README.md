@@ -1798,6 +1798,20 @@ Returns the error rate for the selected encoder, range 0.0 to 1.0. If the select
 
 ---
 
+#### encoder-index-found
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(encoder-index-found)
+```
+
+Returns 1 if the encoder index is found, 0 otherwise. For encoders without an index pulse or for PWM+ABI 1 is always returned.
+
+---
+
 #### pos-pid-now
 
 | Platforms | Firmware |
