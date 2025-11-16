@@ -171,10 +171,15 @@ extern bool conf_general_permanent_nrf_found;
 extern volatile backup_data g_backup;
 
 // FOC Profiling
-//#define FOC_PROFILE_EN
+#define FOC_PROFILE_EN
 
 #ifdef FOC_PROFILE_EN
-#define FOC_PROFILE_LOCATIONS 45
+
+//#define FOC_PROFILE_LOCATIONS 50
+#define FOC_PROFILE_LOCATIONS 10
+
+//#define FOC_PROFILE_LINE_FINE() FOC_PROFILE_LINE()
+#define FOC_PROFILE_LINE_FINE()
 
 typedef struct {
 	uint32_t t_start;
@@ -203,9 +208,6 @@ extern foc_profile g_foc_profile;
 			g_foc_profile.line[g_foc_profile.ind] = __LINE__; \
 			g_foc_profile.time[g_foc_profile.ind++] = timer_time_now(); \
 		}
-
-//#define FOC_PROFILE_LINE_FINE() FOC_PROFILE_LINE()
-#define FOC_PROFILE_LINE_FINE()
 
 #else
 #define FOC_PROFILE_TRIGGER()
