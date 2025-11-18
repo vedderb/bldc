@@ -10,10 +10,6 @@ https://github.com/svenssonjoel/lispBM
 
 Building instructions: \ref Building
 
-<h2> Integration safety manual </h2>
-
-Integration safety manual: \ref Integration
-
 <h2> Implementation documentation </h2>
 
 C Interoperation: \ref lbm_c_interop.h \ref lbm_c_interop.c <br>

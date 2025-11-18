@@ -673,6 +673,28 @@ static inline lbm_value lbm_enc_u(lbm_uint x) {
   return (x << LBM_VAL_SHIFT) | LBM_TYPE_U;
 }
 
+/** Set a known u32 value to a different u32 payload
+ * \param v Value to update.
+ * \param x new uint32_t payload.
+ * \return updated value.
+ */
+extern lbm_value lbm_set_u32(lbm_value v, uint32_t x);
+
+/** Set a known i32 value to a different u32 payload
+ * \param v Value to update.
+ * \param x new int32_t payload.
+ * \return updated value.
+ */
+extern lbm_value lbm_set_i32(lbm_value v, int32_t x);
+
+/** Set a known float value to a different u32 payload
+ * \param v Value to update.
+ * \param x new float payload.
+ * \return updated value.
+ */
+extern lbm_value lbm_set_float(lbm_value v, float x);
+
+  
 /** Encode 32 bit integer into an lbm_value.
  * \param x Value to encode.
  * \return result encoded value.

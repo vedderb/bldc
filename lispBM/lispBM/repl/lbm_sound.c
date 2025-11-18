@@ -214,6 +214,10 @@ typedef struct {
   uint8_t note; // Midi note id.
   float   freq;
   float   vel;
+  float   bend; // Pitch bend.
+
+  uint32_t channel; // Associated midi channel if there is one.
+                    // Several notes can be playing concurrently on a single channel.
 
   //dynamic state during playback;
   float osc_phase[NUM_OSC];
@@ -522,9 +526,9 @@ static void synth_thd(void *arg) {
               break;
             }
 
-            // Phase increment makes no sense for Noise.
             float s = osc * env_val * vel * w->vol;
-            float phase_increment = (base_freq + mod_val) / (float)SAMPLE_RATE;
+            // Phase increment makes no sense for Noise.
+            float phase_increment = ((base_freq + mod_val) * voices[v].bend) / (float)SAMPLE_RATE;
             voices[v].osc_phase[o] += phase_increment;
             WRAP1(voices[v].osc_phase[o]);
 
@@ -956,13 +960,14 @@ lbm_value ext_patch_clear(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-
-static void start_voice(voice_t *v, uint8_t patch, uint8_t note, float freq, float vel) {
+static uint32_t start_voice(voice_t *v, uint8_t patch, uint8_t note, float freq, float vel, uint32_t channel) {
   v->sequence_number = voice_sequence_number ++;
+  v->channel = channel;
   v->patch = patch;
   v->note = note;
   v->freq = freq;
   v->vel = vel;
+  v->bend = 1.0f;
 
   float phase = (float)rand() / RAND_MAX;
   v->osc_phase[0] = phase;
@@ -996,6 +1001,32 @@ static void start_voice(voice_t *v, uint8_t patch, uint8_t note, float freq, flo
   // - memory_order_release - Writes before this can't be reordered after it
   // - memory_order_seq_cst - Full sequential consistency
   v->active = true;
+  return v->sequence_number;
+}
+
+lbm_value ext_ch_pitch_bend(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 2 &&
+      lbm_is_number(args[0]) &&
+      lbm_is_number(args[1])) {
+
+
+    int32_t bend_val = lbm_dec_as_i32(args[0]);
+    uint32_t ch = lbm_dec_as_u32(args[1]);
+
+    float semitones = (bend_val / 8192.0f) * 2.0f;
+    float cents = semitones * 100.0f;
+    float bend_ratio = powf(2.0f, cents / 1200.0f);
+
+    r = ENC_SYM_NIL;
+    for (int v = 0; v < MAX_VOICES; v ++) {
+      if (voices[v].channel == ch) {
+        voices[v].bend = bend_ratio; // Apply bend to all channel notes.
+        r = ENC_SYM_TRUE;
+      }
+    }
+  }
+  return r;
 }
 
 // (note-on patch-no note-id vel)
@@ -1006,14 +1037,17 @@ lbm_value ext_note_on(lbm_value *args, lbm_uint argn) {
       lbm_is_number(args[1]) &&
       lbm_is_number(args[2])) {
 
+    lbm_value result = lbm_enc_u32(0);
+    if (lbm_is_symbol(result)) return result;
+
     uint8_t patch = lbm_dec_as_char(args[0]);
     uint8_t note = lbm_dec_as_char(args[1]);
     uint8_t vel = lbm_dec_as_char(args[2]);
     float vel_f = (float)vel / 127.0f;
     float freq = 440.0f * powf(2.0f, (note - 69) / 12.0f);
 
-    // replacement strategy needed.
-    // But need to keep track of which one to replace then..
+    // If no free voice, replace the oldest playing note (by seq nr).
+    // Will steal out of sequence at point of overflow.
     uint32_t min_seq = UINT32_MAX;
     int      min_seq_ix = -1;
     int  slot_ix = -1;
@@ -1031,11 +1065,56 @@ lbm_value ext_note_on(lbm_value *args, lbm_uint argn) {
       if (!voices[i].active) slot_ix = i;
     }
     if (slot_ix < 0) slot_ix = min_seq_ix;
-    start_voice(&voices[slot_ix], patch, note, freq, vel_f);
+    start_voice(&voices[slot_ix], patch, note, freq, vel_f, 0);
     r = ENC_SYM_TRUE;
   }
   return r;
 }
+
+lbm_value ext_ch_note_on(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 4 &&
+      lbm_is_number(args[0]) &&
+      lbm_is_number(args[1]) &&
+      lbm_is_number(args[2]) &&
+      lbm_is_number(args[3])) {
+
+    lbm_value result = lbm_enc_u32(0);
+    if (lbm_is_symbol(result)) return result;
+
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    uint8_t note = lbm_dec_as_char(args[1]);
+    uint8_t vel = lbm_dec_as_char(args[2]);
+    uint32_t ch  = lbm_dec_as_u32(args[3]);
+    float vel_f = (float)vel / 127.0f;
+    float freq = 440.0f * powf(2.0f, (note - 69) / 12.0f);
+
+    // If no free voice, replace the oldest playing note (by seq nr).
+    // Will steal out of sequence at point of overflow.
+    uint32_t min_seq = UINT32_MAX;
+    int      min_seq_ix = -1;
+    int  slot_ix = -1;
+    for (int i = 0; i < MAX_VOICES; i ++) {
+      if (min_seq > voices[i].sequence_number) {
+        min_seq = voices[i].sequence_number;
+        min_seq_ix = i;
+      }
+      if (voices[i].active &&
+          voices[i].patch == patch &&
+          voices[i].note  == note) {
+        slot_ix = i;
+        break;
+      }
+      if (!voices[i].active) slot_ix = i;
+    }
+    if (slot_ix < 0) slot_ix = min_seq_ix;
+    start_voice(&voices[slot_ix], patch, note, freq, vel_f, ch);
+    r = ENC_SYM_TRUE;
+  }
+  return r;
+}
+
+
 
 // (note-off patch-no node-id)
 lbm_value ext_note_off(lbm_value *args, lbm_uint argn) {
@@ -1112,8 +1191,15 @@ bool lbm_sound_init(void) {
 
   register_symbols();
 
+  // Extensions that take a channel
+  lbm_add_extension("ch-pitch-bend", ext_ch_pitch_bend);
+  lbm_add_extension("ch-note-on", ext_ch_note_on);
+
+  // Notes
   lbm_add_extension("note-on", ext_note_on);
   lbm_add_extension("note-off", ext_note_off);
+
+  // Patches
   lbm_add_extension("patch-clear", ext_patch_clear);
   lbm_add_extension("patch-mod-set", ext_patch_mod_set);
   lbm_add_extension("patch-lfo-set", ext_patch_lfo_set);
