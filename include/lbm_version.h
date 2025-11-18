@@ -337,29 +337,29 @@ Apr 10 2022: Version 0.5.1
  - A continuation created by call-cc can be applied to 0 or 1 argument.
    If there are 0 arguments an implicit application to nil takes place.
 
-Mar 26 2022: Version (0.5.0)
+Mar 26 2022: Version 0.5.0
  - Optimized code-path for closure applications.
  - 64 and 32 bit support from a single source code
  - Added math extensions library from Benjamin Vedder
  - Added String manipulation extensions library from Benjamin Vedder
 
-Mar 10 2022: Version (0.4.2)
+Mar 10 2022: Version 0.4.2
  - Added the lbm_set_error_reason function.
 
-Mar 02 2022: Version (0.4.2)
+Mar 02 2022: Version 0.4.2
  - Bug fix in initialization of contexts.
 
-Feb 28 2022: Version (0.4.2)
+Feb 28 2022: Version 0.4.2
  - First go at human-readable error messages.
  - Finished contexts are immediately and completely removed.
  - Context ids are now set to the index into the lbm_memory
    where the context structure is stored.
 
-Feb 21 2022: Version (0.4.1)
+Feb 21 2022: Version 0.4.1
  - Bug fixes in gc related to arrays
 
 
-Feb 20 2022: Version (0.4.0)
+Feb 20 2022: Version 0.4.0
  - Adds support for macros.
  - Adds call-cc for escaping and abortive continuations.
 
