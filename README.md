@@ -79,7 +79,7 @@ sudo mv 49-stlinkv2.rules /etc/udev/rules.d/
 sudo udevadm trigger
 ```
 
-## IDE
+## IDE(Qt Creator)
 ### Prerequisites
 #### On macOS/Linux
 
@@ -95,6 +95,17 @@ sudo udevadm trigger
 3.  Open Qt Creator IDE installed in `tools/Qt/Tools/QtCreator/bin/qtcreator`
 4.  With Qt Creator, open the vesc firmware Qt Creator project, named vesc.pro. You will find it in `Project/Qt Creator/vesc.pro`
 5.  The IDE is configured by default to build 100_250 firmware, this can be changed in the bottom of the left panel, there you will find all hardware variants supported by VESC
+
+## IDE(Visual Studio Code & CLion)
+
+### On macOS/Linux
+
+1.  `brew install bear` or some other way to install [bear](https://github.com/rizsotto/Bear) on macOS/Linux.
+2.  Choose a target via `make`, for example `60_mk5`.
+3.  Make sure it will be a full build, otherwise you need to run `make fw_60_mk5_clean` first.
+4.  `CC=./tools/gcc-arm-none-eabi-7-2018-q2-update/bin/arm-none-eabi-gcc bear --force-wrapper -- make fw_60_mk5`.
+5.  It will generate a `compile_commands.json` file in the root directory of the project.
+6.  See the IDE documentation to use the `compile_commands.json` file. For Visual Studio Code, see [here](https://code.visualstudio.com/docs/cpp/configure-intellisense#_project-level-intellisense-configuration). For CLion, just open the json file.
 
 ## Upload to VESC
 ### Method 1 - Flash it using an STLink SWD debugger

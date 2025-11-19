@@ -218,19 +218,39 @@ endif
 MCU  = cortex-m4
 
 TRGT = $(TCHAIN_PREFIX)
-#TRGT = /home/benjamin/Dokument/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi-
-CC   = $(TRGT)gcc
-CPPC = $(TRGT)g++
+# if CC is set from environment, we try use it first
+CC   ?= $(TRGT)gcc
+
+# check if the compiler is ARM GCC
+CC_VERSION := $(shell $(CC) --version 2>/dev/null | head -n 1)
+IS_ARM_GCC := $(findstring arm-none-eabi,$(CC_VERSION))
+
+ifeq ($(strip $(IS_ARM_GCC)),)
+	# if not, we use the default toolchain
+    override CC = $(TRGT)gcc
+    # try detect again
+    CC_VERSION := $(shell $(CC) --version 2>/dev/null | head -n 1)
+    IS_ARM_GCC := $(findstring arm-none-eabi,$(CC_VERSION))
+
+    ifeq ($(strip $(IS_ARM_GCC)),)
+        $(error [ERROR] The selected compiler '$(CC)' is not an ARM GCC toolchain. Please give an ARM GCC to CC or run 'make arm_sdk_install'.)
+    endif
+endif
+
+$(info [INFO] Using ARM GCC : $(CC_VERSION))
+
+# use other tools from the same toolchain
+CPPC := $(patsubst %gcc,%g++,$(CC))
 # Enable loading with g++ only if you need C++ runtime support.
 # NOTE: You can use C++ even without C++ support if you are careful. C++
 #       runtime support makes code size explode.
-LD   = $(TRGT)gcc
-#LD   = $(TRGT)g++
-CP   = $(TRGT)objcopy
-AS   = $(TRGT)gcc -x assembler-with-cpp
-AR   = $(TRGT)ar
-OD   = $(TRGT)objdump
-SZ   = $(TRGT)size
+LD   := $(CC)
+#LD   := $(CPPC)
+CP   := $(patsubst %gcc,%objcopy,$(CC))
+AS   := $(CC) -x assembler-with-cpp
+AR   := $(patsubst %gcc,%ar,$(CC))
+OD   := $(patsubst %gcc,%objdump,$(CC))
+SZ   := $(patsubst %gcc,%size,$(CC))
 HEX  = $(CP) -O ihex
 BIN  = $(CP) -O binary
 
