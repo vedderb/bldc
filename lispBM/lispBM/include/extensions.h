@@ -130,45 +130,131 @@ lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn);
 
 // Extension writing helpers
 
+/** Create a list.
+ *
+ * \evalthread
+ *
+ * \param num The number of elements to allocate space for.
+ * \param ... The elements to initialize the list with.
+ * \return the list or MERROR.
+ */
 extern lbm_value make_list(int num, ...);
+
+/** Compare strings for equality
+ *  Compares two strings up to the length of the first of string arguments.
+ *
+ * \param str1 First string to match against a prefix of second.
+ * \param str2 Second string.
+ * \return true is str1 matches the prefix of str2.
+ */
 extern bool strmatch(const char *str1, const char *str2);
-  
+
+/** Create a lambda given argument list and body
+ *
+ * \evalthread
+ *
+ * \param args Argument list.
+ * \param body Function body.
+ * \return Lambda or MERROR.
+ */
 static inline lbm_value mk_lam(lbm_value args, lbm_value body) {
   return make_list(3, ENC_SYM_LAMBDA, args, body);
 }
 
+/** Create a call-cc given a body expression. The body should
+ *  be a lambda expression taking a continuation.
+ *
+ * \evalthread
+ *
+ * \param body Call-cc body expression.
+ * \return Call-cc expression or MERROR.
+ */
 static inline lbm_value mk_call_cc(lbm_value body) {
   return make_list(2, ENC_SYM_CALL_CC_UNSAFE, body);
 }
 
+/** Create a let expression given bindings list and body
+ *
+ * \evalthread
+ *
+ * \param bindings List of bindings.
+ * \param body Expression to evaluate in the extended environment.
+ * \return Let expression or MERROR.
+ */
 static inline lbm_value mk_let(lbm_value bindings, lbm_value body) {
   return make_list(3, ENC_SYM_LET, bindings, body);
 }
 
+/** Create an if expression given condition, then-branch and else-branch
+ *
+ * \evalthread
+ *
+ * \param cond Boolean condition expression.
+ * \param tb   Then-branch expression.
+ * \param fb   Else-branch expression.
+ * \return If expression or MERROR.
+ */
 static inline lbm_value mk_if(lbm_value cond, lbm_value tb, lbm_value fb) {
   return make_list(4, ENC_SYM_IF, cond, tb, fb);
 }
 
+/** Create an expression that adds one to a value.
+ *
+ * \evalthread
+ *
+ * \param v Value to add one to.
+ * \return increment expression or MERROR.
+ */
 static inline lbm_value mk_inc(lbm_value v) {
   return make_list(3, ENC_SYM_ADD, v, lbm_enc_i(1));
 }
 
+/** Create an expression that compares less-than
+ *
+ * \evalthread
+ *
+ * \param a Value expression.
+ * \param b Value expression.
+ * \return less-than comparison expression or MERROR.
+ */
 static inline lbm_value mk_lt(lbm_value a, lbm_value b) {
   return make_list(3, ENC_SYM_LT, a, b);
 }
 
+/** Create an expression that compares equality
+ *
+ * \evalthread
+ *
+ * \param a Value expression.
+ * \param b Value expression.
+ * \return equality comparison expression or MERROR.
+ */
 static inline lbm_value mk_eq(lbm_value a, lbm_value b) {
   return make_list(3, ENC_SYM_EQ, a, b);
 }
 
+/** Create an expression that takes the car of an expression
+ *
+ * \evalthread
+ *
+ * \param a Value expression.
+ * \return Expression that takes the car or the value.
+ */
 static inline lbm_value mk_car(lbm_value a) {
   return make_list(2, ENC_SYM_CAR, a);
 }
 
+/** Create an expression that takes the cdr of an expression
+ *
+ * \evalthread
+ *
+ * \param a Value expression.
+ * \return Expression that takes the cdr or the value.
+ */
 static inline lbm_value mk_cdr(lbm_value a) {
   return make_list(2, ENC_SYM_CDR, a);
 }
-  
+
 #ifdef __cplusplus
 }
 #endif

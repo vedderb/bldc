@@ -139,6 +139,7 @@ lbm_value lbm_set_u32(lbm_value v, uint32_t x) {
   lbm_ref_cell(v)->car = x;
   return v;
 #else
+  (void) v;
   return (((lbm_uint)x) << LBM_VAL_SHIFT) | LBM_TYPE_U32;
 #endif
 }
@@ -148,6 +149,7 @@ lbm_value lbm_set_i32(lbm_value v, int32_t x) {
   lbm_ref_cell(v)->car = (uint32_t)x;
   return v;
 #else
+  (void) v;
   return (((lbm_uint)x) << LBM_VAL_SHIFT) | LBM_TYPE_U32;
 #endif
 }
@@ -159,6 +161,7 @@ lbm_value lbm_set_float(lbm_value v, float x) {
   lbm_ref_cell(v)->car = t;
   return v;
 #else
+  (void) v;
   lbm_uint t = 0;
   memcpy(&t, &x, sizeof(float));
   return (((lbm_uint)t) << LBM_VAL_SHIFT) | LBM_TYPE_FLOAT;

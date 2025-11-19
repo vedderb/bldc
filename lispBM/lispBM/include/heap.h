@@ -275,12 +275,17 @@ bool lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
 
 /** Add GC time statistics to heap_stats
  *
+ * \internalonly
+ *
  * \param dur Duration as reported by the timestamp callback.
  */
 void lbm_heap_new_gc_time(lbm_uint dur);
 /** Add a new free_list length to the heap_stats.
  *  Calculates a new freelist length and updates
  *  the GC statistics.
+ *
+ * \internalonly
+ *
  */
 void lbm_heap_new_freelist_length(void);
 /** Check how many lbm_cons_t cells are on the free-list
@@ -308,25 +313,39 @@ lbm_uint lbm_heap_size(void);
 lbm_uint lbm_heap_size_bytes(void);
 /** Allocate an lbm_cons_t cell from the heap.
  *
+ * \evalpaused
+ *
  * \param type A type that can be encoded onto the cell (most often LBM_PTR_TYPE_CONS).
  * \param car Value to write into car position of allocated cell.
  * \param cdr Value to write into cdr position of allocated cell.
  * \return a heap cell on success and Memory_error on failure.
  */
 lbm_value lbm_heap_allocate_cell(lbm_type ptr_type, lbm_value car, lbm_value cdr);
+
 /** Allocate a list of n heap-cells.
+ *
+ * \evalpaused
+ *
  * \param n The number of heap-cells to allocate.
- * \return A list of heap-cells of Memory error if unable to allocate.
+ * \return A list of heap-cells or Memory error if unable to allocate.
  */
 lbm_value lbm_heap_allocate_list(lbm_uint n);
+
 /** Allocate a list of n heap-cells and initialize the values.
- * \pram ls The result list is passed through this ptr.
+ *
+ * \evalpaused
+ *
+ * \param ls The result list is passed through this ptr.
  * \param n The length of list to allocate.
  * \param valist The values in a va_list to initialize the list with.
- * \return True of False depending on success of allocation.
+ * \return An initialized list of heap-cells or Memory error if unable to allocate.
  */
 lbm_value lbm_heap_allocate_list_init_va(unsigned int n, va_list valist);
+
 /** Allocate a list of n heap-cells and initialize the values.
+ *
+ * \evalpaused
+ *
  * \param n The length of list to allocate.
  * \param ... The values to initialize the list with.
  * \return allocated list or error symbol.
@@ -466,24 +485,27 @@ lbm_value lbm_cddr(lbm_value c);
 
 // List functions
 /** Calculate the length of a proper list
- * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
- * may lead to the function not terminating.
+ *
+ * \cycledanger
+ * \evalpaused
  *
  * \param c A list
  * \return The length of the list. Unless the value is a cyclic structure on the heap, this function will terminate.
  */
 lbm_uint lbm_list_length(lbm_value c);
 /** Reverse a proper list destroying the original.
- * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
- * may lead to the function not terminating.
+ *
+ * \cycledanger
+ * \evalpaused
  *
  * \param list A list
  * \return The list reversed
  */
 lbm_value lbm_list_destructive_reverse(lbm_value list);
 /** Copy a list
- * \warning This is a dangerous function that should be used carefully. Cyclic structures on the heap
- * may lead to the function not terminating.
+ *
+ * \cycledanger
+ * \evalpaused
  *
  * \param m Number of elements to copy or -1 for all. If 1, m will be updated with the length of the list
  * \param list A list.
@@ -492,6 +514,9 @@ lbm_value lbm_list_destructive_reverse(lbm_value list);
 lbm_value lbm_list_copy(int *m, lbm_value list);
 
 /** A destructive append of two lists
+ *
+ * \cycledanger
+ * \evalpaused
  *
  * \param list1 A list
  * \param list2 A list
@@ -530,17 +555,26 @@ lbm_uint lbm_get_gc_stack_size(void);
 // Garbage collection
 /** Increment the counter that is counting the number of times GC ran
  *
+ * \internalonly
  */
 void lbm_gc_state_inc(void);
 /** Set the freelist to NIL. Means that no memory will be available
  *  until after a garbage collection.
+ *
+ *  \internalonly
  */
 void lbm_nil_freelist(void);
 /** Mark all heap cells reachable from an environment.
+ *
+ * \internalonly
+ *
  * \param environment.
  */
 void lbm_gc_mark_env(lbm_value);
 /** Mark heap cells reachable from the lbm_value v.
+ *
+ * \internalonly
+ *
  * \param  root
  */
 void lbm_gc_mark_phase(lbm_value root);
@@ -548,16 +582,24 @@ void lbm_gc_mark_phase(lbm_value root);
  *  This function is similar to lbm_gc_mark_roots but performs
  *  extra checks to not traverse into non-standard values.
  *  TODO: Check if this function is really needed.
+ *
+ * \internalonly
+ *
  * \param data Array of roots to traverse from.
  * \param n Number of elements in roots-array.
  */
 void lbm_gc_mark_aux(lbm_uint *data, lbm_uint n);
 /** Performs lbm_gc_mark_phase on all the values in the roots array.
+ *
+ * \internalonly
+ *
  * \param roots pointer to array of roots.
  * \param num_roots size of array of roots.
  */
 void lbm_gc_mark_roots(lbm_uint *roots, lbm_uint num_roots);
 /** Sweep up all non marked heap cells and place them on the free list.
+ *
+ * \internalonly
  *
  * \return 1
  */
@@ -694,7 +736,7 @@ extern lbm_value lbm_set_i32(lbm_value v, int32_t x);
  */
 extern lbm_value lbm_set_float(lbm_value v, float x);
 
-  
+
 /** Encode 32 bit integer into an lbm_value.
  * \param x Value to encode.
  * \return result encoded value.
