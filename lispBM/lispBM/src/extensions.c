@@ -171,7 +171,7 @@ lbm_value make_list(int num, ...) {
     res = lbm_cons(va_arg(arguments, lbm_value), res);
   }
   va_end (arguments);
-  eturn lbm_list_destructive_reverse(res);
+  return lbm_list_destructive_reverse(res);
 }
 
 bool strmatch(const char *str1, const char *str2) {
