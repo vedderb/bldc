@@ -166,9 +166,12 @@ bool lbm_check_argn_number(lbm_value *args, lbm_uint argn, lbm_uint n) {
 lbm_value make_list(int num, ...) {
   va_list arguments;
   va_start (arguments, num);
-  lbm_value res = lbm_heap_allocate_list_init_va((unsigned int) num, arguments);
+  lbm_value res = ENC_SYM_NIL;
+  for (int i = 0; i < num; i++) {
+    res = lbm_cons(va_arg(arguments, lbm_value), res);
+  }
   va_end (arguments);
-  return res;
+  eturn lbm_list_destructive_reverse(res);
 }
 
 bool strmatch(const char *str1, const char *str2) {

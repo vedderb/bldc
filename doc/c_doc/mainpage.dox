@@ -10,9 +10,41 @@ https://github.com/svenssonjoel/lispBM
 
 Building instructions: \ref Building
 
+<h2> Important for Integration </h2>
+
+<p><b>Thread Safety:</b> It is very likely that an integration of LispBM will run
+on an RTOS and have multiple threads running in parallel with the LispBM evaluator.
+In such a situation external threads must <b>pause the evaluator</b> before calling most LispBM API functions.</p>
+
+<p>The LispBM documentation marks functions with </p>
+
+\evalpaused
+
+<p>or with </p>
+
+\evalthread
+
+<p> To highlight that they one needs to consider that these functions read or write data
+that can change at any time in the LispBM evaluation thread, unless paused. </p>
+
+<p>Calling heap or environment functions from external threads without pausing
+causes <b>undefined behavior and data corruption</b>.</p>
+
+<p><b>Example - Pausing the evaluator from an external thread:</b></p>
+@code{.c}
+lbm_pause_eval();
+while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+  sleep_callback(1000);
+}
+// Now safe to call LispBM functions
+// ... your code here ...
+lbm_continue_eval();
+@endcode
+
+<p>For example, most functions in \ref lbm_c_interop.h require the evaluator to be paused.</p>
+
 <h2> Implementation documentation </h2>
 
-C Interoperation: \ref lbm_c_interop.h \ref lbm_c_interop.c <br>
 Environment: \ref env.h \ref env.c <br>
 Evaluator: \ref eval_cps.h \ref eval_cps.c <br>
 Extensions: \ref extensions.h \ref extensions.c <br>
@@ -24,7 +56,6 @@ Constants: \ref lbm_constants.h \ref lbm_constants.c <br>
 Custom types: \ref lbm_custom_type.h \ref lbm_custom_type.c <br>
 Global definitons: \ref lbm_defines.h \ref lbm_defines.c <br>
 Compactible memory region: \ref lbm_defrag_mem.h \ref lbm_defrag_mem.c <br>
-Flags: \ref lbm_flags.h \ref lbm_flags.c <br>
 Flat values: \ref lbm_flat_value.h \ref lbm_flat_value.c <br>
 Arrays and boxed value memory: \ref lbm_memory.h \ref lbm_memory.c <br>
 Profiler: \ref lbm_prof.h \ref lbm_prof.c <br>
@@ -34,10 +65,10 @@ Version: \ref lbm_version.h \ref lbm_version.c <br>
 LispBM: \ref lispbm.h \ref lispbm.c <br>
 Printing values: \ref print.h \ref print.c <br>
 Stacks: \ref stack.h \ref stack.c <br>
-channels: \ref lbm_channel.h \ref lbm_channel.c <br>
 Symbol table: \ref symrepr.h \ref symrepr.c <br>
 Tokeniser: \ref tokpar.h \ref tokpar.c <br>
 Image: \ref lbm_image.h \ref lbm_image.c <br>
+Buffer: \ref buffer.h \ref buffer.c <br>
 
 \image html lispbm_llama_small.png
 

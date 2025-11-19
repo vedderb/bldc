@@ -28,6 +28,10 @@
 extern "C" {
 #endif
 
+/** @name Evaluator States
+ * @{
+ */
+
 #define EVAL_CPS_STATE_NONE    0
 #define EVAL_CPS_STATE_PAUSED  1
 #define EVAL_CPS_STATE_RUNNING 2
@@ -35,9 +39,14 @@ extern "C" {
 #define EVAL_CPS_STATE_DEAD    8
 #define EVAL_CPS_STATE_RESET   16
 
+/** @} */
+
 #define EVAL_CPS_DEFAULT_MAILBOX_SIZE 10
 
 // Make sure the flags fit in an u28. (do not go beyond 27 flags)
+/** @name Evaluator Context Flags
+ * @{
+ */
 #define EVAL_CPS_CONTEXT_FLAG_NOTHING               (uint32_t)0x00
 #define EVAL_CPS_CONTEXT_FLAG_TRAP                  (uint32_t)0x01
 #define EVAL_CPS_CONTEXT_FLAG_CONST                 (uint32_t)0x02
@@ -45,9 +54,10 @@ extern "C" {
 #define EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ      (uint32_t)0x08
 #define EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN    (uint32_t)0x10
 #define EVAL_CPS_CONTEXT_READER_FLAGS_MASK          (EVAL_CPS_CONTEXT_FLAG_CONST | EVAL_CPS_CONTEXT_FLAG_CONST_SYMBOL_STRINGS | EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ)
+/** @} */
 
-/** The eval_context_t struct represents a lispbm process.
- *
+/** @name Thread States
+ * @{
  */
 #define LBM_THREAD_STATE_READY      (uint32_t)0u
 #define LBM_THREAD_STATE_BLOCKED    (uint32_t)1u
@@ -56,11 +66,19 @@ extern "C" {
 #define LBM_THREAD_STATE_RECV_BL    (uint32_t)8u
 #define LBM_THREAD_STATE_RECV_TO    (uint32_t)16u
 #define LBM_THREAD_STATE_GC_BIT     (uint32_t)(1u << 31)
+/** @} */
 
+/** @name Thread State Groups
+ * @{
+ */
 #define LBM_IS_STATE_TIMEOUT(X) (X & (LBM_THREAD_STATE_TIMEOUT | LBM_THREAD_STATE_RECV_TO))
 #define LBM_IS_STATE_WAKE_UP_WAKABLE(X) (X & (LBM_THREAD_STATE_SLEEPING | LBM_IS_STATE_TIMEOUT(X)))
 #define LBM_IS_STATE_UNBLOCKABLE(X) (X & (LBM_THREAD_STATE_BLOCKED | LBM_THREAD_STATE_TIMEOUT))
 #define LBM_IS_STATE_RECV(X) (X & (LBM_THREAD_STATE_RECV_BL | LBM_THREAD_STATE_RECV_TO))
+/** @} */
+
+/** Represents an evaluation context (a thread)
+ */
 typedef struct eval_context_s{
   lbm_value program;
   lbm_value curr_exp;
