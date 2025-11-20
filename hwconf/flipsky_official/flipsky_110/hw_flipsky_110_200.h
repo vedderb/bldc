@@ -17,11 +17,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_110_300_NO_LIMITS_H_
-#define HW_110_300_NO_LIMITS_H_
+#ifndef HW_FLIPSKY_110_200_H_
+#define HW_FLIPSKY_110_200_H_
 
-#define DISABLE_HW_LIMITS
-#define FW_NAME     "no_limits"
-#include "hw_flipsky_110_300.h"
+#define HW_FLIPSKY_110_200
+#define CURRENT_AMP_GAIN		18.0
+#define CURRENT_SHUNT_RES		(0.0005 / 2.0)
+#include "hw_flipsky_110_core.h"
 
-#endif /* HW_FLIPSKY_110_300_NO_LIMITS_H_ */
+#endif /* HW_FLIPSKY_110_200_H_ */
