@@ -30,13 +30,33 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 33u
+#define LBM_MINOR_VERSION 34u
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 1u
+#define LBM_PATCH_VERSION 2u
 
 #define LBM_VERSION_STRING STR(LBM_MAJOR_VERSION) "." STR(LBM_MINOR_VERSION) "." STR(LBM_PATCH_VERSION)
 
 /*! \page changelog Changelog
+
+Oct 28 2025: Version 0.34.1
+  - Fix of c_unit tests.
+  - Parallelisation of test suites.
+
+Oct 27 2025: Version 0.34.0
+  - Optimization of a bunch of typechecking bitmagic-functions in heap.h
+  - Platform_thread for linux, windows, chibios, freertos, zephyr (need help testing all variants).
+  - Example project for Chibios 21.11.3.
+  - Accessor for the const_heap_index can be used to check if a loaded image is likely good or bad.
+  - dsp_extensions.c/h (first attempt at these).
+  - Inverting num_alloc logic used to check if allocations will succeed (optimization)
+  - Libfreetype support in the ttf_extensions.
+  - Additional testing of images
+  - Bugfix in GC traversal of arrays (arrays with cycles and sharing).
+  - Bugfix in Linux REPL that did not print bytearrays properly.
+  - Bugfix in lbm_image when it comes to recreation of the next_symbol_id upon image load.
+  - Bugfix in math_extensions that can be triggered using constant floats.
+  - Bugfix in Linux REPL so that results from -s and -e arguments are shown.
+  - Macros now support arbitrary number of arguments using rest-args. (compile with LBM_USE_MACRO_REST_ARGS).
 
 Aug 8 2025: VERSION 0.33.0
   - Fix behavior of apply (laxsjo).
@@ -46,7 +66,7 @@ Aug 8 2025: VERSION 0.33.0
   - Sharing and cycle detection for serialization into image.
   - Increased testing effort.
   - Repl prompt persistance improvements. (laxsjo)
-  
+
 APR 14 2025: VERSION 0.32.0
   - Fix image space calculation for flat value.
   - Fix symbol numbering restoration after image boot.
@@ -317,29 +337,29 @@ Apr 10 2022: Version 0.5.1
  - A continuation created by call-cc can be applied to 0 or 1 argument.
    If there are 0 arguments an implicit application to nil takes place.
 
-Mar 26 2022: Version (0.5.0)
+Mar 26 2022: Version 0.5.0
  - Optimized code-path for closure applications.
  - 64 and 32 bit support from a single source code
  - Added math extensions library from Benjamin Vedder
  - Added String manipulation extensions library from Benjamin Vedder
 
-Mar 10 2022: Version (0.4.2)
+Mar 10 2022: Version 0.4.2
  - Added the lbm_set_error_reason function.
 
-Mar 02 2022: Version (0.4.2)
+Mar 02 2022: Version 0.4.2
  - Bug fix in initialization of contexts.
 
-Feb 28 2022: Version (0.4.2)
+Feb 28 2022: Version 0.4.2
  - First go at human-readable error messages.
  - Finished contexts are immediately and completely removed.
  - Context ids are now set to the index into the lbm_memory
    where the context structure is stored.
 
-Feb 21 2022: Version (0.4.1)
+Feb 21 2022: Version 0.4.1
  - Bug fixes in gc related to arrays
 
 
-Feb 20 2022: Version (0.4.0)
+Feb 20 2022: Version 0.4.0
  - Adds support for macros.
  - Adds call-cc for escaping and abortive continuations.
 

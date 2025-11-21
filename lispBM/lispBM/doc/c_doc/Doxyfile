@@ -238,7 +238,12 @@ TAB_SIZE               = 4
 # "Side Effects:". You can put \n's in the value part of an alias to insert
 # newlines.
 
-ALIASES                =
+ALIASES = evalthread="\warning <b>Thread Requirement:</b> This function MUST be called from the LBM evaluator thread only." \
+          evalpaused="\warning <b>Thread Requirement:</b> This function MUST be called in the same thread as the evaluator OR the evaluator must be paused." \
+          cycledanger="\warning <b>Termination:</b> This is a dangerous function that should be used carefully. Cyclic structures on the heap may lead to the function not terminating." \
+          internalonly="\warning <b>Internal:</b> For internal use only." \
+          recommendpause="\note <b>Recommendation:</b> If called from an external thread, pausing the evaluator is recommended."
+
 
 # This tag can be used to specify a number of word-keyword mappings (TCL only).
 # A mapping has the form "name=value". For example adding "class=itcl::class"

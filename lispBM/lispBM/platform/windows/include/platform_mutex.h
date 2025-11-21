@@ -22,10 +22,10 @@
 #include <windows.h>
 #include <stdbool.h>
 
-typedef  HANDLE mutex_t;
+typedef HANDLE lbm_mutex_t;
 
-extern bool mutex_init(mutex_t *m);
-extern void mutex_lock(mutex_t *m);
-extern void mutex_unlock(mutex_t *m);
+extern bool lbm_mutex_init(lbm_mutex_t *m);
+extern void lbm_mutex_lock(lbm_mutex_t *m);
+extern void lbm_mutex_unlock(lbm_mutex_t *m);
 
 #endif

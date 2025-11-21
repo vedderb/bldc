@@ -22,7 +22,7 @@
 #include <chvt.h>
 #include <chtime.h>
 
-uint32_t timestamp(void) {
+uint32_t lbm_timestamp(void) {
   systime_t t = chVTGetSystemTime();
   uint32_t ts = (uint32_t) ((1000000 / CH_CFG_ST_FREQUENCY) * t);
   return ts;

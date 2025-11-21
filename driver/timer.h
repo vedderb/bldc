@@ -21,10 +21,14 @@
 #define TIMER_H_
 
 #include <stdint.h>
+#include "stm32f4xx_conf.h"
 
 void timer_init(void);
-uint32_t timer_time_now(void);
+static inline uint32_t timer_time_now(void) {
+	return TIM5->CNT;
+}
 float timer_seconds_elapsed_since(uint32_t time);
+float timer_calc_diff(uint32_t start, uint32_t time);
 void timer_sleep(float seconds);
 
 #endif /* TIMER_H_ */

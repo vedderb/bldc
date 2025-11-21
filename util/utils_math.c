@@ -68,38 +68,6 @@ void utils_deadband(float *value, float tres, float max) {
 }
 
 /**
- * Get the difference between two angles. Will always be between -180 and +180 degrees.
- * @param angle1
- * The first angle
- * @param angle2
- * The second angle
- * @return
- * The difference between the angles
- */
-float utils_angle_difference(float angle1, float angle2) {
-	float difference = angle1 - angle2;
-	while (difference < -180.0) difference += 2.0 * 180.0;
-	while (difference > 180.0) difference -= 2.0 * 180.0;
-	return difference;
-}
-
-/**
- * Get the difference between two angles. Will always be between -pi and +pi radians.
- * @param angle1
- * The first angle in radians
- * @param angle2
- * The second angle in radians
- * @return
- * The difference between the angles in radians
- */
-float utils_angle_difference_rad(float angle1, float angle2) {
-	float difference = angle1 - angle2;
-	while (difference < -M_PI) difference += 2.0 * M_PI;
-	while (difference > M_PI) difference -= 2.0 * M_PI;
-	return difference;
-}
-
-/**
  * Takes the average of a number of angles.
  *
  * @param angles

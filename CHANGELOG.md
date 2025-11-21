@@ -1,4 +1,13 @@
 ### 7.00
+#### TBD
+* Configurable HFI reset ERPM.
+* Removed D axis gain scaling parameters.
+* Sin/Cos encoder filter delay compensation.
+
+### 6.06.6
+#### 2025-11-01
+* Persistent CAN ID and CAN Baud across firmware updates.
+* Better current controller circle limiting.
 
 ### 6.06
 #### 2025-08-18

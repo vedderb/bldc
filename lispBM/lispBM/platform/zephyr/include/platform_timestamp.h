@@ -22,6 +22,6 @@
 #include <stdint.h>
 
 // timestamp interface
-extern uint32_t timestamp(void);
+extern uint32_t lbm_timestamp(void);
 
 #endif

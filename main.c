@@ -87,6 +87,10 @@
  *
  */
 
+#ifdef FOC_PROFILE_EN
+foc_profile g_foc_profile;
+#endif
+
 // Private variables
 static THD_WORKING_AREA(periodic_thread_wa, 256);
 static THD_WORKING_AREA(led_thread_wa, 256);

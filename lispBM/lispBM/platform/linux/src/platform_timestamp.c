@@ -25,7 +25,7 @@
 
 static atomic_uint_least32_t timestamp_cache = ATOMIC_VAR_INIT(0);
 
-void *timestamp_cacher(void *v) {
+void *lbm_timestamp_cacher(void *v) {
   (void) v;
   while(true) {
     struct timeval tv;
@@ -40,6 +40,6 @@ void *timestamp_cacher(void *v) {
   }
 }
 
-uint32_t timestamp(void) {
+uint32_t lbm_timestamp(void) {
   return (uint32_t)atomic_load(&timestamp_cache);
 }

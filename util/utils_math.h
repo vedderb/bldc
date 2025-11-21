@@ -26,8 +26,6 @@
 
 float utils_map_angle(float angle, float min, float max);
 void utils_deadband(float *value, float tres, float max);
-float utils_angle_difference(float angle1, float angle2);
-float utils_angle_difference_rad(float angle1, float angle2);
 float utils_avg_angles_rad_fast(float *angles, float *weights, int angles_num);
 float utils_interpolate_angles_rad(float a1, float a2, float weight_a1);
 float utils_middle_of_3(float a, float b, float c);
@@ -151,11 +149,14 @@ static inline void utils_step_towards(float *value, float goal, float step) {
  * The angle to normalize.
  */
 static inline void utils_norm_angle(float *angle) {
-	*angle = fmodf(*angle, 360.0);
+//	*angle = fmodf(*angle, 360.0);
+//	if (*angle < 0.0) {
+//		*angle += 360.0;
+//	}
 
-	if (*angle < 0.0) {
-		*angle += 360.0;
-	}
+	// This is much faster than fmodf
+	while (*angle < 0.0) { *angle += 360.0; }
+	while (*angle > 360.0) { *angle -= 360.0; }
 }
 
 /**
@@ -242,6 +243,38 @@ static inline bool utils_saturate_vector_2d(float *x, float *y, float max) {
 	}
 
 	return retval;
+}
+
+/**
+ * Get the difference between two angles. Will always be between -180 and +180 degrees.
+ * @param angle1
+ * The first angle
+ * @param angle2
+ * The second angle
+ * @return
+ * The difference between the angles
+ */
+static inline float utils_angle_difference(float angle1, float angle2) {
+	float difference = angle1 - angle2;
+	while (difference < -180.0) difference += 2.0 * 180.0;
+	while (difference > 180.0) difference -= 2.0 * 180.0;
+	return difference;
+}
+
+/**
+ * Get the difference between two angles. Will always be between -pi and +pi radians.
+ * @param angle1
+ * The first angle in radians
+ * @param angle2
+ * The second angle in radians
+ * @return
+ * The difference between the angles in radians
+ */
+static inline float utils_angle_difference_rad(float angle1, float angle2) {
+	float difference = angle1 - angle2;
+	while (difference < -M_PI) difference += 2.0 * M_PI;
+	while (difference > M_PI) difference -= 2.0 * M_PI;
+	return difference;
 }
 
 #endif  /* UTILS_MATH_H_ */

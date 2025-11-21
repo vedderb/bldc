@@ -28,6 +28,7 @@
 #include <extensions/display_extensions.h>
 #include <lbm_utils.h>
 #include <lbm_defrag_mem.h>
+#include <lbm_cos_table.h>
 
 #ifdef LBM_OPT_DISPLAY_EXTENSIONS_SIZE
 #pragma GCC optimize ("-Os")
@@ -36,27 +37,8 @@
 #pragma GCC optimize ("-Oz")
 #endif
 
-
 #define MAX_WIDTH 32000
 #define MAX_HEIGHT 32000
-
-// a single quadrant...
-static const uint8_t cos_tab_128[] =
-  {
-   255, 255, 255, 255, 254, 254, 254, 253, 253, 252, // 0 - 9
-   251, 250, 250, 249, 248, 246, 245, 244, 243, 241, //10 - 19
-   240, 238, 237, 235, 234, 232, 230, 228, 226, 224, //20 - 29
-   222, 220, 218, 215, 213, 211, 208, 206, 203, 201, //30 - 39
-   198, 196, 193, 190, 188, 185, 182, 179, 176, 173, //40 - 49
-   170, 167, 165, 162, 158, 155, 152, 149, 146, 143, //50 - 59
-   140, 137, 134, 131, 127, 124, 121, 118, 115, 112, //60 - 69
-   109, 106, 103, 100, 97,  93,  90,  88,  85,  82,  //70 - 79
-   79,  76,  73,  70,  67,  65,  62,  59,  57,  54,  //80 - 89
-   52,  49,  47,  44,  42,  40,  37,  35,  33,  31,  //90 - 99
-   29,  27,  25,  23,  21,  20,  18,  17,  15,  14,  //100 - 109
-   12,  11,  10,  9,   7,   6,   5,   5,   4,   3,   //110 - 119
-   2,   2,   1,   1,   1,   0,   0,   0              //120 - 127
-};
 
 uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y) {
   switch (color.type) {
@@ -83,7 +65,7 @@ uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y) {
       tab_pos += used_len;
     }
 
-    uint32_t tab_val = (uint32_t)cos_tab_128[tab_pos <= 127 ? tab_pos : 128 - (tab_pos - 127)];
+    uint32_t tab_val = (uint32_t)lbm_cos_tab_128[tab_pos <= 127 ? tab_pos : 128 - (tab_pos - 127)];
 
     uint32_t r = (r1 * tab_val + r2 * (255 - tab_val)) / 255;
     uint32_t g = (g1 * tab_val + g2 * (255 - tab_val)) / 255;

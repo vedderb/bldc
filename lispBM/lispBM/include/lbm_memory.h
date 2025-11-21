@@ -142,7 +142,7 @@ lbm_uint lbm_memory_num_words(void);
  * \return The number of free words in the symbols and arrays memory.
  */
 lbm_uint lbm_memory_num_free(void);
-/** Get the maximum of memory usage. Divide this value
+/** Get the maximum of memory usage.
  *
  * \return Maximal memory usage.
  */
@@ -160,7 +160,7 @@ lbm_uint lbm_memory_longest_free(void);
  * \return pointer to allocated array or NULL.
  */
 lbm_uint *lbm_memory_allocate(lbm_uint num_words);
-/** Free an allocated array int the symbols and arrays memory.
+/** Free an allocated array in the symbols and arrays memory.
  *
  * \param ptr Pointer to array to free.
  * \return 1 on success and 0 on failure.

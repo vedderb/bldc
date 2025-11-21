@@ -463,8 +463,6 @@ typedef struct {
 	float foc_start_curr_dec_rpm;
 	float foc_openloop_rpm;
 	float foc_openloop_rpm_low;
-	float foc_d_gain_scale_start;
-	float foc_d_gain_scale_max_mod;
 	float foc_sl_openloop_hyst;
 	float foc_sl_openloop_time;
 	float foc_sl_openloop_time_lock;
@@ -495,6 +493,7 @@ typedef struct {
 	float foc_hfi_max_err;
 	float foc_hfi_hyst;
 	float foc_sl_erpm_hfi;
+	float foc_hfi_reset_erpm;
 	uint16_t foc_hfi_start_samples;
 	float foc_hfi_obs_ovr_sec;
 	foc_hfi_samples foc_hfi_samples;

@@ -9,28 +9,28 @@ doclib.env: doclib.lisp
 	$(LBM) -H 100000 -M 11 --src="doclib.lisp" --store_env=doclib.env --terminate
 
 lbmref.md: doclib.env lbmref.lisp
-	$(LBM) -H 10000000 -M 11 --src="lbmref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
+	$(LBM) -H 100000 -M 11 --src="lbmref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
 displayref.md: doclib.env displayref.lisp
-	$(LBM) -H 10000000 -M 11 --src="displayref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
+	$(LBM) -H 100000 -M 11 --src="displayref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
 ttfref.md: doclib.env ttfref.lisp
-	$(LBM) -H 10000000 -M 11 --src="ttfref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
+	$(LBM) -H 100000 -M 11 --src="ttfref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
 runtimeref.md: doclib.env runtimeref.lisp
-	$(LBM) -H 10000000 -M 11 --src="runtimeref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
+	$(LBM) -H 100000 -M 11 --src="runtimeref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
 strange.md: doclib.env strange.lisp
-	$(LBM) -H 10000000 -M 11 --src="strange.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
+	$(LBM) -H 100000 -M 11 --src="strange.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
 efficient.md: doclib.env efficient.lisp
-	$(LBM) -H 10000000 -M 11 --src="efficient.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
+	$(LBM) -H 100000 -M 11 --src="efficient.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
 dynref.md: doclib.env dynref.lisp
-	$(LBM) -H 10000000 -M 11 --src="dynref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
+	$(LBM) -H 100000 -M 11 --src="dynref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
 goals.md: doclib.env goals.lisp
-	$(LBM) -H 10000000 -M 11 --src="goals.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
+	$(LBM) -H 100000 -M 11 --src="goals.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
 clean:
 	rm -f doclib.env

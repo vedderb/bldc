@@ -299,6 +299,8 @@ int tok_double(lbm_char_channel_t *chan, token_float *result) {
   char c;
   bool valid_num = false;
   int res;
+  int type_len;
+  uint32_t tok_res;
 
   memset(fbuf, 0, TD_BUF_SIZE);
 
@@ -361,8 +363,7 @@ int tok_double(lbm_char_channel_t *chan, token_float *result) {
     }
   }
 
-  uint32_t tok_res;
-  int type_len = tok_match_fixed_size_tokens(chan, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
+  type_len = tok_match_fixed_size_tokens(chan, type_qual_table, n, NUM_TYPE_QUALIFIERS, &tok_res);
 
   if (type_len == TOKENIZER_NEED_MORE) return type_len;
   if (type_len == TOKENIZER_NO_TOKEN) {
