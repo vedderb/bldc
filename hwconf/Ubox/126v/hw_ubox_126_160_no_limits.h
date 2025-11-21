@@ -17,11 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_UBOX_SINGLE_126_100_NO_LIMITS_H_
-#define HW_UBOX_SINGLE_126_100_NO_LIMITS_H_
+#ifndef HW_UBOX_126_160_NO_LIMITS_H_
+#define HW_UBOX_126_160_NO_LIMITS_H_
 
 #define DISABLE_HW_LIMITS
 
-#include "hw_ubox_single_126_100.h"
+#include "hw_ubox_126_160.h"
 
-#endif /* HW_UBOX_SINGLE_126_100_NO_LIMITS_H_ */
+#endif /* HW_UBOX_126_160_NO_LIMITS_H_ */

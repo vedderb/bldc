@@ -24,10 +24,10 @@
 
 #define HW_SHUTDOWN_CUSTOM
 
-#ifdef HW_UBOX_SINGLE_126_160
-#define HW_NAME		"UBOX_SINGLE_126_160"
-#elif defined HW_UBOX_SINGLE_126_100
-#define HW_NAME		"UBOX_SINGLE_126_100"
+#ifdef HW_UBOX_126_160
+#define HW_NAME		"UBOX_126_160"
+#elif defined HW_UBOX_126_100
+#define HW_NAME		"UBOX_126_100"
 #else
 #error "Must define hardware type"
 #endif
@@ -262,7 +262,7 @@
 #endif
 
 // Setting limits
-#ifdef HW_UBOX_SINGLE_126_160
+#ifdef HW_UBOX_126_160
 	#define HW_LIM_CURRENT			-240, 240.0
 	#define HW_LIM_CURRENT_IN		-240.0, 240.0
 	#define HW_LIM_CURRENT_ABS		0.0, 290.0

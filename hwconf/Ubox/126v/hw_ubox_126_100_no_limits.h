@@ -17,16 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_UBOX_SINGLE_126_100_H_
-#define HW_UBOX_SINGLE_126_100_H_
+#ifndef HW_UBOX_126_100_NO_LIMITS_H_
+#define HW_UBOX_126_100_NO_LIMITS_H_
 
-#define HW_UBOX_SINGLE_126_100
+#define DISABLE_HW_LIMITS
 
-#define MCCONF_L_IN_CURRENT_MAX			100.0	// Input current limit in Amperes (Upper)
-#define MCCONF_L_IN_CURRENT_MIN			-80.0	// Input current limit in Amperes (Lower)
-#define MCCONF_L_MAX_ABS_CURRENT		150.0	// The maximum absolute current above which a fault is generated
+#include "hw_ubox_126_100.h"
 
-
-#include "hw_ubox_126_core.h"
-
-#endif /* HW_UBOX_SINGLE_126_100_H_ */
+#endif /* HW_UBOX_126_100_NO_LIMITS_H_ */
