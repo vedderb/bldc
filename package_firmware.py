@@ -135,6 +135,10 @@ package_dict["UBOX_SINGLE_85_200"] = [['ubox_single_85_200', default_name],
                                   ['ubox_single_85_200_no_limits', no_limits_name]]
 package_dict["UBOX_V2_100"] = [['ubox_v2_100', default_name],
                                ['ubox_v2_100_no_limits', no_limits_name]]
+package_dict["UBOX_126_100"] = [['ubox_126_100', default_name],
+                               ['ubox_126_100_no_limits', no_limits_name]]
+package_dict["UBOX_126_160"] = [['ubox_126_160', default_name],
+                               ['ubox_126_160_no_limits', no_limits_name]]
 package_dict["EDU"] = [['edu', default_name],
                     ['edu_no_limits', no_limits_name]]
 package_dict["75_300_MKIV"] = [['75_300_mkiv', default_name],
