@@ -651,7 +651,6 @@ bool luna_display_shutdown_request(void) {
 	static uint16_t counter = 0;
 
 	bool button_down = hw_luna_m600_shutdown_button_down();
-    bool button_released = false;
 	static bool first_press = true;
 
 	// With the bike off, if you press the power button and never release it
@@ -666,7 +665,6 @@ bool luna_display_shutdown_request(void) {
 	if(button_down) {
 		counter++;
 	} else {
-		button_released = true;
 		if (counter > 0) {
 			counter--;
 
@@ -675,7 +673,7 @@ bool luna_display_shutdown_request(void) {
 			}
 		}
 	}
-	return (counter > 100 && button_released);
+	return (counter > 100);
 }
 
 // If user long-presses the (-) button, walk mode is engaged.
@@ -753,7 +751,14 @@ static THD_FUNCTION(display_process_thread, arg) {
 		// consider shutting down in case of battery undervoltage. Power button can turn it on only if Vin>25V
 		// BMS typically trips at 2.8V/cell
 		if(luna_display_shutdown_request()) {
+			//Turn off the display. Introduced in Rev8
+			palSetPadMode(DISPLAY_PWR_GPIO, DISPLAY_PWR_PIN, PAL_MODE_OUTPUT_PUSHPULL |	PAL_STM32_OSPEED_HIGHEST);
+			palClearPad(DISPLAY_PWR_GPIO, DISPLAY_PWR_PIN);
+
 			conf_general_store_backup_data();
+
+			while(hw_luna_m600_shutdown_button_down());	//stay here until button is released
+
 			HW_SHUTDOWN_HOLD_OFF();		// night night
 		}
 

@@ -175,7 +175,7 @@ void hw_setup_adc_channels(void) {
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 2, ADC_SampleTime_15Cycles);			// 3
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_7, 3, ADC_SampleTime_15Cycles);			// 6
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 4, ADC_SampleTime_15Cycles);			// 9
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_Vrefint, 5, ADC_SampleTime_15Cycles);	// 12
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_14, 5, ADC_SampleTime_15Cycles);			// 12
 	ADC_RegularChannelConfig(ADC1, ADC_Channel_8, 6, ADC_SampleTime_15Cycles);			// 15
 
 	// ADC2 regular channels
@@ -189,10 +189,10 @@ void hw_setup_adc_channels(void) {
 	// ADC3 regular channels
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 1, ADC_SampleTime_15Cycles);			// 2
 	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 2, ADC_SampleTime_15Cycles);			// 5
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 3, ADC_SampleTime_15Cycles);			// 8
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 4, ADC_SampleTime_15Cycles);			// 11
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_1, 5, ADC_SampleTime_15Cycles);			// 14
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_2, 6, ADC_SampleTime_15Cycles);			// 17
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_13, 3, ADC_SampleTime_15Cycles);			// 8
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 4, ADC_SampleTime_15Cycles);			// 11
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 5, ADC_SampleTime_15Cycles);			// 14
+	ADC_RegularChannelConfig(ADC3, ADC_Channel_3, 6, ADC_SampleTime_15Cycles);			// 17
 
 	// Injected channels
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_15Cycles);
@@ -354,6 +354,41 @@ static THD_FUNCTION(mux_thread, arg) {
 		ADCMUX_TEMP_DCDC();
 		chThdSleepMicroseconds(T_SAMP_US);
 		ADC_Value[ADC_IND_TEMP_DCDC] = ADC_Value[ADC_IND_ADC_MUX];
+
+		// Config check
+		mc_configuration *mcconf = (mc_configuration*)mc_interface_get_configuration();
+
+		if (mcconf->motor_type == MOTOR_TYPE_FOC &&
+				mcconf->foc_sensor_mode == FOC_SENSOR_MODE_HALL) {
+
+			// In hall sensor mode we use the ADC pins on the comm-port as additional
+			// pull-ups as the voltage dividers take the voltage down otherwise.
+			palSetPadMode(HW_ADC_EXT3_GPIO, HW_ADC_EXT3_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+			palSetPadMode(HW_ADC_EXT4_GPIO, HW_ADC_EXT4_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+			palSetPad(HW_ADC_EXT3_GPIO, HW_ADC_EXT3_PIN);
+			palSetPad(HW_ADC_EXT4_GPIO, HW_ADC_EXT4_PIN);
+
+			// Prevent the uart-pins from interfering
+			palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT);
+			palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT);
+		} else if (mcconf->motor_type == MOTOR_TYPE_FOC &&
+				mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER) {
+
+			// Prevent the uart-pins from interfering
+			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_ABI ||
+					mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI ||
+					mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ABI ||
+					mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
+				palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT);
+				palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT);
+			}
+
+			// Ensure that the sin/cos pins are in ADC mode
+			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
+				palSetPadMode(HW_ADC_EXT3_GPIO, HW_ADC_EXT3_PIN, PAL_MODE_INPUT_ANALOG);
+				palSetPadMode(HW_ADC_EXT4_GPIO, HW_ADC_EXT4_PIN, PAL_MODE_INPUT_ANALOG);
+			}
+		}
 	}
 }
 

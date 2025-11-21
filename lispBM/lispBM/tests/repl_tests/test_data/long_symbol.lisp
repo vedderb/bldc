@@ -1,0 +1,6 @@
+;; Program with extremely long symbol name (400+ characters)
+;; This should trigger TOKENIZER_SYMBOL_ERROR when parsed
+
+(define very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-long-symbol-name-that-definitely-exceeds-the-256-character-limit-imposed-by-the-tokenizer-and-should-cause-a-tokenizer-symbol-error-when-the-reader-attempts-to-parse-this-extremely-long-identifier-name 42)
+
+very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-very-long-symbol-name-that-definitely-exceeds-the-256-character-limit-imposed-by-the-tokenizer-and-should-cause-a-tokenizer-symbol-error-when-the-reader-attempts-to-parse-this-extremely-long-identifier-name

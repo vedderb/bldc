@@ -30,7 +30,7 @@ typedef struct {
 // Private variables
 static thread_t *m_tp = 0;
 static worker_arg_t m_wa;
-static THD_WORKING_AREA(work_thread_wa, 512);
+static THD_WORKING_AREA(work_thread_wa, 768);
 static THD_FUNCTION(work_thread, arg);
 
 void worker_execute(void(*func)(void *arg), void *arg) {
