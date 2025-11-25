@@ -1,4 +1,5 @@
 ### 7.00
+#### TBD
 * Configurable HFI reset ERPM.
 * Removed D axis gain scaling parameters.
 * Sin/Cos encoder filter delay compensation.

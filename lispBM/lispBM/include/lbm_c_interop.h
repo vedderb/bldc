@@ -36,12 +36,16 @@ extern "C" {
 
 /** Load and schedule a program for execution.
  *
+ * \evalpaused
+ *
  * \param tokenizer The tokenizer to read the program from.
  * \param name Name of thread (or NULL) thread doing the load and eval.
  * \return A context id on success or 0 on failure.
  */
   lbm_cid lbm_load_and_eval_program(lbm_char_channel_t *tokenizer, char *name);
 /** Load a program while evaluating incrementally.
+ *
+ * \evalpaused
  *
  * \param tokenizer The tokenizer to read the program from.
  * \param name Name of the thread (or NULL) that performs the incremental load.
@@ -50,11 +54,15 @@ extern "C" {
   lbm_cid lbm_load_and_eval_program_incremental(lbm_char_channel_t *tokenizer, char *name);
 /** Load and schedule an expression for execution.
  *
+ * \evalpaused
+ *
  * \param tokenizer The tokenizer to read the expression from.
  * \return A context id on success or 0 on failure.
  */
 lbm_cid lbm_load_and_eval_expression(lbm_char_channel_t *tokenizer);
 /** Load a program and bind it to a symbol in the environment.
+ *
+ * \evalpaused
  *
  * \param tokenizer The tokenizer to read the program from.
  * \param symbol A string with the name you want the binding to have in the environment.
@@ -62,6 +70,8 @@ lbm_cid lbm_load_and_eval_expression(lbm_char_channel_t *tokenizer);
  */
 lbm_cid lbm_load_and_define_program(lbm_char_channel_t *tokenizer, char *symbol);
 /** Load an expression and bind it to a symbol in the environment.
+ *
+ * \evalpaused
  *
  * \param tokenizer The tokenizer to read the expression from.
  * \param symbol A string with the name you want the binding to have in the environment.
@@ -72,11 +82,15 @@ lbm_cid lbm_load_and_define_expression(lbm_char_channel_t *tokenizer, char *symb
 /* Evaluating a definition in a new context */
 /** Create a context for a bound expression and schedule it for execution
  *
+ * \evalpaused
+ *
  * \param symbol The name of the binding to schedule for execution.
  * \return A context if on success or 0 on failure.
  */
 lbm_cid lbm_eval_defined_expression(char *symbol);
 /** Create a context for a bound program and schedule it for execution
+ *
+ * \evalpaused
  *
  * \param symbol The name of the binding to schedule for execution.
  * \return A context if on success or 0 on failure.
@@ -84,6 +98,8 @@ lbm_cid lbm_eval_defined_expression(char *symbol);
 lbm_cid lbm_eval_defined_program(char *symbol);
 
 /** Send a message to a process running in the evaluator.
+ *
+ * \evalpaused
  *
  * \param cid Context id of the process to send a message to.
  * \param msg lbm_value that will be sent to the process.
@@ -93,12 +109,16 @@ int lbm_send_message(lbm_cid cid, lbm_value msg);
 
 /** Add a definition to the global environment
  *
+ * \evalpaused
+ *
  * \param symbol Name to bind the data to.
  * \param value The data.
  * \return 1 on success and 0 on failure.
  */
 int lbm_define(char *symbol, lbm_value value);
 /** Remove a definition from the global environment.
+ *
+ * \evalpaused
  *
  * \param symbol Name of symbol to undefine in the environment.
  * \return 1 if removed any bindings, 0 otherwise.
@@ -109,6 +129,8 @@ int lbm_undefine(char *symbol);
  * a message with \ref lbm_send_message or define it in the global with \ref lbm_define.
  * The data is stored in the array as C values (not encoded as lbm values).
  *
+ * \evalpaused
+ *
  * \param value Result array value.
  * \param data Pointer to the C array
  * \param num_elt Number of bytes in the array.
@@ -117,6 +139,8 @@ int lbm_share_array(lbm_value *value, char *data, lbm_uint num_elt);
 
 /** Share a C array stored in flash with LBM.
  * Creates lbm_array_header in flash as well.
+ *
+ * \evalpaused
  *
  * \param value Pointer to a heap-cell allocated in flash.
  * \param data Pointer to the C array.
@@ -128,6 +152,8 @@ int lbm_share_array_const(lbm_value *res, char *flash_ptr, lbm_uint num_elt);
  * is paused and the array should be bound to something before un-pausing. Send the array in
  * a message with \ref lbm_send_message or define it in the global with \ref lbm_define.
  * The data is stored in lbm_memory as C values (not encoded as lbm values).
+ *
+ * \evalpaused
  *
  * \param value Result array value.
  * \param num_elt Number of bytes in the array.
@@ -142,6 +168,8 @@ void lbm_clear_env(void);
  * Evaluator should be paused when calling this. All processing
  * of data and size should be performed before unpausing the evaluator.
  * Unpausing the evaluator enables reclamation of data by GC.
+ *
+ * \evalpaused
  *
  * \param index Value between 0 and GLOBAL_ENV_ROOTS-1
  * \param data Result data pointer is returned here.

@@ -61,6 +61,7 @@
 #include "comm_usb.h"
 #include "flash_helper.h"
 #include "packet.h"
+#include "timer.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -2273,6 +2274,11 @@ static lbm_value ext_set_encoder(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_get_encoder_error_rate(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(encoder_get_error_rate());
+}
+
+static lbm_value ext_encoder_index_found(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_i(encoder_index_found() ? 1 : 0);
 }
 
 static lbm_value ext_pos_pid_now(lbm_value *args, lbm_uint argn) {
@@ -5945,6 +5951,30 @@ static lbm_value ext_cmds_proc(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+#ifdef FOC_PROFILE_EN
+static lbm_value ext_prof_trig(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	FOC_PROFILE_TRIGGER();
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_prof_result(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	lbm_value prof_data = ENC_SYM_NIL;
+
+	for (int i = 0; i < g_foc_profile.ind;i++) {
+		int ind = g_foc_profile.ind - i - 1;
+		prof_data = lbm_cons(lbm_cons(
+				lbm_enc_i(g_foc_profile.line[ind]),
+				lbm_enc_float(timer_calc_diff(g_foc_profile.t_start, g_foc_profile.time[ind]))
+		), prof_data);
+	}
+
+	return prof_data;
+}
+#endif
+
 static const char* dyn_functions[] = {
 		"(defun uart-read-bytes (buffer n ofs)"
 		"(let ((rd (uart-read buffer n ofs)))"
@@ -6126,6 +6156,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("get-encoder", ext_get_encoder);
 		lbm_add_extension("set-encoder", ext_set_encoder);
 		lbm_add_extension("get-encoder-error-rate", ext_get_encoder_error_rate);
+		lbm_add_extension("encoder-index-found", ext_encoder_index_found);
 		lbm_add_extension("pos-pid-now", ext_pos_pid_now);
 		lbm_add_extension("pos-pid-set", ext_pos_pid_set);
 		lbm_add_extension("pos-pid-error", ext_pos_pid_error);
@@ -6291,6 +6322,12 @@ void lispif_load_vesc_extensions(bool main_found) {
 		// Commands
 		lbm_add_extension("cmds-start-stop", ext_cmds_start_stop);
 		lbm_add_extension("cmds-proc", ext_cmds_proc);
+
+		// Profiling
+#ifdef FOC_PROFILE_EN
+		lbm_add_extension("prof-trig", ext_prof_trig);
+		lbm_add_extension("prof-result", ext_prof_result);
+#endif
 
 		// Extension libraries
 		lbm_array_extensions_init();

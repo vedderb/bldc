@@ -3664,7 +3664,7 @@ all of those extra arguments, `100 200 300 400 500` passed into my-fun are ignor
 
 `rest-args` gives a clean looking interface to functions taking arbitrary optional arguments. Functions that make use of `rest-args` must, however, be written specifically to do so and are themself responsible for the figuring out the positional semantics of extra arguments. 
 
-One was to explicitly carry the semantics of an optional argument into the function body is to add optional arguments as key-value pairs where the key states the meaning. Then `rest-args` becomes essentially an association list that you query using `assoc`. For example: 
+One way to explicitly carry the semantics of an optional argument into the function body is to add optional arguments as key-value pairs where the key states the meaning. Then `rest-args` becomes essentially an association list that you query using `assoc`. For example: 
 
 <table>
 <tr>
@@ -8847,7 +8847,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-4279
+4172
 ```
 
 
@@ -9056,7 +9056,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 111050 kurt-russel)
+(exit-ok 110655 kurt-russel)
 ```
 
 
@@ -9182,58 +9182,6 @@ The form of an `recv-to` expression is `(recv-to timeout-secs (pattern1 exp1) ..
 
 ```clj
 no-message
-```
-
-
-</td>
-</tr>
-</table>
-
-
-
-
----
-
-
-### set-mailbox-size
-
-Change the size of the mailbox in the current process. Standard mailbox size is 10 elements. 
-
-<table>
-<tr>
-<td> Example </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(set-mailbox-size 100)
-```
-
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-(set-mailbox-size 5000000)
-```
-
-
-</td>
-<td>
-
-```clj
-nil
 ```
 
 
@@ -9829,3 +9777,644 @@ ls
 
 </td>
 </tr>
+</table>
+
+
+
+
+---
+
+## Type convertions
+
+
+### to-byte
+
+Convert any numerical value to a byte. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-byte 1234)
+```
+
+
+</td>
+<td>
+
+```clj
+210b
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-byte 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3b
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-byte 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0b
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-i
+
+Convert a value of any numerical type to an integer. The resulting integer is a 28bit value on 32bit platforms and 56 bits on 64 bit platforms. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-u
+
+Convert a value of any numerical type to an unsigned integer. The resulting integer is a 28bit value on 32bit platforms and 56 bits on 64 bit platforms. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25u
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3u
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0u
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-i32
+
+Convert any numerical value to a 32bit int. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i32 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25i32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i32 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3i32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i32 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0i32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-u32
+
+Convert any numerical value to a 32bit unsigned int. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u32 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u32 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u32 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0u32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-float
+
+Convert any numerical value to a single precision floating point value. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-float 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25.000000f32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-float 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3.140000f32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-float 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0.000000f32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-i64
+
+Convert any numerical value to a 64bit int. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i64 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25i64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i64 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3i64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-i64 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0i64
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-u64
+
+Convert any numerical value to a 64bit unsigned int. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u64 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25u64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u64 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3u64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-u64 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0u64
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### to-double
+
+Convert any numerical value to a double precision floating point value. If the input is not a number the output of this function will be 0. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-double 25b)
+```
+
+
+</td>
+<td>
+
+```clj
+25.000000f64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-double 3.14)
+```
+
+
+</td>
+<td>
+
+```clj
+3.140000f64
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(to-double 'apa)
+```
+
+
+</td>
+<td>
+
+```clj
+0.000000f64
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+This document was generated by LispBM version 0.34.2 
+
