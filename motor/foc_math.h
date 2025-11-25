@@ -44,6 +44,8 @@ typedef struct {
 	float phase_sin;
 	float i_alpha;
 	float i_beta;
+	float i_alpha_filter;
+	float i_beta_filter;
 	float i_abs;
 	float i_abs_filter;
 	float i_bus;
@@ -169,6 +171,7 @@ typedef struct {
 	float m_speed_est_fast_corrected; // Same as m_speed_est_fast, but always based on the corrected position
 	float m_speed_est_faster;
 	mc_sample_t m_samples;
+	bool is_sampling;
 	int m_tachometer;
 	int m_tachometer_abs;
 	float m_pos_pid_now;

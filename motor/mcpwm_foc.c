@@ -372,6 +372,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	m_motor_1.m_hall_dt_diff_last = 1.0;
 	m_motor_1.m_hall_dt_diff_now = 1.0;
 	m_motor_1.m_ang_hall_int_prev = -1;
+	m_motor_1.is_sampling = false;
 	foc_precalc_values((motor_all_state_t*)&m_motor_1);
 	update_hfi_samples(m_motor_1.m_conf->foc_hfi_samples, &m_motor_1);
 	init_audio_state(&m_motor_1.m_audio);
@@ -384,6 +385,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	m_motor_2.m_hall_dt_diff_last = 1.0;
 	m_motor_2.m_hall_dt_diff_now = 1.0;
 	m_motor_2.m_ang_hall_int_prev = -1;
+	m_motor_2.is_sampling = false;
 	foc_precalc_values((motor_all_state_t*)&m_motor_2);
 	update_hfi_samples(m_motor_2.m_conf->foc_hfi_samples, &m_motor_2);
 	init_audio_state(&m_motor_2.m_audio);
@@ -1806,7 +1808,7 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
 	motor->m_samples.avg_current_tot = 0.0;
 	motor->m_samples.avg_voltage_tot = 0.0;
 	motor->m_samples.sample_num = 0;
-
+	motor->is_sampling = true;
 	int cnt = 0;
 	while (motor->m_samples.sample_num < samples) {
 		chThdSleepMilliseconds(1);
@@ -1820,6 +1822,7 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
 			motor->m_id_set = 0.0;
 			motor->m_iq_set = 0.0;
 			motor->m_phase_override = false;
+			motor->is_sampling = false;
 			motor->m_control_mode = CONTROL_MODE_NONE;
 			motor->m_state = MC_STATE_OFF;
 			stop_pwm_hw((motor_all_state_t*)motor);
@@ -1830,7 +1833,7 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
 			return fault;
 		}
 	}
-
+	motor->is_sampling = false;
 	const float current_avg = motor->m_samples.avg_current_tot / (float)motor->m_samples.sample_num;
 	const float voltage_avg = motor->m_samples.avg_voltage_tot / (float)motor->m_samples.sample_num;
 
@@ -3183,16 +3186,45 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	}
 #endif
 	
-	// Store the currents for sampling
-	ADC_curr_norm_value[0 + norm_curr_ofs] = curr0;
-	ADC_curr_norm_value[1 + norm_curr_ofs] = curr1;
-	ADC_curr_norm_value[2 + norm_curr_ofs] = curr2;
-	
-	float ia = curr0;
-	float ib = curr1;
-	float ic = curr2;
+	static float ia = 0;
+	static float ib = 0;
+	static float ic = 0;
+	static float ia_v[3] = {0.0};
+	static float ib_v[3] = {0.0};
+	static float ic_v[3] = {0.0};
+	static uint_fast8_t i_v_index = 0;
 
-	UTILS_LP_FAST(motor_now->m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.1);
+	ia_v[i_v_index] = curr0;
+	ib_v[i_v_index] = curr1;
+	ic_v[i_v_index] = curr2;
+
+	if (motor_now->m_state == MC_STATE_RUNNING) {
+		float ia_avg = (ia_v[0] + ia_v[1] + ia_v[2])/3.0;
+		float ib_avg = (ib_v[0] + ib_v[1] + ib_v[2])/3.0;
+		float ic_avg = (ic_v[0] + ic_v[1] + ic_v[2])/3.0;
+		const float lp_k = 0.8;
+		//apply two first order low pass filters to reduce phase lag
+		float ia_2 = ia - (lp_k * (ia - ia_avg));
+		float ib_2 = ib - (lp_k * (ib - ib_avg));
+		float ic_2 = ic - (lp_k * (ic - ic_avg));
+		ia -= (lp_k * (ia - ia_2));
+		ib -= (lp_k * (ib - ib_2));
+		ic -= (lp_k * (ic - ic_2));
+	} else {
+		ia = curr0;
+		ib = curr1;
+		ic = curr2;
+	}
+
+	// update vector index for moving average
+	i_v_index = (i_v_index + 1)%3;
+
+	// Store the currents for sampling
+	ADC_curr_norm_value[0 + norm_curr_ofs] = ia;
+	ADC_curr_norm_value[1 + norm_curr_ofs] = ib;
+	ADC_curr_norm_value[2 + norm_curr_ofs] = ic;
+
+	UTILS_LP_FAST(motor_now->m_motor_state.v_bus, GET_INPUT_VOLTAGE(), 0.05);
 
 	volatile float enc_ang = 0;
 	volatile bool encoder_is_being_used = false;
@@ -3223,12 +3255,18 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	if (motor_now->m_state == MC_STATE_RUNNING) {
 		if (full_clarke) {
 			// Full Clarke Transform
-			motor_now->m_motor_state.i_alpha = (2.0 / 3.0) * ia - (1.0 / 3.0) * ib - (1.0 / 3.0) * ic;
-			motor_now->m_motor_state.i_beta = ONE_BY_SQRT3 * ib - ONE_BY_SQRT3 * ic;
+			motor_now->m_motor_state.i_alpha = (2.0 / 3.0) * curr0 - (1.0 / 3.0) * curr1 - (1.0 / 3.0) * curr2;
+			motor_now->m_motor_state.i_beta = ONE_BY_SQRT3 * curr1 - ONE_BY_SQRT3 * curr2;
+			//filtered values
+			motor_now->m_motor_state.i_alpha_filter = (2.0 / 3.0) * ia - (1.0 / 3.0) * ib - (1.0 / 3.0) * ic;
+			motor_now->m_motor_state.i_beta_filter = ONE_BY_SQRT3 * ib - ONE_BY_SQRT3 * ic;
 		} else {
 			// Clarke transform assuming balanced currents
-			motor_now->m_motor_state.i_alpha = ia;
-			motor_now->m_motor_state.i_beta = ONE_BY_SQRT3 * ia + TWO_BY_SQRT3 * ib;
+			motor_now->m_motor_state.i_alpha = curr0;
+			motor_now->m_motor_state.i_beta = ONE_BY_SQRT3 * curr0 + TWO_BY_SQRT3 * curr1;
+			//filtered values
+			motor_now->m_motor_state.i_alpha_filter = ia;
+			motor_now->m_motor_state.i_beta_filter = ONE_BY_SQRT3 * ia + TWO_BY_SQRT3 * ib;
 		}
 
 		motor_now->m_i_alpha_sample_with_offset = motor_now->m_motor_state.i_alpha;
@@ -3237,6 +3275,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		if (motor_now->m_i_alpha_beta_has_offset) {
 			motor_now->m_motor_state.i_alpha = 0.5 * (motor_now->m_motor_state.i_alpha + motor_now->m_i_alpha_sample_next);
 			motor_now->m_motor_state.i_beta = 0.5 * (motor_now->m_motor_state.i_beta + motor_now->m_i_beta_sample_next);
+			motor_now->m_motor_state.i_alpha_filter = 0.5 * (motor_now->m_motor_state.i_alpha_filter + motor_now->m_i_alpha_sample_next);
+			motor_now->m_motor_state.i_beta_filter = 0.5 * (motor_now->m_motor_state.i_beta_filter + motor_now->m_i_beta_sample_next);
 			motor_now->m_i_alpha_beta_has_offset = false;
 		}
 
@@ -3376,7 +3416,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		{
 			if (!motor_now->m_phase_override) {
 				foc_observer_update(motor_now->m_motor_state.v_alpha, motor_now->m_motor_state.v_beta,
-						motor_now->m_motor_state.i_alpha, motor_now->m_motor_state.i_beta,
+						motor_now->m_motor_state.i_alpha_filter, motor_now->m_motor_state.i_beta_filter,
 						dt, &(motor_now->m_observer_state), &motor_now->m_phase_now_observer, motor_now);
 
 				// Compensate from the phase lag caused by the switching frequency. This is important for motors
@@ -3552,6 +3592,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		// The current is 0 when the motor is undriven
 		motor_now->m_motor_state.i_alpha = 0.0;
 		motor_now->m_motor_state.i_beta = 0.0;
+		motor_now->m_motor_state.i_alpha_filter = 0.0;
+		motor_now->m_motor_state.i_beta_filter = 0.0;
 		motor_now->m_motor_state.id = 0.0;
 		motor_now->m_motor_state.iq = 0.0;
 		motor_now->m_motor_state.id_filter = 0.0;
@@ -3569,7 +3611,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		// Run observer
 		foc_observer_update(motor_now->m_motor_state.v_alpha, motor_now->m_motor_state.v_beta,
-						motor_now->m_motor_state.i_alpha, motor_now->m_motor_state.i_beta,
+						motor_now->m_motor_state.i_alpha_filter, motor_now->m_motor_state.i_beta_filter,
 						dt, &(motor_now->m_observer_state), 0, motor_now);
 		motor_now->m_phase_now_observer = utils_fast_atan2(motor_now->m_x2_prev + motor_now->m_observer_state.x2,
 														   motor_now->m_x1_prev + motor_now->m_observer_state.x1);
@@ -3986,11 +4028,11 @@ static void timer_update(motor_all_state_t *motor, float dt) {
 	}
 
 	// Samples
-	if (motor->m_state == MC_STATE_RUNNING) {
+	if (motor->is_sampling) {
 		const volatile float vd_tmp = motor->m_motor_state.vd;
 		const volatile float vq_tmp = motor->m_motor_state.vq;
-		const volatile float id_tmp = motor->m_motor_state.id;
-		const volatile float iq_tmp = motor->m_motor_state.iq;
+		const volatile float id_tmp = motor->m_motor_state.id_filter;
+		const volatile float iq_tmp = motor->m_motor_state.iq_filter;
 
 		motor->m_samples.avg_current_tot += NORM2_f(id_tmp, iq_tmp);
 		motor->m_samples.avg_voltage_tot += NORM2_f(vd_tmp, vq_tmp);
@@ -4471,10 +4513,14 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	utils_truncate_number(&max_duty, 0.0, conf_now->l_max_duty);
 
 	// Park transform: transforms the currents from stator to the rotor reference frame
-	state_m->id = c * state_m->i_alpha + s * state_m->i_beta;
-	state_m->iq = c * state_m->i_beta  - s * state_m->i_alpha;
+	float m_id = c * state_m->i_alpha + s * state_m->i_beta;
+	float m_iq = c * state_m->i_beta  - s * state_m->i_alpha;
+	//UTILS_LP_FAST(state_m->id, m_id, 0.5);
+	//UTILS_LP_FAST(state_m->iq, m_iq, 0.5);
+	state_m->id = c * state_m->i_alpha_filter + s * state_m->i_beta_filter;
+	state_m->iq = c * state_m->i_beta_filter - s * state_m->i_alpha_filter;
 
-	// Low passed currents are used for less time critical parts, not for the feedback
+	// Low passed currents are used for less time critical parts, not for the feedback	
 	UTILS_LP_FAST(state_m->id_filter, state_m->id, conf_now->foc_current_filter_const);
 	UTILS_LP_FAST(state_m->iq_filter, state_m->iq, conf_now->foc_current_filter_const);
 
@@ -4573,11 +4619,17 @@ static void control_current(motor_all_state_t *motor, float dt) {
 #ifdef HW_HAS_INPUT_CURRENT_SENSOR
 	state_m->i_bus = GET_INPUT_CURRENT();
 #else
-	state_m->i_bus = state_m->mod_alpha_measured * state_m->i_alpha + state_m->mod_beta_measured * state_m->i_beta;
+	//state_m->i_bus = state_m->mod_alpha_measured * state_m->i_alpha + state_m->mod_beta_measured * state_m->i_beta;	
+	float batt_current_m = state_m->mod_alpha_measured * state_m->i_alpha_filter + state_m->mod_beta_measured * state_m->i_beta_filter;
+	UTILS_LP_FAST(state_m->i_bus, batt_current_m, 0.01);
+	
 	// TODO: Also calculate motor power based on v_alpha, v_beta, i_alpha and i_beta. This is much more accurate
 	// with phase filters than using the modulation and bus current.
 #endif
-	state_m->i_abs = NORM2_f(state_m->id, state_m->iq);
+	// Use non filtered currents for the absolute maximum current value
+	//state_m->i_abs = NORM2_f(state_m->id, state_m->iq);
+	state_m->i_abs = NORM2_f(m_id, m_iq);
+	// Use the filtered currents for the filtered ABS
 	state_m->i_abs_filter = NORM2_f(state_m->id_filter, state_m->iq_filter);
 
 	// Inverse Park transform: transforms the (normalized) voltages from the rotor reference frame to the stator frame
