@@ -73,7 +73,7 @@
 
 // 二选一
 // #define HW_HAS_SHUTDOWN_SWITCH
-#define HW_HAS_INPUT_CURRENT_SENSOR
+// #define HW_HAS_INPUT_CURRENT_SENSOR
 
 // HW properties
 #define HW_HAS_3_SHUNTS // 三相电流采样
