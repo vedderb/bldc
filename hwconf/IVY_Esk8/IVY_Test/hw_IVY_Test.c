@@ -273,26 +273,23 @@ bool hw_sample_shutdown_button(void)
 
 #define IN_CURRENT_SHUNT_RES (0.0005)
 #define IN_CURRENT_SHUNT_GAIN (20.0)
-static volatile float input_current_sensor_offset = 1.65;
-static volatile int16_t input_current_sensor_offset_samples = -1;
-static volatile uint32_t input_current_sensor_offset_sum = 0;
 
 typedef struct KFP_t
 {
-	float LastP; // 上次估算协方差 初始化值为0.02
-	float Now_P; // 当前估算协方差 初始化值为0
-	float out;	 // 卡尔曼滤波器输出 初始化值为0
-	float Kg;	 // 卡尔曼增益 初始化值为0
-	float Q;	 // 过程噪声协方差 初始化值为0.001，越大越信任输入
-	float R;	 // 观测噪声协方差 初始化值为0.543，越大收敛越慢
-} KFP;			 // Kalman Filter parameter
+	double LastP; // 上次估算协方差 初始化值为0.02
+	double Now_P; // 当前估算协方差 初始化值为0
+	double out;	  // 卡尔曼滤波器输出 初始化值为0
+	double Kg;	  // 卡尔曼增益 初始化值为0
+	double Q;	  // 过程噪声协方差 初始化值为0.001，越大越信任输入
+	double R;	  // 观测噪声协方差 初始化值为0.543，越大收敛越慢
+} KFP;			  // Kalman Filter parameter
 
 static volatile KFP input_current_KFP = {
 	.LastP = 0.02,
 	.Now_P = 0.0,
 	.out = 0.0,
 	.Kg = 0.0,
-	.Q = 0.0001,
+	.Q = 0.0005,
 	.R = 0.6};
 
 /**
@@ -301,7 +298,7 @@ static volatile KFP input_current_KFP = {
  *   float input 需要滤波的参数的测量值（即传感器的采集值）
  *@return 滤波后的参数（最优值）
  */
-float kalmanFilter(KFP *kfp, float input)
+float kalmanFilter(KFP *kfp, double input)
 {
 	if (isnan(input))
 		return input;
@@ -320,19 +317,29 @@ float kalmanFilter(KFP *kfp, float input)
 
 float hw_read_input_current(void)
 {
-	// return ((V_REG / 4095.0) * (kalmanFilter(&input_current_KFP, ADC_Value[ADC_IND_IN_CURR]) - input_current_sensor_offset) /
-	// 		IN_CURRENT_SHUNT_GAIN / IN_CURRENT_SHUNT_RES);
-	return ((V_REG / 4095.0) * kalmanFilter(&input_current_KFP, ADC_Value[ADC_IND_IN_CURR]) /
-			IN_CURRENT_SHUNT_GAIN / IN_CURRENT_SHUNT_RES);
+	return (V_REG / 4095.0) * 1000 * ADC_Value[ADC_IND_IN_CURR];
+#ifdef CALIB_IN_CURR_OFFSET
+	return (V_REG / 4095.0) *
+		   kalmanFilter(&input_current_KFP, (ADC_Value[ADC_IND_IN_CURR] - input_current_sensor_offset)) /
+		   IN_CURRENT_SHUNT_GAIN / IN_CURRENT_SHUNT_RES;
+#else
+	return (V_REG / 4095.0) *
+		   kalmanFilter(&input_current_KFP, (ADC_Value[ADC_IND_IN_CURR] - 4096 / 2)) /
+		   IN_CURRENT_SHUNT_GAIN / IN_CURRENT_SHUNT_RES;
+#endif
 }
 
+#ifdef CALIB_IN_CURR_OFFSET
+static volatile float input_current_sensor_offset = 1.65;
+static volatile int16_t input_current_sensor_offset_samples = -1;
+static volatile uint32_t input_current_sensor_offset_sum = 0;
 void hw_get_input_current_offset(void)
 {
 
 	if (input_current_sensor_offset_samples > -1)
 	{
 
-		if (input_current_sensor_offset_samples >= 100)
+		if (input_current_sensor_offset_samples >= 1000)
 		{
 			input_current_sensor_offset = (((float)input_current_sensor_offset_sum) /
 										   input_current_sensor_offset_samples);
@@ -353,4 +360,5 @@ void hw_start_input_current_sensor_offset_measurement(void)
 	input_current_sensor_offset_samples = 0;
 	input_current_sensor_offset_sum = 0;
 }
+#endif
 #endif

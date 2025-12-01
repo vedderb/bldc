@@ -158,9 +158,9 @@
 // Component parameters (can be overridden)
 #define V_REG 3.30
 
-// The voltage dividing acquisition circuit on the Makerbase VESC motherboard is 560K and 21.5K resistors.
-#define VIN_R1 750000.0
-#define VIN_R2 22000.0
+// The voltage dividing acquisition circuit on the Makerbase VESC motherboard is 73.2K and 2.2K resistors.
+#define VIN_R1 73200
+#define VIN_R2 2200.0
 
 #define CURRENT_AMP_GAIN (-20.0)
 #define CURRENT_SHUNT_RES (0.0005)

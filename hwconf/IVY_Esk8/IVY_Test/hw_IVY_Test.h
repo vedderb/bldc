@@ -160,6 +160,7 @@
 #define ADC_IND_SHUTDOWN 10
 #elif defined HW_HAS_INPUT_CURRENT_SENSOR
 #define ADC_IND_IN_CURR 10
+// #define CALIB_IN_CURR_OFFSET
 #endif
 #define ADC_IND_VIN_SENS 11
 #define ADC_IND_VREFINT 12
@@ -173,7 +174,7 @@
 #define VIN_R1 560000.0
 #define VIN_R2 22000.0
 
-#define CURRENT_AMP_GAIN 20.0
+#define CURRENT_AMP_GAIN (20.0)
 #define CURRENT_SHUNT_RES (0.0005)
 
 // Input voltage
@@ -181,9 +182,16 @@
 
 #ifdef ADC_IND_IN_CURR
 // Input current
+#define CURRENT_AMP_GAIN (20.0)
+#define CURRENT_SHUNT_RES (0.0005)
 #define GET_INPUT_CURRENT() hw_read_input_current()
+#ifdef CALIB_IN_CURR_OFFSET
 #define GET_INPUT_CURRENT_OFFSET() hw_get_input_current_offset()
 #define MEASURE_INPUT_CURRENT_OFFSET() hw_start_input_current_sensor_offset_measurement()
+#else
+#define GET_INPUT_CURRENT_OFFSET()
+#define MEASURE_INPUT_CURRENT_OFFSET()
+#endif
 #endif
 
 // NTC Termistors
@@ -296,9 +304,9 @@
 #define HW_LIM_TEMP_FET -40.0, 110.0
 
 // HW-specific functions
-#ifndef HW_NO_SHUTDOWN_SWITCH
+#ifdef HW_HAS_SHUTDOWN_SWITCH
 bool hw_sample_shutdown_button(void);
-#else
+#elif defined ADC_IND_IN_CURR
 float hw_read_input_current(void);
 void hw_get_input_current_offset(void);
 void hw_start_input_current_sensor_offset_measurement(void);
