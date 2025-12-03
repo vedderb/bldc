@@ -1328,7 +1328,7 @@ __attribute__((section(".text2"))) int conf_general_measure_flux_linkage_openloo
  * Send motor configuration if the detection succeeds.
  *
  * @result
- * 2: AS5147 detected successfully
+ * 2: AS5047 detected successfully
  * 1: Hall sensors detected successfully
  * 0: No sensors detected and sensorless mode applied successfully
  * -1: Detection failed
