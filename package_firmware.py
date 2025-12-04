@@ -203,7 +203,22 @@ package_dict["Minim"] = [['minim', default_name],
                     ['minim_no_limits', no_limits_name]]
 package_dict["Pronto"] = [['pronto', default_name],
                     ['pronto_no_limits', no_limits_name]]
-
+package_dict["FLIPSKY_75"] = [['flipsky_75', default_name],
+                    ['flipsky_75_no_limits', no_limits_name]]
+package_dict["FLIPSKY_75_450"] = [['flipsky_75_450', default_name],
+                    ['flipsky_75_450_no_limits', no_limits_name]]
+package_dict["FLIPSKY_V4"] = [['flipsky_412', default_name],
+                    ['flipsky_412_no_limits', no_limits_name]]
+package_dict["FLIPSKY_V6"] = [['flipsky_60', default_name],
+                    ['flipsky_60_no_limits', no_limits_name]]
+package_dict["FLIPSKY_V6_MK5"] = [['flipsky_60_mk5', default_name],
+                    ['flipsky_60_mk5_no_limits', no_limits_name]]   
+package_dict["FLIPSKY_110_100"] = [['flipsky_110_100', default_name],
+                    ['flipsky_110_100_no_limits', no_limits_name]] 
+package_dict["FLIPSKY_110_200"] = [['flipsky_110_200', default_name],
+                    ['flipsky_110_200_no_limits', no_limits_name]] 
+package_dict["FLIPSKY_110_300"] = [['flipsky_110_300', default_name],
+                    ['flipsky_110_300_no_limits', no_limits_name]] 
 # This is the firmware stub string
 res_firmwares_string = '        <file>TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'
 
