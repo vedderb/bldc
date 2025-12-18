@@ -22,6 +22,7 @@
 #include "stm32f4xx_conf.h"
 #include "shutdown.h"
 #include "utils.h"
+#include "main.h"
 
 // Private variables
 static volatile bool init_done = false;
@@ -178,15 +179,9 @@ void timeout_configure_IWDT(void) {
 }
 
 bool timeout_had_IWDG_reset(void) {
-	// Check if the system has resumed from IWDG reset
-	if (RCC_GetFlagStatus(RCC_FLAG_IWDGRST) != RESET) {
-		/* IWDGRST flag set */
-		/* Clear reset flags */
-		RCC_ClearFlag();
-		return true;
-	}
-
-	return false;
+	// The live RCC_CSR flags are captured and cleared at the start of main(),
+	// check the stored snapshot.
+	return (crash_info.reset_flags & RCC_CSR_WDGRSTF) != 0;
 }
 
 static THD_FUNCTION(timeout_thread, arg) {

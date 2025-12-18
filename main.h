@@ -50,6 +50,7 @@ typedef enum {
 } CrashType;
 
 typedef struct {
+	uint32_t reset_flags;
 	CrashType type;
 	const char *halt_reason;
 	CrashRegisters registers;
