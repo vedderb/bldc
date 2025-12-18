@@ -44,6 +44,7 @@ typedef struct {
 } CrashRegisters;
 
 typedef struct {
+	uint32_t reset_flags;
 	const char *halt_reason;
 	CrashRegisters registers;
 	bool registers_stored;

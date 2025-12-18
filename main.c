@@ -253,6 +253,15 @@ uint32_t main_calc_hw_crc(void) {
 }
 
 int main(void) {
+	if (RCC->CSR & RCC_CSR_PORRSTF) {
+		// In case of Power On reset erase the whole struct
+		memset(&crash_info, 0, sizeof(crash_info));
+	}
+	crash_info.reset_flags = RCC->CSR;
+
+	// Clear the reset flags
+	RCC->CSR |= RCC_CSR_RMVF;
+
 	halInit();
 	chSysInit();
 
