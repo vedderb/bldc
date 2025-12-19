@@ -38,6 +38,7 @@
 #include "mempools.h"
 #include "crc.h"
 #include "firmware_metadata.h"
+#include "main.h"
 
 #include <string.h>
 #include <ctype.h>
@@ -66,6 +67,65 @@ static volatile fault_data fault_vec[FAULT_VEC_LEN];
 static volatile int fault_vec_write = 0;
 static terminal_callback_struct callbacks[CALLBACK_LEN];
 static int callback_write = 0;
+
+static const char* const rcc_flag_names[] = {
+	"Brownout",		// Bit 25 (BOR): Reset due to voltage drop below threshold
+	"Reset Pin",	// Bit 26 (PIN): Reset via the physical NRST pin (button)
+	"Power On",		// Bit 27 (POR/PDR): Cold start or power cycle
+	"Software",		// Bit 28 (SFT): Reset triggered by software (NVIC_SystemReset)
+	"Ind. WDG",		// Bit 29 (IWDG): Independent watchdog triggered (system hung)
+	"Win. WDG",		// Bit 30 (WWDG): Window watchdog triggered (timing violation)
+	"Low Power"		// Bit 31 (LPWR): Reset occurred during Low Power mode entry/exit
+};
+
+void rcc_csr_to_string(uint32_t csr_val, char *buffer) {
+	char *p = buffer;
+	uint32_t flags = csr_val >> 25;
+
+	for (uint8_t i = 0; i < 7; i++) {
+		if (flags & (1 << i)) {
+			const char *name = rcc_flag_names[i];
+			while (*name) {
+				*p++ = *name++;
+			}
+			*p++ = ',';
+		}
+	}
+
+	if (p > buffer) {
+		p--;
+	}
+	*p = '\0';
+}
+
+static void crash_diag(void) {
+	char rst_flags[65];  // sized to fit all possible reset flag strings plus separators
+	rcc_csr_to_string(crash_info.reset_flags, rst_flags);
+	commands_printf("Reset flags: %s", rst_flags);
+
+	if (crash_info.halt_reason) {
+		commands_printf("OS halted, reason: %s", crash_info.halt_reason);
+	}
+
+	if (crash_info.registers_stored) {
+		commands_printf("System crashed, registers:");
+		commands_printf("r0: 0x%08x", crash_info.registers.r0);
+		commands_printf("r1: 0x%08x", crash_info.registers.r1);
+		commands_printf("r2: 0x%08x", crash_info.registers.r2);
+		commands_printf("r3: 0x%08x", crash_info.registers.r3);
+		commands_printf("r12: 0x%08x", crash_info.registers.r12);
+		commands_printf("lr: 0x%08x", crash_info.registers.lr);
+		commands_printf("pc: 0x%08x", crash_info.registers.pc);
+		commands_printf("psr: 0x%08x\n", crash_info.registers.psr);
+
+		commands_printf("cfsr: 0x%08x", crash_info.registers.cfsr);
+		commands_printf("hfsr: 0x%08x", crash_info.registers.hfsr);
+		commands_printf("mmfar: 0x%08x", crash_info.registers.mmfar);
+		commands_printf("bfar: 0x%08x", crash_info.registers.bfar);
+		commands_printf("afsr: 0x%08x", crash_info.registers.afsr);
+		commands_printf("shcsr: 0x%08x", crash_info.registers.shcsr);
+	}
+}
 
 __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 	// Echo command so user can see what they previously ran
@@ -1155,6 +1215,8 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "rebootwdt") == 0) {
 		chSysLock();
 		for (;;) {__NOP();}
+	} else if (strcmp(argv[0], "crash_diag") == 0) {
+		crash_diag();
 	}
 
 	// The help command
@@ -1272,6 +1334,9 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 
 		commands_printf("rebootwdt");
 		commands_printf("  Reboot using the watchdog timer.");
+
+		commands_printf("crash_diag");
+		commands_printf("  Print crash/reset diagnostics.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {
