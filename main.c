@@ -107,7 +107,7 @@ static THD_FUNCTION(flash_integrity_check_thread, arg) {
 
 	for(;;) {
 		if (flash_helper_verify_flash_memory_chunk() == FAULT_CODE_FLASH_CORRUPTION) {
-			NVIC_SystemReset();
+			chSysHalt("Flash corruption detected.");
 		}
 
 		chThdSleepMilliseconds(6);
