@@ -80,6 +80,21 @@ void hw_init_gpio(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
 
+	#ifdef HW_USE_BRK
+	// BRK Fault pin
+	palSetPadMode(BRK_GPIO, BRK_PIN, PAL_MODE_ALTERNATE(GPIO_AF_TIM1));
+	#else	
+	// Soft Lockout
+	palSetPadMode(BRK_GPIO, BRK_PIN, PAL_MODE_INPUT);
+	#endif
+
+	
+	// AUX
+	AUX_OFF();
+	palSetPadMode(AUX_GPIO, AUX_PIN,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);	
+
 	// LEDs
 	palSetPadMode(LED_GREEN_GPIO, LED_GREEN_PIN,
 			PAL_MODE_OUTPUT_PUSHPULL |

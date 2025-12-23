@@ -17,11 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_110_300_NO_LIMITS_H_
-#define HW_110_300_NO_LIMITS_H_
+#ifndef HW_UBOX_126_160_H_
+#define HW_UBOX_126_160_H_
 
-#define DISABLE_HW_LIMITS
-#define FW_NAME     "no_limits"
-#include "hw_flipsky_110_300.h"
+#define HW_UBOX_126_160
 
-#endif /* HW_FLIPSKY_110_300_NO_LIMITS_H_ */
+#include "hw_ubox_126_core.h"
+
+#endif /* HW_UBOX_SINGLE_126_160_H_ */

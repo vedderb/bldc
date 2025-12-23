@@ -79,12 +79,12 @@ bool do_shutdown(bool resample) {
 	lispif_process_shutdown();
 #endif
 
+	conf_general_store_backup_data();
+	chThdSleepMilliseconds(100);
+
 	while (m_shutdown_hold) {
 		chThdSleepMilliseconds(5);
 	}
-
-	conf_general_store_backup_data();
-	chThdSleepMilliseconds(100);
 
 	bool disable_gates = true;
 	if (resample) {

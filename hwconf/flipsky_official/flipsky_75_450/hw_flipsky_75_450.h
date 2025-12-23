@@ -17,32 +17,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-//Modified from "hw_75_300_core.h"
-#ifndef HW_UBOX_75_CORE_H_
-#define HW_UBOX_75_CORE_H_
+#ifndef HW_FLIPSKY_75_450_H_
+#define HW_FLIPSKY_75_450_H_
 
-#define HW_SHUTDOWN_CUSTOM
-#ifdef HW_UBOX_V1_75_MICRO
-  #define HW_NAME					"UBOX_V1_75_MICRO"
-  #define V_REG						3.3
-#elif defined(HW_UBOX_V1_75_TYPEC)
-  #define HW_NAME					"UBOX_V1_75_TYPEC"
-  #define HW75_300_REV_2
-  #define V_REG						3.3
-#elif defined(HW_UBOX_V2_75)
-  #define HW_NAME					"UBOX_V2_75"
-  #define HW75_300_REV_2
-#elif defined(HW_UBOX_SINGLE_75)
-  #define HW_NAME					"UBOX_SINGLE_75"
-  #define HW75_300_REV_2
-#else
-  #error "Must define hardware type"
-#endif
+
+#define HW_NAME					"Flipsky_75_450"
 
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_SHUNTS
 #define HW_HAS_PHASE_FILTERS
+
+// No absolute max current calculation
+#define HW_NO_ABS_MAX_CALC
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB
@@ -50,18 +37,16 @@
 #define LED_RED_GPIO			GPIOB
 #define LED_RED_PIN				7
 
+
 #define LED_GREEN_ON()			palSetPad(LED_GREEN_GPIO, LED_GREEN_PIN)
 #define LED_GREEN_OFF()			palClearPad(LED_GREEN_GPIO, LED_GREEN_PIN)
 #define LED_RED_ON()			palSetPad(LED_RED_GPIO, LED_RED_PIN)
 #define LED_RED_OFF()			palClearPad(LED_RED_GPIO, LED_RED_PIN)
 
-#if defined(HW75_300_REV_2) || defined(HW75_300_REV_3)
+
 #define PHASE_FILTER_GPIO		GPIOC
 #define PHASE_FILTER_PIN		9
-#else
-#define PHASE_FILTER_GPIO		GPIOC
-#define PHASE_FILTER_PIN		11
-#endif
+
 #define PHASE_FILTER_ON()		palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
 #define PHASE_FILTER_OFF()		palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
 
@@ -72,13 +57,6 @@
 
 #define CURRENT_FILTER_ON()		palSetPad(GPIOD, 2)
 #define CURRENT_FILTER_OFF()	palClearPad(GPIOD, 2)
-
-#ifdef HW_UBOX_SINGLE_75
-#define BMI160_SCL_GPIO			GPIOA
-#define BMI160_SCL_PIN			15
-#define BMI160_SDA_GPIO			GPIOB
-#define BMI160_SDA_PIN			2
-#endif
 
 /*
  * ADC Vector
@@ -118,9 +96,11 @@
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
 #define ADC_IND_EXT3			10
+
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOS_2		15
 #define ADC_IND_TEMP_MOS_3		16
+
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
 
@@ -128,13 +108,13 @@
 
 // Component parameters (can be overridden)
 #ifndef V_REG
-#define V_REG					3.44
+#define V_REG					3.42
 #endif
 #ifndef VIN_R1
-#define VIN_R1					56000.0
+#define VIN_R1					560000.0
 #endif
 #ifndef VIN_R2
-#define VIN_R2					2200.0
+#define VIN_R2					21500.0
 #endif
 #ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN		20.0
@@ -148,16 +128,16 @@
 
 // NTC Termistors
 #define NTC_RES(adc_val)		((4095.0 * 10000.0) / adc_val - 10000.0)
-#define NTC_TEMP(adc_ind)		hw75_300_get_temp()
+#define NTC_TEMP(adc_ind)		hw75_450_get_temp()
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 
 #define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
 
+
 #define NTC_TEMP_MOS1()			(1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 #define NTC_TEMP_MOS2()			(1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_2]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
 #define NTC_TEMP_MOS3()			(1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_3]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15)
-
 
 // Voltage on ADC channel
 #define ADC_VOLTS(ch)			((float)ADC_Value[ch] / 4096.0 * V_REG)
@@ -188,7 +168,6 @@
 #define HW_UART_RX_PORT			GPIOB
 #define HW_UART_RX_PIN			11
 
-#if defined(HW75_300_REV_2) || defined(HW75_300_REV_3)
 // Permanent UART Peripheral (for NRF51)
 #define HW_UART_P_BAUD			115200
 #define HW_UART_P_DEV			SD4
@@ -197,15 +176,8 @@
 #define HW_UART_P_TX_PIN		10
 #define HW_UART_P_RX_PORT		GPIOC
 #define HW_UART_P_RX_PIN		11
-#endif
 
-#ifdef HW75_300_REV_3
-// NRF SWD
-#define NRF5x_SWDIO_GPIO		GPIOA
-#define NRF5x_SWDIO_PIN			15
-#define NRF5x_SWCLK_GPIO		GPIOB
-#define NRF5x_SWCLK_PIN			3
-#endif
+
 
 // ICU Peripheral for servo decoding
 #define HW_USE_SERVO_TIM4
@@ -267,14 +239,14 @@
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC		1000.0
+#define HW_DEAD_TIME_NSEC		1400.0
 
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE
-#define MCCONF_L_MIN_VOLTAGE			12.0	// Minimum input voltage
+#define MCCONF_L_MIN_VOLTAGE			12.0		// Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			72.0	// Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE			90.0	// Maximum input voltage
 #endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
@@ -283,31 +255,29 @@
 #define MCCONF_FOC_F_ZV					30000.0
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT		160.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT		495.0	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
 #define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX			84.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MAX			250.0	// Input current limit in Amperes (Upper)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN			-65.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN			-200.0	// Input current limit in Amperes (Lower)
 #endif
 
-	// Setting limits
-#define HW_LIM_CURRENT			-135.0, 135.0
-#define HW_LIM_CURRENT_IN		-135.0, 135.0
-#define HW_LIM_CURRENT_ABS		0.0, 180.0
-#define HW_LIM_VIN				11.0, 72.0
+// Setting limits
+#define HW_LIM_CURRENT			-450.0, 450.0
+#define HW_LIM_CURRENT_IN		-450.0, 450.0
+#define HW_LIM_CURRENT_ABS		0.0, 495.0
+#define HW_LIM_VIN				11.0, 90.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
-
-
 // HW-specific functions
-float hw75_300_get_temp(void);
+float hw75_450_get_temp(void);
 
-#endif /* HW_UBOX_75_CORE_H_ */
+#endif /*  HW_FLIPSKY_75_450_H_ */
