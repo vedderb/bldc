@@ -32,6 +32,8 @@
 #error "Must define hardware type"
 #endif
 
+#define REJECT_FLASH_LOADING hw_reject_flash_loading()
+
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define INVERTED_SHUNT_POLARITY
@@ -280,5 +282,6 @@
 
 // HW-specific functions
 float hw100_250_get_temp(void);
+bool hw_reject_flash_loading(void);
 
 #endif /* HW_UBOX_126_CORE_H_ */
