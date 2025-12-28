@@ -1,6 +1,7 @@
 import shutil
 import os
 import subprocess
+import sys
 
 # https://stackoverflow.com/questions/14989858/get-the-current-git-hash-in-a-python-script
 def get_git_revision_short_hash() -> str:
@@ -107,10 +108,6 @@ package_dict["Warrior6"] = [['warrior6', default_name]]
 package_dict["Raiden7"] = [['raiden7', default_name]]
 package_dict["ADV200"] = [['adv200', default_name]]
 package_dict["ADV500"] = [['adv500', default_name]]
-package_dict["100_500"] = [['100_500', default_name],
-                    ['100_500_no_limits', no_limits_name]]
-package_dict["75_600"] = [['75_600', default_name],
-                    ['75_600_no_limits', no_limits_name]]
 package_dict["60v2_alva"] = [['60v2_alva', default_name]]
 package_dict["60v2_alva_mk1"] = [['60v2_alva_mk1', default_name]]
 package_dict["60v2_alva_mk2"] = [['60v2_alva_mk2', default_name]]
@@ -224,7 +221,21 @@ package_dict["FLIPSKY_110_100"] = [['flipsky_110_100', default_name],
 package_dict["FLIPSKY_110_200"] = [['flipsky_110_200', default_name],
                     ['flipsky_110_200_no_limits', no_limits_name]] 
 package_dict["FLIPSKY_110_300"] = [['flipsky_110_300', default_name],
-                    ['flipsky_110_300_no_limits', no_limits_name]] 
+                    ['flipsky_110_300_no_limits', no_limits_name]]
+
+# When the argument make_targets is passed print all make targets from the
+# dictianary. The output of this command can be used as arguments to make to
+# only build the targets that are going to be packaged.
+if len(sys.argv) > 1:
+    if sys.argv[1] == "make_targets":
+        target_list = []
+        for directory in package_dict:
+            for target in package_dict[directory]:
+                target_list.append(target[0])
+
+        print(" ".join(target_list))
+        exit()
+
 # This is the firmware stub string
 res_firmwares_string = '        <file>TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'
 
