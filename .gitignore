@@ -16,4 +16,7 @@ workspace.code-workspace
 *.pro.user
 *.pro.shared
 
+# CLion
+.idea/
 .vscode
+
