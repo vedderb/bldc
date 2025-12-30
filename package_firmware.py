@@ -222,6 +222,8 @@ package_dict["FLIPSKY_110_200"] = [['flipsky_110_200', default_name],
                     ['flipsky_110_200_no_limits', no_limits_name]] 
 package_dict["FLIPSKY_110_300"] = [['flipsky_110_300', default_name],
                     ['flipsky_110_300_no_limits', no_limits_name]]
+package_dict["Classic"] = [['classic', default_name],
+                    ['classic_no_limits', no_limits_name]]
 
 # When the argument make_targets is passed print all make targets from the
 # dictianary. The output of this command can be used as arguments to make to
