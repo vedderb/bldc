@@ -163,8 +163,6 @@ package_dict["SOLO"] = [['solo', default_name],
                     ['solo_no_limits', no_limits_name]]
 package_dict["FSESC_75_200_ALU"] = [['fsesc_75_200_alu', default_name],
                     ['fsesc_75_200_alu_no_limits', no_limits_name]]
-package_dict["MKSESC_75_100"] = [['mksesc_75_100', default_name],
-                    ['mksesc_75_100_no_limits', no_limits_name]]
 package_dict["MKSESC_75_100_OLD"] = [['mksesc_75_100_old', default_name],
                     ['mksesc_75_100_old_no_limits', no_limits_name]]
 package_dict["MKSESC_75_100_V2"] = [['mksesc_75_100_v2', default_name],
