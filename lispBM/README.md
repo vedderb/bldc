@@ -1945,6 +1945,8 @@ Returns a list of phases and various phase errors, all sampled at the same time.
     err_observer_encoder  ; Phase error between observer and encoder
     err_bemf_encoder      ; Phase error between back-emf and encoder
     err_observer_bemf     ; Phase error between observer and back-emf
+    phase_hall            ; Phase derived from the hall sensors (FW 7.00+)
+    err_bemf_hall         ; Phase error between back-emf and hall sensors (FW 7.00+)
 )
 ```
 
