@@ -1024,6 +1024,10 @@ void mcpwm_foc_set_openloop_duty_phase(float dutyCycle, float phase) {
 	}
 }
 
+void mcpwm_foc_set_fw_override(float current) {
+	get_motor_now()->m_i_fw_override = current;
+}
+
 float mcpwm_foc_get_duty_cycle_set(void) {
 	return get_motor_now()->m_duty_cycle_set;
 }
@@ -1397,7 +1401,7 @@ float mcpwm_foc_get_phase_observer(void) {
 
 float mcpwm_foc_get_phase_bemf(void) {
 	float phase_bemf = RAD2DEG_f(atan2f(mcpwm_foc_get_v_beta(), mcpwm_foc_get_v_alpha()));
-	phase_bemf -= 90.0;
+	phase_bemf -= SIGN(get_motor_now()->m_pll_speed) * 90.0;
 	utils_norm_angle(&phase_bemf);
 	return phase_bemf;
 }
@@ -3573,8 +3577,13 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		FOC_PROFILE_LINE_FINE();
 
-		// Running FW from the 1 khz timer seems fast enough.
-//		run_fw(motor_now, dt);
+		// Field Weakening
+		if (motor_now->m_i_fw_override > 0.01) {
+			motor_now->m_i_fw_set = motor_now->m_i_fw_override;
+		} else {
+			foc_run_fw(motor_now, dt);
+		}
+
 		id_set_tmp -= motor_now->m_i_fw_set;
 		iq_set_tmp -= SIGN(mod_q) * motor_now->m_i_fw_set * conf_now->foc_fw_q_current_factor;
 
@@ -3859,8 +3868,6 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 // Private functions
 
 static void timer_update(motor_all_state_t *motor, float dt) {
-	foc_run_fw(motor, dt);
-
 	const mc_configuration *conf_now = motor->m_conf;
 
 	// Calculate temperature-compensated parameters here

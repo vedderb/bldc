@@ -148,6 +148,7 @@ typedef struct {
 	float m_id_set;
 	float m_iq_set;
 	float m_i_fw_set;
+	float m_i_fw_override;
 	float m_current_off_delay;
 	float m_openloop_speed;
 	float m_openloop_phase;

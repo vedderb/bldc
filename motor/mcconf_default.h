@@ -488,13 +488,13 @@
 #define MCCONF_FOC_FW_CURRENT_MAX		0.0 // Maximum field weakening current
 #endif
 #ifndef MCCONF_FOC_FW_DUTY_START
-#define MCCONF_FOC_FW_DUTY_START		0.9 // Start field weakening at this fraction of max duty cycle
+#define MCCONF_FOC_FW_DUTY_START		0.8 // Start field weakening at this fraction of max duty cycle
 #endif
 #ifndef MCCONF_FOC_FW_RAMP_TIME
-#define MCCONF_FOC_FW_RAMP_TIME			0.2 // Ramp time for field weakening current
+#define MCCONF_FOC_FW_RAMP_TIME			0.0 // Ramp time for field weakening current
 #endif
 #ifndef MCCONF_FOC_FW_Q_CURRENT_FACTOR
-#define MCCONF_FOC_FW_Q_CURRENT_FACTOR	0.02 // Factor of the FW-current to feed to the Q-axis to slow motor down when setting 0 current
+#define MCCONF_FOC_FW_Q_CURRENT_FACTOR	0.1 // Factor of the FW-current to feed to the Q-axis to slow motor down when setting 0 current
 #endif
 #ifndef MCCONF_FOC_SPEED_SOURCE
 #define MCCONF_FOC_SPEED_SOURCE			FOC_SPEED_SRC_CORRECTED // Position source for speed trackers
