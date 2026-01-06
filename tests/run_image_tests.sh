@@ -13,7 +13,7 @@ timeout_val=10
 
 cd ../repl
 make clean
-make cov
+make FEATURES="coverage"
 cd ../tests
 
 date=$(date +"%Y-%m-%d_%H-%M")
@@ -28,11 +28,11 @@ do
     fail_timeout=false;
     ok=false
     rm -f image.lbm
-    timeout $timeout_val ../repl/repl_cov --silent --terminate -s $fn &> /dev/null
+    timeout $timeout_val ../repl/repl --silent --terminate -s $fn &> /dev/null
     if [ $? == 124 ]; then
         fail_timeout=true;
     else
-        timeout $timeout_val ../repl/repl_cov --silent --terminate --load_image=image.lbm -e "(main)" | grep 'SUCCESS' &> /dev/null
+        timeout $timeout_val ../repl/repl --silent --terminate --load_image=image.lbm -e "(main)" | grep 'SUCCESS' &> /dev/null
         res=$?
         if [ $res == 0 ]; then
             ok=true

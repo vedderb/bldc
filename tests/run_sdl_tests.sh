@@ -13,7 +13,7 @@ timeout_val=10
 
 cd ../repl
 make clean
-make cov
+make FEATURES="sdl coverage"
 cd ../tests
 
 date=$(date +"%Y-%m-%d_%H-%M")
@@ -23,7 +23,7 @@ for fn in sdl_tests/*.lisp
 do
     ok=false
     fail_timeout=false;
-    timeout $timeout_val ../repl/repl_cov -M 11 --terminate -s $fn | grep 'SUCCESS' &> /dev/null
+    timeout $timeout_val ../repl/repl -M $((1024*1024)) --terminate -s $fn | grep 'SUCCESS' &> /dev/null
     res=$?
     if [ $res == 124 ]; then
         fail_timeout=true;

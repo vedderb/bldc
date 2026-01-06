@@ -27,6 +27,7 @@
 #include "platform_thread.h"
 
 static snd_seq_t *seq_handle = NULL;
+static int seq_client = -1;
 static int seq_port = -1;
 
 // Only allow one blocked CID, so only start one midi reader lbm thread!
@@ -41,6 +42,7 @@ static lbm_uint sym_pitch_bend = 0;
 static lbm_uint sym_note_on  = 0;
 static lbm_uint sym_note_off = 0;
 static lbm_uint sym_midi_unknown  = 0;
+static lbm_uint sym_port_unsub = 0;
 
 bool midi_read(lbm_value res) {
   snd_seq_event_t *ev = NULL;
@@ -54,6 +56,11 @@ bool midi_read(lbm_value res) {
   }
 
   switch (ev->type) {
+  case SND_SEQ_EVENT_PORT_UNSUBSCRIBED: {
+    lbm_value curr = res;
+    lbm_set_car(curr, lbm_enc_sym(sym_port_unsub));
+    lbm_set_cdr(curr, ENC_SYM_NIL);
+  } break;
   case SND_SEQ_EVENT_CONTROLLER: {
     lbm_value curr = res;
     lbm_set_car(curr, lbm_enc_sym(sym_controller));
@@ -250,6 +257,17 @@ static lbm_value ext_midi_disconnect(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_midi_client(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  return lbm_enc_i(seq_client);
+}
+
+static lbm_value ext_midi_in_port(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+  return lbm_enc_i(seq_port);
+}
 
 bool lbm_midi_init(void) {
   int err;
@@ -261,6 +279,8 @@ bool lbm_midi_init(void) {
 
   snd_seq_set_client_name(seq_handle, "LispBM MIDI");
 
+  // Client and port for midi input.
+  seq_client = snd_seq_client_id(seq_handle);
   seq_port = snd_seq_create_simple_port(seq_handle, "LispBM MIDI In",
                                          SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE,
                                          SND_SEQ_PORT_TYPE_MIDI_GENERIC | SND_SEQ_PORT_TYPE_APPLICATION);
@@ -285,10 +305,13 @@ bool lbm_midi_init(void) {
   lbm_add_symbol("note-on", &sym_note_on);
   lbm_add_symbol("note-off", &sym_note_off);
   lbm_add_symbol("midi-unknown", &sym_midi_unknown);
+  lbm_add_symbol("port-unsubscribed", &sym_port_unsub);
   lbm_add_extension("midi-read", ext_midi_read);
   lbm_add_extension("midi-enumerate-devices", ext_midi_enumerate_devices);
   lbm_add_extension("midi-connect", ext_midi_connect);
   lbm_add_extension("midi-disconnect", ext_midi_disconnect);
+  lbm_add_extension("midi-client", ext_midi_client);
+  lbm_add_extension("midi-in-port", ext_midi_in_port);
 
   return true;
 }

@@ -61,7 +61,7 @@ lbm_value lbm_env_copy_spine(lbm_value env) {
     lbm_value curr_src = env;
     // if src environment is invalid, so is tgt.
     while (lbm_is_cons_rw(curr_tgt) && lbm_is_cons(curr_src)) {
-      lbm_cons_t *tgt_cell = lbm_ref_cell(curr_tgt);
+      lbm_cons_t *tgt_cell = &lbm_heaps[LBM_RAM_HEAP][lbm_dec_ptr(curr_tgt)];
       lbm_cons_t *src_cell = lbm_ref_cell(curr_src);
       tgt_cell->car = src_cell->car;
       curr_tgt = tgt_cell->cdr;
@@ -77,9 +77,9 @@ lbm_value lbm_env_copy_spine(lbm_value env) {
 bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
   lbm_value curr = env;
 
-  while (lbm_is_ptr(curr)) {
+  while (lbm_is_cons(curr)) {
     lbm_cons_t *cr = lbm_ref_cell(curr);
-    if (lbm_is_ptr(cr->car)) {
+    if (lbm_is_cons(cr->car)) {
       lbm_cons_t *pair = lbm_ref_cell(cr->car);
       if ((pair->car == sym)
           && (pair->cdr != ENC_SYM_PLACEHOLDER)) {
@@ -92,18 +92,26 @@ bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
   return false;
 }
 
+// Global environment lookup
+// Assumes that environment is structurally correct.
+// Assumes that global environment structures are never constant.
 bool lbm_global_env_lookup(lbm_value *res, lbm_value sym) {
   lbm_uint dec_sym = lbm_dec_sym(sym);
   lbm_uint ix = dec_sym & GLOBAL_ENV_MASK;
   lbm_value curr = env_global[ix];
 
-  while (lbm_is_ptr(curr)) {
-    lbm_value c = lbm_ref_cell(curr)->car;
-    if ((lbm_ref_cell(c)->car) == sym) {
-      *res = lbm_ref_cell(c)->cdr;
+  while (curr) { // Uses the fact that nil is 0 and the assumption
+                 // that global environments are structurally correct.
+    lbm_uint curr_ix = lbm_dec_ptr(curr);
+    lbm_cons_t *curr_cell = &lbm_heaps[LBM_RAM_HEAP][curr_ix];
+    lbm_value c = curr_cell->car;
+    lbm_uint c_ix = lbm_dec_ptr(c); // Assumes environment is correctly shaped.
+    lbm_cons_t *c_cell = &lbm_heaps[LBM_RAM_HEAP][c_ix];
+    if (c_cell->car == sym) {
+      *res = c_cell->cdr;
       return true;
     }
-    curr = lbm_ref_cell(curr)->cdr;
+    curr = curr_cell->cdr;
   }
   return false;
 }
@@ -118,10 +126,10 @@ lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
   lbm_value keyval;
 
   while(lbm_is_cons_rw(curr)) {
-    lbm_cons_t *cell = lbm_ref_cell(curr);
+    lbm_cons_t *cell = &lbm_heaps[LBM_RAM_HEAP][lbm_dec_ptr(curr)];
     lbm_value car_val = cell->car;
     if (lbm_is_cons_rw(car_val)) { // else corrupt environment.
-      lbm_cons_t *car_cell = lbm_ref_cell(car_val);
+      lbm_cons_t *car_cell = &lbm_heaps[LBM_RAM_HEAP][lbm_dec_ptr(car_val)];
       if (car_cell->car == key) {
         car_cell->cdr = val;
         return env;
@@ -131,7 +139,7 @@ lbm_value lbm_env_set(lbm_value env, lbm_value key, lbm_value val) {
   }
 
   keyval = lbm_cons(key,val);
-  if (lbm_type_of(keyval) == LBM_TYPE_SYMBOL) {
+  if (lbm_is_symbol(keyval)){
     return keyval;
   }
 
@@ -144,10 +152,10 @@ lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val) {
   lbm_value curr = env;
 
   while (lbm_is_cons_rw(curr)) {
-    lbm_cons_t *curr_cell = lbm_ref_cell(curr);
+    lbm_cons_t *curr_cell = &lbm_heaps[LBM_RAM_HEAP][lbm_dec_ptr(curr)];
     lbm_value car_val = curr_cell->car;
     if (lbm_is_cons_rw(car_val)) {
-      lbm_cons_t *car_cell = lbm_ref_cell(car_val);
+      lbm_cons_t *car_cell = &lbm_heaps[LBM_RAM_HEAP][lbm_dec_ptr(car_val)];
       if (car_cell->car == key) {
         car_cell->cdr = val;
         return env;
@@ -168,7 +176,7 @@ lbm_value lbm_env_modify_binding(lbm_value env, lbm_value key, lbm_value val) {
 lbm_value lbm_env_drop_binding(lbm_value env, lbm_value key) {
 
   if (lbm_is_cons_rw(env)) {
-    lbm_cons_t *cell = lbm_ref_cell(env);
+    lbm_cons_t *cell = &lbm_heaps[LBM_RAM_HEAP][lbm_dec_ptr(env)];
 
     // If key is first in env
     if (lbm_car(cell->car) == key) {
@@ -179,9 +187,9 @@ lbm_value lbm_env_drop_binding(lbm_value env, lbm_value key) {
     lbm_value curr = cell->cdr;
 
     while (lbm_is_cons_rw(curr)) {
-      cell = lbm_ref_cell(curr);
+      cell = &lbm_heaps[LBM_RAM_HEAP][lbm_dec_ptr(curr)];
       if (lbm_is_cons_rw(cell->car)) {
-        lbm_cons_t *car_cell = lbm_ref_cell(cell->car);
+        lbm_cons_t *car_cell = &lbm_heaps[LBM_RAM_HEAP][lbm_dec_ptr(cell->car)];
         if (car_cell->car == key) {
           prev->cdr = cell->cdr; // removes "cell" from list
           return env;

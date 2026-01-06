@@ -30,13 +30,22 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 34u
+#define LBM_MINOR_VERSION 35u
 /** LBM patch revision */
-#define LBM_PATCH_VERSION 2u
+#define LBM_PATCH_VERSION 0u
 
 #define LBM_VERSION_STRING STR(LBM_MAJOR_VERSION) "." STR(LBM_MINOR_VERSION) "." STR(LBM_PATCH_VERSION)
 
 /*! \page changelog Changelog
+
+Dec 14 2025: Version 0.35.0
+  - Changing const heap indexing so that const and ram heap indices are computed
+    in the same way.
+  - Optimizations in env.c for using efficient heap access given known RW type.
+  - Bugfix in local env lookup (Only triggerable by malformed closures).
+  - Bugfix in lbm_define in lbm_c_interop
+  - REPL makefile revamping and change to using a FEATURES list.
+  - New macros for selecting LBM_MEMORY size (consider the old macroes "deprecated").
 
 Oct 28 2025: Version 0.34.1
   - Fix of c_unit tests.

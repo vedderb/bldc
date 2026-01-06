@@ -24,12 +24,23 @@ extern "C" {
 
 void lbm_dsp_extensions_init(void);
 
+
+// For internal use
 void lbm_fft(float *real, float *imag, int n, int inverse);
+
+void lbm_complex_convolve(float *signal_re,
+                          float *signal_im,
+                          unsigned int signal_len,
+                          float *filter_re,
+                          float *filter_im,
+                          unsigned int filter_len,
+                          float *output_re,
+                          float *output_im,
+                          unsigned int output_len,
+                          bool swap_byte_order);
 
 #ifdef __cplusplus
 }
 #endif
 #endif
 
-
-  
