@@ -652,6 +652,11 @@ static lbm_value ext_str_find(lbm_value *args, lbm_uint argn) {
         return ENC_SYM_MERROR;
       }
       lbm_array_header_t *header = (lbm_array_header_t *)lbm_car(args[1]);
+      // lbm_is_array_r holds for args[1], so header should be non-null.
+#ifdef __INFER__
+      __infer_assume(header != NULL);
+#endif
+
 
       lbm_int len = (lbm_int)header->size - 1;
       if (len < 0) {

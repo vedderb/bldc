@@ -184,8 +184,13 @@ int lbm_define(char *symbol, lbm_value value) {
           lbm_add_symbol_const_base(symbol, &sym_id, false)) {
         lbm_uint ix_key = sym_id & GLOBAL_ENV_MASK;
         lbm_value *glob_env = lbm_get_global_env();
-        glob_env[ix_key] = lbm_env_set(glob_env[ix_key], lbm_enc_sym(sym_id), value);
-        res = 1;
+        lbm_value new_env_entry = lbm_env_set(glob_env[ix_key], lbm_enc_sym(sym_id), value);
+        if (lbm_is_symbol(new_env_entry)) {
+          res = 0;
+        } else {
+          glob_env[ix_key] = new_env_entry;
+          res = 1;
+        }
       }
     }
   }

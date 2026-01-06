@@ -1158,7 +1158,7 @@ simple_outline(SFT_Font *font, uint_fast32_t offset, unsigned int numContours, O
   uint8_t *flags = NULL;
   uint_fast16_t numPts;
   unsigned int i;
-
+  uint_fast16_t beg = 0;
   int fail_r = -1;
 
   assert(numContours > 0);
@@ -1212,8 +1212,6 @@ simple_outline(SFT_Font *font, uint_fast32_t offset, unsigned int numContours, O
   if (simple_points(font, offset, numPts, flags, outl->points + basePoint) < 0)
     goto failure;
   outl->numPoints = (uint_least16_t) (outl->numPoints + numPts);
-
-  uint_fast16_t beg = 0;
   for (i = 0; i < numContours; ++i) {
     uint_fast16_t count = endPts[i] - beg + 1;
     if (decode_contour(flags + beg, basePoint + beg, count, outl) < 0)

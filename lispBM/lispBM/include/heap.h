@@ -687,12 +687,10 @@ static inline lbm_uint lbm_dec_ptr(lbm_value p) {
   return ((LBM_PTR_VAL_MASK & p) >> LBM_ADDRESS_SHIFT);
 }
 
-extern lbm_cons_t *lbm_heaps[2];
+#define LBM_RAM_HEAP 0
+#define LBM_CONST_HEAP 1
 
-static inline lbm_uint lbm_dec_cons_cell_ptr(lbm_value p) {
-  lbm_uint h = (p & LBM_PTR_TO_CONSTANT_BIT) >> LBM_PTR_TO_CONSTANT_SHIFT;
-  return lbm_dec_ptr(p) >> h;
-}
+extern lbm_cons_t *lbm_heaps[2];
 
 static inline lbm_cons_t *lbm_dec_heap(lbm_value p) {
   lbm_uint h = (p & LBM_PTR_TO_CONSTANT_BIT) >> LBM_PTR_TO_CONSTANT_SHIFT;
@@ -854,7 +852,8 @@ static inline bool lbm_is_constant(lbm_value x) {
  * \return true if x is a Read/Writeable cons cell, false otherwise.
  */
 static inline bool lbm_is_cons_rw(lbm_value x) {
-  return !((x & (LBM_CONS_CONST_TYPE_MASK | LBM_PTR_BIT)) ^ LBM_EXACT_CONS_MASK);
+  return (x & (LBM_CONS_CONST_TYPE_MASK | LBM_PTR_BIT)) == LBM_EXACT_CONS_MASK;
+  //return !((x & (LBM_CONS_CONST_TYPE_MASK | LBM_PTR_BIT)) ^ LBM_EXACT_CONS_MASK);
   //return (lbm_type_of(x) == LBM_TYPE_CONS);
 }
 
@@ -864,7 +863,8 @@ static inline bool lbm_is_cons_rw(lbm_value x) {
  * \return true if x is a readable cons cell, false otherwise.
  */
 static inline bool lbm_is_cons(lbm_value x) {
-  return !((x & (LBM_CONS_TYPE_MASK | LBM_PTR_BIT)) ^ LBM_EXACT_CONS_MASK);
+  return (x & (LBM_CONS_TYPE_MASK | LBM_PTR_BIT)) == LBM_EXACT_CONS_MASK;
+  //return !((x & (LBM_CONS_TYPE_MASK | LBM_PTR_BIT)) ^ LBM_EXACT_CONS_MASK);
   //return lbm_is_ptr(x) && ((x & LBM_CONS_TYPE_MASK) == LBM_TYPE_CONS);
 }
 
@@ -1022,7 +1022,7 @@ static inline bool lbm_is_error(lbm_value v){
 // ref_cell: returns a reference to the cell addressed by bits 3 - 26
 //           Assumes user has checked that is_ptr was set
 static inline lbm_cons_t* lbm_ref_cell(lbm_value addr) {
-  return &lbm_dec_heap(addr)[lbm_dec_cons_cell_ptr(addr)];
+  return &lbm_dec_heap(addr)[lbm_dec_ptr(addr)];
   //return &lbm_heap_state.heap[lbm_dec_ptr(addr)];
 }
 

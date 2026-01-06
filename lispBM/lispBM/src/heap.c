@@ -578,7 +578,7 @@ bool lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
   heap_init_state(addr, num_cells,
                   gc_stack_storage, gc_stack_size);
 
-  lbm_heaps[0] = addr;
+  lbm_heaps[LBM_RAM_HEAP] = addr;
 
   return generate_freelist(num_cells);
 }
@@ -1274,7 +1274,7 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
 
   lbm_const_heap_state = heap;
   // ref_cell views the lbm_uint array as an lbm_cons_t array
-  lbm_heaps[1] = (lbm_cons_t*)addr;
+  lbm_heaps[LBM_CONST_HEAP] = (lbm_cons_t*)addr;
   return 1;
 }
 
@@ -1292,7 +1292,7 @@ lbm_flash_status lbm_allocate_const_cell(lbm_value *res) {
     // A cons cell uses two words.
     lbm_value cell = lbm_const_heap_state->next;
     lbm_const_heap_state->next += 2;
-    *res = (cell << LBM_ADDRESS_SHIFT) | LBM_PTR_BIT | LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT;
+    *res = ((cell >> 1) << LBM_ADDRESS_SHIFT) | LBM_PTR_BIT | LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT;
     r = LBM_FLASH_WRITE_OK;
   }
   lbm_mutex_unlock(&lbm_const_heap_mutex);
@@ -1345,14 +1345,14 @@ lbm_flash_status lbm_const_write(lbm_uint *tgt, lbm_uint val) {
 }
 
 lbm_flash_status write_const_cdr(lbm_value cell, lbm_value val) {
-  lbm_uint addr = lbm_dec_ptr(cell);
+  lbm_uint addr = lbm_dec_ptr(cell) << 1;
   if (const_heap_write(val, addr+1))
     return LBM_FLASH_WRITE_OK;
   return LBM_FLASH_WRITE_ERROR;
 }
 
 lbm_flash_status write_const_car(lbm_value cell, lbm_value val) {
-  lbm_uint addr = lbm_dec_ptr(cell);
+  lbm_uint addr = lbm_dec_ptr(cell) << 1;
   if (const_heap_write(val, addr))
     return LBM_FLASH_WRITE_OK;
   return LBM_FLASH_WRITE_ERROR;

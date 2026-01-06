@@ -1,6 +1,13 @@
+#!/usr/bin/env -S shlbm -M 1048576 --
 
-
-(midi-enumerate-devices)
+;; connect the midi-player to the LBM synth.
+;; aplaymidi -p 128:0 level1.mid
+;;
+;; check with 'aconnect -l' for seeing which port LBM is located at
+;; you will see something as
+;;   Client N: 'LispBM MIDI'
+;;        P 'LispBM MIDI In'
+;; use N  and P in the aplaymidi command 'aplaymidi -p N:P midi-file.mid'
 
 ;; Doom E1M1 Patches
 
@@ -158,7 +165,16 @@
                  (note-off patch n)
                 })
                ((pitch-bend (? ch) (? bv)) (ch-pitch-bend bv ch))
+               ;; all midi events are lists, this one with just one elt.
+               ((port-unsubscribed) (break))
                (_ (print (list "unmatched" event))))  ; Debug unmatched events
         }))
 
-(spawn midi-synth-loop)
+(define client-port (str-join
+                     (list
+                      (to-str (midi-client)) ":"
+                      (to-str (midi-in-port)))))
+
+(proc-spawn-detached "aplaymidi" "-p" client-port (car args))
+
+(midi-synth-loop)

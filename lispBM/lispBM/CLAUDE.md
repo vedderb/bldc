@@ -20,11 +20,13 @@ The project uses multiple Makefiles in different directories for various build t
 
 ### REPL Build (repl/ directory)
 - **32-bit REPL**: `make` or `make all`
-- **64-bit REPL**: `make all64`
-- **With SDL support**: `make sdl` or `make sdl64`
-- **Coverage build**: `make cov`
+- **64-bit REPL**: `make FEATURES="64"`
+- **With SDL support**: `make FEATURES="sdl"` or `make FEATURES="sdl 64"`
+- **Coverage build**: `make FEATURES="coverage"` or `make FEATURES="64 coverage"`
 - **Debug build**: `make debug`
 - **Install**: `make install` (installs to ~/.local/bin/lbm)
+
+**Note**: Multiple features can be combined, e.g., `make FEATURES="64 sdl coverage"`
 
 Dependencies: libreadline, libhistory, libpng, optionally SDL2
 

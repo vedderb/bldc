@@ -422,6 +422,21 @@ bool tok_clean_whitespace(lbm_char_channel_t *chan) {
         lbm_channel_set_comment(chan, true);
         break;
       }
+#ifdef LBM_USE_SHEBANG_COMMENTS
+      else if ((lbm_channel_column(chan) == 1) &&
+               (lbm_channel_row(chan) == 1)  &&
+               c == '#') {
+        // Accept #! as comment if it the very first
+        // row of text arriving on the channel
+        r = lbm_channel_peek(chan, 1, &c);
+        if (r == CHANNEL_MORE) return false;
+        if (r == CHANNEL_END)  return true;
+        if (c == '!') {
+          lbm_channel_set_comment(chan, true);
+          break;
+        }
+      }
+#endif
       if (isspace(c)) {
         lbm_channel_drop(chan,1);
       } else {

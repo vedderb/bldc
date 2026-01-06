@@ -78,7 +78,19 @@ sudo apt-get install gcc-multilib libreadline-dev lib32readline-dev libpng-dev l
 
 Then issue command `make` in the repl directory.
 
-There is also a Nix flake (see details below). You can build and run the repl using `nix run`. This will build the 32 bit version. For the 64 bit repl you instead run `nix run .#repl64`.
+The REPL can be built with different feature-sets. features are selected as:
+```
+make FEATURES="alsa sdl"
+```
+which is an example of adding features for sound and graphics.
+
+The total list of features is:
+
+* alsa     - Sound on Linux.
+* sdl      - Graphics on Linux.
+* freetype - Use libfreetype for font prepropressing.
+* 64       - 64Bit build.
+* coverage - Build with coverage collection.
 
 ### Editor support
 
@@ -86,12 +98,3 @@ There is also a Nix flake (see details below). You can build and run the repl us
 * [vscode support](https://marketplace.visualstudio.com/items?itemName=rasmus-soderhielm.lispbm-language-support)
 * [zed](https://github.com/cortex/zed-lispbm)
 * [Tree-sitter](https://github.com/cortex/tree-sitter-lispbm)
-
-## Development
-
-There is a Nix flake to help you build the repl and documentation. It outputs packages for the 32 and 64 bit repl: `repl` and `repl64`, the documentation: `doc`, and the doxygen source code documentation: `c-doc`. Assuming you have Nix installed, you can build these using
-```shell
-nix build .#<package>
-```
-
-The generated output is then placed in the `result/` directory. However `doc` and `c-doc` packages might not make much sense to build in this way because they are supposed to generate files inside the repository tree. Therefore, it makes more sense to instead enter their respective development environment with `nix develop .#<package>`. This places you in a new shell with the required dependencies installed where you can build them with `make`. 
