@@ -336,6 +336,16 @@ static enPOWER_KEY_TYPE power_key_type = power_key_type_undecided;
 static uint32_t power_key_pressed_ms = 0;
 static bool power_key_pressed_when_power_on = false;
 
+bool hw_reject_flash_loading(void)
+{
+	bool do_reject = power_key_type == power_key_type_momentary;
+	if (do_reject)
+		commands_printf("%s: Momentary button detected, firmware loading is not permitted!", HW_NAME);
+
+	// Don't allow loading firmware if the power button behaves like a momentary one
+	return do_reject;
+}
+
 static THD_FUNCTION(shutdown_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("Shutdown_ubox");
