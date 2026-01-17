@@ -17,11 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_DUET_XS_NO_LIMITS_H_
-#define HW_DUET_XS_NO_LIMITS_H_
+#ifndef HW_DUET_XS60_H_
+#define HW_DUET_XS60_H_
 
-#define DISABLE_HW_LIMITS
+#define HW_XS60
 
 #include "hw_duet_xs_core.h"
 
-#endif /* HW_DUET_XS_NO_LIMITS_H_ */
+#endif /* HW_DUET_XS100_H_ */

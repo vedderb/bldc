@@ -17,9 +17,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_DUET_XS_H_
-#define HW_DUET_XS_H_
+#ifndef HW_DUET_XS100_H_
+#define HW_DUET_XS100_H_
 
 #include "hw_duet_xs_core.h"
 
-#endif /* HW_DUET_XS_NO_LIMITS_H_ */
+#endif /* HW_DUET_XS100_H_ */
