@@ -1541,10 +1541,12 @@ __attribute__((section(".text2"))) static int measure_r_l_imax(float current_min
 	const float res_old = mcconf->foc_motor_r;
 
 	float i_last = 0.0;
+	bool first_run = true;
 	for (float i = current_start;i < current_max;i *= 1.5) {
 		float res_tmp = 0.0;
-		fault = mcpwm_foc_measure_resistance(i, 5, false, &res_tmp);
+		fault = mcpwm_foc_measure_resistance(i, 5, false, &res_tmp, first_run);
 		i_last = i;
+		first_run = false;
 
 		if (fault != FAULT_CODE_NONE) {
 			mempools_free_mcconf(mcconf);
@@ -1556,7 +1558,7 @@ __attribute__((section(".text2"))) static int measure_r_l_imax(float current_min
 		}
 	}
 
-	fault = mcpwm_foc_measure_resistance(i_last, 100, true, r);
+	fault = mcpwm_foc_measure_resistance(i_last, 100, true, r, false);
 	if (fault != FAULT_CODE_NONE) {
 		mempools_free_mcconf(mcconf);
 		return fault;
