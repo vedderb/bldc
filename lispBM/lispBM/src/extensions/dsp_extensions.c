@@ -53,8 +53,376 @@ static inline uint32_t byte_order_swap(uint32_t w) {
   return r;
 }
 
+static inline float read_float(float *ptr, bool swap) {
+  if (swap) {
+    union { uint32_t u; float f; } pun;
+    pun.f = *ptr;
+    uint32_t swapped = byte_order_swap(pun.u);
+    pun.u = swapped;
+    return pun.f;
+  }
+  return *ptr;
+}
 
-void lbm_fft(float *real, float *imag, int n, int inverse) {
+
+static inline void write_float(float *ptr, float value, bool swap) {
+  if (swap) {
+    union { uint32_t u; float f; } pun;
+    pun.f = value;
+    uint32_t swapped = byte_order_swap(pun.u);
+    pun.u = swapped;
+    *ptr = pun.f;
+  } else {
+    *ptr = value;
+  }
+}
+
+
+static void lbm_corr(float *s1,
+                     unsigned int s1_len,
+                     float *s2,
+                     unsigned int s2_len,
+                     float *output,
+                     unsigned int output_len,
+                     bool swap_byte_order) {
+  for (int n = 0; n < (int)output_len; n++) {
+    float sum = 0.0f;
+
+    for (int k = 0; k < (int)s2_len; k++) {
+      int j = n + k;
+      if (j >= 0 && j < (int)s1_len) {
+        sum +=
+          read_float(&s1[j], swap_byte_order) *
+          read_float(&s2[k], swap_byte_order);
+      }
+    }
+    write_float(&output[n], sum, swap_byte_order);
+  }
+}
+
+
+static void lbm_complex_corr(float *s1_re,
+                             float *s1_im,
+                             unsigned int s1_len,
+                             float *s2_re,
+                             float *s2_im,
+                             unsigned int s2_len,
+                             float *output_re,
+                             float *output_im,
+                             unsigned int output_len,
+                             bool swap_byte_order) {
+  for (int n = 0; n < (int)output_len; n++) {
+    float sum_re = 0.0f;
+    float sum_im = 0.0f;
+
+    for (int k = 0; k < (int)s2_len; k++) {
+      int j = n + k;
+      if (j >= 0 && j < (int)s1_len) {
+        float x_r = read_float(&s1_re[j], swap_byte_order);
+        float x_i = read_float(&s1_im[j], swap_byte_order);
+        float h_r = read_float(&s2_re[k], swap_byte_order);
+        float h_i = read_float(&s2_im[k], swap_byte_order);
+        // Note conjugate
+        sum_re += x_r * h_r + x_i * h_i;  // ac + bd
+        sum_im += x_i * h_r - x_r * h_i;  // bc - ad
+      }
+    }
+    write_float(&output_re[n], sum_re, swap_byte_order);
+    write_float(&output_im[n], sum_im, swap_byte_order);
+  }
+}
+
+static lbm_value ext_correlate(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if ((argn == 2 || argn == 3) &&
+      lbm_is_array_r(args[0]) &&
+      lbm_is_array_r(args[1])) {
+
+    bool be = true;
+    if (argn == 3 &&
+        lbm_is_symbol(args[2])) {
+      if (lbm_dec_sym(args[2]) == sym_little_endian) {
+        be = false;
+      }
+    }
+    bool swap_byte_order =
+      (be && LBM_SYSTEM_LITTLE_ENDIAN) ||
+      (!be && !LBM_SYSTEM_LITTLE_ENDIAN);
+
+    lbm_array_header_t *s1_arr = lbm_dec_array_r(args[0]);
+    lbm_array_header_t *s2_arr = lbm_dec_array_r(args[1]);
+    // The input arrays have been checked with lbm_is_array_r.
+    // If there is no way to create a byte array from a null pointer,
+    // then there is no way that these arrays can be null.
+#ifdef __INFER__
+    __infer_assume(s1_arr != NULL);
+    __infer_assume(s2_arr != NULL);
+#endif
+
+    unsigned int s1_len = s1_arr->size / 4;
+    unsigned int s2_len = s2_arr->size / 4;
+
+    lbm_value output;
+
+    unsigned int out_len = s1_len + s2_len - 1;
+    if (lbm_heap_allocate_array(&output, out_len * sizeof(float))) {
+      lbm_array_header_t *out_arr = lbm_dec_array_r(output);
+
+      lbm_corr((float*)s1_arr->data,
+               s1_len,
+               (float*)s2_arr->data,
+               s2_len,
+               (float*)out_arr->data,
+               out_len,
+               swap_byte_order);
+      r = output;
+    } else {
+      r = ENC_SYM_MERROR;
+    }
+  }
+  return r;
+}
+
+static lbm_value ext_complex_correlate(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if ((argn == 4 || argn == 5) && // Allow only 4 or 5 args
+      lbm_is_array_r(args[0]) &&
+      lbm_is_array_r(args[1]) &&
+      lbm_is_array_r(args[2]) &&
+      lbm_is_array_r(args[3])) {
+
+    bool be = true;
+    if (argn == 5 &&
+        lbm_is_symbol(args[4])) {
+      if (lbm_dec_sym(args[4]) == sym_little_endian) {
+        be = false;
+      }
+    }
+    bool swap_byte_order =
+      (be && LBM_SYSTEM_LITTLE_ENDIAN) ||
+      (!be && !LBM_SYSTEM_LITTLE_ENDIAN);
+
+    lbm_array_header_t *s1_re_arr = lbm_dec_array_r(args[0]);
+    lbm_array_header_t *s1_im_arr = lbm_dec_array_r(args[1]);
+    lbm_array_header_t *s2_re_arr = lbm_dec_array_r(args[2]);
+    lbm_array_header_t *s2_im_arr = lbm_dec_array_r(args[3]);
+
+    if (!s1_re_arr || !s1_im_arr || !s2_re_arr || !s2_im_arr) {
+      return ENC_SYM_TERROR;
+    }
+
+    if (s1_re_arr->size != s1_im_arr->size ||
+        s2_re_arr->size != s2_im_arr->size) {
+      return ENC_SYM_TERROR;
+    }
+
+    unsigned int s1_len = s1_re_arr->size / sizeof(float);
+    unsigned int s2_len = s2_re_arr->size / sizeof(float);
+
+    lbm_value output_re;
+    lbm_value output_im;
+
+    unsigned int out_len = s1_len + s2_len - 1;
+    lbm_value r_cons = lbm_cons(ENC_SYM_NIL, ENC_SYM_NIL);
+    if (r_cons != ENC_SYM_MERROR &&
+        lbm_heap_allocate_array(&output_re, out_len * sizeof(float)) &&
+        lbm_heap_allocate_array(&output_im, out_len * sizeof(float))) {
+      lbm_array_header_t *out_re_arr = lbm_dec_array_r(output_re);
+      lbm_array_header_t *out_im_arr = lbm_dec_array_r(output_im);
+
+      lbm_complex_corr((float*)s1_re_arr->data,
+                       (float*)s1_im_arr->data,
+                       s1_len,
+                       (float*)s2_re_arr->data,
+                       (float*)s2_im_arr->data,
+                       s2_len,
+                       (float*)out_re_arr->data,
+                       (float*)out_im_arr->data,
+                       out_len,
+                       swap_byte_order);
+      lbm_set_car_and_cdr(r_cons, output_re, output_im);
+      r = r_cons;
+    } else {
+      r = ENC_SYM_MERROR;
+    }
+  }
+  return r;
+}
+
+
+static void lbm_convolve(float *signal,
+                         unsigned int signal_len,
+                         float *filter,
+                         unsigned int filter_len,
+                         float *output,
+                         unsigned int output_len,
+                         bool swap_byte_order) {
+  for (int n = 0; n < (int)output_len; n++) {
+    float sum = 0.0f;
+
+    for (int k = 0; k < (int)filter_len; k++) {
+      int j = n - k;
+      if (j >= 0 && j < (int)signal_len) {
+        sum +=
+          read_float(&signal[j], swap_byte_order) *
+          read_float(&filter[k], swap_byte_order);
+      }
+    }
+    write_float(&output[n], sum, swap_byte_order);
+  }
+}
+
+
+void lbm_complex_convolve(float *signal_re,
+                          float *signal_im,
+                          unsigned int signal_len,
+                          float *filter_re,
+                          float *filter_im,
+                          unsigned int filter_len,
+                          float *output_re,
+                          float *output_im,
+                          unsigned int output_len,
+                          bool swap_byte_order) {
+  for (int n = 0; n < (int)output_len; n++) {
+    float real_sum = 0.0f;
+    float imag_sum = 0.0f;
+
+    for (int k = 0; k < (int)filter_len; k++) {
+      int j = n - k;
+      if (j >= 0 && j < (int)signal_len) {
+        float x_r = read_float(&signal_re[j], swap_byte_order);
+        float x_i = read_float(&signal_im[j], swap_byte_order);
+        float h_r = read_float(&filter_re[k], swap_byte_order);
+        float h_i = read_float(&filter_im[k], swap_byte_order);
+
+        real_sum += x_r * h_r - x_i * h_i;
+        imag_sum += x_r * h_i + x_i * h_r;
+      }
+    }
+    write_float(&output_re[n], real_sum, swap_byte_order);
+    write_float(&output_im[n], imag_sum, swap_byte_order);
+  }
+}
+
+static lbm_value ext_convolve(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if ((argn == 2 || argn == 3) &&
+      lbm_is_array_r(args[0]) &&
+      lbm_is_array_r(args[1])) {
+
+    bool be = true;
+    if (argn == 3 &&
+        lbm_is_symbol(args[2])) {
+      if (lbm_dec_sym(args[2]) == sym_little_endian) {
+        be = false;
+      }
+    }
+    bool swap_byte_order =
+      (be && LBM_SYSTEM_LITTLE_ENDIAN) ||
+      (!be && !LBM_SYSTEM_LITTLE_ENDIAN);
+
+    lbm_array_header_t *sig_arr = lbm_dec_array_r(args[0]);
+    lbm_array_header_t *fil_arr = lbm_dec_array_r(args[1]);
+    // The input arrays have been checked with lbm_is_array_r.
+    // If there is no way to create a byte array from a null pointer,
+    // then there is no way that these arrays can be null.
+#ifdef __INFER__
+    __infer_assume(sig_arr != NULL);
+    __infer_assume(fil_arr != NULL);
+#endif
+
+    unsigned int sig_len = sig_arr->size / 4;
+    unsigned int fil_len = fil_arr->size / 4;
+
+    lbm_value output;
+
+    unsigned int out_len = sig_len + fil_len - 1;
+    if (lbm_heap_allocate_array(&output, out_len * sizeof(float))) {
+      lbm_array_header_t *out_arr = lbm_dec_array_r(output);
+
+      lbm_convolve((float*)sig_arr->data,
+                   sig_len,
+                   (float*)fil_arr->data,
+                   fil_len,
+                   (float*)out_arr->data,
+                   out_len,
+                   swap_byte_order);
+      r = output;
+    } else {
+      r = ENC_SYM_MERROR;
+    }
+  }
+  return r;
+}
+
+static lbm_value ext_complex_convolve(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if ((argn == 4 || argn == 5) &&
+      lbm_is_array_r(args[0]) &&
+      lbm_is_array_r(args[1]) &&
+      lbm_is_array_r(args[2]) &&
+      lbm_is_array_r(args[3])) {
+
+    bool be = true;
+    if (argn == 5 &&
+        lbm_is_symbol(args[4])) {
+      if (lbm_dec_sym(args[4]) == sym_little_endian) {
+        be = false;
+      }
+    }
+    bool swap_byte_order =
+      (be && LBM_SYSTEM_LITTLE_ENDIAN) ||
+      (!be && !LBM_SYSTEM_LITTLE_ENDIAN);
+
+    lbm_array_header_t *sig_re_arr = lbm_dec_array_r(args[0]);
+    lbm_array_header_t *sig_im_arr = lbm_dec_array_r(args[1]);
+    lbm_array_header_t *fil_re_arr = lbm_dec_array_r(args[2]);
+    lbm_array_header_t *fil_im_arr = lbm_dec_array_r(args[3]);
+
+    if (!sig_re_arr || !sig_im_arr || !fil_re_arr || !fil_im_arr) {
+      return ENC_SYM_TERROR;
+    }
+
+    // Check that real and imaginary parts have matching sizes
+    if (sig_re_arr->size != sig_im_arr->size ||
+        fil_re_arr->size != fil_im_arr->size) {
+      return ENC_SYM_TERROR;
+    }
+
+    unsigned int sig_len = sig_re_arr->size / sizeof(float);
+    unsigned int fil_len = fil_re_arr->size / sizeof(float);
+
+    lbm_value output_re;
+    lbm_value output_im;
+
+    unsigned int out_len = sig_len + fil_len - 1;
+    lbm_value r_cons = lbm_cons(ENC_SYM_NIL, ENC_SYM_NIL);
+    if (lbm_heap_allocate_array(&output_re, out_len * sizeof(float)) &&
+        lbm_heap_allocate_array(&output_im, out_len * sizeof(float))) {
+      lbm_array_header_t *out_re_arr = lbm_dec_array_r(output_re);
+      lbm_array_header_t *out_im_arr = lbm_dec_array_r(output_im);
+
+      lbm_complex_convolve((float*)sig_re_arr->data,
+                           (float*)sig_im_arr->data,
+                           sig_len,
+                           (float*)fil_re_arr->data,
+                           (float*)fil_im_arr->data,
+                           fil_len,
+                           (float*)out_re_arr->data,
+                           (float*)out_im_arr->data,
+                           out_len,
+                           swap_byte_order);
+      lbm_set_car_and_cdr(r_cons, output_re, output_im);
+      r = r_cons;
+    } else {
+      r = ENC_SYM_MERROR;
+    }
+  }
+  return r;
+}
+
+
+static void lbm_fft(float *real, float *imag, int n, int inverse) {
   int k = 0;
   for (int i = 1; i < n; i++) {
     int bit = n >> 1;
@@ -225,5 +593,9 @@ void lbm_dsp_extensions_init(void) {
   lbm_add_symbol("little-endian", &sym_little_endian);
   lbm_add_symbol("big-endian", &sym_big_endian);
 
+  lbm_add_extension("correlate", ext_correlate);
+  lbm_add_extension("complex-correlate", ext_complex_correlate);
+  lbm_add_extension("convolve", ext_convolve);
+  lbm_add_extension("complex-convolve", ext_complex_convolve);
   lbm_add_extension("fft", ext_fft_f32);
 }

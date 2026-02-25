@@ -62,6 +62,7 @@
 #include "flash_helper.h"
 #include "packet.h"
 #include "timer.h"
+#include "encoder_cfg.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -1886,6 +1887,12 @@ static lbm_value ext_foc_openloop_phase(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+//static lbm_value ext_foc_set_fw_override(lbm_value *args, lbm_uint argn) {
+//	LBM_CHECK_ARGN_NUMBER(1);
+//	mcpwm_foc_set_fw_override(lbm_dec_as_float(args[0]));
+//	return ENC_SYM_TRUE;
+//}
+
 static lbm_value ext_set_kill_sw(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(1);
 	timeout_set_kill_sw_ext(lbm_dec_as_i32(args[0]) > 0);
@@ -2328,12 +2335,16 @@ static lbm_value ext_phase_all(lbm_value *args, lbm_uint argn) {
 	float phase_encoder = mcpwm_foc_get_phase_encoder();
 	float phase_bemf = mcpwm_foc_get_phase_bemf();
 	float pos_encoder = encoder_read_deg();
+	float phase_hall = mcpwm_foc_get_phase_hall();
 
 	float err_observer_encoder = utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder());
 	float err_bemf_encoder = utils_angle_difference(mcpwm_foc_get_phase_bemf(), mcpwm_foc_get_phase_encoder());
 	float err_observer_bemf = utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_bemf());
+	float err_bemf_hall = utils_angle_difference(mcpwm_foc_get_phase_bemf(), mcpwm_foc_get_phase_hall());
 
 	lbm_value phase_all = ENC_SYM_NIL;
+	phase_all = lbm_cons(lbm_enc_float(err_bemf_hall), phase_all);
+	phase_all = lbm_cons(lbm_enc_float(phase_hall), phase_all);
 	phase_all = lbm_cons(lbm_enc_float(err_observer_bemf), phase_all);
 	phase_all = lbm_cons(lbm_enc_float(err_bemf_encoder), phase_all);
 	phase_all = lbm_cons(lbm_enc_float(err_observer_encoder), phase_all);
@@ -4959,6 +4970,52 @@ static lbm_value ext_conf_detect_hall(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_conf_remap_as504x(lbm_value *args, lbm_uint argn) {
+	for (lbm_uint i = 0;i < argn;i++) {
+		if (lbm_is_number(args[i])) {
+
+			stm32_gpio_t *port; uint32_t pin;
+			if (lispif_symbol_to_io(lbm_dec_sym(args[0]), &port, &pin)) {
+				switch (i) {
+				case 0: {
+					encoder_cfg_as504x.sw_spi.nss_gpio = port;
+					encoder_cfg_as504x.sw_spi.nss_pin = pin;
+					break;
+				}
+
+				case 1: {
+					encoder_cfg_as504x.sw_spi.sck_gpio = port;
+					encoder_cfg_as504x.sw_spi.sck_pin = pin;
+					break;
+				}
+
+				case 2: {
+					encoder_cfg_as504x.sw_spi.mosi_gpio = port;
+					encoder_cfg_as504x.sw_spi.mosi_pin = pin;
+					break;
+				}
+
+				case 3: {
+					encoder_cfg_as504x.sw_spi.miso_gpio = port;
+					encoder_cfg_as504x.sw_spi.miso_pin = pin;
+					break;
+				}
+
+				default:
+					break;
+				}
+			} else {
+				return ENC_SYM_EERROR;
+			}
+		}
+	}
+
+	volatile mc_configuration *conf = (volatile mc_configuration*)mc_interface_get_configuration();
+	encoder_update_config(conf);
+
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_uavcan_last_rawcmd(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(1);
 	int can_if = lbm_dec_as_i32(args[0]);
@@ -6112,6 +6169,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("set-pos", ext_set_pos);
 		lbm_add_extension("foc-openloop", ext_foc_openloop);
 		lbm_add_extension("foc-openloop-phase", ext_foc_openloop_phase);
+//		lbm_add_extension("foc-set-fw-override", ext_foc_set_fw_override);
 		lbm_add_extension("set-kill-sw", ext_set_kill_sw);
 
 		lbm_add_extension("foc-beep", ext_foc_beep);
@@ -6267,6 +6325,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("conf-get-limits", ext_conf_get_limits);
 		lbm_add_extension("conf-detect-lambda-enc", ext_conf_detect_lambda_enc);
 		lbm_add_extension("conf-detect-hall", ext_conf_detect_hall);
+		lbm_add_extension("conf-remap-as504x", ext_conf_remap_as504x);
 
 		// Native libraries
 		lbm_add_extension("load-native-lib", ext_load_native_lib);

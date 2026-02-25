@@ -125,7 +125,8 @@ bool encoder_init(volatile mc_configuration *conf) {
 				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1, // sck
 				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, // mosi
 				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, // miso
-				{{NULL, NULL}, NULL, NULL} // Mutex
+				{{NULL, NULL}, NULL, NULL}, // Mutex
+				false // Mutex init done
 		};
 		encoder_cfg_tle5012.sw_spi = sw_ssc;
 
@@ -151,7 +152,8 @@ bool encoder_init(volatile mc_configuration *conf) {
 				HW_SPI_PORT_SCK, HW_SPI_PIN_SCK, // sck
 				HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI, // mosi
 				HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI, // miso (shared dat line)
-				{{NULL, NULL}, NULL, NULL} // Mutex
+				{{NULL, NULL}, NULL, NULL}, // Mutex
+				false // Mutex init done
 		};
 		encoder_cfg_tle5012.sw_spi = sw_ssc;	
 
@@ -258,6 +260,20 @@ bool encoder_init(volatile mc_configuration *conf) {
 		res = true;
 	} break;
 
+	case SENSOR_PORT_MODE_MA782: {
+		SENSOR_PORT_3V3();
+
+		if (!enc_ma782_init(&encoder_cfg_ma782)) {
+			m_encoder_type_now = ENCODER_TYPE_NONE;
+			return false;
+		}
+
+		m_encoder_type_now = ENCODER_TYPE_MA782;
+		timer_start(routine_rate_10k);
+
+		res = true;
+	} break;
+
 	case SENSOR_PORT_MODE_CUSTOM_ENCODER:
 		m_encoder_type_now = ENCODER_TYPE_CUSTOM;
 		res = true;
@@ -338,6 +354,11 @@ void encoder_update_config(volatile mc_configuration *conf) {
 		TIM_SetAutoreload(encoder_cfg_ABI.timer, encoder_cfg_ABI.counts - 1);
 	} break;
 
+	case SENSOR_PORT_MODE_AS5047_SPI: {
+		spi_bb_init(&(encoder_cfg_as504x.sw_spi));
+		break;
+	}
+
 	default:
 		break;
 	}
@@ -371,6 +392,8 @@ void encoder_deinit(void) {
 	} else if (m_encoder_type_now == ENCODER_TYPE_PWM_ABI) {
 		enc_pwm_deinit();
 		enc_abi_deinit(&encoder_cfg_ABI);
+	} else if (m_encoder_type_now == ENCODER_TYPE_MA782) {
+		enc_ma782_deinit(&encoder_cfg_ma782);
 	}
 
 	m_encoder_type_now = ENCODER_TYPE_NONE;
@@ -443,6 +466,10 @@ float encoder_read_deg(void) {
 
 	case ENCODER_TYPE_BISSC:
 		res = BISSC_LAST_ANGLE(&encoder_cfg_bissc);
+		break;
+
+	case ENCODER_TYPE_MA782:
+		res = MA782_LAST_ANGLE(&encoder_cfg_ma782);
 		break;
 
 	case ENCODER_TYPE_CUSTOM:
@@ -577,6 +604,9 @@ float encoder_get_error_rate(void) {
 		if (encoder_cfg_bissc.state.spi_data_error_rate > res) {
 			res = encoder_cfg_bissc.state.spi_data_error_rate;
 		}
+		break;
+	case ENCODER_TYPE_MA782:
+		res = encoder_cfg_ma782.state.spi_error_rate;
 		break;
 	default:
 		break;
@@ -874,6 +904,10 @@ static void terminal_encoder(int argc, const char **argv) {
 		}
 		break;
 
+	case SENSOR_PORT_MODE_MA782:
+		enc_ma782_print_status(&encoder_cfg_ma782);
+		break;
+
 	default:
 		commands_printf("No encoder debug info available.");
 		break;
@@ -922,6 +956,10 @@ static THD_FUNCTION(routine_thread, arg) {
 
 		case ENCODER_TYPE_BISSC:
 			enc_bissc_routine(&encoder_cfg_bissc);
+			break;
+
+		case ENCODER_TYPE_MA782:
+			enc_ma782_routine(&encoder_cfg_ma782);
 			break;
 
 		default:

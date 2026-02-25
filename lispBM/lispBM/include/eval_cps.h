@@ -83,9 +83,9 @@ typedef struct eval_context_s{
   lbm_value program;
   lbm_value curr_exp;
   lbm_value curr_env;
-  lbm_value *mailbox;    /* Message passing mailbox */
+  lbm_value *mailbox;    // Message passing mailbox */
   uint32_t  mailbox_size;
-  uint32_t  num_mail;    /* Number of messages in mailbox */
+  uint32_t  num_mail;    // Number of messages in mailbox
   uint32_t  flags;
   lbm_value r;
   const char *error_reason;
@@ -97,20 +97,23 @@ typedef struct eval_context_s{
   char *name;
   lbm_cid id;
   lbm_cid parent;
-  /* while reading */
+  // while reading
   lbm_int row0;
   lbm_int row1;
-  /* List structure */
+  lbm_value reader_stream; // Reader stream register
+  // List structure
   struct eval_context_s *prev;
   struct eval_context_s *next;
 } eval_context_t;
 
+/** Event types */
 typedef enum {
   LBM_EVENT_FOR_HANDLER = 0,
   LBM_EVENT_UNBLOCK_CTX,
   LBM_EVENT_DEFINE
 } lbm_event_type_t;
 
+/** Event structure for passing events from C-side to Lisp-side */
 typedef struct {
   lbm_event_type_t type;
   lbm_uint parameter;
@@ -121,6 +124,7 @@ typedef struct {
 /** Fundamental operation type */
 typedef lbm_value (*fundamental_fun)(lbm_value *, lbm_uint, eval_context_t*);
 
+/** Table of function pointers implementing the fundamental operations */
 extern const fundamental_fun fundamental_table[];
 
 /** A function pointer type to use together with the queue iterators.
@@ -273,6 +277,8 @@ void lbm_critical_error(void);
 void lbm_set_critical_error_callback(void (*fptr)(void));
 /** Create a context and enqueue it as runnable.
  *
+ * \evalpaused
+ *
  * \param program The program to evaluate in the context.
  * \param env An initial environment.
  * \param stack_size Stack size for the context.
@@ -281,13 +287,16 @@ void lbm_set_critical_error_callback(void (*fptr)(void));
  */
 lbm_cid lbm_create_ctx(lbm_value program, lbm_value env, lbm_uint stack_size, char *name);
 /** Block a context from an extension
+ * \evalthread
  */
 void lbm_block_ctx_from_extension(void);
 /** Block a context from an extension with a timeout.
+ * \evalthread
  * \param s Timeout in seconds.
  */
 void lbm_block_ctx_from_extension_timeout(float s);
 /** Undo a previous call to lbm_block_ctx_from_extension.
+ * \evalthread
  */
 void lbm_undo_block_ctx_from_extension(void);
 /** Unblock a context that has been blocked by a C extension

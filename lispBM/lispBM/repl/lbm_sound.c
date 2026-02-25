@@ -67,7 +67,7 @@
 12. Unison mode - Can be done in lisp!
 */
 
-#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -80,7 +80,7 @@
 #include <platform_timestamp.h>
 #include "lbm_sound.h"
 
-#include <alsa/asoundlib.h>
+
 
 static snd_pcm_t *pcm_handle = NULL;
 
@@ -88,6 +88,10 @@ static lbm_thread_t synth_thread;
 static bool synth_thread_running = false;
 
 static uint32_t voice_sequence_number = 0;
+
+snd_pcm_t *lbm_sound_pcm_handle(void) {
+  return pcm_handle;
+}
 
 // Default audio parameters
 #define SAMPLE_RATE 44100
@@ -139,8 +143,15 @@ typedef struct {
 
 typedef enum {
   FREQ_NOTE = 0,
-  FREQ_FIXED
+  FREQ_FIXED,
+  FREQ_CHIRP
 } freq_source_t;
+
+#define NUM_OSCILLATOR_PARAMETERS 3
+#define OSC_PARAMETER_FREQ 0
+#define OSC_PARAMETER_CHIRP_START_FREQ 0
+#define OSC_PARAMETER_CHIRP_END_FREQ   1
+#define OSC_PARAMETER_CHIRP_DURATION   2
 
 // In every iteration, an oscillators frequency is computed as:
 //  b + (m0 * a0) + (m1 * a1) .. + (m3 * a3)
@@ -148,7 +159,7 @@ typedef enum {
 typedef struct {
   oscillator_type_t type;
   freq_source_t freq_source;
-  float freq_value; // Repurpose depending on freq source.
+  float parameter[NUM_OSCILLATOR_PARAMETERS]; // Repurpose depending on freq source.
   modulator_t modulators[NUM_MODULATORS];
   float phase_offset;
   float vol;
@@ -224,6 +235,8 @@ typedef struct {
   float lfo_phase[NUM_LFO];
   float env_val;
 
+  // Chirp state
+  float osc_chirp_time[NUM_OSC];
   // Envelope statemachine
   env_adsr_state_t env_state;
   float env_time_in_state;
@@ -281,6 +294,7 @@ static lbm_uint sym_envelope = 0;
 
 static lbm_uint sym_freq_src_note = 0;
 static lbm_uint sym_freq_src_fixed = 0;
+static lbm_uint sym_freq_src_chirp = 0;
 
 static lbm_uint sym_osc_none     = 0;
 static lbm_uint sym_osc_sine     = 0;
@@ -332,6 +346,8 @@ lbm_value enc_osc_freq_source(freq_source_t s) {
     return lbm_enc_sym(sym_freq_src_note);
   case FREQ_FIXED:
     return lbm_enc_sym(sym_freq_src_fixed);
+  case FREQ_CHIRP:
+    return lbm_enc_sym(sym_freq_src_chirp);
   }
   return ENC_SYM_NIL;
 }
@@ -406,6 +422,18 @@ static float update_envelope(voice_t *voice, patch_t *patch) {
   return voice->env_val;
 }
 
+static float generate_chirp_freq(oscillator_t *osc, float time_in_chirp) {
+  if (time_in_chirp >= osc->parameter[OSC_PARAMETER_CHIRP_DURATION]) {
+    return osc->parameter[OSC_PARAMETER_CHIRP_END_FREQ];
+  }
+
+  float t = time_in_chirp / osc->parameter[OSC_PARAMETER_CHIRP_DURATION];
+
+  float ratio = osc->parameter[OSC_PARAMETER_CHIRP_END_FREQ] / osc->parameter[OSC_PARAMETER_CHIRP_START_FREQ];
+  return osc->parameter[OSC_PARAMETER_CHIRP_START_FREQ] * powf(ratio, t);
+}
+
+
 static void synth_thd(void *arg) {
   (void)arg;
 
@@ -443,7 +471,7 @@ static void synth_thd(void *arg) {
             float freq = base_freq; // For now.
             float osc = 0.0f;
             if (w->freq_source == FREQ_FIXED) {
-              freq = w->freq_value;
+              freq = w->parameter[OSC_PARAMETER_FREQ];
             }
             switch (w->type) {
             case OSC_SAW:
@@ -475,6 +503,13 @@ static void synth_thd(void *arg) {
           for (int o = 0; o < NUM_OSC; o ++) {
 
             oscillator_t *w = &patches[patch].osc[o];
+            float freq = base_freq;
+            if (w->freq_source == FREQ_FIXED) {
+              freq = w->parameter[OSC_PARAMETER_FREQ];
+            }else if (w->freq_source == FREQ_CHIRP) {
+              voices[v].osc_chirp_time[o] += (1.0f / SAMPLE_RATE);
+              freq = generate_chirp_freq(w, voices[v].osc_chirp_time[o]);
+            }
             float phase = voices[v].osc_phase[o] + w->phase_offset;
             WRAP1(phase);
 
@@ -528,7 +563,7 @@ static void synth_thd(void *arg) {
 
             float s = osc * env_val * vel * w->vol;
             // Phase increment makes no sense for Noise.
-            float phase_increment = ((base_freq + mod_val) * voices[v].bend) / (float)SAMPLE_RATE;
+            float phase_increment = ((freq + mod_val) * voices[v].bend) / (float)SAMPLE_RATE;
             voices[v].osc_phase[o] += phase_increment;
             WRAP1(voices[v].osc_phase[o]);
 
@@ -596,6 +631,7 @@ static void register_symbols(void) {
 
   lbm_add_symbol("freq-src-note", &sym_freq_src_note);
   lbm_add_symbol("freq-src-fixed", &sym_freq_src_fixed);
+  lbm_add_symbol("freq-src-chirp", &sym_freq_src_chirp);
 
   lbm_add_symbol("osc-none", &sym_osc_none);
   lbm_add_symbol("osc-sine", &sym_osc_sine);
@@ -777,10 +813,59 @@ lbm_value ext_patch_lfo_set(lbm_value *args, lbm_uint argn) {
       }
       patch_t *p = &patches[patch];
       p->lfo[lfo].freq_source = FREQ_FIXED;
-      p->lfo[lfo].freq_value = freq;
+      p->lfo[lfo].parameter[OSC_PARAMETER_FREQ] = freq;
       p->lfo[lfo].phase_offset = 0.0;
       p->lfo[lfo].vol = 0.0;
       p->lfo[lfo].type = o;
+      r = ENC_SYM_TRUE;
+    } else {
+      r = ENC_SYM_NIL;
+    }
+  }
+  return r;
+}
+
+//(patch-osc-chirp-set patch-no osc-no osc-type start-freq end-freq duration)
+lbm_value ext_patch_osc_chirp_set(lbm_value *args, lbm_uint argn) {
+  lbm_value r = ENC_SYM_TERROR;
+  if (argn == 6 &&
+      lbm_is_number(args[0]) &&
+      lbm_is_number(args[1]) &&
+      lbm_is_symbol(args[2]) &&
+      lbm_is_number(args[3]) &&
+      lbm_is_number(args[4]) &&
+      lbm_is_number(args[5])) {
+
+    uint8_t patch = lbm_dec_as_char(args[0]);
+    uint32_t osc  = lbm_dec_as_u32(args[1]);
+    lbm_uint osc_type = lbm_dec_sym(args[2]);
+    float start_freq = lbm_dec_as_float(args[3]);
+    float end_freq = lbm_dec_as_float(args[4]);
+    float duration = lbm_dec_as_float(args[5]);
+
+    if (osc < NUM_OSC && patch < MAX_PATCHES) {
+      oscillator_type_t o;
+      if (osc_type == sym_osc_sine) {
+        o = OSC_SINE;
+      } else if (osc_type == sym_osc_saw) {
+        o = OSC_SAW;
+      } else if (osc_type == sym_osc_triangle) {
+        o = OSC_TRIANGLE;
+      } else if (osc_type == sym_osc_square) {
+        o = OSC_SQUARE;
+      } else if (osc_type == sym_osc_noise) {
+        o = OSC_NOISE;
+      } else {
+        o = OSC_NONE;
+      }
+      patches[patch].osc[osc].type = o;
+      patches[patch].osc[osc].freq_source = FREQ_CHIRP;
+      patches[patch].osc[osc].parameter[OSC_PARAMETER_CHIRP_START_FREQ] = start_freq;
+      patches[patch].osc[osc].parameter[OSC_PARAMETER_CHIRP_END_FREQ] = end_freq;
+      patches[patch].osc[osc].parameter[OSC_PARAMETER_CHIRP_DURATION] = duration;
+      patches[patch].osc[osc].vol = 1.0f;  // Set default volume
+      patches[patch].osc[osc].phase_offset = 0.0f;
+      patches[patch].osc[osc].pan = 0.0f;  // Center pan
       r = ENC_SYM_TRUE;
     } else {
       r = ENC_SYM_NIL;
@@ -972,6 +1057,8 @@ static uint32_t start_voice(voice_t *v, uint8_t patch, uint8_t note, float freq,
   float phase = (float)rand() / RAND_MAX;
   v->osc_phase[0] = phase;
   v->osc_phase[1] = phase;
+  v->osc_chirp_time[0] = 0.0f;
+  v->osc_chirp_time[1] = 0.0f;
   v->lfo_phase[0] = 0.0f;
   v->lfo_phase[1] = 0.0f;
   v->env_val = 0.0f;
@@ -1115,7 +1202,6 @@ lbm_value ext_ch_note_on(lbm_value *args, lbm_uint argn) {
 }
 
 
-
 // (note-off patch-no node-id)
 lbm_value ext_note_off(lbm_value *args, lbm_uint argn) {
   lbm_value r = ENC_SYM_TERROR;
@@ -1203,6 +1289,7 @@ bool lbm_sound_init(void) {
   lbm_add_extension("patch-clear", ext_patch_clear);
   lbm_add_extension("patch-mod-set", ext_patch_mod_set);
   lbm_add_extension("patch-lfo-set", ext_patch_lfo_set);
+  lbm_add_extension("patch-osc-chirp-set", ext_patch_osc_chirp_set);
   lbm_add_extension("patch-osc-tvp-set", ext_patch_osc_tvp_set);
   lbm_add_extension("patch-osc-tvp-get", ext_patch_osc_tvp_get);
   lbm_add_extension("patch-osc-pan-set", ext_patch_osc_pan_set);

@@ -1945,6 +1945,8 @@ Returns a list of phases and various phase errors, all sampled at the same time.
     err_observer_encoder  ; Phase error between observer and encoder
     err_bemf_encoder      ; Phase error between back-emf and encoder
     err_observer_bemf     ; Phase error between observer and back-emf
+    phase_hall            ; Phase derived from the hall sensors (FW 7.00+)
+    err_bemf_hall         ; Phase error between back-emf and hall sensors (FW 7.00+)
 )
 ```
 
@@ -4363,6 +4365,39 @@ Runs hall sensor detection using current in openloop. Returns the hall sensor ta
 
 ---
 
+#### conf-remap-as504x
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(conf-remap-as504x optCs optSck optMosi optMiso)
+```
+
+Remap one or more AS504x encoder pins. All arguments are optional and nil can be used to leave pins unchanged. Example:
+
+```clj
+
+; Use 'pin-swdio as chip select and 'pin-swclk as clock. Leave other pins
+; unchanged
+(conf-remap-as504x 'pin-swdio 'pin-swclk)
+
+; Use 'pin-swclk as clock. Leave other pins unchanged
+(conf-remap-as504x nil 'pin-swclk)
+
+; Available pins
+'pin-rx
+'pin-tx
+'pin-swdio
+'pin-swclk
+'pin-hall1
+'pin-hall2
+'pin-hall3
+```
+
+---
+
 ### EEPROM (Nonvolatile Storage)
 
 Up to 128 (256 in FW 6.06) variables (int32 or float) can be stored in a nonvolatile memory reserved for LispBM. These variables persist between power cycles and configuration changes, but not between firmware updates. Keep in mind that the motor will be stopped briefly when writing them and that they only can be written a limited number of times (about 100 000 writes) before wear on the flash memory starts to become an issue.
@@ -5921,10 +5956,10 @@ Same as uavcan-last-rawcmd, but for the last rpm-command.
 | ESC, Express | 6.00+ |
 
 ```clj
-(lbm-set-quota quota)
+(lbm-set-quota quota-us)
 ```
 
-Set how many evaluation steps to run each thread between context switches. Default is 50. A lower value will alter between threads more often, reducing latency between context switches at the cost of overall performance. The default value of 50 has relatively low performance overhead. Setting the quota to the lowest possible value of 1, meaning that each thread gets to run one step at a time, roughly halves the performance.
+Set how many microseconds to run each thread between context switches. Default is 2000. A lower value will alter between threads more often, reducing latency between context switches at the cost of overall performance. The default value of 2000 has relatively low performance overhead.
 
 Lowering this value is useful if there are one or more timing-critical threads (that e.g. read encoders) that cannot wait too long between iterations.
 

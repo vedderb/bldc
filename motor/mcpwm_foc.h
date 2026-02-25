@@ -47,6 +47,7 @@ void mcpwm_foc_set_openloop_current(float current, float rpm);
 void mcpwm_foc_set_openloop_phase(float current, float phase);
 void mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm);
 void mcpwm_foc_set_openloop_duty_phase(float dutyCycle, float phase);
+void mcpwm_foc_set_fw_override(float current);
 int mcpwm_foc_set_tachometer_value(int steps);
 float mcpwm_foc_get_duty_cycle_set(void);
 float mcpwm_foc_get_duty_cycle_now(void);

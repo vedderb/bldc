@@ -19,8 +19,11 @@
 
 #define HW_HAS_DUAL_MOTORS
 
-#define HW_NAME                 "DUET XS"
-
+#ifdef HW_XS60
+#define HW_NAME                 "DUET XS60"
+#else
+#define HW_NAME                 "DUET XS100"
+#endif
 #ifndef HW_NAME
 #error "Must define hardware type"
 #endif
@@ -323,9 +326,6 @@
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT	80.0	// The maximum absolute current above which a fault is generated
 #endif
-#ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE		90.0	// Maximum input voltage
-#endif
 #ifndef MCCONF_FOC_F_ZV
 #define MCCONF_FOC_F_ZV				23000.0
 #endif
@@ -336,10 +336,24 @@
 #define MCCONF_L_IN_CURRENT_MIN			-45.0	// Input current limit in Amperes (Lower)
 #endif
 
+#ifdef HW_XS60
+#ifndef MCCONF_L_MAX_VOLTAGE
+#define MCCONF_L_MAX_VOLTAGE		55.0
+#endif
+#define HW_LIM_VIN					6.0, 57.0
+#define HW_LIM_CURRENT				-100.0, 100.0
+#define HW_LIM_CURRENT_ABS			0.0, 150.0
+#define HW_LIM_CURRENT_IN			-100.0, 100.0
+#else
+#ifndef MCCONF_L_MAX_VOLTAGE
+#define MCCONF_L_MAX_VOLTAGE		90.0
+#endif
+#define HW_LIM_VIN					6.0, 94.0
 #define HW_LIM_CURRENT				-65.0, 65.0
 #define HW_LIM_CURRENT_ABS			0.0, 110.0
 #define HW_LIM_CURRENT_IN			-65.0, 65.0
-#define HW_LIM_VIN					6.0, 94.0
+#endif
+
 #define HW_LIM_ERPM					-200e3, 200e3
 #define HW_LIM_DUTY_MIN				0.0, 0.1
 #define HW_LIM_DUTY_MAX				0.0, 0.95

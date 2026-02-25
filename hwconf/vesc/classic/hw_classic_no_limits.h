@@ -1,5 +1,5 @@
 /*
-	Copyright 2018 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2025 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,9 +17,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_DUET_XS_H_
-#define HW_DUET_XS_H_
+#ifndef HW_CLASSIC_NO_LIMITS_H_
+#define HW_CLASSIC_NO_LIMITS_H_
 
-#include "hw_duet_xs_core.h"
+#define HWCLASSIC
 
-#endif /* HW_DUET_XS_NO_LIMITS_H_ */
+#define DISABLE_HW_LIMITS
+
+#include "hw_classic_core.h"
+
+#endif /* HW_CLASSIC_NO_LIMITS_H_ */

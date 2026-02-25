@@ -587,10 +587,10 @@ static lbm_value fundamental_geq(lbm_value *args, lbm_uint nargs, eval_context_t
     for (lbm_uint i = 1; i < nargs; i ++) {
       lbm_uint b = args[i];
       if (IS_NUMBER(b)) {
-	r = r && (compare_num(a, b) >= 0);
+        r = r && (compare_num(a, b) >= 0);
       } else {
-	lbm_set_error_suspect(b);
-	goto geq_type_error;
+        lbm_set_error_suspect(b);
+        goto geq_type_error;
       }
     }
   } else {
@@ -950,13 +950,18 @@ static lbm_value fundamental_acons(lbm_value *args, lbm_uint nargs, eval_context
   return result;
 }
 
+// Since an a-list can be partially
+// constant an additional check for read/write cell
+// is needed before the actual update.
 static lbm_value set_assoc(lbm_value assoc_list, lbm_value keyval) {
   lbm_value curr = assoc_list;
   lbm_value key = lbm_car(keyval);
   while (lbm_is_cons(curr)) {
     lbm_cons_t *curr_cell = lbm_ref_cell(curr);
     if (struct_eq(key, lbm_car(curr_cell->car))) {
-      curr_cell->car = keyval;
+      if (!lbm_ptr_is_constant(curr)) {
+        curr_cell->car = keyval;
+      }
       return assoc_list;
     }
     curr = curr_cell->cdr;

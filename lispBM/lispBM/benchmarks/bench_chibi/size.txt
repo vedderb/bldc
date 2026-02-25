@@ -6,3 +6,8 @@
  132892	   2520	 128552	 263964	  4071c	build/lisp_test.elf  jan 27 2025
  132716	   2520	 128552	 263788	  4066c	build/lisp_test.elf  jan 27 2025
  132844	   2520	 128552	 263916	  406ec	build/lisp_test.elf  feb 4  2025
+ 144724	   2208	 128864	 275796	  43554	build/lisp_test.elf  dec 30 2025
+ 143324	   2208	 128864	 274396	  42fdc	build/lisp_test.elf  dec 30 2025 (sizeopt on error handling)
+ 143356	   2208	 128864	 274428	  42ffc	build/lisp_test.elf  dec 30 2025
+ 143292	   2208	 128864	 274364	  42fbc	build/lisp_test.elf  dec 30 2025   
+ 142972	   2208	 128864	 274044	  42e7c	build/lisp_test.elf  dec 30 2025 (reader revamp)

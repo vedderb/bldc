@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2020, 2022 - 2025 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2020, 2022 - 2026 Joel Svensson  svenssonjoel@yahoo.se
                           2022        Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -531,6 +531,7 @@ static bool generate_freelist(size_t num_cells) {
 
   // Replace the incorrect pointer at the last cell.
   t = lbm_ref_cell(lbm_enc_cons_ptr(num_cells-1));
+  t->car = ENC_SYM_RECOVERED;
   t->cdr = ENC_SYM_NIL;
 
   return true;
@@ -578,7 +579,7 @@ bool lbm_heap_init(lbm_cons_t *addr, lbm_uint num_cells,
   heap_init_state(addr, num_cells,
                   gc_stack_storage, gc_stack_size);
 
-  lbm_heaps[0] = addr;
+  lbm_heaps[LBM_RAM_HEAP] = addr;
 
   return generate_freelist(num_cells);
 }
@@ -713,9 +714,6 @@ void lbm_gc_mark_phase(lbm_value root) {
 #else
 // ////////////////////////////////////////////////////////////
 // Check if a value is currently on the stack
-// This is a temporary hack to make arrays with cycles work
-// with Garbage collection. It is an O(stack_size) sollution, there
-// are O(1) sollutions that has a constant cost even in non-array cases.
 
 bool active_ptr(lbm_value p) {
   lbm_stack_t *s = &lbm_heap_state.gc_stack;
@@ -744,7 +742,6 @@ bool active_ptr(lbm_value p) {
 //       If we use DSW as last-resort can we get away with a way smaller
 //       GC stack and unchanged performance (on sensible programs)?
 
-extern eval_context_t *ctx_running;
 void lbm_gc_mark_phase(lbm_value root) {
   lbm_value t_ptr;
   lbm_stack_t *s = &lbm_heap_state.gc_stack;
@@ -780,28 +777,39 @@ void lbm_gc_mark_phase(lbm_value root) {
       }
       lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
-      uint32_t index = arr->index;
-      if (arr->size > 0) {
-        lbm_push(s, curr); // put array back as bookkeeping.
-        // Potential optimization.
-        // 1. CONS pointers are set to curr and recurse.
-        // 2. Any other ptr is marked immediately and index is increased.
-        if (lbm_is_ptr(arrdata[index]) && ((arrdata[index] & LBM_PTR_TO_CONSTANT_BIT) == 0) &&
-            !((arrdata[index] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
-          lbm_cons_t *elt = &lbm_heap_state.heap[lbm_dec_ptr(arrdata[index])];
+      lbm_push(s, curr); // put array back as bookkeeping.
+      // Example A: Array with 10 elements
+      // A: assume arr->index == 9
+      // Example B: Array with 0 elements
+      // B: assume arr->index == 0
+      if (arr->index < ((arr->size/(sizeof(lbm_value))))) { // A: 9 < 10
+                                                            // A: True path
+                                                            // B: 0 < 0
+                                                            // B: False path
+        if (lbm_is_ptr(arrdata[arr->index]) && ((arrdata[arr->index] & LBM_PTR_TO_CONSTANT_BIT) == 0) &&
+            !((arrdata[arr->index] & LBM_CONTINUATION_INTERNAL) == LBM_CONTINUATION_INTERNAL)) {
+
+          lbm_cons_t *elt = &lbm_heap_state.heap[lbm_dec_ptr(arrdata[arr->index])];
           if (!lbm_get_gc_mark(elt->cdr)) {
-            curr = arrdata[index];
+            curr = arrdata[arr->index];
             arr->index++;
             goto mark_shortcut;
           }
         }
-        if (index < ((arr->size/(sizeof(lbm_value))) - 1)) {
+        // We need one more round of the loop if there is at least one element left in the array.
+        // If we skip this check things should work the same, but there will be one more recurse
+        // before we discover in the earlier conditional that we have reached the end of the array.
+        if (arr->index < ((arr->size/(sizeof(lbm_value))) - 1)) { // A: 9 < 9
+                                                                  // A: False path
           arr->index++;
           continue;
         }
-        arr->index = 0;
-        lbm_pop(s, &curr); // Remove array from GC stack as we are done marking it.
       }
+      arr->index = 0;
+      lbm_stack_drop(s,1); // Drop the bookkeeping element.
+                           // elem_dropped == cell
+      // Cell is the array reference. so this marks the array reference itself
+      // after having marked all the elements.
       cell->cdr = lbm_set_gc_mark(cell->cdr);
       lbm_heap_state.gc_marked ++;
       continue;
@@ -1274,7 +1282,7 @@ int lbm_const_heap_init(const_heap_write_fun w_fun,
 
   lbm_const_heap_state = heap;
   // ref_cell views the lbm_uint array as an lbm_cons_t array
-  lbm_heaps[1] = (lbm_cons_t*)addr;
+  lbm_heaps[LBM_CONST_HEAP] = (lbm_cons_t*)addr;
   return 1;
 }
 
@@ -1292,7 +1300,7 @@ lbm_flash_status lbm_allocate_const_cell(lbm_value *res) {
     // A cons cell uses two words.
     lbm_value cell = lbm_const_heap_state->next;
     lbm_const_heap_state->next += 2;
-    *res = (cell << LBM_ADDRESS_SHIFT) | LBM_PTR_BIT | LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT;
+    *res = ((cell >> 1) << LBM_ADDRESS_SHIFT) | LBM_PTR_BIT | LBM_TYPE_CONS | LBM_PTR_TO_CONSTANT_BIT;
     r = LBM_FLASH_WRITE_OK;
   }
   lbm_mutex_unlock(&lbm_const_heap_mutex);
@@ -1345,14 +1353,14 @@ lbm_flash_status lbm_const_write(lbm_uint *tgt, lbm_uint val) {
 }
 
 lbm_flash_status write_const_cdr(lbm_value cell, lbm_value val) {
-  lbm_uint addr = lbm_dec_ptr(cell);
+  lbm_uint addr = lbm_dec_ptr(cell) << 1;
   if (const_heap_write(val, addr+1))
     return LBM_FLASH_WRITE_OK;
   return LBM_FLASH_WRITE_ERROR;
 }
 
 lbm_flash_status write_const_car(lbm_value cell, lbm_value val) {
-  lbm_uint addr = lbm_dec_ptr(cell);
+  lbm_uint addr = lbm_dec_ptr(cell) << 1;
   if (const_heap_write(val, addr))
     return LBM_FLASH_WRITE_OK;
   return LBM_FLASH_WRITE_ERROR;

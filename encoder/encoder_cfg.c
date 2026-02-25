@@ -46,7 +46,8 @@ AS504x_config_t encoder_cfg_as504x = {
 				0, 0,
 #endif
 				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,
-				{{NULL, NULL}, NULL, NULL} // Mutex
+				{{NULL, NULL}, NULL, NULL}, // Mutex
+				false // Mutex init done
 		},
 
 		{0} // State
@@ -62,7 +63,8 @@ AD2S1205_config_t encoder_cfg_ad2s1205 = {
 				0, 0,
 #endif
 				HW_SPI_PORT_MISO, HW_SPI_PIN_MISO,
-				{{NULL, NULL}, NULL, NULL} // Mutex
+				{{NULL, NULL}, NULL, NULL}, // Mutex
+				false // Mutex init done
 		},
 		{0},
 };
@@ -99,7 +101,8 @@ TLE5012_config_t encoder_cfg_tle5012 = {
 				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1, // sck
 				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, // mosi
 				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, // miso
-				{{NULL, NULL}, NULL, NULL} // Mutex
+				{{NULL, NULL}, NULL, NULL}, // Mutex
+				false // Mutex init done
 		}, //ssc
 		{0, 0, 0, 0, 0, 0, 0, 0} // State
 };
@@ -204,4 +207,32 @@ BISSC_config_t encoder_cfg_bissc = {
 		{0}, // crc
 		{0.0, 0, 0.0, 0, 0.0, 0, 0, {0}}
 #endif
+};
+
+// Spi Handler for MA782
+void compute_ma782_callback(SPIDriver *pspi);
+ma782_config_t encoder_cfg_ma782 = {
+#ifdef HW_SPI_DEV
+		&HW_SPI_DEV, // spi_dev
+		{//HARDWARE SPI CONFIG
+				compute_ma782_callback, HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
+				 SPI_BaudRatePrescaler_32 | SPI_DATASIZE_16BIT,
+		},
+		HW_SPI_GPIO_AF,
+		/*NSS*/HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
+		/*SCK*/HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
+		/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
+		/*MISO*/HW_SPI_PORT_MISO, HW_SPI_PIN_MISO,
+		/*EN*/GPIOC, 5,
+#else
+		0,
+		{0},
+		0,
+		0, 0,
+		0, 0,
+		0, 0,
+		0, 0,
+		0, 0,
+#endif
+		{0.0f, 0, 0.0f, 0, 0.0f, MA782_IDLE, 0, 0, 0, 0, 0, 0, {0}, {0}},
 };

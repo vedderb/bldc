@@ -28,7 +28,7 @@ cppcheck -j$NUM_JOBS --inline-suppr --project=compile_commands.json --enable=all
 
 #64bit run
 make clean
-bear -- make all64
+bear -- make FEATURES="64"
 
 cppcheck --version &> $logfile64
 cppcheck -j$NUM_JOBS --inline-suppr --project=compile_commands.json --enable=all  --check-level=exhaustive ${suppressions[@]} 2>> $logfile64

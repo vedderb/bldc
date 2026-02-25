@@ -82,13 +82,52 @@
 extern "C" {
 #endif
 
+/** @name Memory size macros
+ *  Convert number of memory blocks to number of memory words
+ *  The block size is determined from the number of status
+ *  bitpatterns that fit within one bitmap word.
+ *
+ *  Status bit patterns are 2 bits, so in 32bits (one word on 32bit platform)
+ *  you have 16 status patterns => block size is 16.
+ *
+ *  On 64-bit platforms, LBM_MEMORY_BITMAP_SIZE divides by 2 because
+ *  one 64-bit bitmap word can track 32 memory words (vs 16 on 32-bit).
+ *
+ *  LBM_MEMORY is allocated as a number of whole WORDS (not bytes).
+ *  So the thing that decides the possible sizes are really the
+ *  bitmap sizes. Bitmaps have to be a multiple of words
+ *
+ *  Memory sizes that make sense (32-bit):
+ *  bitmap size words | memory size words  | memory size bytes
+ *    1               |    1*16 = 16       |        64
+ *    2               |    2*16 = 32       |        128
+ *    10              |   10*16 = 160      |        640
+ *    64              |   64*16 = 1024     |        4096
+ *    100             |  100*16   1600     |        6400
+ *
+ *  There is a minimal viable size of lbm_memory but it depends on
+ *  space used byt symbol representations and printing stack, gc stack.
+ *  things like that. The minimal viable is likely about 4KB (to have
+ *  approx 2KB lbm_mem avail at runtime)
+ *  @{
+ */
+#define LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(X) (16*(X))
 #define LBM_MEMORY_SIZE_64BYTES_TIMES_X(X) (16*(X))
 #ifndef LBM64
 #define LBM_MEMORY_BITMAP_SIZE(X) (X)
 #else
 #define LBM_MEMORY_BITMAP_SIZE(X) ((X)/2)
 #endif
+/** @} */
 
+/** @name Legacy Size Macros (deprecated)
+ *  @deprecated These macros are named for 32-bit byte sizes.
+ *              On 64-bit platforms, actual byte size is 2× the name.
+ *              Prefer specifying memory size in bytes directly.
+ *              Use LBM_MEMORY_SIZE_BLOCKS_TO_WORDS() and LBM_MEMORY_BITMAP_SIZE()
+ *              for platform-independent sizing.
+ *  @{
+ */
 #define LBM_MEMORY_SIZE_512 LBM_MEMORY_SIZE_64BYTES_TIMES_X(8)
 #define LBM_MEMORY_SIZE_1K LBM_MEMORY_SIZE_64BYTES_TIMES_X(16)
 #define LBM_MEMORY_SIZE_2K LBM_MEMORY_SIZE_64BYTES_TIMES_X(32)
@@ -112,6 +151,7 @@ extern "C" {
 #define LBM_MEMORY_BITMAP_SIZE_16K LBM_MEMORY_BITMAP_SIZE(256)
 #define LBM_MEMORY_BITMAP_SIZE_32K LBM_MEMORY_BITMAP_SIZE(512)
 #define LBM_MEMORY_BITMAP_SIZE_1M  LBM_MEMORY_BITMAP_SIZE(16384)
+/** @} */
 
 /** Initialize the symbols and arrays memory
  *

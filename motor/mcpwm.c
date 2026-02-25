@@ -2499,34 +2499,34 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 #ifdef HW_HAS_3_SHUNTS
 					if (direction) {
 						switch (comm_step) {
-						case 1: curr_samp_volt = (1 << 0) || (1 << 2); break;
-						case 2: curr_samp_volt = (1 << 1) || (1 << 2); break;
-						case 3: curr_samp_volt = (1 << 1) || (1 << 2); break;
-						case 4: curr_samp_volt = (1 << 0) || (1 << 1); break;
-						case 5: curr_samp_volt = (1 << 0) || (1 << 1); break;
-						case 6: curr_samp_volt = (1 << 0) || (1 << 2); break;
+						case 1: curr_samp_volt = (1 << 0) | (1 << 2); break;
+						case 2: curr_samp_volt = (1 << 1) | (1 << 2); break;
+						case 3: curr_samp_volt = (1 << 1) | (1 << 2); break;
+						case 4: curr_samp_volt = (1 << 0) | (1 << 1); break;
+						case 5: curr_samp_volt = (1 << 0) | (1 << 1); break;
+						case 6: curr_samp_volt = (1 << 0) | (1 << 2); break;
 						default: break;
 						}
 					} else {
 						switch (comm_step) {
-						case 1: curr_samp_volt = (1 << 0) || (1 << 1); break;
-						case 2: curr_samp_volt = (1 << 1) || (1 << 2); break;
-						case 3: curr_samp_volt = (1 << 1) || (1 << 2); break;
-						case 4: curr_samp_volt = (1 << 0) || (1 << 2); break;
-						case 5: curr_samp_volt = (1 << 0) || (1 << 2); break;
-						case 6: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						case 1: curr_samp_volt = (1 << 0) | (1 << 1); break;
+						case 2: curr_samp_volt = (1 << 1) | (1 << 2); break;
+						case 3: curr_samp_volt = (1 << 1) | (1 << 2); break;
+						case 4: curr_samp_volt = (1 << 0) | (1 << 2); break;
+						case 5: curr_samp_volt = (1 << 0) | (1 << 2); break;
+						case 6: curr_samp_volt = (1 << 0) | (1 << 1); break;
 						default: break;
 						}
 					}
 #else
 					if (direction) {
 						switch (comm_step) {
-						case 1: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						case 1: curr_samp_volt = (1 << 0) | (1 << 1); break;
 						case 2: curr_samp_volt = (1 << 1); break;
 						case 3: curr_samp_volt = (1 << 1); break;
 						case 4: curr_samp_volt = (1 << 0); break;
 						case 5: curr_samp_volt = (1 << 0); break;
-						case 6: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						case 6: curr_samp_volt = (1 << 0) | (1 << 1); break;
 						default: break;
 						}
 					} else {
@@ -2534,8 +2534,8 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 						case 1: curr_samp_volt = (1 << 0); break;
 						case 2: curr_samp_volt = (1 << 1); break;
 						case 3: curr_samp_volt = (1 << 1); break;
-						case 4: curr_samp_volt = (1 << 0) || (1 << 1); break;
-						case 5: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						case 4: curr_samp_volt = (1 << 0) | (1 << 1); break;
+						case 5: curr_samp_volt = (1 << 0) | (1 << 1); break;
 						case 6: curr_samp_volt = (1 << 0); break;
 						default: break;
 						}

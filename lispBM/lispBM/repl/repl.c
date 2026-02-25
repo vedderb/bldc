@@ -79,6 +79,10 @@
 #include "lbm_midi.h"
 #endif
 
+#ifdef WITH_RTLSDR
+#include "lbm_rtlsdr.h"
+#endif
+
 #ifndef LBM_WIN
 #include "lbm_gnuplot.h"
 #endif
@@ -289,6 +293,8 @@ static char *env_input_file = NULL;
 static char *env_output_file = NULL;
 static volatile char *res_output_file = NULL;
 static bool terminate_after_startup = false;
+static bool shebang_mode = false;
+static int script_args_start_index = -1;
 static volatile lbm_cid startup_cid = -1;
 static volatile lbm_cid store_result_cid = -1;
 static volatile bool silent_mode = false;
@@ -498,6 +504,8 @@ void critical(void) {
   terminate_repl(REPL_EXIT_CRITICAL_ERROR);
 }
 
+static int done_status = 0; // exit success
+
 void done_callback(eval_context_t *ctx) {
 
   // fails silently if unable to generate result file.
@@ -546,6 +554,11 @@ void done_callback(eval_context_t *ctx) {
 
   if (startup_cid != -1) {
     if (ctx->id == startup_cid) {
+      if (lbm_is_error(ctx->r)) {
+        done_status = 1;
+      } else {
+        done_status = 0;
+      }
       startup_cid = -1;
     }
   }
@@ -694,6 +707,9 @@ void sym_it(const char *str) {
 #define BLDC_STUBS           0x040B
 #define VESC_EXPRESS_STUBS   0x040C
 
+#define SHEBANG_MODE         0x040D
+#define SCRIPT_ARGS_START    0x040E
+
 bool use_bldc_stubs = false;
 bool use_vesc_express_stubs = false;
 
@@ -716,6 +732,8 @@ struct option options[] = {
   {"history_file", required_argument, NULL, HISTORY_FILE},
   {"bldc_stubs", no_argument, NULL, BLDC_STUBS},
   {"vesc_express_stubs", no_argument, NULL, VESC_EXPRESS_STUBS},
+  {"shebang", required_argument, NULL, SHEBANG_MODE},
+  {"script_args_start", required_argument, NULL, SCRIPT_ARGS_START},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -796,58 +814,23 @@ void parse_opts(int argc, char **argv) {
       constants_memory_size = (size_t)atoi((char*)optarg);
       break;
     case 'M': {
-      size_t ix = (size_t)atoi((char*)optarg);
-      switch(ix) {
-      case 1:
-        lbm_memory_size = LBM_MEMORY_SIZE_512;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_512;
-        break;
-      case 2:
-        lbm_memory_size = LBM_MEMORY_SIZE_1K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_1K;
-        break;
-      case 3:
-        lbm_memory_size = LBM_MEMORY_SIZE_2K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_2K;
-        break;
-      case 4:
-        lbm_memory_size = LBM_MEMORY_SIZE_4K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_4K;
-        break;
-      case 5:
-        lbm_memory_size = LBM_MEMORY_SIZE_8K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_8K;
-        break;
-      case 6:
-        lbm_memory_size = LBM_MEMORY_SIZE_10K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
-        break;
-      case 7:
-        lbm_memory_size = LBM_MEMORY_SIZE_12K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_12K;
-        break;
-      case 8:
-        lbm_memory_size = LBM_MEMORY_SIZE_14K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_14K;
-        break;
-      case 9:
-        lbm_memory_size = LBM_MEMORY_SIZE_16K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_16K;
-        break;
-      case 10:
-        lbm_memory_size = LBM_MEMORY_SIZE_32K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_32K;
-        break;
-      case 11:
-        lbm_memory_size = LBM_MEMORY_SIZE_1M;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_1M;
-        break;
-      default:
-        printf("WARNING: Incorrect lbm_memory_size index! Using default\n");
-        lbm_memory_size = LBM_MEMORY_SIZE_10K;
-        lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
-        break;
+      uint32_t sizebytes = (uint32_t)atoi((char*)optarg);
+      if (sizebytes == 0) {
+        printf("Incorrect lbm_memory size\n");
+        terminate_repl(REPL_EXIT_SUCCESS);
       }
+
+      uint32_t size_single_block_bytes = sizeof(lbm_uint) * LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(1);
+
+      if (!(sizebytes % size_single_block_bytes) == 0) {
+        printf("Warning: The lbm_memory must be a multiple of %d bytes in size\n", size_single_block_bytes);
+        sizebytes = (sizebytes + (size_single_block_bytes - 1)) & ~(size_single_block_bytes - 1);
+        printf("Using next multiple of %d: %d\n", size_single_block_bytes, sizebytes);
+      }
+
+      uint32_t num_blocks = sizebytes / size_single_block_bytes;
+      lbm_memory_size = LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(num_blocks);
+      lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE(num_blocks);
     } break;
     case 'h':
       printf("Usage: %s [OPTION...]\n\n", argv[0]);
@@ -855,8 +838,9 @@ void parse_opts(int argc, char **argv) {
       printf("    -H SIZE, --heap_size=SIZE         Set heap_size to be SIZE number of\n"\
              "                                      cells.\n");
       printf("    -M SIZE, --memory_size=SIZE       Set the arrays and symbols memory\n"\
-             "                                      size to one memory-size-indices\n"\
-             "                                      listed below.\n");
+             "                                      SIZE in Bytes.\n" \
+             "                                      Value is rounded up to nearest\n"\
+             "                                      usable larger value.\n");
       printf("    -C SIZE, --const_memory_size=SIZE Set the size of the constants memory.\n"\
              "                                      This memory emulates a flash memory\n"\
              "                                      that can be written to once per location.\n");
@@ -886,33 +870,9 @@ void parse_opts(int argc, char **argv) {
       printf("    --bldc_stubs                      Load BLDC extension stub files\n");
       printf("    --vesc_express_stubs              Load Vesc Express extension stub files\n");
       printf("\n");
-
-      printf("memory-size-indices: \n"          \
-             "Index | Words\n"                  \
-             "  1   - %d\n"                     \
-             "  2   - %d\n"                     \
-             "  3   - %d\n"                     \
-             "  4   - %d\n"                     \
-             "  5   - %d\n"                     \
-             "* 6   - %d\n"                     \
-             "  7   - %d\n"                     \
-             "  8   - %d\n"                     \
-             "  9   - %d\n"                     \
-             " 10   - %d\n"                     \
-             " 11   - %d\n",
-             LBM_MEMORY_SIZE_512,
-             LBM_MEMORY_SIZE_1K,
-             LBM_MEMORY_SIZE_2K,
-             LBM_MEMORY_SIZE_4K,
-             LBM_MEMORY_SIZE_8K,
-             LBM_MEMORY_SIZE_10K,
-             LBM_MEMORY_SIZE_12K,
-             LBM_MEMORY_SIZE_14K,
-             LBM_MEMORY_SIZE_16K,
-             LBM_MEMORY_SIZE_32K,
-             LBM_MEMORY_SIZE_1M
-             );
-      printf("Default is marked with a *.\n");
+      printf("    --shebang                         Executable script mode\n");
+      printf("    --script_args_start               Index in argument list where arguments\n");
+      printf("                                      for the script starts\n");
       printf("\n");
       printf("SOURCE FILES\n" \
              "  Multiple sourcefiles and expressions can be added with multiple uses\n" \
@@ -981,6 +941,17 @@ void parse_opts(int argc, char **argv) {
       break;
     case VESC_EXPRESS_STUBS:
       use_vesc_express_stubs = false;
+      break;
+    case SHEBANG_MODE:
+      shebang_mode = true;
+      terminate_after_startup = true;
+      if (!src_list_add((char*)optarg)) {
+        printf("Error adding source file to source list\n");
+        terminate_repl(REPL_EXIT_INVALID_SOURCE_FILE);
+      }
+      break;
+    case SCRIPT_ARGS_START:
+      script_args_start_index = (int)atoi((char*)optarg);
       break;
     default:
       break;
@@ -1166,7 +1137,7 @@ int init_repl(void) {
 #ifndef LBM_WIN
   lbm_gnuplot_init();
 #endif
-  
+
 /* Load clean_cl library into heap */
 #ifdef CLEAN_UP_CLOSURES
   if (!load_flat_library(clean_cl_env, clean_cl_env_len)) {
@@ -1201,6 +1172,7 @@ bool evaluate_sources(void) {
   while (curr) {
     if (file_str) free(file_str);
     file_str = load_file(curr->filename);
+    if (!file_str) return false; // load file returns NULL if no file
     lbm_create_string_char_channel(&string_tok_state,
                                    &string_tok,
                                    file_str);
@@ -1254,7 +1226,7 @@ bool evaluate_expressions(void) {
 
 #define NAME_BUF_SIZE 1024
 
-void startup_procedure(void) {
+void startup_procedure(int argc, char **argv) {
 
   if (env_input_file) {
     FILE *fp = fopen(env_input_file, "r");
@@ -1370,7 +1342,40 @@ void startup_procedure(void) {
     }
   }
   if (sources) {
-    evaluate_sources();
+    if (shebang_mode) {
+      lbm_pause_eval();
+      int timeout_cnt = 1000;
+      while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
+        sleep_callback(1000);
+        timeout_cnt--;
+      }
+      if (timeout_cnt <= 0) terminate_repl(REPL_EXIT_UNABLE_TO_PAUSE_EVALUATOR);
+
+      int num_args = argc - script_args_start_index;
+      lbm_value arg_list = ENC_SYM_NIL;
+      if (num_args > 0) {
+        arg_list = lbm_heap_allocate_list((lbm_uint)num_args);
+        if (lbm_is_symbol(arg_list)) {
+          printf("Error allocating argument list\n");
+          terminate_repl(REPL_EXIT_ERROR);
+        }
+        lbm_value curr = arg_list;
+        for (int i = script_args_start_index; i < argc; i ++) {
+          lbm_value arg_str;
+          char *str = argv[i];
+          unsigned int len = strlen(str) + 1;
+          if (lbm_share_array(&arg_str, str, len)) {
+            lbm_set_car(curr,arg_str);
+          }
+          curr = lbm_cdr(curr);
+        }
+      }
+      lbm_define("args", arg_list);
+      lbm_continue_eval();
+    }
+    if (!evaluate_sources()) {
+      terminate_repl(REPL_EXIT_INVALID_SOURCE_FILE);
+    }
   }
   if (expressions) {
     evaluate_expressions();
@@ -1378,7 +1383,11 @@ void startup_procedure(void) {
 
   if(terminate_after_startup) {
     shutdown_procedure();
-    terminate_repl(REPL_EXIT_SUCCESS);
+    if (shebang_mode) {
+      terminate_repl(done_status);
+    } else {
+      terminate_repl(REPL_EXIT_SUCCESS);
+    }
   }
 }
 
@@ -2651,7 +2660,6 @@ static void handle_repl_output(void) {
 // ////////////////////////////////////////////////////////////
 //
 int main(int argc, char **argv) {
-
   iobuffer_init();
 
   // ////////////////////////////////////////////////////////////
@@ -2736,8 +2744,20 @@ int main(int argc, char **argv) {
   if (!init_repl()) {
     terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
   }
+
+#if defined(WITH_ALSA) && defined(WITH_RTLSDR)
+  lbm_sound_init();
+#endif
+#ifdef WITH_ALSA
+  lbm_midi_init();
+#endif
+
+#ifdef WITH_RTLSDR
+  lbm_rtlsdr_init();
+#endif
+
   // TODO: Should the startup procedure work together with the VESC tcp serv?
-  startup_procedure();
+  startup_procedure(argc,argv);
 
   if (vesctcp) {
 #ifdef LBM_WIN
@@ -2880,13 +2900,6 @@ int main(int argc, char **argv) {
     }
 #endif
   } else {
-
-#ifdef WITH_ALSA
-    lbm_sound_init();
-    lbm_midi_init();
-#endif
-
-    
     char output[1024];
 
     if (silent_mode) {

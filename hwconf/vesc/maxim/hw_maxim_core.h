@@ -94,7 +94,11 @@
 
 // Hold shutdown pin early to wake up on short pulses
 #define HW_EARLY_INIT()			palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
-								HW_SHUTDOWN_HOLD_ON();
+								palSetPadMode(AUX_GPIO, AUX_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST); \
+								palSetPadMode(AUX2_GPIO, AUX2_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST); \
+								HW_SHUTDOWN_HOLD_ON(); \
+								AUX_OFF(); \
+								AUX2_OFF();
 
 #define MCPWM_FOC_CURRENT_SAMP_OFFSET				(2) // Offset from timer top for ADC samples
 

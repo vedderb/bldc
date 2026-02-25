@@ -1,0 +1,84 @@
+Cppcheck 2.13.0
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:23:0: information: Include file: "sys/types.h" not found. [missingInclude]
+#include "sys/types.h"
+^
+/home/joels/Current/lispbm/src/extensions/ttf_backend.c:23:14: style: Variable 'c' is assigned a value that is never used. [unreadVariable]
+  uint32_t c = 0;
+             ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:343:37: style: The scope of the variable 'length' can be reduced. [variableScope]
+  unsigned int numTables, numPairs, length, format, flags;
+                                    ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:343:45: style: The scope of the variable 'format' can be reduced. [variableScope]
+  unsigned int numTables, numPairs, length, format, flags;
+                                            ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:343:53: style: The scope of the variable 'flags' can be reduced. [variableScope]
+  unsigned int numTables, numPairs, length, format, flags;
+                                                    ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:521:9: style: The scope of the variable 'pt' can be reduced. [variableScope]
+  Point pt;
+        ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:535:9: style: The scope of the variable 'pt' can be reduced. [variableScope]
+  Point pt;
+        ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:655:33: style: The scope of the variable 'sample' can be reduced. [variableScope]
+  const uint8_t *bytes = base, *sample;
+                                ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:656:37: style: The scope of the variable 'mid' can be reduced. [variableScope]
+  size_t low = 0, high = nmemb - 1, mid;
+                                    ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:916:31: style: The scope of the variable 'boundary' can be reduced. [variableScope]
+  uint_fast32_t hmtx, offset, boundary;
+                              ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:1077:47: style: The scope of the variable 'cur' can be reduced. [variableScope]
+  uint_least16_t looseEnd, beg, ctrl, center, cur;
+                                              ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:1236:23: style: The scope of the variable 'glyph' can be reduced. [variableScope]
+  unsigned int flags, glyph, basePoint;
+                      ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:519:60: style: Parameter 'trf' can be declared as const array [constParameter]
+transform_points(unsigned int numPts, Point *points, float trf[6])
+                                                           ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:722:31: style: Parameter 'tag' can be declared as const array [constParameter]
+gettable(SFT_Font *font, char tag[4], uint_fast32_t *offset)
+                              ^
+/home/joels/Current/lispbm/src/extensions/schrift.c:743:11: style: Variable 'key' can be declared as const array [constVariable]
+  uint8_t key[2] = { (uint8_t) (charCode >> 8), (uint8_t) charCode };
+          ^
+/home/joels/Current/lispbm/src/extensions/ttf_extensions.c:332:11: style: The scope of the variable 'y_scale' can be reduced. [variableScope]
+    float y_scale = x_scale;
+          ^
+/home/joels/Current/lispbm/src/extensions/ttf_extensions.c:670:11: style: The scope of the variable 'y_n' can be reduced. [variableScope]
+    float y_n = y;
+          ^
+/home/joels/Current/lispbm/src/eval_cps.c:2123:13: style: The scope of the variable 'rest_conds' can be reduced. [variableScope]
+  lbm_value rest_conds = curr;
+            ^
+/home/joels/Current/lispbm/src/eval_cps.c:3285:15: style: The scope of the variable 'cmp_env' can be reduced. [variableScope]
+    lbm_value cmp_env = cl2;
+              ^
+/home/joels/Current/lispbm/src/eval_cps.c:3356:15: style: The scope of the variable 'cmp_env' can be reduced. [variableScope]
+    lbm_value cmp_env = cl2;
+              ^
+repl.c:2926:17: style: Condition 'str==NULL' is always false [knownConditionTrueFalse]
+        if (str == NULL) terminate_repl(REPL_EXIT_SUCCESS);
+                ^
+repl.c:822:9: warning: %d in format string (no. 1) requires 'int' but the argument type is 'unsigned int'. [invalidPrintfArgType_sint]
+        printf("Warning: The lbm_memory must be a multiple of %d bytes in size\n", size_single_block_bytes);
+        ^
+repl.c:824:9: warning: %d in format string (no. 1) requires 'int' but the argument type is 'unsigned int'. [invalidPrintfArgType_sint]
+        printf("Using next multiple of %d: %d\n", size_single_block_bytes, sizebytes);
+        ^
+repl.c:824:9: warning: %d in format string (no. 2) requires 'int' but the argument type is 'unsigned int'. [invalidPrintfArgType_sint]
+        printf("Using next multiple of %d: %d\n", size_single_block_bytes, sizebytes);
+        ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1302:47: style: Condition 'end_is_past0!=0' is always true [knownConditionTrueFalse]
+      && (start_is_past0 != 0 || end_is_past0 != 0);
+                                              ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1304:47: style: Condition 'end_is_past1!=0' is always true [knownConditionTrueFalse]
+      && (start_is_past1 != 0 || end_is_past1 != 0);
+                                              ^
+/home/joels/Current/lispbm/src/extensions/display_extensions.c:1440:45: style: Condition 'end_is_past!=0' is always true [knownConditionTrueFalse]
+      && (start_is_past != 0 || end_is_past != 0);
+                                            ^
+nofile:0:0: information: Active checkers: 102/592 (use --checkers-report=<filename> to see details) [checkersReport]
+
