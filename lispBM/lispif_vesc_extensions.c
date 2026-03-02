@@ -2293,6 +2293,7 @@ static lbm_value ext_encoder_abi_state(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 
 	lbm_value abi_data = ENC_SYM_NIL;
+	abi_data = lbm_cons(lbm_enc_i(encoder_cfg_ABI.state.index_pulse_cnt), abi_data);
 	abi_data = lbm_cons(lbm_enc_i(encoder_cfg_ABI.state.bad_pulses), abi_data);
 	abi_data = lbm_cons(lbm_enc_i(encoder_cfg_ABI.state.cnt_at_ind_last), abi_data);
 	abi_data = lbm_cons(lbm_enc_i(encoder_index_found() ? 1 : 0), abi_data);
