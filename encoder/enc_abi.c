@@ -96,6 +96,8 @@ void enc_abi_pin_isr(ABI_config_t *cfg) {
 		const unsigned int cnt = cfg->timer->CNT;
 		const unsigned int lim = cfg->counts / 20;
 
+		cfg->state.cnt_at_ind_last = cfg->timer->CNT;
+
 		if (cfg->state.index_found) {
 			// Some plausibility filtering.
 			if (cnt > (cfg->counts - lim) || cnt < lim) {

@@ -1813,6 +1813,34 @@ Returns 1 if the encoder index is found, 0 otherwise. For encoders without an in
 
 ---
 
+#### encoder-abi-state
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(encoder-abi-state)
+```
+
+Returns the internal state of the ABI enc´oder. Can be used to determine how many counts the encoder has or if the error rate is unreasonably high, indicating that the signal is noisy.
+
+The following list is returned
+
+```clj
+(index-found cnt-at-ind-last bad-pulses)
+```
+
+where
+
+```clj
+index-found     : 1 if the index pulse has been received at least once, 0 otherwise
+cnt-at-ind-last : Encoder counts the last time the index pulse was received
+bad-pulses      : Counts up every time a bad index pulse is received, resets at 6
+```
+
+---
+
 #### pos-pid-now
 
 | Platforms | Firmware |
