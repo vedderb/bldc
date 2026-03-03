@@ -28,10 +28,14 @@
 
 #ifdef HW_SHUTDOWN_HOLD_ON
 #define SHUTDOWN_BUTTON_PRESSED				shutdown_button_pressed()
+#ifndef SHUTDOWN_SET_SAMPLING_DISABLED
 #define SHUTDOWN_SET_SAMPLING_DISABLED(d)	shutdown_set_sampling_disabled(d)
+#endif
 #else
 #define SHUTDOWN_BUTTON_PRESSED				false
+#ifndef SHUTDOWN_SET_SAMPLING_DISABLED
 #define SHUTDOWN_SET_SAMPLING_DISABLED(d)	(void)d
+#endif
 #endif
 
 #define SHUTDOWN_SAVE_BACKUPDATA_TIMEOUT 60*3 

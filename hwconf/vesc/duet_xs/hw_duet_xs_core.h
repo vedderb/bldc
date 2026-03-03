@@ -340,7 +340,7 @@
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE		55.0
 #endif
-#define HW_LIM_VIN					6.0, 57.0
+#define HW_LIM_VIN					11.0, 57.0
 #define HW_LIM_CURRENT				-100.0, 100.0
 #define HW_LIM_CURRENT_ABS			0.0, 150.0
 #define HW_LIM_CURRENT_IN			-100.0, 100.0
@@ -348,7 +348,7 @@
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE		90.0
 #endif
-#define HW_LIM_VIN					6.0, 94.0
+#define HW_LIM_VIN					11.0, 94.0
 #define HW_LIM_CURRENT				-65.0, 65.0
 #define HW_LIM_CURRENT_ABS			0.0, 110.0
 #define HW_LIM_CURRENT_IN			-65.0, 65.0

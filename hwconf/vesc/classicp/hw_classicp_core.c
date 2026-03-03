@@ -278,10 +278,6 @@ void smart_switch_keep_on(void) {
 }
 
 void smart_switch_shut_down(void) {
-	mc_interface_select_motor_thread(2);
-	mc_interface_set_current(0);
-	mc_interface_lock();
-	mc_interface_select_motor_thread(1);
 	mc_interface_set_current(0);
 	mc_interface_lock();
 	switch_state = SWITCH_SHUTTING_DOWN;
@@ -349,23 +345,11 @@ static THD_FUNCTION(switch_color_thread, arg) {
 
 	for (;;) {
 		mc_fault_code fault = mc_interface_get_fault();
-		mc_interface_select_motor_thread(2);
-		mc_fault_code fault2 = mc_interface_get_fault();
-		mc_interface_select_motor_thread(1);
 
-		if (fault != FAULT_CODE_NONE || fault2 != FAULT_CODE_NONE) {
+		if (fault != FAULT_CODE_NONE) {
 			ledpwm_set_intensity(LED_HW2, 0);
 			ledpwm_set_intensity(LED_HW1, 0);
 			for (int i = 0;i < (int)fault;i++) {
-				ledpwm_set_intensity(LED_HW3, 1.0);
-				chThdSleepMilliseconds(250);
-				ledpwm_set_intensity(LED_HW3, 0.0);
-				chThdSleepMilliseconds(250);
-			}
-
-			chThdSleepMilliseconds(500);
-
-			for (int i = 0;i < (int)fault2;i++) {
 				ledpwm_set_intensity(LED_HW3, 1.0);
 				chThdSleepMilliseconds(250);
 				ledpwm_set_intensity(LED_HW3, 0.0);
@@ -432,17 +416,6 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 
 		case SWITCH_TURN_ON_DELAY_ACTIVE:
 			switch_state = SWITCH_HELD_AFTER_TURN_ON;
-			mc_interface_select_motor_thread(2);
-			mc_interface_set_current(0);
-			mc_interface_lock();
-			mc_interface_select_motor_thread(1);
-			mc_interface_set_current(0);
-			mc_interface_lock();
-
-			mc_interface_select_motor_thread(2);
-			mc_interface_unlock();
-			mc_interface_select_motor_thread(1);
-			mc_interface_unlock();
 
 			// Wait for other systems to boot up before proceeding
 			while (!main_init_done()) {
