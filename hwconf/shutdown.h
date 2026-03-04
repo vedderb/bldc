@@ -38,11 +38,11 @@
 #endif
 #endif
 
-#define SHUTDOWN_SAVE_BACKUPDATA_TIMEOUT 60*3 
 // time of inactivity after wich backup data (odometer, running time, ...) is
 // stored to emulated eeprom when not using power switch. Must be greater than
 // average stopping time, usually semaphores require 120s max, so 60*3s or 
-// more should be pretty safe 
+// more should be pretty safe
+#define SHUTDOWN_SAVE_BACKUPDATA_TIMEOUT (60 * 3)
 
 // Fucntions
 void shutdown_init(void);

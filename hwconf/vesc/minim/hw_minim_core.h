@@ -71,11 +71,12 @@
 #define OUT_3_OFF()		    palClearPad(OUT_3_GPIO, OUT_3_PIN)
 
 // Shutdown pin
+#define HW_SHUTDOWN_NO // Normally open switch
 #define HW_SHUTDOWN_HOLD_ON()
-#define HW_SAMPLE_SHUTDOWN()		1
-#define HW_SHUTDOWN_HOLD_OFF()				palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
-#define HW_SHUTDOWN_NO
-#define SHUTDOWN_SET_SAMPLING_DISABLED(d)	smart_switch_set_sampling_disabled(d)
+#define HW_SAMPLE_SHUTDOWN()				1
+#define HW_SHUTDOWN_HOLD_OFF()				smart_switch_shut_down()
+#define SHUTDOWN_SET_SAMPLING_DISABLED(d)	smart_switch_set_sampling_disabled(d); \
+											shutdown_set_sampling_disabled(d)
 
 #define HW_EARLY_INIT()				smart_switch_pin_init(); \
 									smart_switch_thread_start();
@@ -275,7 +276,7 @@
 #define MCCONF_FOC_F_ZV					30000.0
 #endif
 #ifndef APPCONF_SHUTDOWN_MODE
-#define APPCONF_SHUTDOWN_MODE			SHUTDOWN_MODE_ALWAYS_ON
+#define APPCONF_SHUTDOWN_MODE			SHUTDOWN_MODE_TOGGLE_BUTTON_ONLY
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT		80.0

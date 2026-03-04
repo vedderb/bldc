@@ -469,11 +469,7 @@ void hw_shutdown_set_hold(bool hold) {
 }
 
 void smart_switch_shut_down(void) {
-	mc_interface_set_current(0);
-	mc_interface_lock();
 	switch_state = SWITCH_SHUTTING_DOWN;
-	hw_shutdown_set_hold(false);
-	return;
 }
 
 static THD_FUNCTION(switch_color_thread, arg) {
@@ -599,7 +595,8 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 					switch_state = SWITCH_SHUTTING_DOWN;
 				}
 			} else {
-				if (smart_switch_is_pressed()) {
+				if (smart_switch_is_pressed() &&
+						conf->shutdown_mode != SHUTDOWN_MODE_ALWAYS_ON) {
 					switch_bright = 0.5;
 				} else {
 					switch_bright = 1.0;
@@ -608,6 +605,9 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 
 				if (UTILS_AGE_S(switch_pressed_ts) > ((float)(SMART_SWITCH_MSECS_PRESSED_OFF) / 1000.0)) {
 					switch_state = SWITCH_SHUTTING_DOWN;
+#ifdef USE_LISPBM
+					lispif_process_shutdown();
+#endif
 				}
 			}
 			break;
@@ -618,8 +618,13 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 				chThdSleepMilliseconds(10);
 			}
 			comm_can_shutdown(255);
-			smart_switch_shut_down();
+			mc_interface_set_current(0);
+			mc_interface_lock();
+			hw_shutdown_set_hold(false);
 			chThdSleepMilliseconds(10000);
+
+			// Shutdown never happened
+			mc_interface_unlock();
 			hw_shutdown_set_hold(true);
 			switch_state = SWITCH_TURN_ON_DELAY_ACTIVE;
 			break;
