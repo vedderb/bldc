@@ -7141,16 +7141,30 @@ Remove path recursively. If path is a file just the file is removed and if it is
 | Express | 6.05+ |
 
 ```clj
-(f-ls path)
+(f-ls path opt-count opt-offset opt-size)
 ```
 
-List all files and directories in path. Returns a list with the entries; each entry is a list where the first element is the name, the second element is true for directories and nil for files and the third element is the size. For directories the size says how many entries that directory has and for files it says what size the file has in bytes.
+List all files and directories in path. Returns a list with the entries; each entry is a list where the first element is the name and the second element is true for directories and nil for files. If the optional argument 'size is passed each entry in the list also has the size at the end. For directories the size says how many entries that directory has and for files it says what size the file has in bytes.
+
+The optional argument opt-count can be used to specity a maximum number of elemets to list and the optional argument opt-offset sets how many elemnts to skip in the beginning. This can be useful if a directory has so many entries that the file list risks using too much memory.
 
 Example:
 
 ```clj
 (f-ls "")
-> ("testsize.bin" nil 100) ("test.txt" nil 7) ("old_logs" t 47))
+> (("testsize.bin" nil) ("test.txt" nil) ("old_logs" t))
+
+(f-ls "" 'size)
+> (("testsize.bin" nil 100) ("test.txt" nil 7) ("old_logs" t 47))
+
+(f-ls "" 2)
+> (("testsize.bin" nil) ("test.txt" nil))
+
+(f-ls "" 2 1)
+> (("test.txt" nil) ("old_logs" t))
+
+(f-ls "" 2 1 'size)
+> (("test.txt" nil 7) ("old_logs" t 47))
 ```
 
 ---
