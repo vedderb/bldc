@@ -33,7 +33,7 @@
 #define HW_HAS_PHASE_FILTERS
 #define INVERTED_SHUNT_POLARITY
 
-#ifdef HW_MINIM60_ESP
+#ifdef HW_MINIM_W60
 #define HW_BOOT_VESC_CAN
 #endif
 
@@ -80,10 +80,7 @@
 #define HW_EARLY_INIT()				smart_switch_pin_init(); \
 									smart_switch_thread_start();
 
-// Switch Pins
-#define HW_HAS_RGB_SWITCH
-
-#define SMART_SWITCH_MSECS_PRESSED_OFF		2000
+#define SMART_SWITCH_MSECS_PRESSED_OFF		1500
 
 #define SWITCH_OUT_GPIO				GPIOA
 #define SWITCH_OUT_PIN				5
@@ -293,7 +290,7 @@
 #define MCCONF_L_MIN_VOLTAGE			15.0
 #endif
 
-#ifdef HW_MINIM60_ESP
+#ifdef HW_MINIM_W60
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE			55.0
 #endif

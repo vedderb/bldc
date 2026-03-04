@@ -34,9 +34,6 @@
 
 #define HW_DEAD_TIME_NSEC               200.0
 
-// Switch Pins
-#define HW_HAS_RGB_SWITCH
-
 #define SWITCH_IN_GPIO					GPIOA
 #define SWITCH_IN_PIN					15
 #define SWITCH_OUT_GPIO					GPIOB
@@ -55,7 +52,7 @@
 #define LED_PWM3_ON()			palClearPad(SWITCH_LED_3_GPIO, SWITCH_LED_3_PIN)
 #define LED_PWM3_OFF()			palSetPad(SWITCH_LED_3_GPIO, SWITCH_LED_3_PIN)
 
-#define SMART_SWITCH_MSECS_PRESSED_OFF		2000
+#define SMART_SWITCH_MSECS_PRESSED_OFF		1500
 
 #define HW_HAS_PHASE_FILTERS
 #define PHASE_FILTER_OFF()		palSetPad(GPIOE, 3); palSetPad(GPIOE, 4); palSetPad(GPIOE, 6);

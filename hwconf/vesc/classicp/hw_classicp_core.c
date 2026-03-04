@@ -268,13 +268,6 @@ void hw_try_restore_i2c(void) {
 
 void smart_switch_keep_on(void) {
 	palSetPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
-	//#ifdef HW_HAS_RGB_SWITCH
-	//	LED_SWITCH_B_ON();
-	//	ledpwm_set_intensity(SWITCH_LED_B, 1.0);
-	//#else
-	//	ledpwm_set_intensity(SWITCH_LED, 1.0);
-	//	ledpwm_set_switch_intensity(0.6);
-	//#endif
 }
 
 void smart_switch_shut_down(void) {
