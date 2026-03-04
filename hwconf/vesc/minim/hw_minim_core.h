@@ -22,8 +22,8 @@
 
 #ifdef HW_MINIM
   #define HW_NAME			"Minim"
-#elif defined (HW_MINIM60_ESP)
-  #define HW_NAME			"Minim60 ESP"
+#elif defined (HW_MINIM_W60)
+  #define HW_NAME			"Minim W60"
 #else
   #error "Must define hardware type"
 #endif

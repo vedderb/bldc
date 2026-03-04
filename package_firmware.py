@@ -204,7 +204,7 @@ package_dict["Duet XS60"] = [['duet_xs60', default_name],
                     ['duet_xs60_no_limits', no_limits_name]]
 package_dict["Minim"] = [['minim', default_name],
                     ['minim_no_limits', no_limits_name]]
-package_dict["Minim60 ESP"] = [['minim60_esp', default_name]]
+package_dict["Minim W60"] = [['minim_w60', default_name]]
 package_dict["Pronto"] = [['pronto', default_name],
                     ['pronto_no_limits', no_limits_name]]
 package_dict["FLIPSKY_75"] = [['flipsky_75', default_name],
