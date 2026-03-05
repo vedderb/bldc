@@ -66,10 +66,7 @@
 #define HW_EARLY_INIT()				smart_switch_pin_init(); \
 									smart_switch_thread_start();
 
-// Switch Pins
-#define HW_HAS_RGB_SWITCH
-
-#define SMART_SWITCH_MSECS_PRESSED_OFF		2000
+#define SMART_SWITCH_MSECS_PRESSED_OFF		1500
 
 #define SWITCH_OUT_GPIO				GPIOB
 #define SWITCH_OUT_PIN				2

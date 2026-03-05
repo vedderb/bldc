@@ -361,13 +361,6 @@ static THD_FUNCTION(mux_thread, arg) {
 
 void smart_switch_keep_on(void) {
 	palSetPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
-	//#ifdef HW_HAS_RGB_SWITCH
-	//	LED_SWITCH_B_ON();
-	//	ledpwm_set_intensity(SWITCH_LED_B, 1.0);
-	//#else
-	//	ledpwm_set_intensity(SWITCH_LED, 1.0);
-	//	ledpwm_set_switch_intensity(0.6);
-	//#endif
 }
 
 void smart_switch_shut_down(void) {
@@ -505,17 +498,6 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 
 		case SWITCH_TURN_ON_DELAY_ACTIVE:
 			switch_state = SWITCH_HELD_AFTER_TURN_ON;
-			mc_interface_select_motor_thread(2);
-			mc_interface_set_current(0);
-			mc_interface_lock();
-			mc_interface_select_motor_thread(1);
-			mc_interface_set_current(0);
-			mc_interface_lock();
-
-			mc_interface_select_motor_thread(2);
-			mc_interface_unlock();
-			mc_interface_select_motor_thread(1);
-			mc_interface_unlock();
 
 			// Wait for other systems to boot up before proceeding
 			while (!main_init_done()) {

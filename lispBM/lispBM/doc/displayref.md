@@ -28,6 +28,21 @@ the display library is specifically designed to allow for using many colors simu
 
 images are rendered onto a display using the function `disp-render`. `disp-render` takes an image, a position (x,y) where to draw the image, and a colormapping that can be expressed as a list of colors. for example: 
 
+
+# Reference
+
+
+### disp-render
+
+An image is drawn onto a display using `disp-render`. The form of a `disp-render` expression is `(disp-render image x y color-list)`. 
+
+|Arg || 
+ |----|----|
+ `image`      | An image buffer for example created using img-buffer.
+ `x y`        | position of top left corner x,y.
+ `color-list` | List of Color value, hex or color values.
+ 
+
 <table>
 <tr>
 <td> Example </td> <td> Image </td> <td> Result </td>
@@ -124,29 +139,6 @@ t
 
 </td>
 </tr>
-<tr>
-<td>
-
-```clj
-(disp-clear)
-```
-
-
-</td>
-<td>
-
-<img src=./images/disp-img5.png >
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
 </table>
 
 <table>
@@ -164,7 +156,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img6.png >
+<img src=./images/disp-img5.png >
 
 </td>
 <td>
@@ -187,7 +179,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img7.png >
+<img src=./images/disp-img6.png >
 
 </td>
 <td>
@@ -210,7 +202,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img8.png >
+<img src=./images/disp-img7.png >
 
 </td>
 <td>
@@ -233,7 +225,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img9.png >
+<img src=./images/disp-img8.png >
 
 </td>
 <td>
@@ -256,7 +248,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img10.png >
+<img src=./images/disp-img9.png >
 
 </td>
 <td>
@@ -279,6 +271,51 @@ t
 </td>
 <td>
 
+<img src=./images/disp-img10.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### disp-render-jpg
+
+There is a renderer specifically for JPG images. If one is considering to use JPG for images, the images are most likely larger than what is easy to handle with image buffers. The `disp-render-jpg` decompresses a JPG in small chunks and outputs directly to the display. The form of a `disp-render-jpg` expression is `(disp-render-jpg jpg-data x y)`. 
+
+|Arg || 
+ |----|----|
+ `jpg-data`   | Imported or otherwise loaded jpg data.
+ `x y`        | position of top left corner x,y.
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(disp-render-jpg my-jpg 0 0)
+```
+
+
+</td>
+<td>
+
 <img src=./images/disp-img11.png >
 
 </td>
@@ -294,7 +331,135 @@ t
 </table>
 
 
-# Reference
+
+
+---
+
+
+### disp-clear
+
+Use `disp-clear` to clear the display
+. The form of a `disp-clear` expression is `(disp-clear opt-color)`. `opt-color` is an optional color value. 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(disp-clear)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img12.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(disp-clear 0xFF8822)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img13.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(disp-clear 0x000000)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img14.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### disp-reset
+
+Use `disp-reset` to reset the display
+. What it means to reset a display is display-backend dependend on an display connected over SPI to an MCU, it may mean powercycling and running the initialization sequence of commands. The form of a `disp-reset` expression is `(disp-reset)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(disp-reset)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img15.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
 
 
 ### img-buffer
@@ -440,7 +605,7 @@ Copy pixels from `src` to `dest`.   `x` and `y` are coordinates in `dest`. Pixel
 </td>
 <td>
 
-<img src=./images/disp-img12.png >
+<img src=./images/disp-img16.png >
 
 </td>
 <td>
@@ -463,7 +628,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img13.png >
+<img src=./images/disp-img17.png >
 
 </td>
 <td>
@@ -486,7 +651,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img14.png >
+<img src=./images/disp-img18.png >
 
 </td>
 <td>
@@ -509,112 +674,6 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img15.png >
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-(img-blit my-img llama-bin 10 10 -1 '(tile) '(scale 0.200000f32) '(rotate 10 10 45))
-```
-
-
-</td>
-<td>
-
-<img src=./images/disp-img16.png >
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-(img-blit my-img llama-bin 10 10 -1 '(tile) '(scale 0.200000f32) '(rotate 10 10 45) '(clip 50 50 250 150))
-```
-
-
-</td>
-<td>
-
-<img src=./images/disp-img17.png >
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
-</table>
-
-
-
-
----
-
-
-### img-arc
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
-</tr>
-<tr>
-<td>
-
-```clj
-(img-arc my-img 100 100 50 160 100 1)
-```
-
-
-</td>
-<td>
-
-<img src=./images/disp-img18.png >
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-(img-arc my-img 100 100 50 160 100 1 '(dotted 15 15))
-```
-
-
-</td>
-<td>
-
 <img src=./images/disp-img19.png >
 
 </td>
@@ -631,7 +690,10 @@ t
 <td>
 
 ```clj
-(img-arc my-img 100 100 50 160 100 1 '(filled))
+(img-blit my-img llama-bin 10 10 -1
+    '(tile)
+    '(scale 0.2)
+    '(rotate 10 10 45))
 ```
 
 
@@ -654,7 +716,11 @@ t
 <td>
 
 ```clj
-(img-arc my-img 100 100 50 160 100 1 '(thickness 10))
+(img-blit my-img llama-bin 10 10 -1
+    '(tile)
+    '(scale 0.2)
+    '(rotate 10 10 45)
+    '(clip 50 50 250 150))
 ```
 
 
@@ -673,11 +739,27 @@ t
 
 </td>
 </tr>
+</table>
+
+
+
+
+---
+
+
+### img-dims
+
+`img-dims returns the width and height of an image. The form of an `img-dims` expression is `(img-dims image)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
 <tr>
 <td>
 
 ```clj
-(img-arc my-img 100 100 50 160 100 1 '(rounded))
+(img-dims my-img)
 ```
 
 
@@ -690,13 +772,43 @@ t
 <td>
 
 ```clj
-t
+(320 200)
 ```
 
 
 </td>
 </tr>
 </table>
+
+
+
+
+---
+
+
+### img-arc
+
+Draw an arc into an image. The form of an `img-arc` expression is `(img-arc image cx cy r ang-s ang-e color ..option)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `cx cy` | Center point x,y.
+ `r`     | Radius.
+ `ang-s ang-e` | From angle `ang-s` to `ang-e` in degrees (float).
+ `color` | Color value, range determined by image buffer color depth.
+ 
+
+<br> 
+
+|Option      || 
+ |----|----|
+ `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
+ `filled`     | Filled, no arguments.
+ `thickness`  | Thickness of line, one argument specifying thickness in pixels.
+ `rounded`    | Rounded edges, no argument.
+ `resolution` | One argument, Number of points that are connected into an arc using line segments.
+ 
 
 <table>
 <tr>
@@ -706,7 +818,7 @@ t
 <td>
 
 ```clj
-(img-arc my-img 100 100 50 160 100 1 '(dotted 15 15) '(resolution 3))
+(img-arc my-img 100 100 50 160 100 1)
 ```
 
 
@@ -729,7 +841,7 @@ t
 <td>
 
 ```clj
-(img-arc my-img 100 100 50 160 100 1 '(thickness 10) '(rounded))
+(img-arc my-img 100 100 50 160 100 1 '(dotted 15 15))
 ```
 
 
@@ -748,25 +860,11 @@ t
 
 </td>
 </tr>
-</table>
-
-
-
-
----
-
-
-### img-circle
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
-</tr>
 <tr>
 <td>
 
 ```clj
-(img-circle my-img 100 100 80 1)
+(img-arc my-img 100 100 50 160 100 1 '(filled))
 ```
 
 
@@ -789,7 +887,7 @@ t
 <td>
 
 ```clj
-(img-circle my-img 100 100 80 1 '(thickness 5))
+(img-arc my-img 100 100 50 160 100 1 '(thickness 10))
 ```
 
 
@@ -812,7 +910,7 @@ t
 <td>
 
 ```clj
-(img-circle my-img 100 100 80 1 '(dotted 14 14))
+(img-arc my-img 100 100 50 160 100 1 '(rounded))
 ```
 
 
@@ -835,7 +933,7 @@ t
 <td>
 
 ```clj
-(img-circle my-img 100 100 80 1 '(filled))
+(img-arc my-img 100 100 50 160 100 1 '(dotted 15 15) '(resolution 3))
 ```
 
 
@@ -854,17 +952,11 @@ t
 
 </td>
 </tr>
-</table>
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
-</tr>
 <tr>
 <td>
 
 ```clj
-(img-circle my-img 100 100 80 1 '(dotted 14 14) '(resolution 6))
+(img-arc my-img 100 100 50 160 100 1 '(thickness 10) '(rounded))
 ```
 
 
@@ -891,7 +983,27 @@ t
 ---
 
 
-### img-circle-sector
+### img-circle
+
+Draw a circle into an image. The form of an `img-circle` expression is `(img-circle image cx cy r color ..option)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `cx cy` | Center point x,y.
+ `r`     | Radius.
+ `color` | Color value, range determined by image buffer color depth.
+ 
+
+<br> 
+
+|Option      || 
+ |----|----|
+ `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
+ `filled`     | Filled, no arguments.
+ `thickness`  | Thickness of line, one argument specifying thickness in pixels.
+ `resolution` | One argument, Number of points that are connected into an arc using line segments.
+ 
 
 <table>
 <tr>
@@ -901,7 +1013,7 @@ t
 <td>
 
 ```clj
-(img-circle-sector my-img 220 40 40 90 200 1)
+(img-circle my-img 100 100 80 1)
 ```
 
 
@@ -924,7 +1036,7 @@ t
 <td>
 
 ```clj
-(img-circle-sector my-img 220 40 40 90 200 1 '(thickness 3))
+(img-circle my-img 100 100 80 1 '(thickness 5))
 ```
 
 
@@ -943,25 +1055,11 @@ t
 
 </td>
 </tr>
-</table>
-
-
-
-
----
-
-
-### img-circle-segment
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
-</tr>
 <tr>
 <td>
 
 ```clj
-(img-circle-segment my-img 100 100 80 0 100 1)
+(img-circle my-img 100 100 80 1 '(dotted 14 14))
 ```
 
 
@@ -984,7 +1082,7 @@ t
 <td>
 
 ```clj
-(img-circle-segment my-img 100 100 80 0 100 1 '(filled))
+(img-circle my-img 100 100 80 1 '(filled))
 ```
 
 
@@ -992,6 +1090,29 @@ t
 <td>
 
 <img src=./images/disp-img33.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-circle my-img 100 100 80 1 '(dotted 14 14) '(resolution 6))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img34.png >
 
 </td>
 <td>
@@ -1011,7 +1132,27 @@ t
 ---
 
 
-### img-line
+### img-circle-sector
+
+Draw a circle sector into an image. The form of an `img-circle-sector` expression is `(img-circle-sector image cx cy r ang-s ang-e color ..option)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `cx cy` | Center point x,y.
+ `r`     | Radius.
+ `ang-s ang-e` | From angle `ang-s` to `ang-e` in degrees (float).
+ `color` | Color value, range determined by image buffer color depth.
+ 
+
+<br> 
+
+|Option      || 
+ |----|----|
+ `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
+ `filled`     | Filled, no arguments.
+ `thickness`  | Thickness of line, one argument specifying thickness in pixels.
+ 
 
 <table>
 <tr>
@@ -1021,30 +1162,7 @@ t
 <td>
 
 ```clj
-(img-line my-img 0 0 320 200 1)
-```
-
-
-</td>
-<td>
-
-<img src=./images/disp-img34.png >
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-(img-line my-img 0 200 320 0 1 '(thickness 5))
+(img-circle-sector my-img 220 40 40 90 200 1)
 ```
 
 
@@ -1067,7 +1185,7 @@ t
 <td>
 
 ```clj
-(img-line my-img 0 0 320 200 1 '(dotted 4 20))
+(img-circle-sector my-img 220 40 40 90 200 1 '(thickness 3))
 ```
 
 
@@ -1086,25 +1204,11 @@ t
 
 </td>
 </tr>
-</table>
-
-
-
-
----
-
-
-### img-rectangle
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
-</tr>
 <tr>
 <td>
 
 ```clj
-(img-rectangle my-img 10 10 120 180 1)
+(img-circle-sector my-img 220 40 40 90 200 1 '(dotted 1 4))
 ```
 
 
@@ -1127,7 +1231,7 @@ t
 <td>
 
 ```clj
-(img-rectangle my-img 10 10 120 180 1 '(filled))
+(img-circle-sector my-img 220 40 40 90 200 1 '(filled))
 ```
 
 
@@ -1146,11 +1250,45 @@ t
 
 </td>
 </tr>
+</table>
+
+
+
+
+---
+
+
+### img-circle-segment
+
+Draw a circle segment into an image. The form of an `img-circle-segment` expression is `(img-circle-segment image cx cy r ang-s ang-e color ..option)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `cx cy` | Center point x,y.
+ `r`     | Radius.
+ `ang-s ang-e` | From angle `ang-s` to `ang-e` in degrees (float).
+ `color` | Color value, range determined by image buffer color depth.
+ 
+
+<br> 
+
+|Option      || 
+ |----|----|
+ `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
+ `filled`     | Filled, no arguments.
+ `thickness`  | Thickness of line, one argument specifying thickness in pixels.
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
 <tr>
 <td>
 
 ```clj
-(img-rectangle my-img 10 10 120 180 1 '(rounded 45))
+(img-circle-segment my-img 100 100 80 0 100 1)
 ```
 
 
@@ -1169,25 +1307,11 @@ t
 
 </td>
 </tr>
-</table>
-
-
-
-
----
-
-
-### img-setpix
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
-</tr>
 <tr>
 <td>
 
 ```clj
-(img-setpix my-img 10 10 1)
+(img-circle-segment my-img 100 100 80 0 100 1 '(filled))
 ```
 
 
@@ -1206,25 +1330,11 @@ t
 
 </td>
 </tr>
-</table>
-
-
-
-
----
-
-
-### img-text
-
-<table>
-<tr>
-<td> Example </td> <td> Image </td> <td> Result </td>
-</tr>
 <tr>
 <td>
 
 ```clj
-(img-text my-img 40 40 1 0 font "LispBM")
+(img-circle-segment my-img 100 100 80 0 100 1 '(thickness 5))
 ```
 
 
@@ -1247,7 +1357,7 @@ t
 <td>
 
 ```clj
-(img-text my-img 40 120 1 0 font "LispBM" 'up)
+(img-circle-segment my-img 100 100 80 0 100 1 '(dotted 1 4))
 ```
 
 
@@ -1255,29 +1365,6 @@ t
 <td>
 
 <img src=./images/disp-img42.png >
-
-</td>
-<td>
-
-```clj
-t
-```
-
-
-</td>
-</tr>
-<tr>
-<td>
-
-```clj
-(img-text my-img 40 40 1 0 font "LispBM" 'down)
-```
-
-
-</td>
-<td>
-
-<img src=./images/disp-img43.png >
 
 </td>
 <td>
@@ -1297,7 +1384,7 @@ t
 ---
 
 
-### img-triangle
+### img-clear
 
 <table>
 <tr>
@@ -1307,7 +1394,30 @@ t
 <td>
 
 ```clj
-(img-triangle my-img 30 60 160 120 10 180 1)
+(img-clear my-img)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img43.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-clear my-img 1)
 ```
 
 
@@ -1330,7 +1440,7 @@ t
 <td>
 
 ```clj
-(img-triangle my-img 30 60 160 120 10 180 1 '(filled))
+(img-clear my-img 0)
 ```
 
 
@@ -1338,6 +1448,1105 @@ t
 <td>
 
 <img src=./images/disp-img45.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-color
+
+img-color is used to create more complex color objects for use together with disp-render. 
+
+   - **gradient_x**: vertical gradients from color1 to color2.
+   - **gradient_y**: horizontal gradients from color1 to color2.
+   - **gradient_x_pre**: precomputes gradient.
+   - **gradient_y_pre**: precomputes gradient.
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color 'regular 0xAABB11)
+```
+
+
+</td>
+<td>
+
+```clj
+[0 67 79 76 17 187 170 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color 'gradient_x color1 color2 10 0 'repeat)
+```
+
+
+</td>
+<td>
+
+```clj
+[0 67 79 76 0 0 255 0 255 0 0 0 10 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color 'gradient_x_pre color1 color2)
+```
+
+
+</td>
+<td>
+
+```clj
+[0 67 79 76 0 0 255 0 255 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 100 9 249 232]
+```
+
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define fptr (fopen "images/lama2.bin" "r"))
+(define pic (load-file fptr))
+(fclose fptr)
+(define c (img-color 'gradient_x color1 color2 100 0 'repeat))
+(define img (img-buffer 'indexed2 320 200))
+(img-blit img pic 10 10 -1 '(rotate 128 128 45))
+(disp-render img 100 0 (list (img-color 'regular 0) c))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img46.png >
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define fptr (fopen "images/lama2.bin" "r"))
+(define pic (load-file fptr))
+(fclose fptr)
+(define c (img-color 'gradient_y color1 color2 100 0 'mirrored))
+(define img (img-buffer 'indexed2 320 200))
+(img-blit img pic 10 10 -1 '(rotate 128 128 45))
+(disp-render img 100 0 (list (img-color 'regular 0) c))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img47.png >
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-color-set
+
+With `img-color-set`you can set properties of a color. The form of a img-color-set expression is `(img-color-set color prop value)` 
+
+|Arg || 
+ |----|----|
+ `color` | Color value creted with img-color.
+ `property` | Symbol denoting property to change.
+ `value`    | New value to set property to.
+ 
+
+|`img-color-set` | regular | gradient | pre |
+ |----|----|----|----|
+ `color0`      | ✓ | ✓ | ✗ |
+ `color1`      | ✗ | ✓ | ✗ |
+ `width`       | ✗ | ✓ | ✗ |
+ `offset`      | ✗ | ✓ | ✓ |
+ `repeat-type` | ✗ | ✓ | ✓ |
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-set my-color 'repeat-type 'mirrored)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-set my-color 'color-0 16711935)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-set my-color 'color-1 65280)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-set my-color 'width 10)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-set my-color 'offset 1)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### img-color-get
+
+With `img-color-get` you can access properties of a color. The form of an img-color-get expression is `(img-color-get color prop)` 
+
+|Arg || 
+ |----|----|
+ `color` | Color value creted with img-color.
+ `property` | Symbol denoting property to access.
+ 
+
+|`img-color-get` | regular | gradient | pre |
+ |----|----|----|----|
+ `color0`      | ✓ | ✓ | ✓ |
+ `color1`      | ✗ | ✓ | ✓ |
+ `width`       | ✗ | ✓ | ✓ |
+ `offset`      | ✗ | ✓ | ✓ |
+ `repeat-type` | ✗ | ✓ | ✓ |
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-get my-color 'repeat-type)
+```
+
+
+</td>
+<td>
+
+```clj
+mirrored
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-get my-color 'color-0)
+```
+
+
+</td>
+<td>
+
+```clj
+16711935u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-get my-color 'color-1)
+```
+
+
+</td>
+<td>
+
+```clj
+65280u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-get my-color 'width)
+```
+
+
+</td>
+<td>
+
+```clj
+10i32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-get my-color 'offset)
+```
+
+
+</td>
+<td>
+
+```clj
+1i32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### img-color-setpre
+
+Update a value in a precalculated gradient color. The form of an `img-color-setpre` expression is `(img-color-setpre color pos color-val)`. 
+
+|Arg || 
+ |----|----|
+ `color` | Color value creted with img-color.
+ `pos`   | Position in the precomputed colormap to update.
+ `color-val` | Color value to write into the position.
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-setpre my-color-pre 10 16777215)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-setpre my-color-pre 11 0)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define fptr (fopen "images/lama2.bin" "r"))
+(define pic (load-file fptr))
+(fclose fptr)
+(define c (img-color 'gradient_x_pre color1 color2 100 0 'repeat))
+(loopfor i 0 (< i 512) (+ i 2)
+         (progn 
+             (img-color-setpre c i 16777215)
+             (img-color-setpre c (+ i 1) 0)))
+(define img (img-buffer 'indexed2 320 200))
+(img-blit img pic 10 10 -1 '(rotate 128 128 45))
+(disp-render img 100 0 (list (img-color 'regular 0) c))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img48.png >
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+
+```clj
+(define fptr (fopen "images/lama2.bin" "r"))
+(define pic (load-file fptr))
+(fclose fptr)
+(define c (img-color 'gradient_y_pre color1 color2 200 0 'repeat))
+(loopfor i 0 (< i 200) (+ i 10)
+         (progn 
+             (var band-color (if (= (mod (/ i 10) 2) 0) color1 color2))
+             (loopfor j 0 (< j 10) (+ j 1)
+                      (progn 
+                          (img-color-setpre c (+ i j) band-color)))))
+(define img (img-buffer 'indexed2 320 200))
+(img-blit img pic 10 10 -1 '(rotate 128 128 45))
+(disp-render img 100 0 (list (img-color 'regular 0) c))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img49.png >
+
+</td>
+<td>
+
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### img-color-getpre
+
+Get a value from a precalculated gradient color. The form of an `img-color-getpre` expression is `(img-color-getpre color pos)`. 
+
+|Arg || 
+ |----|----|
+ `color` | Color value creted with img-color.
+ `pos`   | Position in the precomputed colormap to update.
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-getpre my-color-pre 10)
+```
+
+
+</td>
+<td>
+
+```clj
+16777215u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-getpre my-color-pre 11)
+```
+
+
+</td>
+<td>
+
+```clj
+0u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-color-getpre my-color-pre 12)
+```
+
+
+</td>
+<td>
+
+```clj
+16121865u32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### img-line
+
+Draw a line into an image. The form of an `img-line` expression is `(img-line image x1 y1 x2 y2 color ..option)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `x1 y1` | Start point  x,y.
+ `x2 y2` | End point  x,y.
+ `color` | Color value, range determined by image buffer color depth.
+ 
+
+<br> 
+
+|Option      || 
+ |----|----|
+ `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
+ `filled`     | Filled, no arguments.
+ `thickness`  | Thickness of line, one argument specifying thickness in pixels.
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-line my-img 0 0 320 200 1)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img50.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-line my-img 0 200 320 0 1 '(thickness 5))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img51.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-line my-img 0 0 320 200 1 '(dotted 4 20))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img52.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-rectangle
+
+Draw a rectangle into an image. The form of an `img-rectangle` expression is `(img-rectangle image x1 y1 w h color ..option)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `x1 y1` | Top left corner  x,y.
+ `w h`   | Width and height.
+ `color` | Color value, range determined by image buffer color depth.
+ 
+
+<br> 
+
+|Option      || 
+ |----|----|
+ `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
+ `filled`     | Filled, no arguments.
+ `thickness`  | Thickness of line, one argument specifying thickness in pixels.
+ `rounded`    | Rounded edges, one argument rounded corner angle.
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-rectangle my-img 10 10 120 180 1)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img53.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-rectangle my-img 10 10 120 180 1 '(filled))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img54.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-rectangle my-img 10 10 120 180 1 '(rounded 45))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img55.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-setpix
+
+Draw a pixel into an image. The form of an `img-setpix` expression is `(img-setpix image x y color)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `x y`   | Position  x,y.
+ `color` | Color value, range determined by image buffer color depth.
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-setpix my-img 10 10 1)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img56.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-getpix
+
+Get a pixel value from an image. The form of an `img-getpix` expression is `(img-getpix image x y)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `x y`   | Position  x,y.
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-getpix my-img 10 10)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img57.png >
+
+</td>
+<td>
+
+```clj
+0u32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-text
+
+Draw text into an image. The form of an `img-text` expression is `(img-text image x1 y1 fg bg font)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `x1 y1` | Position  x,y.
+ `fg bg` | Foreground and Background color.
+ `font` | font to use. This should be a bin type font as created by for example VESC Tool. The font file can be `imported` or loaded depending on platform
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-text my-img 40 40 1 0 font "LispBM")
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img58.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-text my-img 40 120 1 0 font "LispBM" 'up)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img59.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-text my-img 40 40 1 0 font "LispBM" 'down)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img60.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### img-triangle
+
+Draw a triangle into an image. The form of an `img-triangle` expression is `(img-triangle image x1 y1 x2 y2 x3 y3 color ..option)`. 
+
+|Arg || 
+ |----|----|
+ `image` | An image buffer for example created using img-buffer.
+ `x1 y1` | Position first point  x,y.
+ `x2 y2` | Position second point  x,y.
+ `x3 y3` | Position third point  x,y.
+ `color` | Color value, range determined by image buffer color depth.
+ 
+
+<br> 
+
+|Option      || 
+ |----|----|
+ `dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.
+ `filled`     | Filled, no arguments.
+ `thickness`  | Thickness of line, one argument specifying thickness in pixels.
+ 
+
+<table>
+<tr>
+<td> Example </td> <td> Image </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-triangle my-img 30 60 160 120 10 180 1)
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img61.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-triangle my-img 30 60 160 120 10 180 1 '(thickness 5))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img62.png >
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(img-triangle my-img 30 60 160 120 10 180 1 '(filled))
+```
+
+
+</td>
+<td>
+
+<img src=./images/disp-img63.png >
 
 </td>
 <td>
@@ -1360,7 +2569,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img46.png >
+<img src=./images/disp-img64.png >
 
 </td>
 <td>
@@ -1421,7 +2630,7 @@ These examples are leaving out the details on how to setup and initialize any pa
 </td>
 <td>
 
-<img src=./images/disp-img47.png >
+<img src=./images/disp-img65.png >
 
 </td>
 <td>
@@ -1463,7 +2672,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img48.png >
+<img src=./images/disp-img66.png >
 
 </td>
 <td>
@@ -1501,7 +2710,7 @@ In the "Desktop" LispBM REPL the rotated llama examples looks as follows.
 </td>
 <td>
 
-<img src=./images/disp-img49.png >
+<img src=./images/disp-img67.png >
 
 </td>
 <td>
@@ -1533,7 +2742,7 @@ t
 </td>
 <td>
 
-<img src=./images/disp-img50.png >
+<img src=./images/disp-img68.png >
 
 </td>
 <td>
@@ -1583,5 +2792,5 @@ t
 
 ---
 
-This document was generated by LispBM version 0.34.2 
+This document was generated by LispBM version 0.36.0 
 

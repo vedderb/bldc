@@ -55,31 +55,25 @@ You need to build the `all64` target, and set `PLATFORM=macos-arm` when building
 
 ## Build
 
+The REPL can be built with different feature-sets. features are selected as:
+```
+make FEATURES="alsa sdl"
+```
+which is an example of adding features for sound and graphics.
+
+The total list of features is:
+
+* alsa     - Sound on Linux.
+* sdl      - Graphics on Linux.
+* freetype - Use libfreetype for font prepropressing.
+* 64       - 64Bit build.
+* coverage - Build with coverage collection.
+
 To build the default target (32 bit LispBM repl) just issue the command:
 
 ```
 make
 ```
-
-Additionally there are numerous alternative targets:
-
-- `make all` - Build 32-bit REPL (default target)
-- `make all64` - Build 64-bit REPL
-- `make cov` - Build 32-bit REPL with coverage instrumentation
-- `make debug` - Build with debug symbols
-- `make sdl` - Build 32-bit REPL with SDL graphics support
-- `make sdl64` - Build 64-bit REPL with SDL graphics support
-- `make freetype` - Build 32-bit REPL with FreeType font backend
-- `make freetype64` - Build 64-bit REPL with FreeType font backend
-- `make sdl_freetype` - Build 32-bit REPL with SDL and FreeType support
-- `make sdl_freetype64` - Build 64-bit REPL with SDL and FreeType support
-- `make alsa` - Build 32-bit REPL with ALSA MIDI and sound support
-- `make pirepl` - Build for Raspberry Pi (32-bit)
-- `make pirepl64` - Build for Raspberry Pi (64-bit)
-- `make improved_closures` - Build with experimental closure cleanup
-- `make clean` - Remove built binaries and coverage data
-
-For more advanced build instructions, including conditional build flags and code size optimizations, see the [Building LispBM documentation](https://www.lispbm.com/cdocs/html/Building.html).
 
 ## install as lbm
 

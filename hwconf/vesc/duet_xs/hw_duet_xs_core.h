@@ -34,9 +34,6 @@
 
 #define HW_DEAD_TIME_NSEC               200.0
 
-// Switch Pins
-#define HW_HAS_RGB_SWITCH
-
 #define SWITCH_IN_GPIO					GPIOA
 #define SWITCH_IN_PIN					15
 #define SWITCH_OUT_GPIO					GPIOB
@@ -55,7 +52,7 @@
 #define LED_PWM3_ON()			palClearPad(SWITCH_LED_3_GPIO, SWITCH_LED_3_PIN)
 #define LED_PWM3_OFF()			palSetPad(SWITCH_LED_3_GPIO, SWITCH_LED_3_PIN)
 
-#define SMART_SWITCH_MSECS_PRESSED_OFF		2000
+#define SMART_SWITCH_MSECS_PRESSED_OFF		1500
 
 #define HW_HAS_PHASE_FILTERS
 #define PHASE_FILTER_OFF()		palSetPad(GPIOE, 3); palSetPad(GPIOE, 4); palSetPad(GPIOE, 6);
@@ -340,7 +337,7 @@
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE		55.0
 #endif
-#define HW_LIM_VIN					6.0, 57.0
+#define HW_LIM_VIN					11.0, 57.0
 #define HW_LIM_CURRENT				-100.0, 100.0
 #define HW_LIM_CURRENT_ABS			0.0, 150.0
 #define HW_LIM_CURRENT_IN			-100.0, 100.0
@@ -348,7 +345,7 @@
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE		90.0
 #endif
-#define HW_LIM_VIN					6.0, 94.0
+#define HW_LIM_VIN					11.0, 94.0
 #define HW_LIM_CURRENT				-65.0, 65.0
 #define HW_LIM_CURRENT_ABS			0.0, 110.0
 #define HW_LIM_CURRENT_IN			-65.0, 65.0

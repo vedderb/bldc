@@ -757,6 +757,7 @@ Read system info parameter param. Example:
 (sysinfo 'compiler) ; GCC version, e.g. 7.3.1. ESC only.
 (sysinfo 'hw-type) ; Hardware type, e.g. hw-express. Added in 6.02.
 (sysinfo 'part-running) ; Running partition name. Express only.
+(sysinfo 'cpu-freq)  ; CPU frequency in MHz. Express only.
 ```
 
 ---
@@ -1809,6 +1810,35 @@ Returns the error rate for the selected encoder, range 0.0 to 1.0. If the select
 ```
 
 Returns 1 if the encoder index is found, 0 otherwise. For encoders without an index pulse or for PWM+ABI 1 is always returned.
+
+---
+
+#### encoder-abi-state
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(encoder-abi-state)
+```
+
+Returns the driver state of the ABI encoder. Can be used to determine how many counts the encoder has or if the error rate is unreasonably high, indicating that the signal is noisy.
+
+The following list is returned
+
+```clj
+(index-found cnt-at-ind-last bad-pulses index-pulse-cnt)
+```
+
+where
+
+```clj
+index-found     ; 1 if the index pulse has been received at least once, 0 otherwise
+cnt-at-ind-last ; Encoder counts the last time the index pulse was received
+bad-pulses      ; Counts up every time a bad index pulse is received, resets at 6
+index-pulse-cnt ; Index pulse counter
+```
 
 ---
 
@@ -7111,16 +7141,30 @@ Remove path recursively. If path is a file just the file is removed and if it is
 | Express | 6.05+ |
 
 ```clj
-(f-ls path)
+(f-ls path opt-count opt-offset opt-size)
 ```
 
-List all files and directories in path. Returns a list with the entries; each entry is a list where the first element is the name, the second element is true for directories and nil for files and the third element is the size. For directories the size says how many entries that directory has and for files it says what size the file has in bytes.
+List all files and directories in path. Returns a list with the entries; each entry is a list where the first element is the name and the second element is true for directories and nil for files. If the optional argument 'size is passed each entry in the list also has the size at the end. For directories the size says how many entries that directory has and for files it says what size the file has in bytes.
+
+The optional argument opt-count can be used to specity a maximum number of elemets to list and the optional argument opt-offset sets how many elemnts to skip in the beginning. This can be useful if a directory has so many entries that the file list risks using too much memory.
 
 Example:
 
 ```clj
 (f-ls "")
-> ("testsize.bin" nil 100) ("test.txt" nil 7) ("old_logs" t 47))
+> (("testsize.bin" nil) ("test.txt" nil) ("old_logs" t))
+
+(f-ls "" 'size)
+> (("testsize.bin" nil 100) ("test.txt" nil 7) ("old_logs" t 47))
+
+(f-ls "" 2)
+> (("testsize.bin" nil) ("test.txt" nil))
+
+(f-ls "" 2 1)
+> (("test.txt" nil) ("old_logs" t))
+
+(f-ls "" 2 1 'size)
+> (("test.txt" nil 7) ("old_logs" t 47))
 ```
 
 ---

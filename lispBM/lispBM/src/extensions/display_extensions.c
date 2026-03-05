@@ -20,7 +20,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "sys/types.h"
 #include "tjpgd.h"
 
 #include <math.h>
@@ -2906,7 +2905,7 @@ static lbm_value ext_disp_render_jpg(lbm_value *args, lbm_uint argn) {
     iodev.pos = 0;
     iodev.ofs_x = lbm_dec_as_i32(args[1]);
     iodev.ofs_y = lbm_dec_as_i32(args[2]);
-    jd_prepare(&jd, jpg_input_func, jdwork, sz_work + IMAGE_BUFFER_HEADER_SIZE, &iodev);
+    jd_prepare(&jd, jpg_input_func, jdwork, sz_work, &iodev);
     jd_decomp(&jd, jpg_output_func, 0);
     lbm_free(jdwork);
     res = ENC_SYM_TRUE;

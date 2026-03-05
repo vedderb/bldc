@@ -1,5 +1,5 @@
 /*
-    Copyright 2020 - 2025 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2020 - 2026 Joel Svensson  svenssonjoel@yahoo.se
                      2024 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -101,6 +101,9 @@ bool lbm_memory_init(lbm_uint *data, lbm_uint data_size,
   return res;
 }
 
+// TODO: how are set- and get_reserve used?
+//       should they use the mutex ? or is
+//       the expectation that these are used only at init time?
 void lbm_memory_set_reserve(lbm_uint num_words) {
   memory_reserve_level = num_words;
 }
@@ -219,6 +222,10 @@ lbm_uint lbm_memory_longest_free(void) {
     }
   }
   lbm_mutex_unlock(&lbm_mem_mutex);
+  // max_length is computed from the status array
+  // and if we assume that the statemachine above and
+  // the maintaining of the status is correct,
+  // then max_length <= memory_num_free
   if (memory_num_free - max_length < memory_reserve_level) {
     lbm_uint n = memory_reserve_level - (memory_num_free - max_length);
     if (n >= max_length) {
@@ -230,13 +237,25 @@ lbm_uint lbm_memory_longest_free(void) {
   return max_length;
 }
 
-static lbm_uint *lbm_memory_allocate_internal(lbm_uint num_words) {
+static lbm_uint *lbm_memory_allocate_internal(lbm_uint num_words, bool use_reserve) {
 
   if (memory == NULL || bitmap == NULL) {
     return NULL;
   }
 
   lbm_mutex_lock(&lbm_mem_mutex);
+
+  if (num_words > memory_num_free) {
+    lbm_request_gc();
+    lbm_mutex_unlock(&lbm_mem_mutex);
+    return NULL;
+  }
+
+  if (!use_reserve && memory_num_free - num_words < memory_reserve_level) {
+    lbm_request_gc();
+    lbm_mutex_unlock(&lbm_mem_mutex);
+    return NULL;
+  }
 
   lbm_uint start_ix = 0;
   lbm_uint end_ix = 0;
@@ -307,11 +326,7 @@ static lbm_uint *lbm_memory_allocate_internal(lbm_uint num_words) {
 }
 
 lbm_uint *lbm_memory_allocate(lbm_uint num_words) {
-  if (memory_num_free - num_words < memory_reserve_level) {
-    lbm_request_gc();
-    return NULL;
-  }
-  return lbm_memory_allocate_internal(num_words);
+  return lbm_memory_allocate_internal(num_words, false);
 }
 
 int lbm_memory_free(lbm_uint *ptr) {
@@ -359,11 +374,7 @@ void* lbm_malloc(size_t size) {
   alloc_size = size / sizeof(lbm_uint);
   if (size % sizeof(lbm_uint)) alloc_size += 1;
 
-  if (memory_num_free - alloc_size < memory_reserve_level) {
-    lbm_request_gc();
-    return NULL;
-  }
-  return lbm_memory_allocate_internal(alloc_size);
+  return lbm_memory_allocate_internal(alloc_size, false);
 }
 
 void* lbm_malloc_reserve(size_t size) {
@@ -373,10 +384,7 @@ void* lbm_malloc_reserve(size_t size) {
   alloc_size = size / sizeof(lbm_uint);
   if (size % sizeof(lbm_uint)) alloc_size += 1;
 
-  if (memory_num_free - alloc_size < memory_reserve_level) {
-    lbm_request_gc();
-  }
-  return lbm_memory_allocate_internal(alloc_size);
+  return lbm_memory_allocate_internal(alloc_size, true);
 }
 
 void lbm_free(void *ptr) {
@@ -442,5 +450,5 @@ int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
 
 int lbm_memory_ptr_inside(lbm_uint *ptr) {
   return ((lbm_uint)ptr >= (lbm_uint)memory &&
-          (lbm_uint)ptr < (lbm_uint)memory + (memory_size * sizeof(lbm_uint)));
+          (lbm_uint)ptr < (lbm_uint)&memory[memory_size]);
 }

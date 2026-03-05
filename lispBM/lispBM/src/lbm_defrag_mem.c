@@ -1,5 +1,5 @@
 /*
-    Copyright 2024, 2025 Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2024 - 2026 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -189,6 +189,7 @@ lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes, lb
         i++;
       } else {
         // jump to next spot
+        // Assumes that the allocation size is always size + DEFRAG_ALLOC_ARRAY_HEADER_SIZE
         i += bs2ws(mem_data[i]) + DEFRAG_ALLOC_ARRAY_HEADER_SIZE;
       }
       break;
@@ -202,7 +203,6 @@ lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes, lb
         }
       } else {
         state = INIT;
-        i++;
       }
       break;
     }

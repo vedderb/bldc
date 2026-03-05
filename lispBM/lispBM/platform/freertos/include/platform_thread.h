@@ -18,8 +18,13 @@
 #ifndef PLATFORM_THREAD_H_
 #define PLATFORM_THREAD_H_
 
+#if defined(ESP_PLATFORM)
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#else
 #include <FreeRTOS.h>
 #include <task.h>
+#endif
 #include <stdbool.h>
 #include <stdint.h>
 

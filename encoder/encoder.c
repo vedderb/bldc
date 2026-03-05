@@ -35,6 +35,7 @@
 #include "app.h"
 
 #include <math.h>
+#include <string.h>
 
 // These rates turn into even multiples of systicks
 typedef enum {
@@ -350,8 +351,17 @@ void encoder_update_config(volatile mc_configuration *conf) {
 
 	case SENSOR_PORT_MODE_ABI:
 	case SENSOR_PORT_MODE_PWM_ABI: {
-		encoder_cfg_ABI.counts = conf->m_encoder_counts;
-		TIM_SetAutoreload(encoder_cfg_ABI.timer, encoder_cfg_ABI.counts - 1);
+		if (encoder_cfg_ABI.counts != conf->m_encoder_counts) {
+			encoder_cfg_ABI.counts = conf->m_encoder_counts;
+			TIM_SetAutoreload(encoder_cfg_ABI.timer, encoder_cfg_ABI.counts - 1);
+			memset(&encoder_cfg_ABI.state, 0, sizeof(ABI_state));
+
+			if (conf->m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ABI) {
+				enc_pwm_init(true);
+			}
+		}
+
+
 	} break;
 
 	case SENSOR_PORT_MODE_AS5047_SPI: {

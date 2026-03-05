@@ -18,8 +18,13 @@
 #ifndef PLATFORM_TIMESTAMP_H_
 #define PLATFORM_TIMESTAMP_H_
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#if defined(ESP_PLATFORM)
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#else
+#include <FreeRTOS.h>
+#include <task.h>
+#endif
 #include <stdint.h>
 
 // timestamp interface

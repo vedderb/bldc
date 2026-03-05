@@ -1,5 +1,5 @@
 /*
-  Copyright 2024 2025 Joel Svensson  svenssonjoel@yahoo.se
+  Copyright 2024 - 2026 Joel Svensson  svenssonjoel@yahoo.se
             2022 Benjamin Vedder benjamin@vedder.se
 
   This program is free software: you can redistribute it and/or modify
@@ -201,7 +201,7 @@ lbm_value ext_print(lbm_value *args, lbm_uint argn) {
 
   for (unsigned int i = 0; i < argn; i ++) {
     lbm_value t = args[i];
-    char *str;    
+    char *str;
     if (lbm_is_ptr(t) && lbm_type_of(t) == LBM_TYPE_ARRAY &&
         lbm_value_is_printable_string(t, &str)) {
       lbm_printf_callback("%s", str);
@@ -234,7 +234,7 @@ static bool file_handle_destructor(lbm_uint value) {
 
 // A filehandle is only a filehandle unless it has been explicitly closed.
 static bool is_file_handle(lbm_value arg) {
-  if ((lbm_uint)lbm_get_custom_descriptor(arg) == (lbm_uint)lbm_file_handle_desc) {
+  if (lbm_is_custom(arg) && ((lbm_uint)lbm_get_custom_descriptor(arg) == (lbm_uint)lbm_file_handle_desc)) {
     lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(arg);
     if (h->fp) return true;
   }
@@ -991,10 +991,10 @@ static lbm_value ext_unsafe_call_system(lbm_value *args, lbm_uint argn) {
 // a display driver for displaying images onto an image RGB888
 
 // blit into a buffer that is guaranteed large enough.
-static void buffer_blast_indexed2(uint8_t *dest, uint8_t *img, color_t *colors) {
-  uint8_t *data = image_buffer_data(img);
-  uint16_t w    = image_buffer_width(img);
-  uint16_t h    = image_buffer_height(img);
+static void buffer_blast_indexed2(uint8_t *dest, image_buffer_t *img, color_t *colors) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
   int num_pix = w * h;
 
   uint32_t t_pos = 0;
@@ -1011,10 +1011,10 @@ static void buffer_blast_indexed2(uint8_t *dest, uint8_t *img, color_t *colors) 
   }
 }
 
-static void buffer_blast_indexed4(uint8_t *dest, uint8_t *img, color_t *colors) {
-  uint8_t *data = image_buffer_data(img);
-  uint16_t w    = image_buffer_width(img);
-  uint16_t h    = image_buffer_height(img);
+static void buffer_blast_indexed4(uint8_t *dest, image_buffer_t *img, color_t *colors) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
   int num_pix = w * h;
 
   uint32_t t_pos = 0;
@@ -1031,10 +1031,10 @@ static void buffer_blast_indexed4(uint8_t *dest, uint8_t *img, color_t *colors) 
   }
 }
 
-static void buffer_blast_indexed16(uint8_t *dest, uint8_t *img, color_t *colors) {
-  uint8_t *data = image_buffer_data(img);
-  uint16_t w    = image_buffer_width(img);
-  uint16_t h    = image_buffer_height(img);
+static void buffer_blast_indexed16(uint8_t *dest, image_buffer_t *img, color_t *colors) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
   int num_pix = w * h;
 
   uint32_t t_pos = 0;
@@ -1051,10 +1051,10 @@ static void buffer_blast_indexed16(uint8_t *dest, uint8_t *img, color_t *colors)
   }
 }
 
-static void buffer_blast_rgb332(uint8_t *dest, uint8_t *img) {
-  uint8_t *data = image_buffer_data(img);
-  uint16_t w    = image_buffer_width(img);
-  uint16_t h    = image_buffer_height(img);
+static void buffer_blast_rgb332(uint8_t *dest, image_buffer_t *img) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
   int num_pix = w * h;
 
   uint32_t t_pos = 0;
@@ -1072,10 +1072,10 @@ static void buffer_blast_rgb332(uint8_t *dest, uint8_t *img) {
   }
 }
 
-static void buffer_blast_rgb565(uint8_t *dest, uint8_t *img) {
-  uint8_t *data = image_buffer_data(img);
-  uint16_t w    = image_buffer_width(img);
-  uint16_t h    = image_buffer_height(img);
+static void buffer_blast_rgb565(uint8_t *dest, image_buffer_t *img) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
   int num_pix = w * h;
 
   uint32_t t_pos = 0;
@@ -1091,10 +1091,10 @@ static void buffer_blast_rgb565(uint8_t *dest, uint8_t *img) {
   }
 }
 
-static void buffer_blast_rgb888(uint8_t *dest, uint8_t *img) {
-  uint8_t *data = image_buffer_data(img);
-  uint16_t w    = image_buffer_width(img);
-  uint16_t h    = image_buffer_height(img);
+static void buffer_blast_rgb888(uint8_t *dest, image_buffer_t *img) {
+  uint8_t *data = img->data;
+  uint16_t w    = img->width;
+  uint16_t h    = img->height;
   int num_pix = w * h;
   memcpy(dest, data, (size_t)num_pix * 3);
 }
@@ -1203,29 +1203,28 @@ static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, c
 
     uint16_t w = img->width;
     uint16_t h = img->height;
-    uint8_t* data = img->mem_base;
 
     uint8_t *buffer = malloc((size_t)(w * h * 3)); // RGB 888
     if (buffer) {
       uint8_t  bpp = img->fmt;
       switch(bpp) {
       case indexed2:
-        buffer_blast_indexed2(buffer, data, colors);
+        buffer_blast_indexed2(buffer, img, colors);
         break;
       case indexed4:
-        buffer_blast_indexed4(buffer, data, colors);
+        buffer_blast_indexed4(buffer, img, colors);
         break;
       case indexed16:
-        buffer_blast_indexed16(buffer, data, colors);
+        buffer_blast_indexed16(buffer, img, colors);
         break;
       case rgb332:
-        buffer_blast_rgb332(buffer, data);
+        buffer_blast_rgb332(buffer, img);
         break;
       case rgb565:
-        buffer_blast_rgb565(buffer, data);
+        buffer_blast_rgb565(buffer, img);
         break;
       case rgb888:
-        buffer_blast_rgb888(buffer, data);
+        buffer_blast_rgb888(buffer, img);
         break;
       default:
         break;

@@ -18,8 +18,13 @@
 #ifndef PLATFORM_MUTEX_H_
 #define PLATFORM_MUTEX_H_
 
+#if defined(ESP_PLATFORM)
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
+#else
+#include <FreeRTOS.h>
+#include <semphr.h>
+#endif
 #include <stdbool.h>
 
 typedef SemaphoreHandle_t lbm_mutex_t;
