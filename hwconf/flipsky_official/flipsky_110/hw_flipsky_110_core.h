@@ -27,6 +27,8 @@
   #define HW_NAME					"Flipsky_110_200"
 #elif defined(HW_FLIPSKY_110_300)
   #define HW_NAME					"Flipsky_110_300"
+#elif defined(HW_FLIPSKY_110_400)
+  #define HW_NAME					"Flipsky_110_400"
 #else
   #error "Must define hardware type"
 #endif
@@ -247,6 +249,8 @@
   #define HW_DEAD_TIME_NSEC		1000.0
 #elif defined(HW_FLIPSKY_110_300)
   #define HW_DEAD_TIME_NSEC		1500.0
+#elif defined(HW_FLIPSKY_110_400)
+  #define HW_DEAD_TIME_NSEC		1200.0
 #else
   #define HW_DEAD_TIME_NSEC		860.0
 #endif
@@ -280,9 +284,15 @@
 #endif
 
 // Setting limits
+#ifdef  HW_FLIPSKY_110_400
+#define HW_LIM_CURRENT			-400.0, 400.0
+#define HW_LIM_CURRENT_IN		-400.0, 400.0
+#define HW_LIM_CURRENT_ABS		0.0, 550.0
+#else
 #define HW_LIM_CURRENT			-300.0, 300.0
 #define HW_LIM_CURRENT_IN		-300.0, 300.0
 #define HW_LIM_CURRENT_ABS		0.0, 420.0
+#endif  //
 #define HW_LIM_VIN				11.0, 150.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
