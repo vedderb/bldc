@@ -15,6 +15,7 @@
 */
 
 #include "hal.h"
+#include "hw.h"
 
 #if HAL_USE_PAL || defined(__DOXYGEN__)
 /**
@@ -68,7 +69,7 @@ const PALConfig pal_default_config = {
  *          and before any other initialization.
  */
 void __early_init(void) {
-
+  HW_VERY_EARLY_INIT();
   stm32_clock_init();
 }
 
