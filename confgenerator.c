@@ -209,6 +209,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->bms.vmax_limit_start, 1000, &ind);
 	buffer_append_float16(buffer, conf->bms.vmax_limit_end, 1000, &ind);
 	buffer[ind++] = conf->bms.fwd_can_mode;
+	buffer[ind++] = conf->foc_encoder_check_slip;
 
 	return ind;
 }
@@ -548,6 +549,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->bms.vmax_limit_start = buffer_get_float16(buffer, 1000, &ind);
 	conf->bms.vmax_limit_end = buffer_get_float16(buffer, 1000, &ind);
 	conf->bms.fwd_can_mode = buffer[ind++];
+	conf->foc_encoder_check_slip = buffer[ind++];
 
 	return true;
 }
@@ -883,6 +885,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->bms.vmax_limit_start = MCCONF_BMS_VMAX_LIMIT_START;
 	conf->bms.vmax_limit_end = MCCONF_BMS_VMAX_LIMIT_END;
 	conf->bms.fwd_can_mode = MCCONF_BMS_FWD_CAN_MODE;
+	conf->foc_encoder_check_slip = MCCONF_FOC_ENCODER_CHECK_SLIP;
 }
 
 void confgenerator_set_defaults_appconf(app_configuration *conf) {
