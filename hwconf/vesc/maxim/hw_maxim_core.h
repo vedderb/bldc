@@ -93,12 +93,15 @@
 #define HW_SHUTDOWN_NO // Normally open button
 
 #define HW_VERY_EARLY_INIT()	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE); \
+								RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE); \
 								palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
-								HW_SHUTDOWN_HOLD_ON();
+								palSetPadMode(AUX_GPIO, AUX_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST); \
+								palSetPadMode(AUX2_GPIO, AUX2_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST); \
+								HW_SHUTDOWN_HOLD_ON(); \
+								AUX_OFF(); \
+								AUX2_OFF();
 
 #define HW_EARLY_INIT()			HW_VERY_EARLY_INIT()
-
-#define MCPWM_FOC_CURRENT_SAMP_OFFSET				(2) // Offset from timer top for ADC samples
 
 /*
  * ADC Vector
