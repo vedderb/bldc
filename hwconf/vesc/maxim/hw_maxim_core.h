@@ -92,8 +92,8 @@
 #define HW_SAMPLE_SHUTDOWN()	hw_sample_shutdown_button()
 #define HW_SHUTDOWN_NO // Normally open button
 
-// Hold shutdown pin early to wake up on short pulses
 #define HW_VERY_EARLY_INIT()	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE); \
+								RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE); \
 								palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
 								palSetPadMode(AUX_GPIO, AUX_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST); \
 								palSetPadMode(AUX2_GPIO, AUX2_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST); \
