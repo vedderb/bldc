@@ -37,11 +37,14 @@ PLATFORM_SRC     = $(LISPBM)/platform/linux/src/platform_mutex.c \
                    $(LISPBM)/platform/linux/src/platform_timestamp.c \
 	           $(LISPBM)/platform/linux/src/platform_thread.c
 
+## If using any of the utilities.
+LISPBM_INC += -I../utils
+
 REPL_SRC= $(LISPBM_SRC)\
 	  repl.c \
 	  repl_exts.c \
-          crc.c \
-          packet.c \
+          ../utils/crc.c \
+          ../utils/packet.c \
           vesc_express_extension_stubs.c \
 	  lbm_gnuplot.c \
           bldc_extension_stubs.c

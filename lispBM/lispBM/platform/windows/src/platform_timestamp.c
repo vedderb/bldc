@@ -23,7 +23,7 @@
 
 static atomic_uint_least32_t timestamp_cache = ATOMIC_VAR_INIT(0);
 
-DWORD WINAPI lbm_timestamp_cacher(LPVOID v) {
+void lbm_timestamp_cacher(void *v) {
   (void)v;
   while(true) {
     struct timeval tv;
@@ -31,7 +31,6 @@ DWORD WINAPI lbm_timestamp_cacher(LPVOID v) {
     atomic_store(&timestamp_cache, (uint32_t)(tv.tv_sec * 1000000 + tv.tv_usec));
     Sleep(1); // Sleep for 1ms (Windows Sleep takes milliseconds)
   }
-  return 0;
 }
 
 uint32_t lbm_timestamp(void) {

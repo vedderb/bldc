@@ -18,7 +18,7 @@
 #define _GNU_SOURCE
 #define _POSIX_C_SOURCE 200809L
 #include "platform_thread.h"
-#include "lbm_memory.h"
+#include <stdlib.h>
 #include <time.h>
 #include <sched.h>
 #include <errno.h>
@@ -33,7 +33,7 @@ static void *thread_wrapper(void *arg) {
   thread_start_data_t *data = (thread_start_data_t *)arg;
   lbm_thread_func_t func = data->user_func;
   void *user_arg = data->user_arg;
-  lbm_free(data);
+  free(data);
 
   func(user_arg);
   return NULL;
@@ -49,7 +49,7 @@ bool lbm_thread_create(lbm_thread_t *t,
   platform_thread_t *thread = (platform_thread_t *)t;
   if (!thread) return false;
 
-  thread_start_data_t *start_data = (thread_start_data_t *)lbm_malloc(sizeof(thread_start_data_t));
+  thread_start_data_t *start_data = (thread_start_data_t *)malloc(sizeof(thread_start_data_t));
   if (!start_data) {
     return false;
   }
@@ -73,7 +73,7 @@ bool lbm_thread_create(lbm_thread_t *t,
   pthread_attr_destroy(&attr);
 
   if (result != 0) {
-    lbm_free(start_data);
+    free(start_data);
     return false;
   }
   // np apparently means "non-portable"

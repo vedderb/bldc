@@ -26,7 +26,6 @@
 
 
 #ifndef LBM_WIN
-#include <pthread.h>
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -89,6 +88,7 @@
 
 #include "platform_mutex.h"
 #include "platform_timestamp.h"
+#include "platform_thread.h"
 
 // things directly copied from VESC_EXPRESS
 #include "packet.h"
@@ -107,36 +107,6 @@ void load_bldc_extensions(void);
 
 // ////////////////////////////////////////////////////////////
 // win util
-
-
-#ifdef LBM_WIN
-
-#define G 1000000000L
-
-
-int nanosleep(const struct timespec* ts, struct timespec* rem){
-  HANDLE timer = CreateWaitableTimer(NULL, TRUE, NULL);
-  if(!timer)
-    return -1;
-
-  // SetWaitableTimer() defines interval in 100ns units.
-  // negative is to indicate relative time.
-  time_t sec = ts->tv_sec + ts->tv_nsec / G;
-  long nsec = ts->tv_nsec % G;
-
-  LARGE_INTEGER delay;
-  delay.QuadPart = -(sec * G + nsec) / 100;
-  BOOL ok = SetWaitableTimer(timer, &delay, 0, NULL, NULL, FALSE) &&
-    WaitForSingleObject(timer, INFINITE) == WAIT_OBJECT_0;
-
-  CloseHandle(timer);
-
-  if(!ok)
-    return -1;
-
-  return 0;
-}
-#endif
 
 // ////////////////////////////////////////////////////////////
 // IO buffer
@@ -307,23 +277,10 @@ static lbm_uint *constants_memory = NULL;
 static lbm_uint *memory=NULL;
 static lbm_uint *bitmap=NULL;
 
-#ifndef LBM_WIN
-static pthread_t prof_thread;
-#else
-static HANDLE prof_thread;
-#endif
-
-#ifndef LBM_WIN
-static pthread_t timestamp_thread;
-#else
-static HANDLE timestamp_thread;
-#endif
-
-#ifndef LBM_WIN
-pthread_t lispbm_thd = 0;
-#else
-HANDLE lispbm_thd;
-#endif
+static lbm_thread_t prof_thread;
+static lbm_thread_t timestamp_thread;
+lbm_thread_t lispbm_thd = {0};
+static bool lispbm_thd_running = false;
 
 unsigned int heap_size = 2048; // default
 lbm_cons_t *heap_storage = NULL;
@@ -390,15 +347,10 @@ bool drop_reader(lbm_cid cid) {
 void shutdown_procedure(void);
 
 void terminate_repl(int exit_code) {
-  if (lispbm_thd && lbm_get_eval_state() != EVAL_CPS_STATE_DEAD) {
+  if (lispbm_thd_running && lbm_get_eval_state() != EVAL_CPS_STATE_DEAD) {
     lbm_kill_eval();
-#ifdef LBM_WIN
-    WaitForSingleObject(lispbm_thd, INFINITE);
-#else
-    int thread_r = 0;
-    pthread_join(lispbm_thd, (void*)&thread_r);
-#endif
-    lispbm_thd = 0;
+    lbm_thread_destroy(&lispbm_thd);
+    lispbm_thd_running = false;
   }
   if (!silent_mode) {
     printf("%s\n", repl_exit_message[exit_code]);
@@ -468,8 +420,8 @@ static int printf_direct_callback(const char *format, ...) {
 }
 
 
-#ifdef LBM_WIN
-DWORD WINAPI eval_thd_wrapper_win(LPVOID lpParam) {
+static void eval_thd_wrapper(void *arg) {
+  (void)arg;
   if (!silent_mode) {
     printf("Lisp REPL started! (LBM Version: %u.%u.%u)\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
 #ifdef WITH_SDL
@@ -480,24 +432,7 @@ DWORD WINAPI eval_thd_wrapper_win(LPVOID lpParam) {
     printf("     :load [filename] to load lisp source.\n");
   }
   lbm_run_eval();
-  return 0;
 }
-#else
-void *eval_thd_wrapper(void *v) {
-  (void) v;
-  if (!silent_mode) {
-    printf("Lisp REPL started! (LBM Version: %u.%u.%u)\n", LBM_MAJOR_VERSION, LBM_MINOR_VERSION, LBM_PATCH_VERSION);
-#ifdef WITH_SDL
-    printf("With SDL extensions\n");
-#endif
-    printf("Type :quit to exit.\n");
-    printf("     :info for statistics.\n");
-    printf("     :load [filename] to load lisp source.\n");
-  }
-  lbm_run_eval();
-  return NULL;
-}
-#endif
 
 void critical(void) {
   printf("CRITICAL ERROR\n");
@@ -565,33 +500,26 @@ void done_callback(eval_context_t *ctx) {
 }
 
 void sleep_callback(uint32_t us) {
+#ifdef LBM_WIN
+  lbm_thread_sleep_us(us);
+#else
   struct timespec s;
   struct timespec r;
   s.tv_sec = 0;
   s.tv_nsec = (long)us * 1000;
   nanosleep(&s, &r);
+#endif
 }
 
 static bool prof_running = false;
 
-#ifdef LBM_WIN
-DWORD WINAPI prof_thd(LPVOID lpParam) {
+static void prof_thd(void *arg) {
+  (void)arg;
   while (prof_running) {
     lbm_prof_sample();
     sleep_callback(200);
   }
-  return 0;
 }
-#else
-void *prof_thd(void *v) {
-  (void) v;
-  while (prof_running) {
-    lbm_prof_sample();
-    sleep_callback(200);
-  }
-  return NULL;
-}
-#endif
 
 /* load a file, caller is responsible for freeing the returned string */
 char * load_file(char *filename) {
@@ -1021,16 +949,11 @@ bool load_flat_library(unsigned char *lib, unsigned int size) {
 
 int init_repl(void) {
 
-  if (lispbm_thd && lbm_get_eval_state() != EVAL_CPS_STATE_DEAD) {
+  if (lispbm_thd_running && lbm_get_eval_state() != EVAL_CPS_STATE_DEAD) {
 
     lbm_kill_eval();
-#ifdef LBM_WIN
-    WaitForSingleObject(lispbm_thd, INFINITE);
-#else
-    int thread_r = 0;
-    pthread_join(lispbm_thd, (void*)&thread_r);
-#endif
-    lispbm_thd = 0;
+    lbm_thread_destroy(&lispbm_thd);
+    lispbm_thd_running = false;
   }
 
   if (heap_storage) {
@@ -1148,20 +1071,11 @@ int init_repl(void) {
 
   if (!silent_mode)
     printf("creating eval thread\n");
-#ifdef LBM_WIN
-  lispbm_thd = CreateThread(
-                           NULL,                   // default security attributes
-                           0,                      // use default stack size
-                           eval_thd_wrapper_win,   // thread function name
-                           NULL,                   // argument to thread function
-                           0,                      // use default creation flags
-                           NULL);                  // returns the thread identifier
-#else
-  if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
+  if (!lbm_thread_create(&lispbm_thd, "eval", eval_thd_wrapper, NULL, LBM_THREAD_PRIO_NORMAL, 0)) {
     printf("Error creating evaluation thread\n");
     return 0;
   }
-#endif
+  lispbm_thd_running = true;
   return 1;
 }
 
@@ -1639,23 +1553,13 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   bool res = false;
   if (prof_running) {
     prof_running = false;
-#ifdef LBM_WIN
-    WaitForSingleObject(lispbm_thd, INFINITE);
-#else
-    void *a;
-    pthread_join(prof_thread, &a);
-#endif
+    lbm_thread_destroy(&prof_thread);
   }
 
-  if (lispbm_thd) {
+  if (lispbm_thd_running) {
     lbm_kill_eval();
-#ifdef LBM_WIN
-    WaitForSingleObject(lispbm_thd, INFINITE);
-#else
-    int thread_r = 0;
-    pthread_join(lispbm_thd, (void *)&thread_r);
-#endif
-    lispbm_thd = 0;
+    lbm_thread_destroy(&lispbm_thd);
+    lispbm_thd_running = false;
   }
 
   if (heap_storage) {
@@ -1719,20 +1623,11 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   }
 #endif
 
-#ifdef LBM_WIN
-  lispbm_thd = CreateThread(
-                            NULL,                   // default security attributes
-                            0,                      // use default stack size
-                            eval_thd_wrapper_win,   // thread function name
-                            NULL,                   // argument to thread function
-                            0,                      // use default creation flags
-                            NULL);                  // returns the thread identifier
-#else
-  if (pthread_create(&lispbm_thd, NULL, eval_thd_wrapper, NULL)) {
+  if (!lbm_thread_create(&lispbm_thd, "eval", eval_thd_wrapper, NULL, LBM_THREAD_PRIO_NORMAL, 0)) {
     printf("Error creating evaluation thread\n");
     return 0;
   }
-#endif
+  lispbm_thd_running = true;
 
   lbm_pause_eval();
   while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
@@ -1913,7 +1808,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     bool ok = false;
     bool running = data[0];
     if (!running) {
-      if (lispbm_thd) {
+      if (lispbm_thd_running) {
         int timeout_cnt = 2000;
         lbm_pause_eval();
         while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout_cnt > 0) {
@@ -2002,11 +1897,11 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
   } break;
 
   case COMM_LISP_REPL_CMD: {
-    if (!lispbm_thd) {
+    if (!lispbm_thd_running) {
       vescif_restart(true, false, true);
     }
 
-    if (lispbm_thd) {
+    if (lispbm_thd_running) {
       //lispif_lock_lbm();
       char *str = (char*)data;
 
@@ -2089,41 +1984,21 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
       } else if (strncmp(str, ":prof start", 11) == 0) {
         if (prof_running) {
           prof_running = false;
-#ifdef LBM_WIN
-          WaitForSingleObject(prof_thread, INFINITE);
-#else
-          void *a;
-          pthread_join(prof_thread,&a);
-#endif
+          lbm_thread_destroy(&prof_thread);
         }
         lbm_prof_init(prof_data, PROF_DATA_NUM);
-
-#ifdef LBM_WIN
-        prof_thread = CreateThread(
-                                   NULL,
-                                   0,
-                                   prof_thd,
-                                   NULL,
-                                   0,
-                                   NULL);
-#else
-        if (pthread_create(&prof_thread, NULL, prof_thd, NULL)) {
-          prof_running = true;
+        prof_running = true;
+        if (!lbm_thread_create(&prof_thread, "prof", prof_thd, NULL, LBM_THREAD_PRIO_LOW, 0)) {
+          prof_running = false;
           commands_printf_lisp("Error creating profiler thread\n");
         } else {
           commands_printf_lisp("Profiler started\n");
         }
-#endif
       } else if (strncmp(str, ":prof stop", 10) == 0) {
         commands_printf_lisp("TODO :prof stop\n");
         if (prof_running) {
           prof_running = false;
-#ifdef LBM_WIN
-          WaitForSingleObject(prof_thread, INFINITE);
-#else
-          void *a;
-          pthread_join(prof_thread,&a);
-#endif
+          lbm_thread_destroy(&prof_thread);
         }
         commands_printf_lisp("Profiler stopped. Issue command ':prof report' for statistics\n");
       } else if (strncmp(str, ":prof report", 12) == 0) {
@@ -2244,7 +2119,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     static int16_t result_last = -1;
 
     if (offset == 0) {
-      if (!lispbm_thd) {
+      if (!lispbm_thd_running) {
         vescif_restart(true, restart == 2 ? true : false, true);
         buffered_channel_created = false;
       } else if (restart == 1) {
@@ -2269,7 +2144,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
 
     offset_last = offset;
 
-    if (!lispbm_thd) {
+    if (!lispbm_thd_running) {
       result_last = -1;
       offset_last = -1;
       buffer_append_int16(send_buffer, result_last, &send_ind);
@@ -2424,7 +2299,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
 // ////////////////////////////////////////////////////////////
 //
 #ifdef LBM_WIN
-DWORD WINAPI udp_broadcast_task(LPVOID lpParam) {
+static void udp_broadcast_task(void *lpParam) {
    SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
    char hostbuffer[256];
@@ -2454,10 +2329,9 @@ DWORD WINAPI udp_broadcast_task(LPVOID lpParam) {
        Sleep(2000);
      }
    }
-   return 0;
 }
 #else
-void *udp_broadcast_task(void *arg) {
+void udp_broadcast_task(void *arg) {
   (void)arg;
 
   int sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
@@ -2491,7 +2365,6 @@ void *udp_broadcast_task(void *arg) {
       sleep(2);
     }
   }
-  return (void*)0;
 }
 #endif
 
@@ -2528,7 +2401,7 @@ void process_packet_local(unsigned char *data, unsigned int len) {
 }
 
 #ifdef LBM_WIN
-DWORD WINAPI vesctcp_client_handler(LPVOID lpParam) {
+static void vesctcp_client_handler(void *lpParam) {
   char buffer[1024];
   packet_init(send_tcp_bytes, process_packet_local,&packet);
   send_func = send_packet_local;
@@ -2556,10 +2429,9 @@ DWORD WINAPI vesctcp_client_handler(LPVOID lpParam) {
   send_func = NULL;
   printf("Client %s disconnected\n",ip);
   vesctcp_server_in_use = false;
-  return 0;
 }
 #else
-void *vesctcp_client_handler(void *arg) {
+void vesctcp_client_handler(void *arg) {
   (void) arg;
   uint8_t buffer[1024];
   packet_init(send_tcp_bytes, process_packet_local,&packet);
@@ -2588,7 +2460,6 @@ void *vesctcp_client_handler(void *arg) {
   send_func = NULL;
   printf("Client %s disconnected\n",ip);
   vesctcp_server_in_use = false;
-  return (void*)0;
 }
 #endif
 // ////////////////////////////////////////////////////////////
@@ -2664,17 +2535,7 @@ int main(int argc, char **argv) {
 
   // ////////////////////////////////////////////////////////////
   // start timestamp cacher
-#ifdef LBM_WIN
-  timestamp_thread = CreateThread(
-               NULL,
-               0,
-               lbm_timestamp_cacher,
-               NULL,
-               0,
-               NULL);
-#else
-  pthread_create(&timestamp_thread, NULL, lbm_timestamp_cacher, NULL);
-#endif
+  lbm_thread_create(&timestamp_thread, "timestamp", lbm_timestamp_cacher, NULL, LBM_THREAD_PRIO_NORMAL, 0);
 
 #ifdef LBM_WIN
   LPVOID image_address = VirtualAlloc((LPVOID)IMAGE_FIXED_VIRTUAL_ADDRESS,
@@ -2761,8 +2622,8 @@ int main(int argc, char **argv) {
 
   if (vesctcp) {
 #ifdef LBM_WIN
-    HANDLE broadcast_thread;
-    HANDLE client_thread;
+    lbm_thread_t broadcast_thread;
+    lbm_thread_t client_thread;
     WSADATA wsaData;
 
     int r;
@@ -2774,13 +2635,7 @@ int main(int argc, char **argv) {
       exit(1);
     }
 
-    broadcast_thread = CreateThread(
-                                    NULL,
-                                    0,
-                                    udp_broadcast_task,
-                                    NULL,
-                                    0,
-                                    NULL);
+    lbm_thread_create(&broadcast_thread, "udp_broadcast", udp_broadcast_task, NULL, LBM_THREAD_PRIO_NORMAL, 0);
 
     vescif_program_flash_code_len = 0;
     vescif_program_flash=(uint8_t*)malloc(vescif_program_flash_size);
@@ -2842,7 +2697,7 @@ int main(int argc, char **argv) {
         vesctcp_server_in_use = true;
         // TODO: is this cast really ok?
         connected_socket = client_socket;
-        client_thread = CreateThread(NULL, 0, vesctcp_client_handler, NULL, 0, NULL);
+        lbm_thread_create(&client_thread, "tcp_client", vesctcp_client_handler, NULL, LBM_THREAD_PRIO_NORMAL, 0);
       } else if (client_socket >= 0) {
         char ip[256];
         memset(ip,0,256);
@@ -2855,9 +2710,9 @@ int main(int argc, char **argv) {
       }
     }
 #else
-    pthread_t broadcast_thread;
-    pthread_t client_thread;
-    pthread_create(&broadcast_thread, NULL, udp_broadcast_task, NULL);
+    lbm_thread_t broadcast_thread;
+    lbm_thread_t client_thread;
+    lbm_thread_create(&broadcast_thread, "udp_broadcast", udp_broadcast_task, NULL, LBM_THREAD_PRIO_NORMAL, 0);
 
     // initialize program flash
     vescif_program_flash_code_len = 0;
@@ -2885,7 +2740,7 @@ int main(int argc, char **argv) {
         vesctcp_server_in_use = true;
         // TODO: is this cast really ok?
         connected_socket = client_socket;
-        pthread_create(&client_thread, NULL, vesctcp_client_handler, NULL);
+        lbm_thread_create(&client_thread, "tcp_client", vesctcp_client_handler, NULL, LBM_THREAD_PRIO_NORMAL, 0);
 
       } else if (client_socket >= 0) {
         char ip[256];
@@ -2965,17 +2820,13 @@ int main(int argc, char **argv) {
         } else if (strncmp(str, ":prof start", 11) == 0) {
           lbm_prof_init(prof_data,
                         PROF_DATA_NUM);
-#ifndef LBM_WIN
-          pthread_t thd; // just forget this id.
+          lbm_thread_t thd; // just forget this id.
           prof_running = true;
-          if (pthread_create(&thd, NULL, prof_thd, NULL)) {
+          if (!lbm_thread_create(&thd, "prof", prof_thd, NULL, LBM_THREAD_PRIO_LOW, 0)) {
             printf("Error creating profiler thread\n");
             goto repl_next_iteration;
           }
           printf("Profiler started\n");
-#else
-          printf("Profiler not supported on windows\n");
-#endif
         } else if (strncmp(str, ":prof stop", 10) == 0) {
           prof_running = false;
           printf("Profiler stopped. Issue command ':prof report' for statistics\n.");

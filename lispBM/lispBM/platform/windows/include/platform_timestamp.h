@@ -22,7 +22,7 @@
 #include <windows.h>
 
 // Only on OS where timestamp is expensive
-extern DWORD WINAPI lbm_timestamp_cacher(LPVOID v);
+extern void lbm_timestamp_cacher(void *v);
 
 // timestamp interface
 extern uint32_t lbm_timestamp(void);
