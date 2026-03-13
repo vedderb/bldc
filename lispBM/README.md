@@ -1609,6 +1609,20 @@ Get motor temperature.
 
 ---
 
+#### get-temp-mot-res
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(get-temp-mot-res)
+```
+
+Get the measured resistance of the motor temperature sensor.
+
+---
+
 #### get-speed
 
 | Platforms | Firmware |

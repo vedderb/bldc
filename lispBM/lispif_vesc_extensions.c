@@ -2175,6 +2175,12 @@ static lbm_value ext_get_temp_mot(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(mc_interface_temp_motor_filtered());
 }
 
+static lbm_value ext_get_temp_mot_res(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(NTC_RES_MOTOR(ADC_Value[mc_interface_motor_now() ?
+			ADC_IND_TEMP_MOTOR : ADC_IND_TEMP_MOTOR_2]));
+}
+
 static lbm_value ext_get_speed(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_speed());
@@ -6212,6 +6218,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("get-pos", ext_get_pos);
 		lbm_add_extension("get-temp-fet", ext_get_temp_fet);
 		lbm_add_extension("get-temp-mot", ext_get_temp_mot);
+		lbm_add_extension("get-temp-mot-res", ext_get_temp_mot_res);
 		lbm_add_extension("get-speed", ext_get_speed);
 		lbm_add_extension("get-speed-set", ext_get_speed_set);
 		lbm_add_extension("get-dist", ext_get_dist);
