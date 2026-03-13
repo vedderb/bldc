@@ -22,23 +22,39 @@ The language reference is probably the most important document to read when work
 
 Most of these are available on ESC and Express. They are loaded dynamically when used the first time.
 
-**LBM Gotchas and Caveats**
-
-[Gotchas](lispBM/doc/gotchas.md)
-
 ## VESC Express Libraries
 
 The VESC Express has some extra libraries that are documented in separate documents.
 
-**Display Driver**  
+**Display Support**  
 
-[Display Driver](lispBM/doc/displayref.md)
+The display driver allows driving many common displays using SPI, such as the ST7789, ST7735, ILI9341, ILI9488, SH8501, SH8601, SSD1306 and SSD1351. There are accelerated rendering and font extensions that can be used from LispBM.  
 
-The display driver allows driving many common displays using SPI, such as the ST7789, ST7735, ILI9341, ILI9488, SH8501, SSD1306 and SSD1351. There are accelerated rendering and font extensions that can be used from LispBM.  
+First the driver for the display to use has to be loaded. The supported drivers are documented here  
+
+[Display Drivers](https://github.com/vedderb/vesc_express/blob/main/main/display/README.md)
+
+Once the driver is loaded, the image extensions can be used to draw to the display. They are described here  
+
+[Image Extensions](lispBM/doc/displayref.md)
+
+There is also touchpanel support for many common touchpanels. The touchscreen support is described here  
+
+[Touchpanel Drivers](https://github.com/vedderb/vesc_express/blob/main/main/touch/README.md)
+
+Code examples for many of the display and touch panel drivers can be found here  
+
+[Code Examples](https://github.com/vedderb/vesc_express/blob/main/lbm_examples)
 
 **TTF Font Renderer for Display Driver**  
 
+LBM supports full TTF font rendering with kerning. The TTF driver is described here  
+
 [TTF Font Renderer](lispBM/doc/ttfref.md)
+
+Note: To get the best looking fonts it is possible to build LBM with libfreetype support on desktop. That will give excellent kerning as well as hinting, which is extra important when the font size is small. The font binaries generated on desktop can be imported in VESC Tool and uploaded to the ESP32. For building the repl on desktop with freetype support see here  
+
+[REPL Desktop](https://github.com/svenssonjoel/lispBM/tree/master/repl)
 
 **VESC Express Wifi and TCP**  
 
