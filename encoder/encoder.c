@@ -636,7 +636,7 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 
 	if (is_foc_encoder) {
 		switch (m_conf->m_sensor_port_mode) {
-		case SENSOR_PORT_MODE_AS5047_SPI:
+		case SENSOR_PORT_MODE_AS5047_SPI:{
 			if (encoder_cfg_as504x.state.spi_error_rate > 0.05) {
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, is_second_motor, false);
 			}
@@ -653,8 +653,35 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 					mc_interface_fault_stop(FAULT_CODE_ENCODER_MAGNET_TOO_STRONG, is_second_motor, false);
 				}
 			}
+			// Mechanical slip detection: Compare the FOC observer phase against the physical
+			// encoder phase. If the motor is spinning fast enough for a stable observer
+			// estimate (>110% of open-loop threshold) and the phase gap exceeds 15 degrees
+			// for more than 500ms, trigger a LOOSE_MAGNET fault.
+			float current_rpm = mc_interface_get_rpm();
+			float ol_erpm = m_conf->foc_openloop_rpm;
+			float stable_observer_threshold = ol_erpm * 1.1f;
+			static systime_t fault_start_time = 0;
+			if (fabsf(current_rpm) > stable_observer_threshold){
+				float obs = mcpwm_foc_get_phase_observer();
+				float enc = mcpwm_foc_get_phase_encoder();
+				float gap = fabsf(utils_angle_difference(obs, enc));
+				if (gap > 15.0f) {
+					if (fault_start_time == 0) {
+						fault_start_time = chVTGetSystemTime();
+					}
+					uint32_t elapsed_ms = ST2MS(chVTTimeElapsedSinceX(fault_start_time));
+					if (elapsed_ms > 500) {
+						fault_start_time = 0;
+						mc_interface_fault_stop(FAULT_CODE_ENCODER_LOOSE_MAGNET, is_second_motor, false);
+					}
+				} else {
+					fault_start_time = 0;
+				}
+			} else{
+				fault_start_time = 0;
+			}
 			break;
-
+		}
 		case SENSOR_PORT_MODE_MT6816_SPI_HW:
 			if (encoder_cfg_mt6816.state.encoder_no_magnet_error_rate > 0.05) {
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, is_second_motor, false);
