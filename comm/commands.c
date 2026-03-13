@@ -17,6 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "datatypes.h"
 #pragma GCC optimize ("Os")
 
 #include "commands.h"
@@ -394,58 +395,58 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_uint32(send_buffer, mask, &ind);
 		}
 
-		if (mask & ((uint32_t)1 << 0)) {
+		if (mask & GET_VALUES_FET_TEMP_FILT) {
 			buffer_append_float16(send_buffer, mc_interface_temp_fet_filtered(), 1e1, &ind);
 		}
-		if (mask & ((uint32_t)1 << 1)) {
+		if (mask & GET_VALUES_MC_TEMP_FILT) {
 			buffer_append_float16(send_buffer, mc_interface_temp_motor_filtered(), 1e1, &ind);
 		}
-		if (mask & ((uint32_t)1 << 2)) {
+		if (mask & GET_VALUES_AVG_MOTOR_CURRENT) {
 			buffer_append_float32(send_buffer, mc_interface_read_reset_avg_motor_current(), 1e2, &ind);
 		}
-		if (mask & ((uint32_t)1 << 3)) {
+		if (mask & GET_VALUES_AVG_IN_CURRENT) {
 			buffer_append_float32(send_buffer, mc_interface_read_reset_avg_input_current(), 1e2, &ind);
 		}
-		if (mask & ((uint32_t)1 << 4)) {
+		if (mask & GET_VALUES_AVG_ID) {
 			buffer_append_float32(send_buffer, mc_interface_read_reset_avg_id(), 1e2, &ind);
 		}
-		if (mask & ((uint32_t)1 << 5)) {
+		if (mask & GET_VALUES_AVG_IQ) {
 			buffer_append_float32(send_buffer, mc_interface_read_reset_avg_iq(), 1e2, &ind);
 		}
-		if (mask & ((uint32_t)1 << 6)) {
+		if (mask & GET_VALUES_DUTY_CYCLE) {
 			buffer_append_float16(send_buffer, mc_interface_get_duty_cycle_now(), 1e3, &ind);
 		}
-		if (mask & ((uint32_t)1 << 7)) {
+		if (mask & GET_VALUES_RPM) {
 			buffer_append_float32(send_buffer, mc_interface_get_rpm(), 1e0, &ind);
 		}
-		if (mask & ((uint32_t)1 << 8)) {
+		if (mask & GET_VALUES_V_IN) {
 			buffer_append_float16(send_buffer, mc_interface_get_input_voltage_filtered(), 1e1, &ind);
 		}
-		if (mask & ((uint32_t)1 << 9)) {
+		if (mask & GET_VALUES_AH) {
 			buffer_append_float32(send_buffer, mc_interface_get_amp_hours(false), 1e4, &ind);
 		}
-		if (mask & ((uint32_t)1 << 10)) {
+		if (mask & GET_VALUES_AH_CHARGED) {
 			buffer_append_float32(send_buffer, mc_interface_get_amp_hours_charged(false), 1e4, &ind);
 		}
-		if (mask & ((uint32_t)1 << 11)) {
+		if (mask & GET_VALUES_WH) {
 			buffer_append_float32(send_buffer, mc_interface_get_watt_hours(false), 1e4, &ind);
 		}
-		if (mask & ((uint32_t)1 << 12)) {
+		if (mask & GET_VALUES_WH_CHARGED) {
 			buffer_append_float32(send_buffer, mc_interface_get_watt_hours_charged(false), 1e4, &ind);
 		}
-		if (mask & ((uint32_t)1 << 13)) {
+		if (mask & GET_VALUES_TACHO) {
 			buffer_append_int32(send_buffer, mc_interface_get_tachometer_value(false), &ind);
 		}
-		if (mask & ((uint32_t)1 << 14)) {
+		if (mask & GET_VALUES_TACHO_ABS) {
 			buffer_append_int32(send_buffer, mc_interface_get_tachometer_abs_value(false), &ind);
 		}
-		if (mask & ((uint32_t)1 << 15)) {
+		if (mask & GET_VALUES_FAULT_CODE) {
 			send_buffer[ind++] = mc_interface_get_fault();
 		}
-		if (mask & ((uint32_t)1 << 16)) {
+		if (mask & GET_VALUES_PID_POS) {
 			buffer_append_float32(send_buffer, mc_interface_get_pid_pos_now(), 1e6, &ind);
 		}
-		if (mask & ((uint32_t)1 << 17)) {
+		if (mask & GET_VALUES_CONTROLLER_ID) {
 			uint8_t current_controller_id = app_get_configuration()->controller_id;
 #ifdef HW_HAS_DUAL_MOTORS
 			if (mc_interface_get_motor_thread() == 2) {
@@ -454,7 +455,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 #endif
 			send_buffer[ind++] = current_controller_id;
 		}
-		if (mask & ((uint32_t)1 << 18)) {
+		if (mask & GET_VALUES_NTC_TEMP_MOS) {
 			if (mc_interface_get_motor_thread() == 2) {
 				buffer_append_float16(send_buffer, NTC_TEMP_MOS1_M2(), 1e1, &ind);
 				buffer_append_float16(send_buffer, NTC_TEMP_MOS2_M2(), 1e1, &ind);
@@ -465,13 +466,13 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 				buffer_append_float16(send_buffer, NTC_TEMP_MOS3(), 1e1, &ind);
 			}
 		}
-		if (mask & ((uint32_t)1 << 19)) {
+		if (mask & GET_VALUES_AVG_VD) {
 			buffer_append_float32(send_buffer, mc_interface_read_reset_avg_vd(), 1e3, &ind);
 		}
-		if (mask & ((uint32_t)1 << 20)) {
+		if (mask & GET_VALUES_AVG_VQ) {
 			buffer_append_float32(send_buffer, mc_interface_read_reset_avg_vq(), 1e3, &ind);
 		}
-		if (mask & ((uint32_t)1 << 21)) {
+		if (mask & GET_VALUES_STATUS) {
 			uint8_t status = 0;
 			status |= timeout_has_timeout();
 			status |= timeout_kill_sw_active() << 1;
@@ -810,58 +811,58 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_uint32(send_buffer, mask, &ind);
 		}
 
-		if (mask & ((uint32_t)1 << 0)) {
+		if (mask & GET_VALUES_SETUP_FET_TEMP) {
 			buffer_append_float16(send_buffer, mc_interface_temp_fet_filtered(), 1e1, &ind);
 		}
-		if (mask & ((uint32_t)1 << 1)) {
+		if (mask & GET_VALUES_SETUP_MC_TEMP) {
 			buffer_append_float16(send_buffer, mc_interface_temp_motor_filtered(), 1e1, &ind);
 		}
-		if (mask & ((uint32_t)1 << 2)) {
+		if (mask & GET_VALUES_SETUP_CURRENT_TOT) {
 			buffer_append_float32(send_buffer, val.current_tot, 1e2, &ind);
 		}
-		if (mask & ((uint32_t)1 << 3)) {
+		if (mask & GET_VALUES_SETUP_CURRENT_IN_TOT) {
 			buffer_append_float32(send_buffer, val.current_in_tot, 1e2, &ind);
 		}
-		if (mask & ((uint32_t)1 << 4)) {
+		if (mask & GET_VALUES_SETUP_DUTY_CYCLE) {
 			buffer_append_float16(send_buffer, mc_interface_get_duty_cycle_now(), 1e3, &ind);
 		}
-		if (mask & ((uint32_t)1 << 5)) {
+		if (mask & GET_VALUES_SETUP_RPM) {
 			buffer_append_float32(send_buffer, mc_interface_get_rpm(), 1e0, &ind);
 		}
-		if (mask & ((uint32_t)1 << 6)) {
+		if (mask & GET_VALUES_SETUP_SPEED) {
 			buffer_append_float32(send_buffer, mc_interface_get_speed(), 1e3, &ind);
 		}
-		if (mask & ((uint32_t)1 << 7)) {
+		if (mask & GET_VALUES_SETUP_V_IN) {
 			buffer_append_float16(send_buffer, mc_interface_get_input_voltage_filtered(), 1e1, &ind);
 		}
-		if (mask & ((uint32_t)1 << 8)) {
+		if (mask & GET_VALUES_SETUP_BAT_LEVEL) {
 			buffer_append_float16(send_buffer, battery_level, 1e3, &ind);
 		}
-		if (mask & ((uint32_t)1 << 9)) {
+		if (mask & GET_VALUES_SETUP_AH_TOT) {
 			buffer_append_float32(send_buffer, val.ah_tot, 1e4, &ind);
 		}
-		if (mask & ((uint32_t)1 << 10)) {
+		if (mask & GET_VALUES_SETUP_AH_CHARGE_TOT) {
 			buffer_append_float32(send_buffer, val.ah_charge_tot, 1e4, &ind);
 		}
-		if (mask & ((uint32_t)1 << 11)) {
+		if (mask & GET_VALUES_SETUP_WH_TOT) {
 			buffer_append_float32(send_buffer, val.wh_tot, 1e4, &ind);
 		}
-		if (mask & ((uint32_t)1 << 12)) {
+		if (mask & GET_VALUES_SETUP_WH_CHARGE_TOT) {
 			buffer_append_float32(send_buffer, val.wh_charge_tot, 1e4, &ind);
 		}
-		if (mask & ((uint32_t)1 << 13)) {
+		if (mask & GET_VALUES_SETUP_DISTANCE) {
 			buffer_append_float32(send_buffer, mc_interface_get_distance(), 1e3, &ind);
 		}
-		if (mask & ((uint32_t)1 << 14)) {
+		if (mask & GET_VALUES_SETUP_DISTANCE_ABS) {
 			buffer_append_float32(send_buffer, mc_interface_get_distance_abs(), 1e3, &ind);
 		}
-		if (mask & ((uint32_t)1 << 15)) {
+		if (mask & GET_VALUES_SETUP_PID_POS) {
 			buffer_append_float32(send_buffer, mc_interface_get_pid_pos_now(), 1e6, &ind);
 		}
-		if (mask & ((uint32_t)1 << 16)) {
+		if (mask & GET_VALUES_SETUP_FAULT_CODE) {
 			send_buffer[ind++] = mc_interface_get_fault();
 		}
-		if (mask & ((uint32_t)1 << 17)) {
+		if (mask & GET_VALUES_SETUP_CONTROLLER_ID) {
 			uint8_t current_controller_id = app_get_configuration()->controller_id;
 #ifdef HW_HAS_DUAL_MOTORS
 			if (mc_interface_get_motor_thread() == 2) {
@@ -870,16 +871,16 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 #endif
 			send_buffer[ind++] = current_controller_id;
 		}
-		if (mask & ((uint32_t)1 << 18)) {
+		if (mask & GET_VALUES_SETUP_NUM_CONTROLLERS) {
 			send_buffer[ind++] = val.num_vescs;
 		}
-		if (mask & ((uint32_t)1 << 19)) {
+		if (mask & GET_VALUES_SETUP_WH_BAT_LEFT) {
 			buffer_append_float32(send_buffer, wh_batt_left, 1e3, &ind);
 		}
-		if (mask & ((uint32_t)1 << 20)) {
+		if (mask & GET_VALUES_SETUP_ODOMETER) {
 			buffer_append_uint32(send_buffer, mc_interface_get_odometer(), &ind);
 		}
-		if (mask & ((uint32_t)1 << 21)) {
+		if (mask & GET_VALUES_SETUP_SYSTIME) {
 			buffer_append_uint32(send_buffer, chVTGetSystemTimeX() / (CH_CFG_ST_FREQUENCY / 1000), &ind);
 		}
 
