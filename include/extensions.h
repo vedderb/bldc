@@ -140,6 +140,14 @@ lbm_value lbm_extensions_default(lbm_value *args, lbm_uint argn);
  */
 extern lbm_value make_list(int num, ...);
 
+/** check length of string. like strnlen.
+ * \param s String.
+ * \param maxlen Maximum length.
+ * \return length of string or maxlen.
+ */
+extern size_t strlen_max(const char *s, size_t maxlen);
+
+  
 /** Compare strings for equality
  *  Compares two strings up to the length of the first of string arguments.
  *

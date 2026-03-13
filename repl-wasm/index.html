@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LispBM WebAssembly REPL</title>
+  <meta name="description" content="Try LispBM in your browser — an embeddable Lisp/Scheme for microcontrollers, running live via WebAssembly.">
+  <meta name="keywords" content="LispBM, Lisp, Scheme, WebAssembly, WASM, REPL, embedded, microcontroller">
+  <meta property="og:title" content="LispBM WebAssembly REPL">
+  <meta property="og:description" content="Try LispBM in your browser — an embeddable Lisp/Scheme for microcontrollers, running live via WebAssembly.">
+  <meta property="og:url" content="https://www.lispbm.com/repl-wasm/index.html">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="https://www.lispbm.com/repl-wasm/index.html">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      font-family: "Courier New", monospace;
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 12px;
+      gap: 8px;
+    }
+    h1 { font-size: 16px; color: #569cd6; }
+    #main {
+      display: flex;
+      flex: 1;
+      gap: 8px;
+      min-height: 0;
+    }
+    #output {
+      flex: 1;
+      background: #111;
+      border: 1px solid #333;
+      padding: 10px;
+      overflow-y: auto;
+      white-space: pre;
+      min-width: 0;
+    }
+    #editor-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    /* Make CodeMirror fill the available space */
+    .CodeMirror {
+      flex: 1;
+      height: 100%;
+      font-family: "Courier New", monospace;
+      font-size: 14px;
+      border: 1px solid #444;
+    }
+    .CodeMirror-focused { border-color: #569cd6; }
+    #btn-load {
+      align-self: flex-end;
+      background: #0e639c;
+      color: #fff;
+      border: none;
+      padding: 4px 16px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    #btn-load:disabled { background: #333; color: #666; cursor: default; }
+    #btn-load:hover:not(:disabled) { background: #1177bb; }
+    #input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    #prompt { color: #569cd6; }
+    #input {
+      flex: 1;
+      background: #2d2d2d;
+      color: #d4d4d4;
+      border: 1px solid #444;
+      padding: 4px 8px;
+      font-family: inherit;
+      font-size: inherit;
+      outline: none;
+    }
+    #input:focus { border-color: #569cd6; }
+    button {
+      background: #0e639c;
+      color: #fff;
+      border: none;
+      padding: 4px 16px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    button:disabled { background: #333; color: #666; cursor: default; }
+    button:hover:not(:disabled) { background: #1177bb; }
+    #status { font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+  <h1>LispBM WebAssembly REPL &mdash; <a href="https://www.lispbm.com" style="color:#569cd6;font-size:12px;">lispbm.com</a></h1>
+  <div id="main">
+    <div id="output"></div>
+    <div id="editor-panel">
+      <textarea id="editor" placeholder="Enter LispBM code here..."></textarea>
+      <button id="btn-load" disabled>Load</button>
+    </div>
+  </div>
+  <div id="input-row">
+    <span id="prompt">#</span>
+    <input id="input" type="text" placeholder="Enter expression..." autocomplete="off" disabled>
+    <button id="btn-eval" disabled>Eval</button>
+  </div>
+  <div id="status">Loading...</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/scheme/scheme.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="lispbm.js"></script>
+  <script>
+    const cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
+      mode: 'scheme',
+      theme: 'dracula',
+      lineNumbers: true,
+      matchBrackets: true,
+      autoCloseBrackets: true,
+      indentUnit: 2,
+      tabSize: 2,
+      indentWithTabs: false,
+      extraKeys: {
+        'Tab': cm => cm.execCommand('indentMore'),
+        'Shift-Tab': cm => cm.execCommand('indentLess'),
+      }
+    });
+    cm.setSize('100%', '100%');
+
+    LispBM().then(lbm => {
+      const output  = document.getElementById('output');
+      const input   = document.getElementById('input');
+      const btnEval = document.getElementById('btn-eval');
+      const btnLoad = document.getElementById('btn-load');
+      const status  = document.getElementById('status');
+
+      function appendOutput(text) {
+        output.textContent += text;
+        output.scrollTop = output.scrollHeight;
+      }
+
+      function pollOutput() {
+        const text = lbm.ccall('lbm_wasm_get_output', 'string', [], []);
+        if (text && text.length > 0) {
+          appendOutput(text);
+          lbm.ccall('lbm_wasm_clear_output', null, [], []);
+        }
+      }
+
+      console.log('calling lbm_wasm_init...');
+      const ok = lbm.ccall('lbm_wasm_init', 'number', [], []);
+      console.log('lbm_wasm_init returned:', ok);
+      if (!ok) {
+        appendOutput('Failed to initialise LispBM.\n');
+        status.textContent = 'Init failed';
+        return;
+      }
+
+      btnEval.disabled = false;
+      btnLoad.disabled = false;
+      cm.setOption('readOnly', false);
+      input.disabled = false;
+      input.focus();
+      status.textContent = 'Ready';
+
+      function loop() {
+        const deadline = performance.now() + 8;
+        try {
+          while (performance.now() < deadline) {
+            lbm.ccall('lbm_wasm_run', null, ['number'], [100]);
+          }
+        } catch(e) {
+          appendOutput('CRASH in step: ' + e + '\n');
+          status.textContent = 'Crashed';
+          return;
+        }
+        try {
+          pollOutput();
+        } catch(e) {
+          appendOutput('CRASH in pollOutput: ' + e + '\n');
+          status.textContent = 'Crashed';
+          return;
+        }
+        setTimeout(loop, 0);
+      }
+      setTimeout(loop, 0);
+
+      function evalExpr() {
+        const code = input.value.trim();
+        if (!code) return;
+        appendOutput('# ' + code + '\n');
+        lbm.ccall('lbm_wasm_eval', null, ['string'], [code]);
+        input.value = '';
+      }
+
+      function loadEditor() {
+        const code = cm.getValue().trim();
+        if (!code) return;
+        appendOutput('-- load --\n');
+        lbm.ccall('lbm_wasm_eval_program', null, ['string'], [code]);
+      }
+
+      btnEval.addEventListener('click', evalExpr);
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') evalExpr();
+      });
+
+      btnLoad.addEventListener('click', loadEditor);
+
+    }).catch(err => {
+      document.getElementById('status').textContent = 'Error: ' + err;
+    });
+  </script>
+</body>
+</html>

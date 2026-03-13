@@ -1,5 +1,5 @@
 /*
-    Copyright 2022 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2026 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,15 +15,19 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PLATFORM_UART_H_
-#define PLATFORM_UART_H_
+#ifndef CRYPTO_EXTENSIONS_H_
+#define CRYPTO_EXTENSIONS_H_
 
-#include <ch.h>
-#include <hal.h>
-#include <stdbool.h>
+#include <stdint.h>
 
-#include "platform_chibios_conf.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-bool lbm_uart_init(void);
+void lbm_crypto_extensions_init(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

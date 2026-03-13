@@ -1020,7 +1020,7 @@ static inline bool lbm_is_quoted_list(lbm_value x) {
 
 // all error signaling symbols are in the range 0x20 - 0x2F
 // encoded that is 0x200 - 0x2F0 on 32bit and
-//                 0x2000 - 0x2F00 on 32bit
+//                 0x2000 - 0x2F00 on 64bit
 static inline bool lbm_is_error(lbm_value v){
 #ifndef LBM64
   return (v & ERROR_SYMBOL_MASK) == 0x200;

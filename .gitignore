@@ -80,3 +80,4 @@ repl-ChibiOS/build
 repl/repl
 tests/test_lisp_code_cps
 /.direnv
+.aider*

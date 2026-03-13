@@ -6552,7 +6552,7 @@ Destructively update an element in a list. The form of a `setix` expression is `
 
 ### member
 
-Check if a value is included in list. The form of an `member` expression is `(member value-expr list-expr)`. Equality is checked structurally, in the same way as [`eq`](#eq), meaning if you're checking numbers the types must match (see the following examples). 
+Check if a value is included in a list. The form of a `member` expression is `(member value-expr list-expr)`. If the value is found, `member` returns the entire list, otherwise it returns `nil`. Equality is checked structurally, in the same way as [`eq`](#eq), meaning if you're checking numbers the types must match (see the following examples). 
 
 <table>
 <tr>
@@ -9056,7 +9056,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 111025 kurt-russel)
+(exit-ok 111112 kurt-russel)
 ```
 
 

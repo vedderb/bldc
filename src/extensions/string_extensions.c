@@ -47,14 +47,6 @@ static lbm_uint sym_left;
 static lbm_uint sym_case_insensitive;
 
 
-static size_t strlen_max(const char *s, size_t maxlen) {
-  size_t i;
-  for (i = 0; i < maxlen; i ++) {
-    if (s[i] == 0) break;
-  }
-  return i;
-}
-
 static bool dec_str_size(lbm_value v, char **data, size_t *size) {
   bool result = false;
   lbm_array_header_t *array = lbm_dec_array_r(v);
