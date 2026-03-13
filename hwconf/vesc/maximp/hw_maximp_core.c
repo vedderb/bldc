@@ -320,11 +320,13 @@ static THD_FUNCTION(mux_thread, arg) {
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
 
-#define T_SAMP_US		400
+#define T_SAMP_US		500
 
 	for (;;) {
 		ADCMUX_MOT_TEMP();
-		chThdSleepMicroseconds(T_SAMP_US);
+		// Wait longer on this one as some temperature sensors, e.g. the PT1000 change very little
+		// and the voltage divider gives us bad resolution for it.
+		chThdSleepMilliseconds(5);
 		ADC_Value[ADC_IND_TEMP_MOTOR] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ADCMUX_12V_SENSE_V();
