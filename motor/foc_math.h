@@ -175,6 +175,8 @@ typedef struct {
 	float m_pos_pid_now;
 	float m_gamma_now;
 	bool m_using_encoder;
+	bool m_virtual_index_set;
+	bool m_virtual_index_refined;
 	int m_duty1_next, m_duty2_next, m_duty3_next;
 	bool m_duty_next_set;
 	float m_i_alpha_sample_next;
