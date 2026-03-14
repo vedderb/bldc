@@ -3450,6 +3450,42 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 							motor_now->m_speed_est_fast,
 							conf_now->foc_sl_erpm,
 							motor_now);
+
+					// Virtual index refinement: once observer is reliable, correct the encoder position
+					if (conf_now->foc_encoder_no_index &&
+							!motor_now->m_virtual_index_refined &&
+							fabsf(RADPS2RPM_f(motor_now->m_speed_est_fast)) > (conf_now->foc_sl_erpm * 0.8)) {
+						float obs_deg = RAD2DEG_f(motor_now->m_phase_now_observer);
+						float enc_deg = (obs_deg + conf_now->foc_encoder_offset) / conf_now->foc_encoder_ratio;
+						if (conf_now->foc_encoder_inverted) {
+							enc_deg = 360.0 - enc_deg;
+						}
+						encoder_set_deg(enc_deg);
+						motor_now->m_virtual_index_refined = true;
+					}
+				} else if (conf_now->foc_encoder_no_index) {
+					// Virtual index mode: use observer until it's reliable enough to set the encoder.
+					// Reset state if index was previously set but has been lost.
+					motor_now->m_virtual_index_set = false;
+					motor_now->m_virtual_index_refined = false;
+
+					float abs_erpm = fabsf(RADPS2RPM_f(motor_now->m_speed_est_fast));
+
+					// 400 ERPM is the minimum where back-EMF gives the observer a usable
+					// angle estimate. The position is refined later at 80% of foc_sl_erpm.
+					if (abs_erpm > 400.0) {
+						// Observer has a rough estimate, set initial virtual index
+						float obs_deg = RAD2DEG_f(motor_now->m_phase_now_observer);
+						float enc_deg = (obs_deg + conf_now->foc_encoder_offset) / conf_now->foc_encoder_ratio;
+						if (conf_now->foc_encoder_inverted) {
+							enc_deg = 360.0 - enc_deg;
+						}
+						encoder_set_deg(enc_deg);
+						motor_now->m_virtual_index_set = true;
+					} else {
+						// Use sensorless observer while waiting for enough speed
+						state_now->phase = motor_now->m_phase_now_observer;
+					}
 				} else {
 					// Rotate the motor in open loop if the index isn't found.
 					state_now->phase = motor_now->m_phase_now_encoder_no_index;
