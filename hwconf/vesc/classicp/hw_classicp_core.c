@@ -382,7 +382,8 @@ static THD_FUNCTION(switch_color_thread, arg) {
 			palSetPad(HW_ADC_EXT4_GPIO, HW_ADC_EXT4_PIN);
 			palSetPad(HW_ADC_EXT5_GPIO, HW_ADC_EXT5_PIN);
 		} else if (mcconf->motor_type == MOTOR_TYPE_FOC &&
-				mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER) {
+			(mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ||
+			 mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER_AB)) {
 			// Ensure that the sin/cos pins are in ADC mode
 			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
 				palSetPadMode(HW_ADC_EXT4_GPIO, HW_ADC_EXT4_PIN, PAL_MODE_INPUT_ANALOG);

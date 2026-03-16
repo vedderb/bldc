@@ -631,7 +631,8 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 	// Only generate fault code when the encoder is being used. Note that encoder faults
 	// that occur above the sensorless ERPM won't stop the motor.
 	bool is_foc_encoder = m_conf->motor_type == MOTOR_TYPE_FOC &&
-			m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+			(m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ||
+			 m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER_AB) &&
 			mcpwm_foc_is_using_encoder();
 
 	if (is_foc_encoder) {
