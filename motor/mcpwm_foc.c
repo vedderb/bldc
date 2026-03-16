@@ -3480,8 +3480,17 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 							motor_now->m_speed_est_fast,
 							conf_now->foc_sl_erpm,
 							motor_now);
+				} else if (motor_now->m_phase_observer_override) {
+					// Open-loop startup assist before first sync (same as sensorless)
+					state_now->phase = motor_now->m_phase_now_observer_override;
+					motor_now->m_observer_state.x1 = motor_now->m_observer_x1_override;
+					motor_now->m_observer_state.x2 = motor_now->m_observer_x2_override;
+					iq_set_tmp += conf_now->foc_sl_openloop_boost_q * SIGN(iq_set_tmp);
+					if (conf_now->foc_sl_openloop_max_q > conf_now->cc_min_current) {
+						utils_truncate_number_abs(&iq_set_tmp, conf_now->foc_sl_openloop_max_q);
+					}
 				} else {
-					// Use observer until index is established
+					// Use observer until first sync at sensorless ERPM
 					state_now->phase = motor_now->m_phase_now_observer;
 				}
 
