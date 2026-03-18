@@ -3230,7 +3230,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	volatile bool encoder_is_being_used = false;
 
 	if (virtual_motor_is_connected()) {
-		if (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ) {
+		if (conf_now->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ||
+				conf_now->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER_AB) {
 			enc_ang = virtual_motor_get_angle_deg();
 			encoder_is_being_used = true;
 		}
@@ -3459,6 +3460,44 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 					id_set_tmp = 0.0;
 				}
 				break;
+
+			case FOC_SENSOR_MODE_ENCODER_AB:
+				// AB encoder without index pin. Sync encoder to observer at sensorless ERPM
+				// to establish and continuously correct the absolute position.
+				if (fabsf(RADPS2RPM_f(motor_now->m_speed_est_fast)) >= conf_now->foc_sl_erpm) {
+					float obs_deg = RAD2DEG_f(motor_now->m_phase_now_observer);
+					float enc_deg = (obs_deg + conf_now->foc_encoder_offset) / conf_now->foc_encoder_ratio;
+					if (conf_now->foc_encoder_inverted) {
+						enc_deg = 360.0 - enc_deg;
+					}
+					encoder_set_deg(enc_deg);
+				}
+
+				if (encoder_index_found() || virtual_motor_is_connected()) {
+					state_now->phase = foc_correct_encoder(
+							motor_now->m_phase_now_observer,
+							motor_now->m_phase_now_encoder,
+							motor_now->m_speed_est_fast,
+							conf_now->foc_sl_erpm,
+							motor_now);
+				} else if (motor_now->m_phase_observer_override) {
+					// Open-loop startup assist before first sync (same as sensorless)
+					state_now->phase = motor_now->m_phase_now_observer_override;
+					motor_now->m_observer_state.x1 = motor_now->m_observer_x1_override;
+					motor_now->m_observer_state.x2 = motor_now->m_observer_x2_override;
+					iq_set_tmp += conf_now->foc_sl_openloop_boost_q * SIGN(iq_set_tmp);
+					if (conf_now->foc_sl_openloop_max_q > conf_now->cc_min_current) {
+						utils_truncate_number_abs(&iq_set_tmp, conf_now->foc_sl_openloop_max_q);
+					}
+				} else {
+					// Use observer until first sync at sensorless ERPM
+					state_now->phase = motor_now->m_phase_now_observer;
+				}
+
+				if (!motor_now->m_phase_override && motor_now->m_control_mode != CONTROL_MODE_OPENLOOP_PHASE) {
+					id_set_tmp = 0.0;
+				}
+				break;
 			case FOC_SENSOR_MODE_HALL:
 				state_now->phase = foc_correct_hall(motor_now->m_phase_now_observer, dt, motor_now,
 						utils_read_hall(motor_now != &m_motor_1, conf_now->m_hall_extra_samples));
@@ -3656,6 +3695,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		{
 			switch (conf_now->foc_sensor_mode) {
 			case FOC_SENSOR_MODE_ENCODER:
+			case FOC_SENSOR_MODE_ENCODER_AB:
 				state_now->phase = foc_correct_encoder(
 						motor_now->m_phase_now_observer,
 						motor_now->m_phase_now_encoder,
@@ -3989,7 +4029,8 @@ static void timer_update(motor_all_state_t *motor, float dt) {
 	utils_truncate_number_abs(&openloop_rpm_max, conf_now->foc_openloop_rpm);
 
 	float openloop_rpm = openloop_rpm_max;
-	if (conf_now->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER) {
+	if (conf_now->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER &&
+			conf_now->foc_sensor_mode != FOC_SENSOR_MODE_ENCODER_AB) {
 		float time_fwd = t_lock + t_ramp + t_const - motor->m_min_rpm_timer;
 		if (time_fwd < t_lock) {
 			openloop_rpm = 0.0;

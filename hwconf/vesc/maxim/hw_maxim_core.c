@@ -356,7 +356,8 @@ static THD_FUNCTION(mux_thread, arg) {
 			palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT);
 			palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT);
 		} else if (mcconf->motor_type == MOTOR_TYPE_FOC &&
-				mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER) {
+			(mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ||
+			 mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER_AB)) {
 
 			// Prevent the uart-pins from interfering
 			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_ABI ||
