@@ -17,6 +17,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
+/** \file buffer.h */
+
 #ifndef BUFFER_H_
 #define BUFFER_H_
 

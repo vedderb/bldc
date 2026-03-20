@@ -28,16 +28,34 @@
 #include "terminal.h"
 #include "commands.h"
 #include "utils.h"
+#include "ledpwm.h"
+#include "main.h"
+#include "app.h"
+#include "comm_can.h"
 
-static void terminal_shutdown_now(int argc, const char **argv);
-static void terminal_button_test(int argc, const char **argv);
+typedef enum {
+	SWITCH_BOOTED = 0,
+	SWITCH_TURN_ON_DELAY_ACTIVE,
+	SWITCH_HELD_AFTER_TURN_ON,
+	SWITCH_TURNED_ON,
+	SWITCH_SHUTTING_DOWN,
+} switch_states;
 
-// Variables
-static volatile bool i2c_running = false;
-static mutex_t shutdown_mutex;
-static volatile bool shutdown_mutex_init_done = false;
+// Switch
+static THD_WORKING_AREA(smart_switch_thread_wa, 256);
+static THD_WORKING_AREA(switch_color_thread_wa, 256);
+static THD_FUNCTION(switch_color_thread, arg);
+static volatile switch_states switch_state = SWITCH_BOOTED;
+
+static volatile float switch_bright = 0.75;
+static bool switch_color_thd_running = false;
 static volatile float bt_diff = 0.0;
 static volatile bool shutdown_hold_en = true;
+static volatile bool shutdown_sample_dis = false;
+static mutex_t shutdown_mutex;
+static volatile bool shutdown_mutex_init_done = false;
+
+static volatile bool i2c_running = false;
 
 // Sense thread
 static THD_WORKING_AREA(sense_thread_wa, 256);
@@ -52,6 +70,8 @@ static const I2CConfig i2cfg = {
 		100000,
 		STD_DUTY_CYCLE
 };
+
+static void terminal_button_test(int argc, const char **argv);
 
 static lbm_value ext_basic_set_out(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(2);
@@ -199,12 +219,6 @@ void hw_init_gpio(void) {
 	lispif_add_ext_load_callback(load_extensions);
 
 	terminal_register_command_callback(
-			"shutdown",
-			"Shutdown VESC now.",
-			0,
-			terminal_shutdown_now);
-
-	terminal_register_command_callback(
 			"test_button",
 			"Try sampling the shutdown button",
 			0,
@@ -250,6 +264,11 @@ void hw_setup_adc_channels(void) {
 	if (!sense_thd_running) {
 		chThdCreateStatic(sense_thread_wa, sizeof(sense_thread_wa), NORMALPRIO, sense_thread, NULL);
 		sense_thd_running = true;
+	}
+
+	if (!switch_color_thd_running) {
+		chThdCreateStatic(switch_color_thread_wa, sizeof(switch_color_thread_wa), LOWPRIO, switch_color_thread, NULL);
+		switch_color_thd_running = true;
 	}
 }
 
@@ -404,21 +423,26 @@ void hw_try_restore_i2c(void) {
 	}
 }
 
-bool hw_sample_shutdown_button(void) {
+bool smart_switch_is_pressed(void) {
 	chMtxLock(&shutdown_mutex);
+
+	if (shutdown_sample_dis) {
+		chMtxUnlock(&shutdown_mutex);
+		return false;
+	}
 
 	bt_diff = 0.0;
 	int samples = 10;
 
 	for (int i = 0;i < samples;i++) {
-		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_INPUT_ANALOG);
+		palSetPadMode(SWITCH_OUT_GPIO, SWITCH_OUT_PIN, PAL_MODE_INPUT_ANALOG);
 		chThdSleep(5);
 		float val1 = ADC_VOLTS(ADC_IND_SHUTDOWN);
 		chThdSleepMilliseconds(5);
 		float val2 = ADC_VOLTS(ADC_IND_SHUTDOWN);
 
 		if (shutdown_hold_en) {
-			palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+			palSetPadMode(SWITCH_OUT_GPIO, SWITCH_OUT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
 		}
 
 		chThdSleepMilliseconds(1);
@@ -437,18 +461,207 @@ void hw_shutdown_set_hold(bool hold) {
 	shutdown_hold_en = hold;
 
 	if (hold) {
-		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-		palSetPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN);
+		palSetPadMode(SWITCH_OUT_GPIO, SWITCH_OUT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		palSetPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
 	} else {
-		palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_INPUT_ANALOG);
+		palSetPadMode(SWITCH_OUT_GPIO, SWITCH_OUT_PIN, PAL_MODE_INPUT_ANALOG);
 	}
 }
 
-static void terminal_shutdown_now(int argc, const char **argv) {
-	(void)argc;
-	(void)argv;
-	DISABLE_GATE();
-	HW_SHUTDOWN_HOLD_OFF();
+void smart_switch_shut_down(void) {
+	switch_state = SWITCH_SHUTTING_DOWN;
+}
+
+static THD_FUNCTION(switch_color_thread, arg) {
+	(void)arg;
+	chRegSetThreadName("switch_color");
+	float switch_red = 0.0;
+	float switch_green = 0.0;
+	float switch_blue = 0.0;
+
+	for(int i = 0; i < 400; i++) {
+		float angle = i*3.14/400.0;
+		float s,c;
+		utils_fast_sincos_better(angle, &s, &c);
+		switch_blue = 0.75* c*c;
+		ledpwm_set_intensity(LED_HW1,switch_bright*switch_blue);
+		utils_fast_sincos_better(angle + 3.14/3.0, &s, &c);
+		switch_green = 0.75* c*c;
+		ledpwm_set_intensity(LED_HW2,switch_bright*switch_green);
+		utils_fast_sincos_better(angle + 6.28/3.0, &s, &c);
+		switch_red = 0.75* c*c;
+		ledpwm_set_intensity(LED_HW3,switch_bright*switch_red);
+		chThdSleepMilliseconds(4);
+	}
+	float switch_red_old = switch_red_old;
+	float switch_green_old = switch_green;
+	float switch_blue_old = switch_blue;
+	float wh_left;
+	float left = mc_interface_get_battery_level(&wh_left);
+
+	if (left < 0.5) {
+		float intense = utils_map(left,0.0, 0.5, 0.0, 1.0);
+		utils_truncate_number(&intense,0,1);
+		switch_blue = intense;
+		switch_red  = 1.0-intense;
+	} else {
+		float intense = utils_map(left , 0.5, 1.0, 0.0, 1.0);
+		utils_truncate_number(&intense,0,1);
+		switch_green = intense;
+		switch_blue  = 1.0-intense;
+	}
+
+	for (int i = 0; i < 100; i++) {
+		float red_now = utils_map((float) i,0.0, 100.0, switch_red_old, switch_red);
+		float blue_now = utils_map((float) i,0.0, 100.0, switch_blue_old, switch_blue);
+		float green_now = utils_map((float) i,0.0, 100.0, switch_green_old, switch_green);
+		ledpwm_set_intensity(LED_HW1, switch_bright*blue_now);
+		ledpwm_set_intensity(LED_HW2, switch_bright*green_now);
+		ledpwm_set_intensity(LED_HW3, switch_bright*red_now);
+		chThdSleepMilliseconds(2);
+	}
+
+	for (;;) {
+		mc_fault_code fault = mc_interface_get_fault();
+
+		if (fault != FAULT_CODE_NONE) {
+			ledpwm_set_intensity(LED_HW2, 0);
+			ledpwm_set_intensity(LED_HW1, 0);
+			for (int i = 0;i < (int)fault;i++) {
+				ledpwm_set_intensity(LED_HW3, 1.0);
+				chThdSleepMilliseconds(250);
+				ledpwm_set_intensity(LED_HW3, 0.0);
+				chThdSleepMilliseconds(250);
+			}
+
+			chThdSleepMilliseconds(500);
+		} else {
+			left = mc_interface_get_battery_level(&wh_left);
+			if (left < 0.5){
+				float intense = utils_map(left,0.0, 0.5, 0.0, 1.0);
+				utils_truncate_number(&intense,0,1);
+				switch_blue = intense;
+				switch_red  = 1.0-intense;
+				switch_green = 0;
+			} else {
+				float intense = utils_map(left , 0.5, 1.0, 0.0, 1.0);
+				utils_truncate_number(&intense,0,1);
+				switch_green = intense;
+				switch_blue  = 1.0-intense;
+				switch_red = 0;
+			}
+			ledpwm_set_intensity(LED_HW1, switch_bright*switch_blue);
+			ledpwm_set_intensity(LED_HW2, switch_bright*switch_green);
+			ledpwm_set_intensity(LED_HW3, switch_bright*switch_red);
+		}
+
+		chThdSleepMilliseconds(20);
+	}
+}
+
+static THD_FUNCTION(smart_switch_thread, arg) {
+	(void)arg;
+	chRegSetThreadName("smart_switch");
+	systime_t switch_pressed_ts = chVTGetSystemTimeX();
+
+	for (;;) {
+		const app_configuration *conf = app_get_configuration();
+
+		switch (switch_state) {
+		case SWITCH_BOOTED:
+			switch_state = SWITCH_TURN_ON_DELAY_ACTIVE;
+			break;
+
+		case SWITCH_TURN_ON_DELAY_ACTIVE:
+			switch_state = SWITCH_HELD_AFTER_TURN_ON;
+
+			// Wait for other systems to boot up before proceeding
+			while (!main_init_done()) {
+				chThdSleepMilliseconds(200);
+			}
+			break;
+
+		case SWITCH_HELD_AFTER_TURN_ON:
+			if (smart_switch_is_pressed()) {
+				switch_state = SWITCH_HELD_AFTER_TURN_ON;
+			} else {
+				switch_state = SWITCH_TURNED_ON;
+			}
+			break;
+
+		case SWITCH_TURNED_ON:
+			if (conf->shutdown_mode == SHUTDOWN_MODE_ALWAYS_OFF) {
+				if (!smart_switch_is_pressed()) {
+					switch_state = SWITCH_SHUTTING_DOWN;
+				}
+			} else {
+				if (smart_switch_is_pressed() &&
+						conf->shutdown_mode != SHUTDOWN_MODE_ALWAYS_ON) {
+					switch_bright = 0.5;
+				} else {
+					switch_bright = 1.0;
+					switch_pressed_ts = chVTGetSystemTimeX();
+				}
+
+				if (UTILS_AGE_S(switch_pressed_ts) > ((float)(SMART_SWITCH_MSECS_PRESSED_OFF) / 1000.0)) {
+					switch_state = SWITCH_SHUTTING_DOWN;
+#ifdef USE_LISPBM
+					lispif_process_shutdown();
+#endif
+				}
+			}
+			break;
+
+		case SWITCH_SHUTTING_DOWN:
+			switch_bright = 0;
+			while (smart_switch_is_pressed()) {
+				chThdSleepMilliseconds(10);
+			}
+			comm_can_shutdown(255);
+			mc_interface_set_current(0);
+			mc_interface_lock();
+			hw_shutdown_set_hold(false);
+			chThdSleepMilliseconds(10000);
+
+			// Shutdown never happened
+			mc_interface_unlock();
+			hw_shutdown_set_hold(true);
+			switch_state = SWITCH_TURN_ON_DELAY_ACTIVE;
+			break;
+
+		default:
+			break;
+		}
+
+		chThdSleepMilliseconds(1);
+	}
+}
+
+void smart_switch_thread_start(void) {
+	chThdCreateStatic(smart_switch_thread_wa, sizeof(smart_switch_thread_wa),
+					  NORMALPRIO, smart_switch_thread, NULL);
+}
+
+void smart_switch_pin_init(void) {
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
+
+	palSetPadMode(SWITCH_OUT_GPIO,SWITCH_OUT_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(SWITCH_LED_2_GPIO,SWITCH_LED_2_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN, PAL_MODE_OUTPUT_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST);
+	palSetPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
+	LED_SWITCH_B_ON();
+	LED_SWITCH_R_OFF();
+	LED_SWITCH_G_OFF();
+	return;
+}
+
+void smart_switch_set_sampling_disabled(bool dis) {
+	chMtxLock(&shutdown_mutex);
+	shutdown_sample_dis = dis;
+	chMtxUnlock(&shutdown_mutex);
 }
 
 static void terminal_button_test(int argc, const char **argv) {
@@ -456,7 +669,7 @@ static void terminal_button_test(int argc, const char **argv) {
 	(void)argv;
 
 	for (int i = 0;i < 40;i++) {
-		commands_printf("BT: %d %.2f", HW_SAMPLE_SHUTDOWN(), (double)bt_diff);
+		commands_printf("BT: %d %.2f", smart_switch_is_pressed(), (double)bt_diff);
 		chThdSleepMilliseconds(100);
 	}
 }

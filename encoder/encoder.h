@@ -34,6 +34,7 @@
 #include "enc_tle5012.h"
 #include "enc_ts5700n8501.h"
 #include "enc_pwm.h"
+#include "enc_ma782.h"
 
 // Functions
 bool encoder_init(volatile mc_configuration *conf);

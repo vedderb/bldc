@@ -55,18 +55,49 @@
                       ))
               end)))
 
+
+(define entry-img-dims
+  (ref-entry "img-dims"
+             (list
+              (para (list "`img-dims returns the width and height of an image."
+                          "The form of an `img-dims` expression is `(img-dims image)`."
+                          ))
+              (code-png 'my-img '(0x00 0xffffff)
+			'((img-dims my-img)
+			  ))
+              end))
+  )
+
 (define arcs
     (ref-entry "img-arc"
 	       (list
+                (para (list "Draw an arc into an image."
+                            "The form of an `img-arc` expression is `(img-arc image cx cy r ang-s ang-e color ..option)`."
+                            ))
+                (para (list "|Arg || \n"
+                            "|----|----|\n"
+                            "`image` | An image buffer for example created using img-buffer.\n"
+                            "`cx cy` | Center point x,y.\n"
+                            "`r`     | Radius.\n"
+                            "`ang-s ang-e` | From angle `ang-s` to `ang-e` in degrees (float).\n"
+                            "`color` | Color value, range determined by image buffer color depth.\n"
+                            ))
+                (para (list "<br>"))
+                (para (list "|Option      || \n"
+                            "|----|----|\n"
+                            "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
+                            "`filled`     | Filled, no arguments.\n"
+                            "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
+                            "`rounded`    | Rounded edges, no argument.\n"
+                            "`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
+                            ))
 		(code-png 'my-img '(0x00 0xffffff)
 			  '((img-arc my-img 100 100 50 160 100 1)
 			    (img-arc my-img 100 100 50 160 100 1 '(dotted 15 15))
 			    (img-arc my-img 100 100 50 160 100 1 '(filled))
 			    (img-arc my-img 100 100 50 160 100 1 '(thickness 10))
 			    (img-arc my-img 100 100 50 160 100 1 '(rounded))
-			    ))
-		(code-png 'my-img '(0x00 0xffffff)
-			  '((img-arc my-img 100 100 50 160 100 1 '(dotted 15 15) '(resolution 3))
+			    (img-arc my-img 100 100 50 160 100 1 '(dotted 15 15) '(resolution 3))
 			    (img-arc my-img 100 100 50 160 100 1 '(thickness 10) '(rounded))
 			  ))
 		end)))
@@ -75,38 +106,293 @@
 (define circles
   (ref-entry "img-circle"
              (list
-              (code-png 'my-img '(0x00 0xffffff)
-                        '((img-circle my-img 100 100 80 1)
-                          (img-circle my-img 100 100 80 1 '(thickness 5))
-                          (img-circle my-img 100 100 80 1 '(dotted 14 14))
-                          (img-circle my-img 100 100 80 1 '(filled))
+              (para (list "Draw a circle into an image."
+                          "The form of an `img-circle` expression is `(img-circle image cx cy r color ..option)`."
                           ))
-              (code-png 'my-img '(0x00 0xffffff)
-                        '((img-circle my-img 100 100 80 1 '(dotted 14 14) '(resolution 6))
+               (para (list "|Arg || \n"
+                            "|----|----|\n"
+                            "`image` | An image buffer for example created using img-buffer.\n"
+                            "`cx cy` | Center point x,y.\n"
+                            "`r`     | Radius.\n"
+                            "`color` | Color value, range determined by image buffer color depth.\n"
+                            ))
+               (para (list "<br>"))
+               (para (list "|Option      || \n"
+                           "|----|----|\n"
+                           "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
+                           "`filled`     | Filled, no arguments.\n"
+                           "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
+                           "`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
+                           ))
+               (code-png 'my-img '(0x00 0xffffff)
+                         '((img-circle my-img 100 100 80 1)
+                           (img-circle my-img 100 100 80 1 '(thickness 5))
+                           (img-circle my-img 100 100 80 1 '(dotted 14 14))
+                           (img-circle my-img 100 100 80 1 '(filled))
+                           (img-circle my-img 100 100 80 1 '(dotted 14 14) '(resolution 6))
                           ))
-              end)))
+               end)))
 
 (define circle-sectors
   (ref-entry "img-circle-sector"
              (list
+              (para (list "Draw a circle sector into an image."
+                          "The form of an `img-circle-sector` expression is `(img-circle-sector image cx cy r ang-s ang-e color ..option)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`cx cy` | Center point x,y.\n"
+                          "`r`     | Radius.\n"
+                          "`ang-s ang-e` | From angle `ang-s` to `ang-e` in degrees (float).\n"
+                          "`color` | Color value, range determined by image buffer color depth.\n"
+                          ))
+              (para (list "<br>"))
+              (para (list "|Option      || \n"
+                          "|----|----|\n"
+                          "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
+                          "`filled`     | Filled, no arguments.\n"
+                          "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
+                          ;;"`rounded`    | Rounded edges, no arguments.\n"
+                          ;;"`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
+                          ))
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-circle-sector my-img 220 40 40 90 200 1)
                           (img-circle-sector my-img 220 40 40 90 200 1 '(thickness 3))
+                          ;;(img-circle-sector my-img 220 40 40 90 200 1 '(thickness 3) '(rounded))
+                          (img-circle-sector my-img 220 40 40 90 200 1 '(dotted 1 4))
+                          (img-circle-sector my-img 220 40 40 90 200 1 '(filled))
+                          ;;(img-circle-sector my-img 220 40 40 90 200 1 '(resolution 2))
                           ))
               end)))
 
 (define circle-segments
   (ref-entry "img-circle-segment"
              (list
+              (para (list "Draw a circle segment into an image."
+                          "The form of an `img-circle-segment` expression is `(img-circle-segment image cx cy r ang-s ang-e color ..option)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`cx cy` | Center point x,y.\n"
+                          "`r`     | Radius.\n"
+                          "`ang-s ang-e` | From angle `ang-s` to `ang-e` in degrees (float).\n"
+                          "`color` | Color value, range determined by image buffer color depth.\n"
+                          ))
+              (para (list "<br>"))
+              (para (list "|Option      || \n"
+                          "|----|----|\n"
+                          "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
+                          "`filled`     | Filled, no arguments.\n"
+                          "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
+                          ;;"`rounded`    | Rounded edges, no arguments.\n"
+                          ;;"`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
+                          ))
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-circle-segment my-img 100 100 80 0 100 1)
                           (img-circle-segment my-img 100 100 80 0 100 1 '(filled))
+                          (img-circle-segment my-img 100 100 80 0 100 1 '(thickness 5))
+                          (img-circle-segment my-img 100 100 80 0 100 1 '(dotted 1 4))
                           ))
               end)))
+
+(define clear-image
+  (ref-entry "img-clear"
+             (list
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-clear my-img)
+                          (img-clear my-img 1)
+                          (img-clear my-img 0)
+                          ))
+              end)))
+
+(define color1 0xFF0000)
+(define color2 0x0000FF)
+
+(define create-color
+  (ref-entry "img-color"
+             (list
+              (para (list "img-color is used to create more complex color objects for"
+                          "use together with disp-render.")
+                    )            
+              (bullet (list "**gradient_x**: vertical gradients from color1 to color2."
+                            "**gradient_y**: horizontal gradients from color1 to color2."
+                            "**gradient_x_pre**: precomputes gradient."
+                            "**gradient_y_pre**: precomputes gradient."))
+  
+              (code '((read-eval "(img-color 'regular 0xAABB11)")
+                      (read-eval "(img-color 'gradient_x color1 color2 10 0 'repeat)")
+                      (read-eval "(img-color 'gradient_x_pre color1 color2)")
+                      ))
+              (program-disp '((
+                               (define fptr (fopen "images/lama2.bin" "r"))
+                               (define pic (load-file fptr))
+                               (fclose fptr)
+                               (define c (img-color 'gradient_x color1 color2 100 0 'repeat))
+                               (define img (img-buffer 'indexed2 320 200))
+                               (img-blit img pic 10 10 -1 '(rotate 128 128 45))
+                               (disp-render img 100 0 (list (img-color 'regular 0) c))
+                               )))
+              (program-disp '((
+                               (define fptr (fopen "images/lama2.bin" "r"))
+                               (define pic (load-file fptr))
+                               (fclose fptr)
+                               (define c (img-color 'gradient_y color1 color2 100 0 'mirrored))
+                               (define img (img-buffer 'indexed2 320 200))
+                               (img-blit img pic 10 10 -1 '(rotate 128 128 45))
+                               (disp-render img 100 0 (list (img-color 'regular 0) c))
+                               )))
+              end)))
+
+;;                  entry-color-set
+;;                  entry-color-get
+;;                  entry-color-setpre
+;;                  entry-color-getpre
+
+(define my-color (img-color 'gradient_y color1 color2 10 0 'repeat))
+
+(define entry-color-set
+  (ref-entry "img-color-set"
+             (list
+              (para (list "With `img-color-set`you can set properties of a color."
+                          "The form of a img-color-set expression is `(img-color-set color prop value)`"
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`color` | Color value creted with img-color.\n"
+                          "`property` | Symbol denoting property to change.\n"
+                          "`value`    | New value to set property to.\n"
+                          ))
+              (para (list "|`img-color-set` | regular | gradient | pre |\n"
+                          "|----|----|----|----|\n"
+                          "`color0`      | ✓ | ✓ | ✗ |\n"
+                          "`color1`      | ✗ | ✓ | ✗ |\n"
+                          "`width`       | ✗ | ✓ | ✗ |\n"
+                          "`offset`      | ✗ | ✓ | ✓ |\n"
+                          "`repeat-type` | ✗ | ✓ | ✓ |\n"
+                          ))
+              (code '((img-color-set my-color 'repeat-type 'mirrored)
+                      (img-color-set my-color 'color-0 0xFF00FF)
+                      (img-color-set my-color 'color-1 0x00FF00)
+                      (img-color-set my-color 'width 10)
+                      (img-color-set my-color 'offset 1)
+                      ))
+              )))
+
+(define entry-color-get
+  (ref-entry "img-color-get"
+             (list
+              (para (list "With `img-color-get` you can access properties of a color."
+                          "The form of an img-color-get expression is `(img-color-get color prop)`"
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`color` | Color value creted with img-color.\n"
+                          "`property` | Symbol denoting property to access.\n"
+                          ))
+              (para (list "|`img-color-get` | regular | gradient | pre |\n"                 
+                          "|----|----|----|----|\n"
+                          "`color0`      | ✓ | ✓ | ✓ |\n"                                   
+                          "`color1`      | ✗ | ✓ | ✓ |\n"
+                          "`width`       | ✗ | ✓ | ✓ |\n"
+                          "`offset`      | ✗ | ✓ | ✓ |\n"
+                          "`repeat-type` | ✗ | ✓ | ✓ |\n"
+                          ))
+              (code '((img-color-get my-color 'repeat-type)
+                      (img-color-get my-color 'color-0)
+                      (img-color-get my-color 'color-1)
+                      (img-color-get my-color 'width)
+                      (img-color-get my-color 'offset)
+                      ))
+             )))
+
+(define my-color-pre (img-color 'gradient_x_pre color1 color2 100 0 'mirrored))
+
+(define entry-color-setpre
+  (ref-entry "img-color-setpre"
+             (list
+              (para  (list "Update a value in a precalculated gradient color."
+                           "The form of an `img-color-setpre` expression is `(img-color-setpre color pos color-val)`."
+                           ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`color` | Color value creted with img-color.\n"
+                          "`pos`   | Position in the precomputed colormap to update.\n"
+                          "`color-val` | Color value to write into the position.\n"
+                          ))   
+             (code '((img-color-setpre my-color-pre 10 0xFFFFFF)
+                     (img-color-setpre my-color-pre 11 0x000000)
+                     ))
+                           (program-disp '((
+                               (define fptr (fopen "images/lama2.bin" "r"))
+                               (define pic (load-file fptr))
+                               (fclose fptr)
+                               (define c (img-color 'gradient_x_pre color1 color2 100 0 'repeat))
+                               (loopfor i 0 (< i 512) (+ i 2) {
+                                        (img-color-setpre c i 0xFFFFFF)
+                                        (img-color-setpre c (+ i 1) 0x00000)
+                                        })
+                               (define img (img-buffer 'indexed2 320 200))
+                               (img-blit img pic 10 10 -1 '(rotate 128 128 45))
+                               (disp-render img 100 0 (list (img-color 'regular 0) c))
+                               )))
+              (program-disp '((
+                               (define fptr (fopen "images/lama2.bin" "r"))
+                               (define pic (load-file fptr))
+                               (fclose fptr)
+                               (define c (img-color 'gradient_y_pre color1 color2 200 0 'repeat))
+                               (loopfor i 0 (< i 200) (+ i 10) {
+                                        (var band-color (if (= (mod (/ i 10) 2) 0) color1 color2))
+                                        (loopfor j 0 (< j 10) (+ j 1) {
+                                                 (img-color-setpre c (+ i j) band-color)
+                                                 })
+                                        })
+                               (define img (img-buffer 'indexed2 320 200))
+                               (img-blit img pic 10 10 -1 '(rotate 128 128 45))
+                               (disp-render img 100 0 (list (img-color 'regular 0) c))
+                               )))
+             )))
+
+(define entry-color-getpre
+  (ref-entry "img-color-getpre"
+             (list
+              (para  (list "Get a value from a precalculated gradient color."
+                           "The form of an `img-color-getpre` expression is `(img-color-getpre color pos)`."
+                           ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`color` | Color value creted with img-color.\n"
+                          "`pos`   | Position in the precomputed colormap to update.\n"
+                          ))
+             (code '((img-color-getpre my-color-pre 10)
+                     (img-color-getpre my-color-pre 11)
+                     (img-color-getpre my-color-pre 12)
+                     ))
+             )))
 
 (define lines
   (ref-entry "img-line"
 	     (list
+              (para (list "Draw a line into an image."
+                          "The form of an `img-line` expression is `(img-line image x1 y1 x2 y2 color ..option)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`x1 y1` | Start point  x,y.\n"
+                          "`x2 y2` | End point  x,y.\n"
+                          "`color` | Color value, range determined by image buffer color depth.\n"
+                          ))
+              (para (list "<br>"))
+              (para (list "|Option      || \n"
+                          "|----|----|\n"
+                          "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
+                          "`filled`     | Filled, no arguments.\n"
+                          "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
+                          ;;"`rounded`    | Rounded edges, no arguments.\n"
+                          ;;"`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
+                          ))
 	      (code-png 'my-img '(0x00 0xffffff)
 			'((img-line my-img 0 0 320 200 1)
                           (img-line my-img 0 200 320 0 1 '(thickness 5))
@@ -117,6 +403,25 @@
 (define rectangles
   (ref-entry "img-rectangle"
              (list
+              (para (list "Draw a rectangle into an image."
+                          "The form of an `img-rectangle` expression is `(img-rectangle image x1 y1 w h color ..option)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`x1 y1` | Top left corner  x,y.\n"
+                          "`w h`   | Width and height.\n"
+                          "`color` | Color value, range determined by image buffer color depth.\n"
+                          ))
+              (para (list "<br>"))
+              (para (list "|Option      || \n"
+                          "|----|----|\n"
+                          "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
+                          "`filled`     | Filled, no arguments.\n"
+                          "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
+                          "`rounded`    | Rounded edges, one argument rounded corner angle.\n"
+                          ;;"`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
+                          ))
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-rectangle my-img 10 10 120 180 1)
                           (img-rectangle my-img 10 10 120 180 1 '(filled))
@@ -127,6 +432,17 @@
 (define texts
   (ref-entry "img-text"
              (list
+              (para (list "Draw text into an image."
+                          "The form of an `img-text` expression is `(img-text image x1 y1 fg bg font)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`x1 y1` | Position  x,y.\n"
+                          "`fg bg` | Foreground and Background color.\n"
+                          "`font` | font to use. This should be a bin type font as created by for example VESC Tool."
+                          "The font file can be `imported` or loaded depending on platform\n"
+                          ))
               (code-png-str 'my-img '(0x00 0xffffff)
                             '("(img-text my-img 40 40 1 0 font \"LispBM\")"
                               "(img-text my-img 40 120 1 0 font \"LispBM\" 'up)"
@@ -137,16 +453,63 @@
 (define setpixel
   (ref-entry "img-setpix"
              (list
+              (para (list "Draw a pixel into an image."
+                          "The form of an `img-setpix` expression is `(img-setpix image x y color)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`x y`   | Position  x,y.\n"
+                          "`color` | Color value, range determined by image buffer color depth.\n"
+                          ))
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-setpix my-img 10 10 1)
                           ))
               end)))
 
+(define getpixel
+  (ref-entry "img-getpix"
+             (list
+              (para (list "Get a pixel value from an image."
+                          "The form of an `img-getpix` expression is `(img-getpix image x y)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`x y`   | Position  x,y.\n"
+                          ))
+              (code-png 'my-img '(0x00 0xffffff)
+                        '((img-getpix my-img 10 10)
+                          ))
+              end)))
+
+
 (define triangles
   (ref-entry "img-triangle"
              (list
+               (para (list "Draw a triangle into an image."
+                          "The form of an `img-triangle` expression is `(img-triangle image x1 y1 x2 y2 x3 y3 color ..option)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image` | An image buffer for example created using img-buffer.\n"
+                          "`x1 y1` | Position first point  x,y.\n"
+                          "`x2 y2` | Position second point  x,y.\n"
+                          "`x3 y3` | Position third point  x,y.\n"                         
+                          "`color` | Color value, range determined by image buffer color depth.\n"
+                          ))
+              (para (list "<br>"))
+              (para (list "|Option      || \n"
+                          "|----|----|\n"
+                          "`dotted`     | Dotted or dashed, two numeric arguments specifying length of dash and distance between dashes.\n"
+                          "`filled`     | Filled, no arguments.\n"
+                          "`thickness`  | Thickness of line, one argument specifying thickness in pixels.\n"
+                          ;;"`rounded`    | Rounded edges, one argument rounded corner angle.\n"
+                          ;;"`resolution` | One argument, Number of points that are connected into an arc using line segments.\n"
+                          ))
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-triangle my-img 30 60 160 120 10 180 1)
+                          (img-triangle my-img 30 60 160 120 10 180 1 '(thickness 5))
                           (img-triangle my-img 30 60 160 120 10 180 1 '(filled))
                           (img-triangle my-img 30 60 160 120 10 180 1 '(dotted 14 14))
                           ))
@@ -176,15 +539,9 @@
                           (img-blit my-img llama-bin 10 10 -1 
                             '(tile) 
                             '(scale 0.2))
-                          (img-blit my-img llama-bin 10 10 -1 
-                            '(tile) 
-                            '(scale 0.2) 
-                            '(rotate 10 10 45))
-                          (img-blit my-img llama-bin 10 10 -1 
-                            '(tile) 
-                            '(scale 0.2) 
-                            '(rotate 10 10 45) 
-                            '(clip 50 50 250 150))
+                          (read-eval "(img-blit my-img llama-bin 10 10 -1\n    '(tile)\n    '(scale 0.2)\n    '(rotate 10 10 45))")
+                          (read-eval "(img-blit my-img llama-bin 10 10 -1\n    '(tile)\n    '(scale 0.2)\n    '(rotate 10 10 45)\n    '(clip 50 50 250 150))")
+                          
                         ))
               end)))
 
@@ -264,7 +621,90 @@
                                    )
                               ))
               end)))
-             
+
+(let ((fptr (fopen "lispbm.jpeg" "r")))
+  {
+  (define my-jpg (load-file fptr))
+  (fclose fptr)
+  })
+                  
+
+
+(define entry-disp-render
+  (ref-entry "disp-render"
+             (list
+              (para (list "An image is drawn onto a display using `disp-render`."
+                          "The form of a `disp-render` expression is `(disp-render image x y color-list)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`image`      | An image buffer for example created using img-buffer.\n"
+                          "`x y`        | position of top left corner x,y.\n"
+                          "`color-list` | List of Color value, hex or color values.\n"
+                          ))
+	      (code-disp-str '("(disp-render llama-bin 10 10 '(0x000000 0xFFFFFF))"
+			       "(disp-render llama-bin 20 20 '(0x000000 0xFF0000))"
+			       "(disp-render llama-bin 30 30 '(0x000000 0x00FF00))"
+			       "(disp-render llama-bin 30 30 '(0x000000 0x0000FF))"
+			       ))
+
+	      (code-disp-str '("(disp-render img-100-100 0 0 '(0x000000 0xFFFFFF))"
+			       "(disp-render img-100-100 0 100 '(0x000000 0xFF0000))"
+			       "(disp-render img-100-100 100 0 '(0x000000 0x00FF00))"
+			       "(disp-render img-100-100 100 100 '(0x000000 0x0000FF))"
+			       "(disp-render img-100-100 200 0 '(0x000000 0x00FFFF))"
+			       "(disp-render img-100-100 200 100 '(0x000000 0xFF00FF))"
+			       ))
+              end))
+  )
+
+(define entry-disp-render-jpg
+  (ref-entry "disp-render-jpg"
+             (list
+              (para (list "There is a renderer specifically for JPG images."
+                          "If one is considering to use JPG for images, the images are most"
+                          "likely larger than what is easy to handle with image buffers."
+                          "The `disp-render-jpg` decompresses a JPG in small chunks and outputs"
+                          "directly to the display."
+                          "The form of a `disp-render-jpg` expression is `(disp-render-jpg jpg-data x y)`."
+                          ))
+              (para (list "|Arg || \n"
+                          "|----|----|\n"
+                          "`jpg-data`   | Imported or otherwise loaded jpg data.\n"
+                          "`x y`        | position of top left corner x,y.\n"
+                          ))
+              (code-disp-str '("(disp-render-jpg my-jpg 0 0)"))
+              end))
+  )
+
+(define entry-disp-clear
+  (ref-entry "disp-clear"
+             (list
+              (para (list "Use `disp-clear` to clear the display\n."
+                          "The form of a `disp-clear` expression is `(disp-clear opt-color)`."
+                          "`opt-color` is an optional color value."
+                          ))
+              (code-disp-str '("(disp-clear)"
+                               "(disp-clear 0xFF8822)"
+                               "(disp-clear 0x000000)"
+                               ))
+	      end ))
+  )
+
+
+(define entry-disp-reset
+  (ref-entry "disp-reset"
+             (list
+              (para (list "Use `disp-reset` to reset the display\n."
+                          "What it means to reset a display is display-backend dependend"
+                          "on an display connected over SPI to an MCU, it may mean powercycling and"
+                          "running the initialization sequence of commands."
+                          "The form of a `disp-reset` expression is `(disp-reset)`."
+                          ))
+              (code-disp-str '("(disp-reset)"
+                               ))
+	      end ))
+  )
 
 
 (define manual
@@ -316,35 +756,30 @@
 			 "that can be expressed as a list of colors."
 			 "for example:"
 			 ))
-	     (code-disp-str '("(disp-render llama-bin 10 10 '(0x000000 0xFFFFFF))"
-			      "(disp-render llama-bin 20 20 '(0x000000 0xFF0000))"
-			      "(disp-render llama-bin 30 30 '(0x000000 0x00FF00))"
-			      "(disp-render llama-bin 30 30 '(0x000000 0x0000FF))"
-			      "(disp-clear)"
-			      ))
-
-	     (code-disp-str '("(disp-render img-100-100 0 0 '(0x000000 0xFFFFFF))"
-			      "(disp-render img-100-100 0 100 '(0x000000 0xFF0000))"
-			      "(disp-render img-100-100 100 0 '(0x000000 0x00FF00))"
-			      "(disp-render img-100-100 100 100 '(0x000000 0x0000FF))"
-			      "(disp-render img-100-100 200 0 '(0x000000 0x00FFFF))"
-			      "(disp-render img-100-100 200 100 '(0x000000 0xFF00FF))"
-			      ))
-	
-	     
-	     
-	    end ))
+             end))
    (section 1 "Reference"
-            (list create_image1
+            (list entry-disp-render
+                  entry-disp-render-jpg
+                  entry-disp-clear
+                  entry-disp-reset
+                  create_image1
                   image-from-bin
                   blitting
-		  arcs
+                  entry-img-dims
+                  arcs
                   circles
                   circle-sectors
                   circle-segments
+                  clear-image
+                  create-color
+                  entry-color-set
+                  entry-color-get
+                  entry-color-setpre
+                  entry-color-getpre
 		  lines
                   rectangles
                   setpixel
+                  getpixel
                   texts
                   triangles
                   )

@@ -41,6 +41,7 @@
 #include "crc.h"
 #include "bms.h"
 #include "events.h"
+#include "timer.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -85,7 +86,6 @@ typedef struct {
 	float m_gate_driver_voltage;
 	float m_motor_current_unbalance;
 	float m_motor_current_unbalance_error_rate;
-	float m_f_samp_now;
 	float m_input_voltage_filtered;
 	float m_input_voltage_filtered_slower;
 	float m_temp_override;
@@ -1354,7 +1354,7 @@ float mc_interface_get_last_inj_adc_isr_duration(void) {
 		break;
 
 	case MOTOR_TYPE_FOC:
-		ret = mcpwm_foc_get_last_adc_isr_duration();
+		ret = -1.0;
 		break;
 
 	default:
@@ -1858,8 +1858,10 @@ void mc_interface_fault_stop(mc_fault_code fault, bool is_second_motor, bool is_
 
 #pragma GCC pop_options
 
-void mc_interface_mc_timer_isr(bool is_second_motor) {
+void mc_interface_mc_timer_isr(bool is_second_motor, float dt) {
+	FOC_PROFILE_LINE_FINE()
 	ledpwm_update_pwm();
+	FOC_PROFILE_LINE_FINE()
 
 #ifdef HW_HAS_DUAL_MOTORS
 	motor_if_state_t *motor = is_second_motor ? (motor_if_state_t*)&m_motor_2 : (motor_if_state_t*)&m_motor_1;
@@ -1871,6 +1873,8 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	mc_configuration *conf_now = (mc_configuration*)&motor->m_conf;
 	const float input_voltage = GET_INPUT_VOLTAGE();
 	UTILS_LP_FAST(motor->m_input_voltage_filtered, input_voltage, 0.02);
+
+	FOC_PROFILE_LINE_FINE()
 
 	// Check for faults that should stop the motor
 
@@ -1902,6 +1906,8 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 		}
 	}
 
+	FOC_PROFILE_LINE_FINE()
+
 	// Fetch these values in a config-specific way to avoid some overhead of the general
 	// functions. That will make this interrupt run a bit faster.
 	mc_state state;
@@ -1925,6 +1931,8 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 		abs_current = mcpwm_get_tot_current();
 		abs_current_filtered = current_filtered;
 	}
+
+	FOC_PROFILE_LINE_FINE()
 
 	// Additional input current filter for the mapped current limit
 	UTILS_LP_FAST(motor->m_i_in_filter, current_in_filtered, motor->m_conf.l_in_current_map_filter);
@@ -1965,6 +1973,8 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 		}
 	}
 
+	FOC_PROFILE_LINE_FINE()
+
 	// DRV fault code
 #ifdef HW_HAS_DUAL_PARALLEL
 	if (IS_DRV_FAULT() || IS_DRV_FAULT_2()) {
@@ -2001,28 +2011,14 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	}
 #endif
 
-	float t_samp = 1.0 / motor->m_f_samp_now;
-
 	// Watt and ah counters
 	if (fabsf(current_filtered) > 1.0) {
-		// Some extra filtering
-		static float curr_diff_sum = 0.0;
-		static float curr_diff_samples = 0;
-
-		curr_diff_sum += current_in_filtered * t_samp;
-		curr_diff_samples += t_samp;
-
-		if (curr_diff_samples >= 0.01) {
-			if (curr_diff_sum > 0.0) {
-				motor->m_amp_seconds += curr_diff_sum;
-				motor->m_watt_seconds += curr_diff_sum * input_voltage;
-			} else {
-				motor->m_amp_seconds_charged -= curr_diff_sum;
-				motor->m_watt_seconds_charged -= curr_diff_sum * input_voltage;
-			}
-
-			curr_diff_samples = 0.0;
-			curr_diff_sum = 0.0;
+		if (current_in_filtered > 0.0) {
+			motor->m_amp_seconds += current_in_filtered * dt;
+			motor->m_watt_seconds += current_in_filtered * dt * input_voltage;
+		} else {
+			motor->m_amp_seconds_charged -= current_in_filtered * dt;
+			motor->m_watt_seconds_charged -= current_in_filtered * dt * input_voltage;
 		}
 	}
 
@@ -2030,6 +2026,8 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 	debug_sampling_mode sample_mode =
 			m_sample_is_second_motor == is_second_motor ?
 					m_sample_mode : DEBUG_SAMPLING_OFF;
+
+	FOC_PROFILE_LINE_FINE()
 
 	switch (sample_mode) {
 	case DEBUG_SAMPLING_NOW:
@@ -2191,7 +2189,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 
 			m_vzero_samples[m_sample_now] = zero;
 			m_curr_fir_samples[m_sample_now] = (int16_t)(current * (8.0 / FAC_CURRENT));
-			m_f_sw_samples[m_sample_now] = (int16_t)(0.1 / t_samp / m_sample_int);
+			m_f_sw_samples[m_sample_now] = (int16_t)(0.1 / dt / m_sample_int);
 			m_status_samples[m_sample_now] = mcpwm_get_comm_step() | (mcpwm_read_hall_phase() << 3);
 
 			m_sample_now++;
@@ -2199,6 +2197,8 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
 			m_last_adc_duration_sample = mc_interface_get_last_inj_adc_isr_duration();
 		}
 	}
+
+	FOC_PROFILE_LINE_FINE()
 }
 
 void mc_interface_adc_inj_int_handler(void) {
@@ -2525,7 +2525,7 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 
 	float voltage_fc = powf(2.0, -(float)motor->m_conf.m_batt_filter_const * 0.25);
 	if (UTILS_AGE_S(0) < 10) {
-		// Run the filter faster in the beginning to avoid convergance latency at boot
+		// Run the filter faster in the beginning to avoid convergence latency at boot
 		voltage_fc = 0.01;
 	}
 	UTILS_LP_FAST(motor->m_input_voltage_filtered_slower, motor->m_input_voltage_filtered, voltage_fc);
@@ -2546,8 +2546,6 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		g_backup.runtime += runtime - m_motor_1.m_runtime_last;
 		m_motor_1.m_runtime_last = runtime;
 	}
-
-	motor->m_f_samp_now = mc_interface_get_sampling_frequency_now();
 
 	// Decrease fault iterations
 	if (motor->m_ignore_iterations > 0) {
@@ -2678,7 +2676,16 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 
 	// Monitor currents balance. The sum of the 3 currents should be zero
 #ifdef HW_HAS_3_SHUNTS
-	if (motor->m_conf.foc_current_sample_mode != FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT  && dc_cal_done) { // This won't work when high current sampling is used
+
+#ifdef HW_HAS_PHASE_SHUNTS
+	bool too_high_duty_for_unbalance_check = false;
+#else
+	const float duty_now_abs = fabsf(mc_interface_get_duty_cycle_now());
+	bool too_high_duty_for_unbalance_check = duty_now_abs > 0.8;
+#endif
+
+	if (motor->m_conf.foc_current_sample_mode != FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT  &&
+			dc_cal_done && !too_high_duty_for_unbalance_check) {
 		motor->m_motor_current_unbalance = mc_interface_get_abs_motor_current_unbalance();
 
 		if (fabsf(motor->m_motor_current_unbalance) > fabsf(MCCONF_MAX_CURRENT_UNBALANCE)) {

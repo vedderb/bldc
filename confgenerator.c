@@ -84,8 +84,6 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->foc_start_curr_dec_rpm, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_openloop_rpm, &ind);
 	buffer_append_float16(buffer, conf->foc_openloop_rpm_low, 1000, &ind);
-	buffer_append_float16(buffer, conf->foc_d_gain_scale_start, 1000, &ind);
-	buffer_append_float16(buffer, conf->foc_d_gain_scale_max_mod, 1000, &ind);
 	buffer_append_float16(buffer, conf->foc_sl_openloop_hyst, 100, &ind);
 	buffer_append_float16(buffer, conf->foc_sl_openloop_time_lock, 100, &ind);
 	buffer_append_float16(buffer, conf->foc_sl_openloop_time_ramp, 100, &ind);
@@ -122,6 +120,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->foc_hfi_max_err, 1000, &ind);
 	buffer_append_float16(buffer, conf->foc_hfi_hyst, 100, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_sl_erpm_hfi, &ind);
+	buffer_append_float32_auto(buffer, conf->foc_hfi_reset_erpm, &ind);
 	buffer_append_uint16(buffer, conf->foc_hfi_start_samples, &ind);
 	buffer_append_float32_auto(buffer, conf->foc_hfi_obs_ovr_sec, &ind);
 	buffer[ind++] = conf->foc_hfi_samples;
@@ -424,8 +423,6 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_start_curr_dec_rpm = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_openloop_rpm = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_openloop_rpm_low = buffer_get_float16(buffer, 1000, &ind);
-	conf->foc_d_gain_scale_start = buffer_get_float16(buffer, 1000, &ind);
-	conf->foc_d_gain_scale_max_mod = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_sl_openloop_hyst = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_sl_openloop_time_lock = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_sl_openloop_time_ramp = buffer_get_float16(buffer, 100, &ind);
@@ -462,6 +459,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_hfi_max_err = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_hfi_hyst = buffer_get_float16(buffer, 100, &ind);
 	conf->foc_sl_erpm_hfi = buffer_get_float32_auto(buffer, &ind);
+	conf->foc_hfi_reset_erpm = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_hfi_start_samples = buffer_get_uint16(buffer, &ind);
 	conf->foc_hfi_obs_ovr_sec = buffer_get_float32_auto(buffer, &ind);
 	conf->foc_hfi_samples = buffer[ind++];
@@ -760,8 +758,6 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_start_curr_dec_rpm = MCCONF_FOC_START_CURR_DEC_RPM;
 	conf->foc_openloop_rpm = MCCONF_FOC_OPENLOOP_RPM;
 	conf->foc_openloop_rpm_low = MCCONF_FOC_OPENLOOP_RPM_LOW;
-	conf->foc_d_gain_scale_start = MCCONF_FOC_D_GAIN_SCALE_START;
-	conf->foc_d_gain_scale_max_mod = MCCONF_FOC_D_GAIN_SCALE_MAX_MOD;
 	conf->foc_sl_openloop_hyst = MCCONF_FOC_SL_OPENLOOP_HYST;
 	conf->foc_sl_openloop_time_lock = MCCONF_FOC_SL_OPENLOOP_T_LOCK;
 	conf->foc_sl_openloop_time_ramp = MCCONF_FOC_SL_OPENLOOP_T_RAMP;
@@ -798,6 +794,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_hfi_max_err = MCCONF_FOC_HFI_MAX_ERR;
 	conf->foc_hfi_hyst = MCCONF_FOC_HFI_HYST;
 	conf->foc_sl_erpm_hfi = MCCONF_FOC_SL_ERPM_HFI;
+	conf->foc_hfi_reset_erpm = MCCONF_FOC_HFI_RESET_ERPM;
 	conf->foc_hfi_start_samples = MCCONF_FOC_HFI_START_SAMPLES;
 	conf->foc_hfi_obs_ovr_sec = MCCONF_FOC_HFI_OBS_OVR_SEC;
 	conf->foc_hfi_samples = MCCONF_FOC_HFI_SAMPLES;

@@ -471,11 +471,11 @@
                         "file formats. Apparently [WebAssembly](https://developer.mozilla.org/en-US/docs/WebAssembly/Understanding_the_text_format)"
                         "uses S-expressions as well to describe WebAssembly modules"
                         ))
-            (newline)
+            'newline
             (para (list "S-expressions are built from two things, **Atoms** and **Pairs** of S-expressions."
                         "So an S-expression is either:"
                         ))
-            (newline)
+            'newline
             (bullet (list " An **Atom** *a* "
                           " A **Pair** *a*,*b* of S-expressions `(a . b)` "
                           ))
@@ -1405,7 +1405,7 @@
                           "Functions that make use of `rest-args` must, however, be written specifically to do so and"
                           "are themself responsible for the figuring out the positional semantics of extra arguments."
                           ))
-              (para (list "One was to explicitly carry the semantics of an optional argument into the function body"
+              (para (list "One way to explicitly carry the semantics of an optional argument into the function body"
                           "is to add optional arguments as key-value pairs where the key states the meaning."
                           "Then `rest-args` becomes essentially an association list that you query using `assoc`."
                           "For example:"
@@ -1878,8 +1878,10 @@
 (define lists-member
   (ref-entry "member"
              (list
-              (para (list "Check if a value is included in list. The form of an `member` expression is"
-                          "`(member value-expr list-expr)`. Equality is checked structurally, in the"
+              (para (list "Check if a value is included in a list. The form of a `member` expression is"
+                          "`(member value-expr list-expr)`. If the value is found, `member` returns"
+                          "the entire list, otherwise it returns `nil`."
+                          "Equality is checked structurally, in the"
                           "same way as" (str-merge (code-entry-ref "eq") ",") "meaning if you're"
                           "checking numbers the types must match (see the following examples)."
                           ))
@@ -2759,7 +2761,7 @@
             mp-send
             mp-recv
             mp-recv-to
-            mp-set-mailbox-size
+            ;;mp-set-mailbox-size
             )
            ))
 
@@ -3127,10 +3129,10 @@
                           (move-to-flash ls)
                           ls
                           )
-                         (( defun f (x) (+ x 1))
-                          (move-to-flash f)
-                          (f 10)
-                          )
+                         ;(( defun f (x) (+ x 1))
+                         ; (move-to-flash f)
+                         ; (f 10)
+                         ; )
                          ))
               end)))
 
@@ -3154,7 +3156,7 @@
 
 (define type-convertions
   (section 2 "Type convertions"
-           (list
+           (list 
             (ref-entry "to-byte"
                        (list
                         (para (list "Convert any numerical value to a byte."

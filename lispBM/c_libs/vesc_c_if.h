@@ -669,6 +669,9 @@ typedef struct {
 	void (*thread_set_priority)(int priority);
 	// Disable shutdown (for hw with momentary button / auto shutdown support)
 	void (*shutdown_disable)(bool disable);
+
+	// Functions below were added in firmware 7.00
+	void (*foc_set_fw_override)(float current);
 } vesc_c_if;
 
 typedef struct {

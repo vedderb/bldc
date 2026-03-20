@@ -30,6 +30,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
+        anchors.topMargin: parentTabBar ? parentTabBar.height / 2 : 0
 
         TabBar {
             id: tabBar

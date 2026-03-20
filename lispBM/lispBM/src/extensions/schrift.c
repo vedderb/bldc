@@ -114,48 +114,6 @@ struct Raster
   int   height;
 };
 
-// ////////////////////////////////////////////////////////////
-// Utils
-
-// extract an utf32 value from an utf8 string starting at index ix.
-bool get_utf32(uint8_t *utf8, uint32_t *utf32, uint32_t ix, uint32_t *next_ix) {
-  uint8_t *u = &utf8[ix];
-  uint32_t c = 0;
-
-  if (u[0] == 0) return false;
-
-  if (!(u[0] & 0x80U)) {
-    *utf32 = u[0];
-    *next_ix = ix + 1;
-  } else if ((u[0] & 0xe0U) == 0xc0U) {
-    c = (u[0] & 0x1fU) << 6;
-    if ((u[1] & 0xc0U) != 0x80U) return false;
-    *utf32 = c + (u[1] & 0x3fU);
-    *next_ix = ix + 2;
-  } else if ((u[0] & 0xf0U) == 0xe0U) {
-    c = (u[0] & 0x0fU) << 12;
-    if ((u[1] & 0xc0U) != 0x80U) return false;
-    c += (u[1] & 0x3fU) << 6;
-    if ((u[2] & 0xc0U) != 0x80U) return false;
-    *utf32 = c + (u[2] & 0x3fU);
-    *next_ix = ix + 3;
-  } else if ((u[0] & 0xf8U) == 0xf0U) {
-    c = (u[0] & 0x07U) << 18;
-    if ((u[1] & 0xc0U) != 0x80U) return false;
-    c += (u[1] & 0x3fU) << 12;
-    if ((u[2] & 0xc0U) != 0x80U) return false;
-    c += (u[2] & 0x3fU) << 6;
-    if ((u[3] & 0xc0U) != 0x80U) return false;
-    c += (u[3] & 0x3fU);
-    if ((c & 0xFFFFF800U) == 0xD800U) return false;
-    *utf32 = c;
-    *next_ix = ix + 4;
-  } else return false;
-  return true;
-}
-
-
-
 /* function declarations */
 /* generic utility functions */
 static inline int fast_floor(float x);
@@ -210,13 +168,6 @@ static void post_process(Raster buf, image_buffer_t *image);
 static int  render_outline(Outline *outl, float transform[6], image_buffer_t * image);
 
 /* function implementations */
-
-const char *
-sft_version(void)
-{
-  return SCHRIFT_VERSION;
-}
-
 int
 sft_lmetrics(const SFT *sft, SFT_LMetrics *metrics)
 {
@@ -516,6 +467,10 @@ init_font(SFT_Font *font)
 {
   uint_fast32_t scalerType, head, hhea;
 
+  font->unitsPerEm = 0;
+  font->locaFormat = 0;
+  font->numLongHmtx = 0;
+
   if (!is_safe_offset(font, 0, 12))
     return -1;
   /* Check for a compatible scalerType (magic number). */
@@ -543,6 +498,11 @@ init_font(SFT_Font *font)
     font->pairAdjustCoverageOffset = coverage;
   }
   return 0;
+}
+
+void free_font(SFT_Font *font) {
+  (void) font;
+  // Dont need to do anything here.
 }
 
 static Point
@@ -1198,7 +1158,7 @@ simple_outline(SFT_Font *font, uint_fast32_t offset, unsigned int numContours, O
   uint8_t *flags = NULL;
   uint_fast16_t numPts;
   unsigned int i;
-
+  uint_fast16_t beg = 0;
   int fail_r = -1;
 
   assert(numContours > 0);
@@ -1252,8 +1212,6 @@ simple_outline(SFT_Font *font, uint_fast32_t offset, unsigned int numContours, O
   if (simple_points(font, offset, numPts, flags, outl->points + basePoint) < 0)
     goto failure;
   outl->numPoints = (uint_least16_t) (outl->numPoints + numPts);
-
-  uint_fast16_t beg = 0;
   for (i = 0; i < numContours; ++i) {
     uint_fast16_t count = endPts[i] - beg + 1;
     if (decode_contour(flags + beg, basePoint + beg, count, outl) < 0)

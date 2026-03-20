@@ -114,7 +114,7 @@ int buffered_peek(lbm_char_channel_t *chan, unsigned int n, char *res) {
   lbm_buffered_channel_state_t *st = (lbm_buffered_channel_state_t*)chan->state;
   char *buffer = st->buffer;
   int ret = CHANNEL_MORE;
-  mutex_lock(&st->lock);
+  lbm_mutex_lock(&st->lock);
   unsigned int peek_pos = (st->read_pos + n) % TOKENIZER_BUFFER_SIZE;
   bool in_data;
 
@@ -132,7 +132,7 @@ int buffered_peek(lbm_char_channel_t *chan, unsigned int n, char *res) {
   } else if (buffered_more(chan)) {
     ret = CHANNEL_MORE;
   }
-  mutex_unlock(&st->lock);
+  lbm_mutex_unlock(&st->lock);
   return ret;
 }
 
@@ -158,7 +158,7 @@ bool buffered_read(lbm_char_channel_t *chan, char *res) {
   lbm_buffered_channel_state_t *st = (lbm_buffered_channel_state_t*)chan->state;
   char *buffer = st->buffer;
   bool ret = false;
-  mutex_lock(&st->lock);
+  lbm_mutex_lock(&st->lock);
   if (!buffered_channel_is_empty(chan)) {
     *res = buffer[st->read_pos];
     st->column++;
@@ -169,7 +169,7 @@ bool buffered_read(lbm_char_channel_t *chan, char *res) {
     st->read_pos = (st->read_pos + 1) % TOKENIZER_BUFFER_SIZE;
     ret = true;
   }
-  mutex_unlock(&st->lock);
+  lbm_mutex_unlock(&st->lock);
   return ret;
 }
 
@@ -188,14 +188,14 @@ int buffered_write(lbm_char_channel_t *chan, char c) {
   lbm_buffered_channel_state_t *st = (lbm_buffered_channel_state_t*)chan->state;
   if (st->reader_closed) return CHANNEL_READER_CLOSED;
   int ret = CHANNEL_FULL;
-  mutex_lock(&st->lock);
+  lbm_mutex_lock(&st->lock);
   char *buffer = st->buffer;
   if (!buffered_channel_is_full(chan)) {
     buffer[st->write_pos] = c;
     st->write_pos = (st->write_pos + 1) % TOKENIZER_BUFFER_SIZE;
     ret = CHANNEL_SUCCESS;
   }
-  mutex_unlock(&st->lock);
+  lbm_mutex_unlock(&st->lock);
   return ret;
 }
 
@@ -231,7 +231,7 @@ void lbm_create_buffered_char_channel(lbm_buffered_channel_state_t *st,
   st->column = 1;
 
   if (!st->mutex_initialized) {
-    mutex_init(&st->lock);
+    lbm_mutex_init(&st->lock);
     st->mutex_initialized = true;
   }
 

@@ -77,10 +77,18 @@ $(shell mkdir -p ${BUILD_DIR}/extensions)
 SRC = src
 OBJ = obj
 
-SOURCES = $(wildcard $(SOURCE_DIR)/*.c)
-SOURCES += $(wildcard $(EXTENSIONS)/*.c)
-OBJECTS = $(patsubst $(SOURCE_DIR)/%.c, $(BUILD_DIR)/%.o, $(SOURCES))
+LISPBM := ./
 
+include $(LISPBM)/lispbm.mk
+
+#SOURCES = $(wildcard $(SOURCE_DIR)/*.c)
+#SOURCES += $(wildcard $(EXTENSIONS)/*.c)
+SOURCES = $(LISPBM_SRC)
+OBJECTS = $(patsubst $(LISPBM)/src/%.c, $(BUILD_DIR)/%.o, $(SOURCES))
+#OBJECTS = $(patsubst $(SOURCE_DIR)/%.c, $(BUILD_DIR)/%.o, $(SOURCES))
+
+#$(shell echo ${SOURCES})
+#$(shell echo ${OBJECTS})
 
 
 PLATSRCS = $(wildcard $(PLATFORMSRC)/*.c)

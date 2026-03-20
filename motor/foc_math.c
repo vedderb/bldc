@@ -763,4 +763,15 @@ void foc_precalc_values(motor_all_state_t *motor) {
 	motor->p_v2_v3_inv_avg_half = (0.5 / motor->p_lq + 0.5 / motor->p_ld) * 0.9; // With the 0.9 we undo the adjustment from the detection
 	motor->m_observer_state.lambda_est = conf_now->foc_motor_flux_linkage;
 	motor->p_duty_norm = TWO_BY_SQRT3 / conf_now->foc_overmod_factor;
+
+#ifdef HW_HAS_PHASE_SHUNTS
+	if (conf_now->foc_control_sample_mode == FOC_CONTROL_SAMPLE_MODE_V0_V7) {
+		motor->p_fs = conf_now->foc_f_zv;
+	} else {
+		motor->p_fs = conf_now->foc_f_zv * 0.5;
+	}
+#else
+	motor->p_fs = conf_now->foc_f_zv * 0.5;
+#endif
+	motor->p_dt = 1.0 / motor->p_fs;
 }

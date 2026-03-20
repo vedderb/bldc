@@ -18,8 +18,8 @@
 
 #include "platform_mutex.h"
 
-bool mutex_init(mutex_t *m) {
-  HANDLE ghMutex = CreateMutex( 
+bool lbm_mutex_init(lbm_mutex_t *m) {
+  HANDLE ghMutex = CreateMutex(
                         NULL,              // default security attributes
                         FALSE,             // initially not owned
                         NULL);             // unnamed mutex
@@ -29,11 +29,11 @@ bool mutex_init(mutex_t *m) {
   return true;
 }
 
-void mutex_lock(mutex_t *m) {
-  WaitForSingleObject((HANDLE)*m,    
-                      INFINITE);  
+void lbm_mutex_lock(lbm_mutex_t *m) {
+  WaitForSingleObject((HANDLE)*m,
+                      INFINITE);
 }
 
-void mutex_unlock(mutex_t *m) {
+void lbm_mutex_unlock(lbm_mutex_t *m) {
   ReleaseMutex((HANDLE)*m);
 }

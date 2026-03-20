@@ -1,0 +1,52 @@
+Running tests with 16 parallel jobs
+BUILDING
+gcc -Wall -Wextra -Wshadow -Wconversion -Wclobbered -pedantic -std=c99 -DFULL_RTS_LIB -DLBM_USE_DYN_FUNS -DLBM_USE_DYN_MACROS -DLBM_USE_DYN_LOOPS -DLBM_USE_DYN_ARRAYS -m32 --coverage -g -O0 -DLONGER_DELAY ..//src/env.c ..//src/fundamental.c ..//src/heap.c ..//src/lbm_memory.c ..//src/print.c ..//src/stack.c ..//src/symrepr.c ..//src/tokpar.c ..//src/extensions.c ..//src/lispbm.c ..//src/eval_cps.c ..//src/lbm_c_interop.c ..//src/lbm_custom_type.c ..//src/lbm_channel.c ..//src/lbm_flat_value.c ..//src/lbm_prof.c ..//src/lbm_defrag_mem.c ..//src/lbm_image.c ..//src/buffer.c ..//src/extensions/array_extensions.c ..//src/extensions/string_extensions.c ..//src/extensions/math_extensions.c ..//src/extensions/runtime_extensions.c ..//src/extensions/random_extensions.c ..//src/extensions/set_extensions.c ..//src/extensions/display_extensions.c ..//src/extensions/tjpgd.c ..//src/extensions/mutex_extensions.c ..//src/extensions/lbm_dyn_lib.c ..//src/extensions/ttf_extensions.c ..//src/extensions/ttf_backend.c ..//src/extensions/schrift.c ..//src/extensions/dsp_extensions.c ..//platform/linux/src/platform_mutex.c ..//platform/linux/src/platform_timestamp.c -lm test_lisp_code_cps.c -o test_lisp_code_cps -I../include -I..//platform/linux/include -lpthread -lm
+PERFORMING 32BIT TESTS: 2025-10-28_14-58
+Waiting for all test configurations to complete...
+All parallel tests completed. Combining results...
+(OK - expected to fail) test_lisp_code_cps -t 50 -h 32768 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -s -h 8192 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -s -h 8192 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -h 4096 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -h 4096 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -s -h 4096 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -s -h 4096 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -h 2048 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -h 2048 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -s -h 2048 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -s -h 2048 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -h 32768 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -h 1024 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -h 1024 tests/test_take_iota_0.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -h 1024 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -h 1024 tests/test_take_iota_0.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -s -h 1024 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -s -h 1024 tests/test_take_iota_0.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -s -h 1024 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -s -h 1024 tests/test_take_iota_0.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -h 512 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -h 512 tests/test_match_stress_2.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -h 512 tests/test_take_iota_0.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -h 512 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -h 512 tests/test_match_stress_2.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -h 512 tests/test_take_iota_0.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -s -h 512 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -s -h 512 tests/test_match_stress_2.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -s -h 512 tests/test_take_iota_0.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -s -h 512 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -s -h 512 tests/test_match_stress_2.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -s -h 512 tests/test_take_iota_0.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -s -h 32768 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -s -h 32768 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -h 16384 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -h 16384 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -s -h 16384 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -s -h 16384 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -h 8192 tests/test_is_64bit.lisp
+(OK - expected to fail) test_lisp_code_cps -t 50 -i -h 8192 tests/test_is_64bit.lisp
+Tests passed: 21996
+Tests failed: 40
+Expected fails: 40
+Actual fails: 0
+Generating coverage report...
+Coverage report generated: tests_cov_32.json

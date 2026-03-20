@@ -19,7 +19,13 @@
 #include <extensions.h>
 #include <buffer.h>
 
-#include "schrift.h"
+#include "ttf_backend.h"
+
+#ifdef LBM_TTF_USE_FREETYPE
+  #include "ttf_backend_freetype.h"
+#else
+  #include "schrift.h"
+#endif
 
 #ifdef LBM_OPT_TTF_EXTENSIONS_SIZE
 #pragma GCC optimize ("-Os")
@@ -28,17 +34,20 @@
 #pragma GCC optimize ("-Oz")
 #endif
 
+// The font object does not own the font data pointer
+// GC will free it once it knows it can do so.
+// SFT_Font objects life-span is atomic in relation to GC.
+//
+// mk_font_raw is internal and only called with valid arrays.
+// No sensible "array is correct" check can be done here.
 static bool mk_font_raw(SFT_Font *ft, lbm_value font_val) {
   lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(font_val);
   if (arr) {
     ft->memory = (uint8_t*)arr->data;
     ft->size = (uint_fast32_t)arr->size;
-    ft->unitsPerEm = 0;
-    ft->locaFormat = 0;
-    ft->numLongHmtx = 0;
     return (init_font(ft) >= 0) ? true : false;
   }
-  return false;
+  return false; // Really unreachable but makes Static analysis happy.
 }
 
 static SFT mk_sft(SFT_Font *ft, float x_scale, float y_scale) {
@@ -93,12 +102,16 @@ static int num_kern_pairs_row(SFT *sft, uint32_t utf32, uint32_t *codes, uint32_
       return -1;
     }
 
+#ifndef LBM_TTF_USE_FREETYPE
     if (sft->font->pairAdjustOffset) {
-      sft_gpos_kerning(sft, lgid, rgid, &kern); //TODO: can it fail?
+      sft_gpos_kerning(sft, lgid, rgid, &kern);
     }
     if (kern.xShift == 0.0 && kern.yShift == 0.0) {
-      sft_kerning(sft, lgid, rgid, &kern); //TODO: can it fail?
+      sft_kerning(sft, lgid, rgid, &kern);
     }
+#else
+    sft_kerning(sft, lgid, rgid, &kern);
+#endif
     if (kern.xShift != 0.0 || kern.yShift != 0.0) {
       num++;
     }
@@ -211,12 +224,17 @@ static bool buffer_append_kerning_table(uint8_t *buffer, SFT *sft, uint32_t *cod
             return false;
           }
 
+#ifndef LBM_TTF_USE_FREETYPE
+          // Schrift has separate GPOS and kern table handling
           if (sft->font->pairAdjustOffset) {
-            sft_gpos_kerning(sft, lgid, rgid, &kern); //TODO: can it fail?
+            sft_gpos_kerning(sft, lgid, rgid, &kern);
           }
           if (kern.xShift == 0.0 && kern.yShift == 0.0) {
-            sft_kerning(sft, lgid, rgid, &kern); //TODO: can it fail?
+#endif
+            sft_kerning(sft, lgid, rgid, &kern);
+#ifndef LBM_TTF_USE_FREETYPE
           }
+#endif
           if (kern.xShift != 0.0 || kern.yShift != 0.0) {
             buffer_append_uint32(buffer, right_utf32, index);
             buffer_append_float32_auto(buffer, kern.xShift, index);
@@ -331,6 +349,7 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
 
       SFT_Font ft;
       if (!mk_font_raw(&ft,args[0])) {
+        free_font(&ft);
         lbm_free(unique_utf32);
         return ENC_SYM_EERROR;
       }
@@ -355,26 +374,29 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
       // TODO: Fix this.
       int kern_tab_bytes = kern_table_size_bytes(&sft, unique_utf32, n);
       if (kern_tab_bytes <=  0) {
+        free_font(&ft);
         lbm_free(unique_utf32);
         return ENC_SYM_EERROR;
       }
 
       int glyph_gfx_size = glyphs_img_data_size(&sft, fmt, unique_utf32, n);
       if (glyph_gfx_size <= 0) {
+        free_font(&ft);
         lbm_free(unique_utf32);
         return ENC_SYM_EERROR;
       }
 
       uint32_t bytes_required =
-        FONT_PREAMBLE_SIZE +
-        FONT_LINE_METRICS_SIZE +
-        (uint32_t)kern_tab_bytes +
-        FONT_GLYPH_TABLE_SIZE +
-        n * FONT_GLYPH_SIZE + // per glyph metrics
-        (uint32_t)glyph_gfx_size;
+        (uint32_t)(FONT_PREAMBLE_SIZE +
+                   FONT_LINE_METRICS_SIZE +
+                   (uint32_t)kern_tab_bytes +
+                   FONT_GLYPH_TABLE_SIZE +
+                   n * FONT_GLYPH_SIZE + // per glyph metrics
+                   (uint32_t)glyph_gfx_size);
 
       uint8_t *buffer = (uint8_t*)lbm_malloc(bytes_required);
       if (!buffer) {
+        free_font(&ft);
         lbm_free(unique_utf32);
         return ENC_SYM_MERROR;
       }
@@ -382,6 +404,7 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
 
       SFT_LMetrics lmtx;
       if (sft_lmetrics(&sft, &lmtx) < 0) {
+        free_font(&ft);
         lbm_free(unique_utf32);
         return ENC_SYM_EERROR;
       }
@@ -397,17 +420,19 @@ lbm_value ext_ttf_prepare_bin(lbm_value *args, lbm_uint argn) {
 
       int r = buffer_append_glyph_table(buffer, &sft, fmt, unique_utf32, n, &index);
       if ( r == SFT_MEM_ERROR) {
+        free_font(&ft);
         lbm_free(unique_utf32);
         lbm_free(buffer);
         lbm_set_car_and_cdr(result_array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
         return ENC_SYM_MERROR;
       } else if (r < 0) {
+        free_font(&ft);
         lbm_free(unique_utf32);
         lbm_free(buffer);
         lbm_set_car_and_cdr(result_array_cell, ENC_SYM_NIL, ENC_SYM_NIL);
         return ENC_SYM_EERROR;
       }
-
+      free_font(&ft);
       lbm_free(unique_utf32); // tmp data nolonger needed
       result_array_header->size = (lbm_uint)index;
       result_array_header->data = (lbm_uint*)buffer;

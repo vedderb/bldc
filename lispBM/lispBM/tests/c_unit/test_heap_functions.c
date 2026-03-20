@@ -322,6 +322,68 @@ int test_lbm_cddr(void) {
   return 1;
 }
 
+int test_lbm_list_destructive_reverse(void) {
+  if (!test_init()) return 0;
+
+  // Test 1: Reverse nil should return nil
+  lbm_value nil_result = lbm_list_destructive_reverse(ENC_SYM_NIL);
+  if (nil_result != ENC_SYM_NIL) return 0;
+
+  // Test 2: Reverse a single element list should return the same list
+  lbm_value single = lbm_cons(lbm_enc_i(1), ENC_SYM_NIL);
+  if (lbm_is_symbol_merror(single)) return 0;
+  lbm_value single_result = lbm_list_destructive_reverse(single);
+  if (lbm_is_symbol_merror(single_result)) return 0;
+  if (lbm_car(single_result) != lbm_enc_i(1)) return 0;
+  if (lbm_cdr(single_result) != ENC_SYM_NIL) return 0;
+
+  // Test 3: Reverse (1 2 3) should return (3 2 1)
+  lbm_value list3 = lbm_cons(lbm_enc_i(1),
+                            lbm_cons(lbm_enc_i(2),
+                                    lbm_cons(lbm_enc_i(3), ENC_SYM_NIL)));
+  if (lbm_is_symbol_merror(list3)) return 0;
+  lbm_value reversed3 = lbm_list_destructive_reverse(list3);
+  if (lbm_is_symbol_merror(reversed3)) return 0;
+
+  // Check (3 2 1)
+  if (lbm_car(reversed3) != lbm_enc_i(3)) return 0;
+  lbm_value rest1 = lbm_cdr(reversed3);
+  if (lbm_car(rest1) != lbm_enc_i(2)) return 0;
+  lbm_value rest2 = lbm_cdr(rest1);
+  if (lbm_car(rest2) != lbm_enc_i(1)) return 0;
+  if (lbm_cdr(rest2) != ENC_SYM_NIL) return 0;
+
+  // Test 4: Reverse longer list (1 2 3 4 5) should return (5 4 3 2 1)
+  lbm_value list5 = lbm_cons(lbm_enc_i(1),
+                            lbm_cons(lbm_enc_i(2),
+                                    lbm_cons(lbm_enc_i(3),
+                                            lbm_cons(lbm_enc_i(4),
+                                                    lbm_cons(lbm_enc_i(5), ENC_SYM_NIL)))));
+  if (lbm_is_symbol_merror(list5)) return 0;
+  lbm_value reversed5 = lbm_list_destructive_reverse(list5);
+  if (lbm_is_symbol_merror(reversed5)) return 0;
+
+  // Verify each element: (5 4 3 2 1)
+  lbm_value curr = reversed5;
+  for (int i = 5; i >= 1; i--) {
+    if (lbm_car(curr) != lbm_enc_i(i)) return 0;
+    curr = lbm_cdr(curr);
+  }
+  if (curr != ENC_SYM_NIL) return 0;
+
+  // Test 5: Non-cons value (error symbol) should return unchanged
+  lbm_value merror = ENC_SYM_MERROR;
+  lbm_value merror_result = lbm_list_destructive_reverse(merror);
+  if (merror_result != merror) return 0;
+
+  // Test 6: Non-cons value (integer) should return unchanged
+  lbm_value integer = lbm_enc_i(42);
+  lbm_value integer_result = lbm_list_destructive_reverse(integer);
+  if (integer_result != integer) return 0;
+
+  return 1;
+}
+
 int main(void) {
   int tests_passed = 0;
   int total_tests = 0;
@@ -344,7 +406,9 @@ int main(void) {
   printf("%d\n", tests_passed);
   total_tests++; if (test_lbm_cddr()) tests_passed++;
   printf("%d\n", tests_passed);
-  
+  total_tests++; if (test_lbm_list_destructive_reverse()) tests_passed++;
+  printf("%d\n", tests_passed);
+
   if (tests_passed == total_tests) {
     printf("SUCCESS\n");
     return 0;

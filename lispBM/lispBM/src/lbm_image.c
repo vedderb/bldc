@@ -464,7 +464,14 @@ char *lbm_image_get_version(void) {
 lbm_const_heap_t image_const_heap;
 lbm_uint image_const_heap_start_ix = 0;
 
-bool image_const_heap_write(lbm_uint w, lbm_uint ix) {
+// If an image is "present"
+// but the const_heap_index does not point to a free location
+// in flash, something is wrong!
+lbm_uint lbm_image_const_heap_index(void) {
+  return image_const_heap.next;
+}
+
+static bool image_const_heap_write(lbm_uint w, lbm_uint ix) {
 #ifdef LBM64
   int32_t i = (int32_t)(image_const_heap_start_ix + (ix * 2));
   uint32_t *words = (uint32_t*)&w;
@@ -789,7 +796,7 @@ static int size_acc(lbm_value v, bool shared, void *acc) {
     lbm_int arr_size = lbm_heap_array_get_size(v);
     const uint8_t *d = lbm_heap_array_get_data_ro(v);
     if (arr_size > 0 && d != NULL) {
-      sa->s += 1 + 4 + arr_size;
+      sa->s += (int32_t)(1 + 4 + arr_size);
     }
   }break;
   }
@@ -1070,7 +1077,7 @@ static uint32_t last_const_heap_ix = 0;
 bool lbm_image_save_constant_heap_ix(void) {
   bool r = true; // saved or no need to save it.
   if (image_const_heap.next != last_const_heap_ix) {
-    last_const_heap_ix = image_const_heap.next;
+    last_const_heap_ix = (uint32_t)image_const_heap.next;
     r = write_u32(CONSTANT_HEAP_IX, &write_index, DOWNWARDS);
     r = r && write_u32((uint32_t)image_const_heap.next, &write_index, DOWNWARDS);
   }
@@ -1097,7 +1104,7 @@ void lbm_image_init(uint32_t* image_mem_address,
 void lbm_image_create(char *version_str) {
   write_u32(IMAGE_INITIALIZED, &write_index, DOWNWARDS);
   if (version_str) {
-    uint32_t bytes = strlen(version_str) + 1;
+    uint32_t bytes = (uint32_t)(strlen(version_str) + 1);
     uint32_t words = (bytes % 4 == 0) ? bytes / 4 : (bytes / 4) + 1;
     write_u32(VERSION_ENTRY, &write_index, DOWNWARDS);
     write_u32(words, &write_index, DOWNWARDS);

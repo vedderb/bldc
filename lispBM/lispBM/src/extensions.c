@@ -174,6 +174,14 @@ lbm_value make_list(int num, ...) {
   return lbm_list_destructive_reverse(res);
 }
 
+size_t strlen_max(const char *s, size_t maxlen) {
+  size_t i;
+  for (i = 0; i < maxlen; i ++) {
+    if (s[i] == 0) break;
+  }
+  return i;
+}
+
 bool strmatch(const char *str1, const char *str2) {
   size_t len = strlen(str1);
 

@@ -2117,12 +2117,14 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
 		set_duty_cycle_ll(dutycycle_now);
 	}
 
-	mc_interface_mc_timer_isr(false);
+	float dt = 1.0 / switching_frequency_now;
+
+	mc_interface_mc_timer_isr(false, dt);
 
 	if (encoder_is_configured()) {
 		float pos = encoder_read_deg();
-		run_pid_control_pos(1.0 / switching_frequency_now, pos);
-		pll_run(-DEG2RAD_f(pos), 1.0 / switching_frequency_now, &m_pll_phase, &m_pll_speed);
+		run_pid_control_pos(dt, pos);
+		pll_run(-DEG2RAD_f(pos), dt, &m_pll_phase, &m_pll_speed);
 	}
 
 	last_adc_isr_duration = timer_seconds_elapsed_since(t_start);
@@ -2497,34 +2499,34 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 #ifdef HW_HAS_3_SHUNTS
 					if (direction) {
 						switch (comm_step) {
-						case 1: curr_samp_volt = (1 << 0) || (1 << 2); break;
-						case 2: curr_samp_volt = (1 << 1) || (1 << 2); break;
-						case 3: curr_samp_volt = (1 << 1) || (1 << 2); break;
-						case 4: curr_samp_volt = (1 << 0) || (1 << 1); break;
-						case 5: curr_samp_volt = (1 << 0) || (1 << 1); break;
-						case 6: curr_samp_volt = (1 << 0) || (1 << 2); break;
+						case 1: curr_samp_volt = (1 << 0) | (1 << 2); break;
+						case 2: curr_samp_volt = (1 << 1) | (1 << 2); break;
+						case 3: curr_samp_volt = (1 << 1) | (1 << 2); break;
+						case 4: curr_samp_volt = (1 << 0) | (1 << 1); break;
+						case 5: curr_samp_volt = (1 << 0) | (1 << 1); break;
+						case 6: curr_samp_volt = (1 << 0) | (1 << 2); break;
 						default: break;
 						}
 					} else {
 						switch (comm_step) {
-						case 1: curr_samp_volt = (1 << 0) || (1 << 1); break;
-						case 2: curr_samp_volt = (1 << 1) || (1 << 2); break;
-						case 3: curr_samp_volt = (1 << 1) || (1 << 2); break;
-						case 4: curr_samp_volt = (1 << 0) || (1 << 2); break;
-						case 5: curr_samp_volt = (1 << 0) || (1 << 2); break;
-						case 6: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						case 1: curr_samp_volt = (1 << 0) | (1 << 1); break;
+						case 2: curr_samp_volt = (1 << 1) | (1 << 2); break;
+						case 3: curr_samp_volt = (1 << 1) | (1 << 2); break;
+						case 4: curr_samp_volt = (1 << 0) | (1 << 2); break;
+						case 5: curr_samp_volt = (1 << 0) | (1 << 2); break;
+						case 6: curr_samp_volt = (1 << 0) | (1 << 1); break;
 						default: break;
 						}
 					}
 #else
 					if (direction) {
 						switch (comm_step) {
-						case 1: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						case 1: curr_samp_volt = (1 << 0) | (1 << 1); break;
 						case 2: curr_samp_volt = (1 << 1); break;
 						case 3: curr_samp_volt = (1 << 1); break;
 						case 4: curr_samp_volt = (1 << 0); break;
 						case 5: curr_samp_volt = (1 << 0); break;
-						case 6: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						case 6: curr_samp_volt = (1 << 0) | (1 << 1); break;
 						default: break;
 						}
 					} else {
@@ -2532,8 +2534,8 @@ static void update_adc_sample_pos(mc_timer_struct *timer_tmp) {
 						case 1: curr_samp_volt = (1 << 0); break;
 						case 2: curr_samp_volt = (1 << 1); break;
 						case 3: curr_samp_volt = (1 << 1); break;
-						case 4: curr_samp_volt = (1 << 0) || (1 << 1); break;
-						case 5: curr_samp_volt = (1 << 0) || (1 << 1); break;
+						case 4: curr_samp_volt = (1 << 0) | (1 << 1); break;
+						case 5: curr_samp_volt = (1 << 0) | (1 << 1); break;
 						case 6: curr_samp_volt = (1 << 0); break;
 						default: break;
 						}

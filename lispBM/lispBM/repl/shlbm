@@ -1,0 +1,47 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]; then
+  echo "Usage: shlbm [lbm-flags] [--] script.lisp [script-args...]" >&2
+  exit 1
+fi
+
+# Check if -- is present
+has_delimiter=false
+for arg in "$@"; do
+  if [ "$arg" = "--" ]; then
+    has_delimiter=true
+    break
+  fi
+done
+
+if [ "$has_delimiter" = true ]; then
+  # Split on --
+  lbm_flags=()
+  script_and_args=()
+  found_delimiter=false
+
+  for arg in "$@"; do
+    if [ "$arg" = "--" ]; then
+      found_delimiter=true
+      continue
+    fi
+
+    if [ "$found_delimiter" = false ]; then
+      lbm_flags+=("$arg")
+    else
+      script_and_args+=("$arg")
+    fi
+  done
+
+  # Calculate where script args start in argv
+  # argv: lbm, lbm_flags..., --script_args_start, index, --shebang, script_file, arg1...
+  # Position: 1 + ${#lbm_flags[@]} + 1 + 1 + 1 + 1 = ${#lbm_flags[@]} + 5
+  script_args_index=$((${#lbm_flags[@]} + 5))
+
+  exec lbm "${lbm_flags[@]}" --script_args_start "$script_args_index" --shebang "${script_and_args[@]}"
+else
+  # No delimiter, pass everything through
+  # argv: lbm, --script_args_start, index, --shebang, script_file, arg1...
+  # Position: 1 + 1 + 1 + 1 + 1 = 5
+  exec lbm --script_args_start 5 --shebang "$@"
+fi

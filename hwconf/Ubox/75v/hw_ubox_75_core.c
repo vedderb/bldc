@@ -26,6 +26,25 @@
 #include <math.h>
 #include "mc_interface.h"
 
+#include "shutdown.h"
+#include "app.h"
+#include "conf_general.h"
+#include "commands.h"
+#include "timeout.h"
+
+//UBOX uses a button to press to GND to make internal 12V regulator circuit to start work.
+//And uses an IO of VESC MCU to read this button state,
+//And another IO to hold internal 12V regulator's enable pin.
+#define UBOX_POWER_EN_ON()				do{palSetPad(GPIOA, 15);}while(0)
+#define UBOX_POWER_EN_OFF()				do{palClearPad(GPIOA, 15);}while(0)
+
+#define UBOX_POWER_KEY_IO_PULL_LOW()	do{palClearPad(GPIOC, 13);}while(0)
+#define UBOX_POWER_KEY_IO_RELEASE()		do{palSetPad(GPIOC, 13);}while(0)
+#define UBOX_QUERY_POWER_KEY_IO()		(palReadPad(GPIOC, 13))
+
+
+void shutdown_init(void);
+
 // Variables
 static volatile bool i2c_running = false;
 
@@ -113,6 +132,15 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
+
+	//POWER ON EN, and start the shut_down_ubox thread
+	palSetPadMode(GPIOA, 15, PAL_MODE_OUTPUT_PUSHPULL);
+	palSetPad(GPIOA, 15);
+
+	palSetPadMode(GPIOC, 13, PAL_MODE_OUTPUT_OPENDRAIN | PAL_MODE_INPUT_PULLUP);
+	UBOX_POWER_KEY_IO_RELEASE();
+	
+	shutdown_init();
 }
 
 void hw_setup_adc_channels(void) {
@@ -262,3 +290,208 @@ float hw75_300_get_temp(void) {
 
 	return res;
 }
+
+//Copied and modified from shutdown.c
+// Private variables
+static bool volatile m_button_pressed = false;
+static volatile float m_inactivity_time = 0.0;
+static THD_WORKING_AREA(shutdown_thread_wa, 256);
+static mutex_t m_sample_mutex;
+static volatile bool m_init_done = false;
+static volatile bool m_sampling_disabled = false;
+
+// Private functions
+static THD_FUNCTION(shutdown_thread, arg);
+
+void shutdown_init(void) {
+	if(!m_init_done){
+		chMtxObjectInit(&m_sample_mutex);
+		chThdCreateStatic(shutdown_thread_wa, sizeof(shutdown_thread_wa), NORMALPRIO, shutdown_thread, NULL);
+		m_init_done = true;
+	}
+}
+
+void shutdown_reset_timer(void) {
+	m_inactivity_time = 0.0;
+}
+
+float shutdown_get_inactivity_time(void) {
+	return m_inactivity_time;
+}
+
+void shutdown_hold(bool hold) {
+	(void)hold;
+}
+
+// TODO: Doesn't use resample. Maybe in future allow resampling if enPOWER_KEY_TYPE is momentary?
+bool do_shutdown(bool resample) {
+	(void)resample;
+	conf_general_store_backup_data();
+
+	chThdSleepMilliseconds(100);
+	DISABLE_GATE();
+	UBOX_POWER_EN_OFF();
+	return true;
+}
+
+typedef enum {
+	power_key_type_undecided = 0,
+	power_key_type_momentary,
+	power_key_type_latching,
+	power_key_type_other_source,
+}enPOWER_KEY_TYPE;
+static enPOWER_KEY_TYPE power_key_type = power_key_type_undecided;
+static uint32_t power_key_pressed_ms = 0;
+static bool power_key_pressed_when_power_on = false;
+
+static THD_FUNCTION(shutdown_thread, arg) {
+	(void)arg;
+	chRegSetThreadName("Shutdown_ubox");
+
+	static bool power_key_io_released = false;
+	systime_t last_iteration_time = chVTGetSystemTimeX();
+	uint64_t odometer_old = mc_interface_get_odometer();
+
+	for(;;)	{
+		//uint8_t power_key_click = 0;
+		uint32_t sys_time_ms = chVTGetSystemTime() / (float)CH_CFG_ST_FREQUENCY * 1000.0f;
+
+		float dt = (float)chVTTimeElapsedSinceX(last_iteration_time) / (float)CH_CFG_ST_FREQUENCY;
+		last_iteration_time = chVTGetSystemTimeX();
+
+		//Check power button.
+		//Because the low level of power key is about 1V, high is 3.3v by its hardware design.
+		//This 1.0V low signal voltage maybe can not to make the MCU to recognize it as 0, so it needs a workaround.
+		//The principle is: to check if the IO be pulled up from 0V to 3.3V by internal pull-up resistor,
+		//if yes, the power key is not pressing. The 0V is implemented by the assistance of IO's open drain pull down.
+	    if(power_key_io_released == false) {
+	    	power_key_io_released = true;
+			UBOX_POWER_KEY_IO_RELEASE();	//Release the open drain configured IO and wait 10ms to let the internal resistor
+											//to pulls the line up, next time to check the IO pin register.
+	    } else {
+	        if(UBOX_QUERY_POWER_KEY_IO() == 0) {
+	            if(power_key_pressed_ms < 1000 * 60) {
+	            	power_key_pressed_ms += 20;//
+	            }
+	        } else {
+	            if((power_key_pressed_ms > 50) && (power_key_pressed_ms < 500)) {
+					// TODO: Could toggle different led types here??
+	                //power_key_click = 1;
+	            }
+	            power_key_pressed_ms = 0;
+	        }
+
+	        power_key_io_released = false;
+	        UBOX_POWER_KEY_IO_PULL_LOW();//Pre-pull down the open drain configured IO, to make this IO read as 0
+	    }
+
+	    if(power_key_type == power_key_type_undecided) {
+			if(sys_time_ms < 1000) {
+				if(power_key_pressed_ms > 100) {
+					power_key_pressed_when_power_on = true;
+				}
+			} else {
+				if(power_key_pressed_when_power_on == false) {
+					power_key_type = power_key_type_other_source;
+				} else {
+					if(power_key_pressed_ms == 0) {
+						power_key_type = power_key_type_momentary;
+					} else if(power_key_pressed_ms > 2000) {
+						power_key_type = power_key_type_latching;
+					}
+				}
+			}
+			UBOX_POWER_EN_ON();
+	    } else if(power_key_type == power_key_type_momentary) {
+			m_button_pressed = (bool)(power_key_pressed_ms > 2000);
+			bool clicked = (bool)(power_key_pressed_ms > 1000);
+
+			const app_configuration *conf = app_get_configuration();
+
+			// Note: When the gates are enabled, the push to start function
+			// will prevent the regulator from shutting down. Therefore, the
+			// gate driver has to be disabled.
+
+			switch (conf->shutdown_mode) {
+				case SHUTDOWN_MODE_ALWAYS_OFF:
+					//When the power button being pushed accidently, the regulator will working
+					//Inactive after 10 seconds, MCU cancels the enable signal, regulator shuts down if button released.
+					m_inactivity_time += dt;
+					if (m_inactivity_time >= 10.0f) {
+						do_shutdown(false);
+					}
+				break;
+				case SHUTDOWN_MODE_ALWAYS_ON:
+					m_inactivity_time += dt;
+					// Without a shutdown switch use inactivity timer to estimate
+					// when device is stopped. Check also distance between store
+					// to prevent excessive flash write cycles.
+					if (m_inactivity_time >= SHUTDOWN_SAVE_BACKUPDATA_TIMEOUT) {
+						shutdown_reset_timer();
+						// If at least 1km was done then we can store data
+						if((mc_interface_get_odometer()-odometer_old) >= 1000) {
+							conf_general_store_backup_data();
+							odometer_old = mc_interface_get_odometer();
+						}
+					}
+					UBOX_POWER_EN_ON();
+				break;
+				case SHUTDOWN_MODE_TOGGLE_BUTTON_ONLY:
+				if(clicked)	{
+					do_shutdown(true);
+				}
+				break;
+				default:	break;
+			}
+			if (conf->shutdown_mode >= SHUTDOWN_MODE_OFF_AFTER_10S) {
+				m_inactivity_time += dt;
+					float shutdown_timeout = 0.0;
+
+				switch (conf->shutdown_mode) {
+				case SHUTDOWN_MODE_OFF_AFTER_10S: shutdown_timeout = 10.0; break;
+				case SHUTDOWN_MODE_OFF_AFTER_1M: shutdown_timeout = 60.0; break;
+				case SHUTDOWN_MODE_OFF_AFTER_5M: shutdown_timeout = 60.0 * 5.0; break;
+				case SHUTDOWN_MODE_OFF_AFTER_10M: shutdown_timeout = 60.0 * 10.0; break;
+				case SHUTDOWN_MODE_OFF_AFTER_30M: shutdown_timeout = 60.0 * 30.0; break;
+				case SHUTDOWN_MODE_OFF_AFTER_1H: shutdown_timeout = 60.0 * 60.0; break;
+				case SHUTDOWN_MODE_OFF_AFTER_5H: shutdown_timeout = 60.0 * 60.0 * 5.0; break;
+				default: break;
+				}
+				if (m_inactivity_time >= shutdown_timeout) {
+					do_shutdown(false);
+				}
+			} else {
+				//Because SHUTDOWN_MODE_ALWAYS_OFF's implementation will check m_inactivity_time.
+				if(conf->shutdown_mode != SHUTDOWN_MODE_ALWAYS_OFF) {
+					m_inactivity_time = 0.0;
+				}
+			}
+
+			if(power_key_pressed_ms > 2000) {
+				do_shutdown(true);
+			}
+	    } else {
+	    	m_inactivity_time += dt;
+	    	// Without a shutdown switch use inactivity timer to estimate
+	    	// when device is stopped. Check also distance between store
+	    	// to prevent excessive flash write cycles.
+	    	if (m_inactivity_time >= SHUTDOWN_SAVE_BACKUPDATA_TIMEOUT) {
+	    		shutdown_reset_timer();
+	    		// If at least 1km was done then we can store data
+	    		if((mc_interface_get_odometer()-odometer_old) >= 1000) {
+	    			conf_general_store_backup_data();
+	    			odometer_old = mc_interface_get_odometer();
+	    		}
+	    	}
+	    	UBOX_POWER_EN_OFF();//In latching button mode, cancel the MCU's enable signal to regulator,
+	    						//there for, when power button released, regulator shuts down.
+	    }
+
+		timeout_reset();
+
+		chThdSleepMilliseconds(10);
+	}
+}
+
+
+

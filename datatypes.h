@@ -64,7 +64,8 @@ typedef enum {
 	FOC_SENSOR_MODE_HFI_V2,
 	FOC_SENSOR_MODE_HFI_V3,
 	FOC_SENSOR_MODE_HFI_V4,
-	FOC_SENSOR_MODE_HFI_V5
+	FOC_SENSOR_MODE_HFI_V5,
+	FOC_SENSOR_MODE_ENCODER_AB
 } mc_foc_sensor_mode;
 
 typedef enum {
@@ -214,6 +215,7 @@ typedef enum {
 	SENSOR_PORT_MODE_CUSTOM_ENCODER,
 	SENSOR_PORT_MODE_PWM,
 	SENSOR_PORT_MODE_PWM_ABI,
+	SENSOR_PORT_MODE_MA782,
 } sensor_port_mode;
 
 typedef struct {
@@ -463,8 +465,6 @@ typedef struct {
 	float foc_start_curr_dec_rpm;
 	float foc_openloop_rpm;
 	float foc_openloop_rpm_low;
-	float foc_d_gain_scale_start;
-	float foc_d_gain_scale_max_mod;
 	float foc_sl_openloop_hyst;
 	float foc_sl_openloop_time;
 	float foc_sl_openloop_time_lock;
@@ -495,6 +495,7 @@ typedef struct {
 	float foc_hfi_max_err;
 	float foc_hfi_hyst;
 	float foc_sl_erpm_hfi;
+	float foc_hfi_reset_erpm;
 	uint16_t foc_hfi_start_samples;
 	float foc_hfi_obs_ovr_sec;
 	foc_hfi_samples foc_hfi_samples;
@@ -1443,8 +1444,16 @@ typedef struct __attribute__((packed)) {
 	uint8_t hw_config[128];
 
 	// Encoder correction table
+	uint32_t enc_corr_init_flag;
 	int8_t enc_corr_en;
 	int8_t enc_corr[360];
+
+	// CAN settings
+	uint32_t can_init_flag;
+	uint8_t can_baud;
+	uint8_t can_id;
+
+	uint8_t dummy;
 } backup_data;
 
 #endif /* DATATYPES_H_ */

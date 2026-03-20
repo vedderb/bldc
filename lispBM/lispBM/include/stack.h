@@ -1,6 +1,6 @@
 /** \file stack.h */
 /*
-    Copyright 2019, 2024Joel Svensson        svenssonjoel@yahoo.se
+    Copyright 2019, 2024, 2025 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -31,11 +31,11 @@ extern "C" {
 #endif
 
 typedef struct {
-  lbm_uint* data;
   lbm_uint sp;
   lbm_uint size;
+  lbm_uint* data;
 } lbm_stack_t;
-
+  
 /** Allocate a stack on the symbols and arrays memory.
  *  lbm_memory_init must have been run before this function or it will fail.
  * \param s Pointer to an lbm_stack_t to initialize.

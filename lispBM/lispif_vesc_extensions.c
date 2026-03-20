@@ -37,6 +37,7 @@
 #include "servo_dec.h"
 #include "pwm_servo.h"
 #include "encoder/encoder.h"
+#include "encoder/encoder_cfg.h"
 #include "comm_can.h"
 #include "bms.h"
 #include "utils_math.h"
@@ -61,6 +62,8 @@
 #include "comm_usb.h"
 #include "flash_helper.h"
 #include "packet.h"
+#include "timer.h"
+#include "encoder_cfg.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -196,6 +199,7 @@ typedef struct {
 	lbm_uint foc_hall_t6;
 	lbm_uint foc_hall_t7;
 	lbm_uint foc_sl_erpm_hfi;
+	lbm_uint foc_hfi_reset_erpm;
 	lbm_uint foc_openloop_rpm;
 	lbm_uint foc_openloop_rpm_low;
 	lbm_uint foc_sl_openloop_time_lock;
@@ -543,6 +547,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("foc-hall-t7", comp);
 		} else if (comp == &syms_vesc.foc_sl_erpm_hfi) {
 			lbm_add_symbol_const("foc-sl-erpm-hfi", comp);
+		} else if (comp == &syms_vesc.foc_hfi_reset_erpm) {
+			lbm_add_symbol_const("foc-hfi-reset-erpm", comp);
 		} else if (comp == &syms_vesc.foc_openloop_rpm) {
 			lbm_add_symbol_const("foc-openloop-rpm", comp);
 		} else if (comp == &syms_vesc.foc_openloop_rpm_low) {
@@ -1882,6 +1888,12 @@ static lbm_value ext_foc_openloop_phase(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+//static lbm_value ext_foc_set_fw_override(lbm_value *args, lbm_uint argn) {
+//	LBM_CHECK_ARGN_NUMBER(1);
+//	mcpwm_foc_set_fw_override(lbm_dec_as_float(args[0]));
+//	return ENC_SYM_TRUE;
+//}
+
 static lbm_value ext_set_kill_sw(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(1);
 	timeout_set_kill_sw_ext(lbm_dec_as_i32(args[0]) > 0);
@@ -2163,6 +2175,12 @@ static lbm_value ext_get_temp_mot(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(mc_interface_temp_motor_filtered());
 }
 
+static lbm_value ext_get_temp_mot_res(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(NTC_RES_MOTOR(ADC_Value[mc_interface_motor_now() ?
+			ADC_IND_TEMP_MOTOR : ADC_IND_TEMP_MOTOR_2]));
+}
+
 static lbm_value ext_get_speed(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_speed());
@@ -2272,6 +2290,23 @@ static lbm_value ext_get_encoder_error_rate(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(encoder_get_error_rate());
 }
 
+static lbm_value ext_encoder_index_found(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_i(encoder_index_found() ? 1 : 0);
+}
+
+static lbm_value ext_encoder_abi_state(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	lbm_value abi_data = ENC_SYM_NIL;
+	abi_data = lbm_cons(lbm_enc_i(encoder_cfg_ABI.state.index_pulse_cnt), abi_data);
+	abi_data = lbm_cons(lbm_enc_i(encoder_cfg_ABI.state.bad_pulses), abi_data);
+	abi_data = lbm_cons(lbm_enc_i(encoder_cfg_ABI.state.cnt_at_ind_last), abi_data);
+	abi_data = lbm_cons(lbm_enc_i(encoder_index_found() ? 1 : 0), abi_data);
+
+	return abi_data;
+}
+
 static lbm_value ext_pos_pid_now(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_pid_pos_now());
@@ -2319,12 +2354,16 @@ static lbm_value ext_phase_all(lbm_value *args, lbm_uint argn) {
 	float phase_encoder = mcpwm_foc_get_phase_encoder();
 	float phase_bemf = mcpwm_foc_get_phase_bemf();
 	float pos_encoder = encoder_read_deg();
+	float phase_hall = mcpwm_foc_get_phase_hall();
 
 	float err_observer_encoder = utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder());
 	float err_bemf_encoder = utils_angle_difference(mcpwm_foc_get_phase_bemf(), mcpwm_foc_get_phase_encoder());
 	float err_observer_bemf = utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_bemf());
+	float err_bemf_hall = utils_angle_difference(mcpwm_foc_get_phase_bemf(), mcpwm_foc_get_phase_hall());
 
 	lbm_value phase_all = ENC_SYM_NIL;
+	phase_all = lbm_cons(lbm_enc_float(err_bemf_hall), phase_all);
+	phase_all = lbm_cons(lbm_enc_float(phase_hall), phase_all);
 	phase_all = lbm_cons(lbm_enc_float(err_observer_bemf), phase_all);
 	phase_all = lbm_cons(lbm_enc_float(err_bemf_encoder), phase_all);
 	phase_all = lbm_cons(lbm_enc_float(err_observer_encoder), phase_all);
@@ -2335,6 +2374,67 @@ static lbm_value ext_phase_all(lbm_value *args, lbm_uint argn) {
 
 	return phase_all;
 
+}
+
+typedef struct {
+	int samples;
+	uint8_t *data;
+	lbm_cid id;
+} enc_sample_args;
+
+static void enc_sample_task(void *arg) {
+	enc_sample_args *a = (enc_sample_args*)arg;
+	int restart_cnt = lispif_get_restart_cnt();
+
+	bool ok = true;
+	for (int i = 0;i < a->samples;i++) {
+		float err_bemf_encoder = utils_angle_difference(mcpwm_foc_get_phase_bemf(), mcpwm_foc_get_phase_encoder());
+		float pos_encoder = encoder_read_deg();
+
+		int32_t ind = (int)pos_encoder;
+		if (ind < 0 || ind > 360) {
+			ok = false;
+			break;
+		}
+
+		ind *= 8;
+		int32_t ind2 = ind;
+
+		buffer_append_float32_auto(a->data, buffer_get_float32_auto(a->data, &ind) + err_bemf_encoder, &ind2);
+		buffer_append_float32_auto(a->data, buffer_get_float32_auto(a->data, &ind) + 1, &ind2);
+
+		chThdSleep(1);
+	}
+
+	if (restart_cnt == lispif_get_restart_cnt()) {
+		lbm_unblock_ctx_unboxed(a->id, ok ? ENC_SYM_TRUE : ENC_SYM_EERROR);
+	}
+}
+
+static lbm_value ext_enc_sample(lbm_value *args, lbm_uint argn) {
+	if (argn != 2 || !lbm_is_array_rw(args[0]) || !lbm_is_number(args[1])) {
+		return ENC_SYM_TERROR;
+	}
+
+	lbm_array_header_t *array = lbm_dec_array_rw(args[0]);
+	if (array->size < (360 * 2 * 4)) {
+		return ENC_SYM_TERROR;
+	}
+
+	int samples = lbm_dec_as_i32(args[1]);
+	if (samples <= 0 || samples > 300000) {
+		return ENC_SYM_TERROR;
+	}
+
+	static enc_sample_args a;
+	a.samples = samples;
+	a.data = (uint8_t*)array->data;
+	a.id = lbm_get_current_cid();
+
+	lbm_block_ctx_from_extension();
+	worker_execute(enc_sample_task, &a);
+
+	return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_enc_corr(lbm_value *args, lbm_uint argn) {
@@ -3861,6 +3961,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.foc_sl_erpm_hfi)) {
 			mcconf->foc_sl_erpm_hfi = lbm_dec_as_float(args[1]);
 			changed_mc = 2;
+		} else if (compare_symbol(name, &syms_vesc.foc_hfi_reset_erpm)) {
+			mcconf->foc_hfi_reset_erpm = lbm_dec_as_float(args[1]);
+			changed_mc = 2;
 		} else if (compare_symbol(name, &syms_vesc.foc_openloop_rpm)) {
 			mcconf->foc_openloop_rpm = lbm_dec_as_float(args[1]);
 			changed_mc = 2;
@@ -4191,6 +4294,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_i(mcconf->foc_hall_table[7]);
 	} else if (compare_symbol(name, &syms_vesc.foc_sl_erpm_hfi)) {
 		res = lbm_enc_float(mcconf->foc_sl_erpm_hfi);
+	} else if (compare_symbol(name, &syms_vesc.foc_hfi_reset_erpm)) {
+		res = lbm_enc_float(mcconf->foc_hfi_reset_erpm);
 	} else if (compare_symbol(name, &syms_vesc.foc_openloop_rpm)) {
 		res = lbm_enc_float(mcconf->foc_openloop_rpm);
 	} else if (compare_symbol(name, &syms_vesc.foc_openloop_rpm_low)) {
@@ -4326,9 +4431,12 @@ static lbm_value ext_conf_store(lbm_value *args, lbm_uint argn) {
 	bool res_app = conf_general_store_app_configuration(appconf);
 	mempools_free_appconf(appconf);
 
-	conf_general_store_backup_data();
-
 	return lbm_enc_sym((res_mc && res_app) ? SYM_TRUE : SYM_NIL);
+}
+
+static lbm_value ext_store_backup(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_sym(conf_general_store_backup_data() ? SYM_TRUE : SYM_NIL);
 }
 
 typedef struct {
@@ -4877,6 +4985,52 @@ static lbm_value ext_conf_detect_hall(lbm_value *args, lbm_uint argn) {
 	lbm_block_ctx_from_extension();
 	worker_execute(measure_hall_task, &a);
 #endif
+
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_conf_remap_as504x(lbm_value *args, lbm_uint argn) {
+	for (lbm_uint i = 0;i < argn;i++) {
+		if (lbm_is_number(args[i])) {
+
+			stm32_gpio_t *port; uint32_t pin;
+			if (lispif_symbol_to_io(lbm_dec_sym(args[0]), &port, &pin)) {
+				switch (i) {
+				case 0: {
+					encoder_cfg_as504x.sw_spi.nss_gpio = port;
+					encoder_cfg_as504x.sw_spi.nss_pin = pin;
+					break;
+				}
+
+				case 1: {
+					encoder_cfg_as504x.sw_spi.sck_gpio = port;
+					encoder_cfg_as504x.sw_spi.sck_pin = pin;
+					break;
+				}
+
+				case 2: {
+					encoder_cfg_as504x.sw_spi.mosi_gpio = port;
+					encoder_cfg_as504x.sw_spi.mosi_pin = pin;
+					break;
+				}
+
+				case 3: {
+					encoder_cfg_as504x.sw_spi.miso_gpio = port;
+					encoder_cfg_as504x.sw_spi.miso_pin = pin;
+					break;
+				}
+
+				default:
+					break;
+				}
+			} else {
+				return ENC_SYM_EERROR;
+			}
+		}
+	}
+
+	volatile mc_configuration *conf = (volatile mc_configuration*)mc_interface_get_configuration();
+	encoder_update_config(conf);
 
 	return ENC_SYM_TRUE;
 }
@@ -5873,6 +6027,30 @@ static lbm_value ext_cmds_proc(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+#ifdef FOC_PROFILE_EN
+static lbm_value ext_prof_trig(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	FOC_PROFILE_TRIGGER();
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_prof_result(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+
+	lbm_value prof_data = ENC_SYM_NIL;
+
+	for (int i = 0; i < g_foc_profile.ind;i++) {
+		int ind = g_foc_profile.ind - i - 1;
+		prof_data = lbm_cons(lbm_cons(
+				lbm_enc_i(g_foc_profile.line[ind]),
+				lbm_enc_float(timer_calc_diff(g_foc_profile.t_start, g_foc_profile.time[ind]))
+		), prof_data);
+	}
+
+	return prof_data;
+}
+#endif
+
 static const char* dyn_functions[] = {
 		"(defun uart-read-bytes (buffer n ofs)"
 		"(let ((rd (uart-read buffer n ofs)))"
@@ -6010,6 +6188,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("set-pos", ext_set_pos);
 		lbm_add_extension("foc-openloop", ext_foc_openloop);
 		lbm_add_extension("foc-openloop-phase", ext_foc_openloop_phase);
+//		lbm_add_extension("foc-set-fw-override", ext_foc_set_fw_override);
 		lbm_add_extension("set-kill-sw", ext_set_kill_sw);
 
 		lbm_add_extension("foc-beep", ext_foc_beep);
@@ -6039,6 +6218,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("get-pos", ext_get_pos);
 		lbm_add_extension("get-temp-fet", ext_get_temp_fet);
 		lbm_add_extension("get-temp-mot", ext_get_temp_mot);
+		lbm_add_extension("get-temp-mot-res", ext_get_temp_mot_res);
 		lbm_add_extension("get-speed", ext_get_speed);
 		lbm_add_extension("get-speed-set", ext_get_speed_set);
 		lbm_add_extension("get-dist", ext_get_dist);
@@ -6054,6 +6234,8 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("get-encoder", ext_get_encoder);
 		lbm_add_extension("set-encoder", ext_set_encoder);
 		lbm_add_extension("get-encoder-error-rate", ext_get_encoder_error_rate);
+		lbm_add_extension("encoder-index-found", ext_encoder_index_found);
+		lbm_add_extension("encoder-abi-state", ext_encoder_abi_state);
 		lbm_add_extension("pos-pid-now", ext_pos_pid_now);
 		lbm_add_extension("pos-pid-set", ext_pos_pid_set);
 		lbm_add_extension("pos-pid-error", ext_pos_pid_error);
@@ -6063,6 +6245,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("phase-observer", ext_phase_observer);
 		lbm_add_extension("observer-error", ext_observer_error);
 		lbm_add_extension("phase-all", ext_phase_all);
+		lbm_add_extension("enc-sample", ext_enc_sample);
 		lbm_add_extension("enc-corr", ext_enc_corr);
 		lbm_add_extension("enc-corr-en", ext_enc_corr_en);
 
@@ -6150,6 +6333,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("conf-set", ext_conf_set);
 		lbm_add_extension("conf-get", ext_conf_get);
 		lbm_add_extension("conf-store", ext_conf_store);
+		lbm_add_extension("store-backup", ext_store_backup);
 		lbm_add_extension("conf-detect-foc", ext_conf_detect_foc);
 		lbm_add_extension("conf-set-pid-offset", ext_conf_set_pid_offset);
 		lbm_add_extension("conf-measure-res", ext_conf_measure_res);
@@ -6162,6 +6346,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("conf-get-limits", ext_conf_get_limits);
 		lbm_add_extension("conf-detect-lambda-enc", ext_conf_detect_lambda_enc);
 		lbm_add_extension("conf-detect-hall", ext_conf_detect_hall);
+		lbm_add_extension("conf-remap-as504x", ext_conf_remap_as504x);
 
 		// Native libraries
 		lbm_add_extension("load-native-lib", ext_load_native_lib);
@@ -6217,6 +6402,12 @@ void lispif_load_vesc_extensions(bool main_found) {
 		// Commands
 		lbm_add_extension("cmds-start-stop", ext_cmds_start_stop);
 		lbm_add_extension("cmds-proc", ext_cmds_proc);
+
+		// Profiling
+#ifdef FOC_PROFILE_EN
+		lbm_add_extension("prof-trig", ext_prof_trig);
+		lbm_add_extension("prof-result", ext_prof_result);
+#endif
 
 		// Extension libraries
 		lbm_array_extensions_init();

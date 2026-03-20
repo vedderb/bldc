@@ -42,7 +42,7 @@ typedef struct {
   bool more;
   bool comment;
   bool reader_closed;
-  mutex_t lock;
+  lbm_mutex_t lock;
   bool mutex_initialized;
   // statistics
   unsigned int row;

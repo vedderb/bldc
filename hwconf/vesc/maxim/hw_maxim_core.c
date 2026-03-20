@@ -122,13 +122,6 @@ void hw_init_gpio(void) {
 
 	CURRENT_FILTER_OFF();
 
-	// AUX pins
-	AUX_OFF();
-	palSetPadMode(AUX_GPIO, AUX_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-
-	AUX2_OFF();
-	palSetPadMode(AUX2_GPIO, AUX2_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-
 	// ADC Pins
 	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_ANALOG);
@@ -309,11 +302,13 @@ static THD_FUNCTION(mux_thread, arg) {
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
 
-#define T_SAMP_US		400
+#define T_SAMP_US		500
 
 	for (;;) {
 		ADCMUX_MOT_TEMP();
-		chThdSleepMicroseconds(T_SAMP_US);
+		// Wait longer on this one as some temperature sensors, e.g. the PT1000 change very little
+		// and the voltage divider gives us bad resolution for it.
+		chThdSleepMilliseconds(5);
 		ADC_Value[ADC_IND_TEMP_MOTOR] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ADCMUX_12V_SENSE_V();
@@ -343,6 +338,42 @@ static THD_FUNCTION(mux_thread, arg) {
 		ADCMUX_TEMP_DCDC();
 		chThdSleepMicroseconds(T_SAMP_US);
 		ADC_Value[ADC_IND_TEMP_DCDC] = ADC_Value[ADC_IND_ADC_MUX];
+
+		// Config check
+		mc_configuration *mcconf = (mc_configuration*)mc_interface_get_configuration();
+
+		if (mcconf->motor_type == MOTOR_TYPE_FOC &&
+				mcconf->foc_sensor_mode == FOC_SENSOR_MODE_HALL) {
+
+			// In hall sensor mode we use the ADC pins on the comm-port as additional
+			// pull-ups as the voltage dividers take the voltage down otherwise.
+			palSetPadMode(HW_ADC_EXT3_GPIO, HW_ADC_EXT3_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+			palSetPadMode(HW_ADC_EXT4_GPIO, HW_ADC_EXT4_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+			palSetPad(HW_ADC_EXT3_GPIO, HW_ADC_EXT3_PIN);
+			palSetPad(HW_ADC_EXT4_GPIO, HW_ADC_EXT4_PIN);
+
+			// Prevent the uart-pins from interfering
+			palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT);
+			palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT);
+		} else if (mcconf->motor_type == MOTOR_TYPE_FOC &&
+			(mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ||
+			 mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER_AB)) {
+
+			// Prevent the uart-pins from interfering
+			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_ABI ||
+					mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI ||
+					mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ABI ||
+					mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
+				palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT);
+				palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT);
+			}
+
+			// Ensure that the sin/cos pins are in ADC mode
+			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
+				palSetPadMode(HW_ADC_EXT3_GPIO, HW_ADC_EXT3_PIN, PAL_MODE_INPUT_ANALOG);
+				palSetPadMode(HW_ADC_EXT4_GPIO, HW_ADC_EXT4_PIN, PAL_MODE_INPUT_ANALOG);
+			}
+		}
 	}
 }
 

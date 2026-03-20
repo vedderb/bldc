@@ -35,6 +35,7 @@
 #include "app.h"
 
 #include <math.h>
+#include <string.h>
 
 // These rates turn into even multiples of systicks
 typedef enum {
@@ -125,7 +126,8 @@ bool encoder_init(volatile mc_configuration *conf) {
 				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1, // sck
 				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, // mosi
 				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2, // miso
-				{{NULL, NULL}, NULL, NULL} // Mutex
+				{{NULL, NULL}, NULL, NULL}, // Mutex
+				false // Mutex init done
 		};
 		encoder_cfg_tle5012.sw_spi = sw_ssc;
 
@@ -151,7 +153,8 @@ bool encoder_init(volatile mc_configuration *conf) {
 				HW_SPI_PORT_SCK, HW_SPI_PIN_SCK, // sck
 				HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI, // mosi
 				HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI, // miso (shared dat line)
-				{{NULL, NULL}, NULL, NULL} // Mutex
+				{{NULL, NULL}, NULL, NULL}, // Mutex
+				false // Mutex init done
 		};
 		encoder_cfg_tle5012.sw_spi = sw_ssc;	
 
@@ -192,6 +195,8 @@ bool encoder_init(volatile mc_configuration *conf) {
 		encoder_cfg_sincos.c_gain = 1.0 /conf->m_encoder_cos_amp;
 		encoder_cfg_sincos.c_offset =  conf->m_encoder_cos_offset;
 		encoder_cfg_sincos.filter_constant = conf->m_encoder_sincos_filter_constant;
+		encoder_cfg_sincos.ratio = conf->foc_encoder_ratio;
+		encoder_cfg_sincos.delay_comp_sign = conf->foc_encoder_inverted ? -1.0 : 1.0;
 		sincosf(DEG2RAD_f(conf->m_encoder_sincos_phase_correction), &encoder_cfg_sincos.sph, &encoder_cfg_sincos.cph);
 
 		if (!enc_sincos_init(&encoder_cfg_sincos)) {
@@ -251,6 +256,20 @@ bool encoder_init(volatile mc_configuration *conf) {
 		}
 
 		m_encoder_type_now = ENCODER_TYPE_BISSC;
+		timer_start(routine_rate_10k);
+
+		res = true;
+	} break;
+
+	case SENSOR_PORT_MODE_MA782: {
+		SENSOR_PORT_3V3();
+
+		if (!enc_ma782_init(&encoder_cfg_ma782)) {
+			m_encoder_type_now = ENCODER_TYPE_NONE;
+			return false;
+		}
+
+		m_encoder_type_now = ENCODER_TYPE_MA782;
 		timer_start(routine_rate_10k);
 
 		res = true;
@@ -325,14 +344,30 @@ void encoder_update_config(volatile mc_configuration *conf) {
 		encoder_cfg_sincos.c_gain = 1.0 /conf->m_encoder_cos_amp;
 		encoder_cfg_sincos.c_offset =  conf->m_encoder_cos_offset;
 		encoder_cfg_sincos.filter_constant = conf->m_encoder_sincos_filter_constant;
+		encoder_cfg_sincos.ratio = conf->foc_encoder_ratio;
+		encoder_cfg_sincos.delay_comp_sign = conf->foc_encoder_inverted ? -1.0 : 1.0;
 		sincosf(DEG2RAD_f(conf->m_encoder_sincos_phase_correction), &encoder_cfg_sincos.sph, &encoder_cfg_sincos.cph);
 	} break;
 
 	case SENSOR_PORT_MODE_ABI:
 	case SENSOR_PORT_MODE_PWM_ABI: {
-		encoder_cfg_ABI.counts = conf->m_encoder_counts;
-		TIM_SetAutoreload(encoder_cfg_ABI.timer, encoder_cfg_ABI.counts - 1);
+		if (encoder_cfg_ABI.counts != conf->m_encoder_counts) {
+			encoder_cfg_ABI.counts = conf->m_encoder_counts;
+			TIM_SetAutoreload(encoder_cfg_ABI.timer, encoder_cfg_ABI.counts - 1);
+			memset(&encoder_cfg_ABI.state, 0, sizeof(ABI_state));
+
+			if (conf->m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ABI) {
+				enc_pwm_init(true);
+			}
+		}
+
+
 	} break;
+
+	case SENSOR_PORT_MODE_AS5047_SPI: {
+		spi_bb_init(&(encoder_cfg_as504x.sw_spi));
+		break;
+	}
 
 	default:
 		break;
@@ -367,6 +402,8 @@ void encoder_deinit(void) {
 	} else if (m_encoder_type_now == ENCODER_TYPE_PWM_ABI) {
 		enc_pwm_deinit();
 		enc_abi_deinit(&encoder_cfg_ABI);
+	} else if (m_encoder_type_now == ENCODER_TYPE_MA782) {
+		enc_ma782_deinit(&encoder_cfg_ma782);
 	}
 
 	m_encoder_type_now = ENCODER_TYPE_NONE;
@@ -401,39 +438,70 @@ void encoder_set_custom_callbacks (
 float encoder_read_deg(void) {
 	float res = 0.0;
 
-	if (m_encoder_type_now == ENCODER_TYPE_AS504x) {
+	switch (m_encoder_type_now) {
+	case ENCODER_TYPE_NONE:
+		break;
+
+	case ENCODER_TYPE_AS504x:
 		res = AS504x_LAST_ANGLE(&encoder_cfg_as504x);
-	} else if (m_encoder_type_now == ENCODER_TYPE_MT6816) {
+		break;
+
+	case ENCODER_TYPE_MT6816:
 		res = MT6816_LAST_ANGLE(&encoder_cfg_mt6816);
-	} else if (m_encoder_type_now == ENCODER_TYPE_TLE5012) {
+		break;
+
+	case ENCODER_TYPE_TLE5012:
 		res = TLE5012_LAST_ANGLE(&encoder_cfg_tle5012);
-	} else if (m_encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
+		break;
+
+	case ENCODER_TYPE_AD2S1205_SPI:
 		res = AD2S1205_LAST_ANGLE(&encoder_cfg_ad2s1205);
-	} else if (m_encoder_type_now == ENCODER_TYPE_ABI) {
+		break;
+
+	case ENCODER_TYPE_ABI:
 		res = enc_abi_read_deg(&encoder_cfg_ABI);
-	} else if (m_encoder_type_now == ENCODER_TYPE_SINCOS) {
+		break;
+
+	case ENCODER_TYPE_SINCOS:
 		res = enc_sincos_read_deg(&encoder_cfg_sincos);
-	} else if (m_encoder_type_now == ENCODER_TYPE_TS5700N8501) {
+		break;
+
+	case ENCODER_TYPE_TS5700N8501:
 		res = enc_ts5700n8501_read_deg(&encoder_cfg_TS5700N8501);
-	} else if (m_encoder_type_now == ENCODER_TYPE_AS5x47U) {
+		break;
+
+	case ENCODER_TYPE_AS5x47U:
 		res = AS5x47U_LAST_ANGLE(&encoder_cfg_as5x47u);
-	} else if (m_encoder_type_now == ENCODER_TYPE_BISSC) {
+		break;
+
+	case ENCODER_TYPE_BISSC:
 		res = BISSC_LAST_ANGLE(&encoder_cfg_bissc);
-	} else if (m_encoder_type_now == ENCODER_TYPE_CUSTOM) {
+		break;
+
+	case ENCODER_TYPE_MA782:
+		res = MA782_LAST_ANGLE(&encoder_cfg_ma782);
+		break;
+
+	case ENCODER_TYPE_CUSTOM:
 		if (m_enc_custom_read_deg) {
 			res = m_enc_custom_read_deg();
 		} else {
 			res = m_enc_custom_pos;
 		}
-	} else if (m_encoder_type_now == ENCODER_TYPE_PWM) {
+		break;
+
+	case ENCODER_TYPE_PWM:
 		res = enc_pwm_read_deg();
-	} else if (m_encoder_type_now == ENCODER_TYPE_PWM_ABI) {
+		break;
+
+	case ENCODER_TYPE_PWM_ABI:
 		if (enc_pwm_update_cnt() >= 2) {
 			encoder_cfg_ABI.state.index_found = true;
 			enc_pwm_deinit();
 		}
 
 		res = enc_abi_read_deg(&encoder_cfg_ABI);
+		break;
 	}
 
 	return res;
@@ -547,6 +615,9 @@ float encoder_get_error_rate(void) {
 			res = encoder_cfg_bissc.state.spi_data_error_rate;
 		}
 		break;
+	case ENCODER_TYPE_MA782:
+		res = encoder_cfg_ma782.state.spi_error_rate;
+		break;
 	default:
 		break;
 	}
@@ -560,7 +631,8 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 	// Only generate fault code when the encoder is being used. Note that encoder faults
 	// that occur above the sensorless ERPM won't stop the motor.
 	bool is_foc_encoder = m_conf->motor_type == MOTOR_TYPE_FOC &&
-			m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+			(m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ||
+			 m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER_AB) &&
 			mcpwm_foc_is_using_encoder();
 
 	if (is_foc_encoder) {
@@ -843,6 +915,10 @@ static void terminal_encoder(int argc, const char **argv) {
 		}
 		break;
 
+	case SENSOR_PORT_MODE_MA782:
+		enc_ma782_print_status(&encoder_cfg_ma782);
+		break;
+
 	default:
 		commands_printf("No encoder debug info available.");
 		break;
@@ -891,6 +967,10 @@ static THD_FUNCTION(routine_thread, arg) {
 
 		case ENCODER_TYPE_BISSC:
 			enc_bissc_routine(&encoder_cfg_bissc);
+			break;
+
+		case ENCODER_TYPE_MA782:
+			enc_ma782_routine(&encoder_cfg_ma782);
 			break;
 
 		default:

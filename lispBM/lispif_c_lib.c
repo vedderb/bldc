@@ -1054,6 +1054,9 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		cif.cif.thread_set_priority = lib_thread_set_priority;
 		cif.cif.shutdown_disable = lib_shutdown_disable;
 
+		// 7.00
+		cif.cif.foc_set_fw_override = mcpwm_foc_set_fw_override;
+
 		lib_init_done = true;
 	}
 

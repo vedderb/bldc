@@ -1,6 +1,7 @@
 import shutil
 import os
 import subprocess
+import sys
 
 # https://stackoverflow.com/questions/14989858/get-the-current-git-hash-in-a-python-script
 def get_git_revision_short_hash() -> str:
@@ -107,10 +108,6 @@ package_dict["Warrior6"] = [['warrior6', default_name]]
 package_dict["Raiden7"] = [['raiden7', default_name]]
 package_dict["ADV200"] = [['adv200', default_name]]
 package_dict["ADV500"] = [['adv500', default_name]]
-package_dict["100_500"] = [['100_500', default_name],
-                    ['100_500_no_limits', no_limits_name]]
-package_dict["75_600"] = [['75_600', default_name],
-                    ['75_600_no_limits', no_limits_name]]
 package_dict["60v2_alva"] = [['60v2_alva', default_name]]
 package_dict["60v2_alva_mk1"] = [['60v2_alva_mk1', default_name]]
 package_dict["60v2_alva_mk2"] = [['60v2_alva_mk2', default_name]]
@@ -135,6 +132,10 @@ package_dict["UBOX_SINGLE_85_200"] = [['ubox_single_85_200', default_name],
                                   ['ubox_single_85_200_no_limits', no_limits_name]]
 package_dict["UBOX_V2_100"] = [['ubox_v2_100', default_name],
                                ['ubox_v2_100_no_limits', no_limits_name]]
+package_dict["UBOX_126_100"] = [['ubox_126_100', default_name],
+                               ['ubox_126_100_no_limits', no_limits_name]]
+package_dict["UBOX_126_160"] = [['ubox_126_160', default_name],
+                               ['ubox_126_160_no_limits', no_limits_name]]
 package_dict["EDU"] = [['edu', default_name],
                     ['edu_no_limits', no_limits_name]]
 package_dict["75_300_MKIV"] = [['75_300_mkiv', default_name],
@@ -162,8 +163,6 @@ package_dict["SOLO"] = [['solo', default_name],
                     ['solo_no_limits', no_limits_name]]
 package_dict["FSESC_75_200_ALU"] = [['fsesc_75_200_alu', default_name],
                     ['fsesc_75_200_alu_no_limits', no_limits_name]]
-package_dict["MKSESC_75_100"] = [['mksesc_75_100', default_name],
-                    ['mksesc_75_100_no_limits', no_limits_name]]
 package_dict["MKSESC_75_100_OLD"] = [['mksesc_75_100_old', default_name],
                     ['mksesc_75_100_old_no_limits', no_limits_name]]
 package_dict["MKSESC_75_100_V2"] = [['mksesc_75_100_v2', default_name],
@@ -199,10 +198,50 @@ package_dict["Maximp_150"] = [['maximp_150', default_name],
                     ['maximp_150_no_limits', no_limits_name]]
 package_dict["Duet"] = [['duet', default_name],
                     ['duet_no_limits', no_limits_name]]
+package_dict["Duet XS100"] = [['duet_xs100', default_name],
+                    ['duet_xs100_no_limits', no_limits_name]]
+package_dict["Duet XS60"] = [['duet_xs60', default_name],
+                    ['duet_xs60_no_limits', no_limits_name]]
 package_dict["Minim"] = [['minim', default_name],
                     ['minim_no_limits', no_limits_name]]
+package_dict["Minim W60"] = [['minim_w60', default_name]]
 package_dict["Pronto"] = [['pronto', default_name],
                     ['pronto_no_limits', no_limits_name]]
+package_dict["FLIPSKY_75"] = [['flipsky_75', default_name],
+                    ['flipsky_75_no_limits', no_limits_name]]
+package_dict["FLIPSKY_75_450"] = [['flipsky_75_450', default_name],
+                    ['flipsky_75_450_no_limits', no_limits_name]]
+package_dict["FLIPSKY_V4"] = [['flipsky_412', default_name],
+                    ['flipsky_412_no_limits', no_limits_name]]
+package_dict["FLIPSKY_V6"] = [['flipsky_60', default_name],
+                    ['flipsky_60_no_limits', no_limits_name]]
+package_dict["FLIPSKY_V6_MK5"] = [['flipsky_60_mk5', default_name],
+                    ['flipsky_60_mk5_no_limits', no_limits_name]]   
+package_dict["FLIPSKY_110_100"] = [['flipsky_110_100', default_name],
+                    ['flipsky_110_100_no_limits', no_limits_name]] 
+package_dict["FLIPSKY_110_200"] = [['flipsky_110_200', default_name],
+                    ['flipsky_110_200_no_limits', no_limits_name]] 
+package_dict["FLIPSKY_110_300"] = [['flipsky_110_300', default_name],
+                    ['flipsky_110_300_no_limits', no_limits_name]]
+package_dict["FLIPSKY_110_400"] = [['flipsky_110_400', default_name],
+                    ['flipsky_110_400_no_limits', no_limits_name]]                     
+package_dict["Classic"] = [['classic', default_name],
+                    ['classic_no_limits', no_limits_name]]
+package_dict["Classicp"] = [['classicp', default_name],
+                    ['classicp_no_limits', no_limits_name]]
+
+# When the argument make_targets is passed print all make targets from the
+# dictianary. The output of this command can be used as arguments to make to
+# only build the targets that are going to be packaged.
+if len(sys.argv) > 1:
+    if sys.argv[1] == "make_targets":
+        target_list = []
+        for directory in package_dict:
+            for target in package_dict[directory]:
+                target_list.append(target[0])
+
+        print(" ".join(target_list))
+        exit()
 
 # This is the firmware stub string
 res_firmwares_string = '        <file>TARGET_DESTINATION_DIRECTORY/TARGET_DESTINATION_FILENAME</file>\n'

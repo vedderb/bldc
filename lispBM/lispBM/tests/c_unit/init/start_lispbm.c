@@ -1,4 +1,6 @@
 
+#define _POSIX_C_SOURCE 200809L // nanosleep
+
 #include "extensions/lbm_dyn_lib.h"
 #include "platform_timestamp.h"
 
@@ -125,7 +127,7 @@ pthread_t lispbm_thd = 0;
 int start_lispbm_for_tests(void) {
 
   if (!timestamp_thread) {
-      pthread_create(&timestamp_thread, NULL, timestamp_cacher, NULL);
+      pthread_create(&timestamp_thread, NULL, lbm_timestamp_cacher, NULL);
   } else {
     printf("Timestamp thread is already running.\n");
   }

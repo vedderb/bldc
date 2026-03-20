@@ -42,6 +42,9 @@ static lbm_uint sym_num_gc_recovered_cells;
 static lbm_uint sym_num_gc_recovered_arrays;
 static lbm_uint sym_num_least_free;
 static lbm_uint sym_num_last_free;
+
+static lbm_uint little_endian = 0;
+static lbm_uint big_endian = 0;
 #endif
 
 lbm_value ext_eval_set_quota(lbm_value *args, lbm_uint argn) {
@@ -107,6 +110,16 @@ lbm_value ext_lbm_version(lbm_value *args, lbm_uint argn) {
   return version;
 }
 
+lbm_value ext_lbm_endianness(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+  return lbm_enc_sym(little_endian);
+#else
+  return lbm_enc_sym(big_endian);
+#endif
+}
+
 lbm_value ext_lbm_heap_state(lbm_value *args, lbm_uint argn) {
 
   lbm_value res = ENC_SYM_TERROR;
@@ -122,7 +135,7 @@ lbm_value ext_lbm_heap_state(lbm_value *args, lbm_uint argn) {
     } else if (s == sym_heap_bytes) {
       res = lbm_enc_u(hs.heap_bytes);
     } else if (s == sym_num_alloc_cells) {
-      res = lbm_enc_u(hs.num_alloc);
+      res = lbm_enc_u(hs.heap_size - hs.num_free);
     } else if (s == sym_num_alloc_arrays) {
       res = lbm_enc_u(hs.num_alloc_arrays);
     } else if (s == sym_num_gc) {
@@ -297,6 +310,9 @@ void lbm_runtime_extensions_init(void) {
     lbm_add_symbol_const("get-gc-num-recovered-arrays", &sym_num_gc_recovered_arrays);
     lbm_add_symbol_const("get-gc-num-least-free", &sym_num_least_free);
     lbm_add_symbol_const("get-gc-num-last-free", &sym_num_last_free);
+
+    lbm_add_symbol_const("little-endian", &little_endian);
+    lbm_add_symbol_const("big-endian", &big_endian);
 #endif
 
 #if defined(LBM_USE_EXT_MAILBOX_GET) || defined(FULL_RTS_LIB)
@@ -316,6 +332,7 @@ void lbm_runtime_extensions_init(void) {
     lbm_add_extension("mem-size", ext_memory_size);
     lbm_add_extension("word-size", ext_memory_word_size);
     lbm_add_extension("lbm-version", ext_lbm_version);
+    lbm_add_extension("lbm-endian", ext_lbm_endianness);
     lbm_add_extension("lbm-heap-state", ext_lbm_heap_state);
     lbm_add_extension("env-get", ext_env_get);
     lbm_add_extension("env-set", ext_env_set);

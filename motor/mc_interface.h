@@ -133,7 +133,7 @@ void mc_interface_stat_reset(void);
 void mc_interface_set_fault_info(const char *str, int argn, float arg0, float arg1);
 void mc_interface_fault_stop(mc_fault_code fault, bool is_second_motor, bool is_isr);
 int mc_interface_try_input(void);
-void mc_interface_mc_timer_isr(bool is_second_motor);
+void mc_interface_mc_timer_isr(bool is_second_motor, float dt);
 
 // Interrupt handlers
 void mc_interface_adc_inj_int_handler(void);

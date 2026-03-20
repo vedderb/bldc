@@ -22,23 +22,39 @@ The language reference is probably the most important document to read when work
 
 Most of these are available on ESC and Express. They are loaded dynamically when used the first time.
 
-**LBM Gotchas and Caveats**
-
-[Gotchas](lispBM/doc/gotchas.md)
-
 ## VESC Express Libraries
 
 The VESC Express has some extra libraries that are documented in separate documents.
 
-**Display Driver**  
+**Display Support**  
 
-[Display Driver](lispBM/doc/displayref.md)
+The display driver allows driving many common displays using SPI, such as the ST7789, ST7735, ILI9341, ILI9488, SH8501, SH8601, SSD1306 and SSD1351. There are accelerated rendering and font extensions that can be used from LispBM.  
 
-The display driver allows driving many common displays using SPI, such as the ST7789, ST7735, ILI9341, ILI9488, SH8501, SSD1306 and SSD1351. There are accelerated rendering and font extensions that can be used from LispBM.  
+First the driver for the display to use has to be loaded. The supported drivers are documented here  
+
+[Display Drivers](https://github.com/vedderb/vesc_express/blob/main/main/display/README.md)
+
+Once the driver is loaded, the image extensions can be used to draw to the display. They are described here  
+
+[Image Extensions](lispBM/doc/displayref.md)
+
+There is also touchpanel support for many common touchpanels. The touchscreen support is described here  
+
+[Touchpanel Drivers](https://github.com/vedderb/vesc_express/blob/main/main/touch/README.md)
+
+Code examples for many of the display and touch panel drivers can be found here  
+
+[Code Examples](https://github.com/vedderb/vesc_express/blob/main/lbm_examples)
 
 **TTF Font Renderer for Display Driver**  
 
+LBM supports full TTF font rendering with kerning. The TTF driver is described here  
+
 [TTF Font Renderer](lispBM/doc/ttfref.md)
+
+Note: To get the best looking fonts it is possible to build LBM with libfreetype support on desktop. That will give excellent kerning as well as hinting, which is extra important when the font size is small. The font binaries generated on desktop can be imported in VESC Tool and uploaded to the ESP32. For building the repl on desktop with freetype support see here  
+
+[REPL Desktop](https://github.com/svenssonjoel/lispBM/tree/master/repl)
 
 **VESC Express Wifi and TCP**  
 
@@ -757,6 +773,7 @@ Read system info parameter param. Example:
 (sysinfo 'compiler) ; GCC version, e.g. 7.3.1. ESC only.
 (sysinfo 'hw-type) ; Hardware type, e.g. hw-express. Added in 6.02.
 (sysinfo 'part-running) ; Running partition name. Express only.
+(sysinfo 'cpu-freq)  ; CPU frequency in MHz. Express only.
 ```
 
 ---
@@ -1608,6 +1625,20 @@ Get motor temperature.
 
 ---
 
+#### get-temp-mot-res
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(get-temp-mot-res)
+```
+
+Get the measured resistance of the motor temperature sensor.
+
+---
+
 #### get-speed
 
 | Platforms | Firmware |
@@ -1798,6 +1829,49 @@ Returns the error rate for the selected encoder, range 0.0 to 1.0. If the select
 
 ---
 
+#### encoder-index-found
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(encoder-index-found)
+```
+
+Returns 1 if the encoder index is found, 0 otherwise. For encoders without an index pulse or for PWM+ABI 1 is always returned.
+
+---
+
+#### encoder-abi-state
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(encoder-abi-state)
+```
+
+Returns the driver state of the ABI encoder. Can be used to determine how many counts the encoder has or if the error rate is unreasonably high, indicating that the signal is noisy.
+
+The following list is returned
+
+```clj
+(index-found cnt-at-ind-last bad-pulses index-pulse-cnt)
+```
+
+where
+
+```clj
+index-found     ; 1 if the index pulse has been received at least once, 0 otherwise
+cnt-at-ind-last ; Encoder counts the last time the index pulse was received
+bad-pulses      ; Counts up every time a bad index pulse is received, resets at 6
+index-pulse-cnt ; Index pulse counter
+```
+
+---
+
 #### pos-pid-now
 
 | Platforms | Firmware |
@@ -1931,6 +2005,8 @@ Returns a list of phases and various phase errors, all sampled at the same time.
     err_observer_encoder  ; Phase error between observer and encoder
     err_bemf_encoder      ; Phase error between back-emf and encoder
     err_observer_bemf     ; Phase error between observer and back-emf
+    phase_hall            ; Phase derived from the hall sensors (FW 7.00+)
+    err_bemf_hall         ; Phase error between back-emf and hall sensors (FW 7.00+)
 )
 ```
 
@@ -1986,6 +2062,54 @@ Example:
 ; Disable correction
 (enc-corr-en 0)
 ```
+
+---
+
+#### enc-sample
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(enc-sample buffer samples)
+```
+
+This function is used for building correction tables for encoders. It will take about 10k samples per seconds if the difference between the motor position derived from the back-emf as well as the motor position derived from the encoder and store those samples in the argument buffer, which is a byte array. The argument samples sets how many samples to take - given that the rate is around 10k passing the argument 1000 will run this function for 0.1 seconds.
+
+The format of buffer is a byte array with 720 floats, meaning that its size has to be 720x4 = 2880 bytes. There is one float for the accumulater error on every encoder postion in whole degrees as well as one float for the number of samples taken at that postion.
+
+Note: This function only works when the motor is spinning but undriven, so either it has to be used by externally driving the motor or by spinning it up first, releasing it and then running this function while it is spinning down.
+
+Example:
+
+```clj
+; Create buffer for samples
+(def samples (bufcreate (* 360 8)))
+(bufclear samples)
+
+; Spin up motor for 3 seconds
+(looprange i 0 30 {
+        (set-rpm 6000)
+        (sleep 0.1)
+})
+
+; Stop driving motors so that it is coasting
+(set-current 0.0)
+
+; Collect 800 samples
+(enc-sample samples 800)
+
+; This function can be used to get the accumulated value for
+; a given encoder position
+(defun get-val (pos) (bufget-f32 samples (* pos 8)))
+
+; This function can be used to get the number of samples for
+; a given encoder position
+(defun get-samp (pos) (bufget-f32 samples (+ (* pos 8) 4)))
+```
+
+Note that the example above is not complete and many more than 800 samples are required for generating a complete encoder correction table. VESC Tool includes an example file named test_encoder.lbm with a complete implementation that works by spinning up the motor multiple times and collecting samples.
 
 ---
 
@@ -3825,6 +3949,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'foc-hall-t6            ; Hall table index 6 (Added in FW 6.05)
 'foc-hall-t7            ; Hall table index 7 (Added in FW 6.05)
 'foc-sl-erpm-hfi        ; ERPM where to move to sensorless in HFI mode
+'foc-hfi-reset-erpm     ; Reset HFI ambiguity resolution below this ERPM (FW 7.0)
 'foc-openloop-rpm       ; Use openloop commutation below this ERPM
 'foc-openloop-rpm-low   ; Openloop ERPM and minimum current
 'foc-sl-openloop-time-lock ; Locking time at the start of openloop
@@ -4016,6 +4141,20 @@ Get the value of param. optDefLim is an optional argument that can be set to 1 o
 ```
 
 Store the current configuration to flash. This will stop the motor. Note: On the express most settings require a reboot to be applied. Remember to use conf-store before rebooting.
+
+---
+
+#### store-backup
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 6.06.6+ |
+
+```clj
+(store-backup)
+```
+
+Store backup data, such as odometer and runtime counter, to flash. This will stop the motor. conf-store will also store this data, but this function alone is much faster as the configurations are not stored.
 
 ---
 
@@ -4283,6 +4422,39 @@ Example:
 ```
 
 Runs hall sensor detection using current in openloop. Returns the hall sensor table as a byte array on success or nil on failure.
+
+---
+
+#### conf-remap-as504x
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(conf-remap-as504x optCs optSck optMosi optMiso)
+```
+
+Remap one or more AS504x encoder pins. All arguments are optional and nil can be used to leave pins unchanged. Example:
+
+```clj
+
+; Use 'pin-swdio as chip select and 'pin-swclk as clock. Leave other pins
+; unchanged
+(conf-remap-as504x 'pin-swdio 'pin-swclk)
+
+; Use 'pin-swclk as clock. Leave other pins unchanged
+(conf-remap-as504x nil 'pin-swclk)
+
+; Available pins
+'pin-rx
+'pin-tx
+'pin-swdio
+'pin-swclk
+'pin-hall1
+'pin-hall2
+'pin-hall3
+```
 
 ---
 
@@ -5844,10 +6016,10 @@ Same as uavcan-last-rawcmd, but for the last rpm-command.
 | ESC, Express | 6.00+ |
 
 ```clj
-(lbm-set-quota quota)
+(lbm-set-quota quota-us)
 ```
 
-Set how many evaluation steps to run each thread between context switches. Default is 50. A lower value will alter between threads more often, reducing latency between context switches at the cost of overall performance. The default value of 50 has relatively low performance overhead. Setting the quota to the lowest possible value of 1, meaning that each thread gets to run one step at a time, roughly halves the performance.
+Set how many microseconds to run each thread between context switches. Default is 2000. A lower value will alter between threads more often, reducing latency between context switches at the cost of overall performance. The default value of 2000 has relatively low performance overhead.
 
 Lowering this value is useful if there are one or more timing-critical threads (that e.g. read encoders) that cannot wait too long between iterations.
 
@@ -6999,16 +7171,30 @@ Remove path recursively. If path is a file just the file is removed and if it is
 | Express | 6.05+ |
 
 ```clj
-(f-ls path)
+(f-ls path opt-count opt-offset opt-size)
 ```
 
-List all files and directories in path. Returns a list with the entries; each entry is a list where the first element is the name, the second element is true for directories and nil for files and the third element is the size. For directories the size says how many entries that directory has and for files it says what size the file has in bytes.
+List all files and directories in path. Returns a list with the entries; each entry is a list where the first element is the name and the second element is true for directories and nil for files. If the optional argument 'size is passed each entry in the list also has the size at the end. For directories the size says how many entries that directory has and for files it says what size the file has in bytes.
+
+The optional argument opt-count can be used to specity a maximum number of elemets to list and the optional argument opt-offset sets how many elemnts to skip in the beginning. This can be useful if a directory has so many entries that the file list risks using too much memory.
 
 Example:
 
 ```clj
 (f-ls "")
-> ("testsize.bin" nil 100) ("test.txt" nil 7) ("old_logs" t 47))
+> (("testsize.bin" nil) ("test.txt" nil) ("old_logs" t))
+
+(f-ls "" 'size)
+> (("testsize.bin" nil 100) ("test.txt" nil 7) ("old_logs" t 47))
+
+(f-ls "" 2)
+> (("testsize.bin" nil) ("test.txt" nil))
+
+(f-ls "" 2 1)
+> (("test.txt" nil) ("old_logs" t))
+
+(f-ls "" 2 1 'size)
+> (("test.txt" nil 7) ("old_logs" t 47))
 ```
 
 ---

@@ -21,6 +21,7 @@
 #ifndef HW_UBOX_75_CORE_H_
 #define HW_UBOX_75_CORE_H_
 
+#define HW_SHUTDOWN_CUSTOM
 #ifdef HW_UBOX_V1_75_MICRO
   #define HW_NAME					"UBOX_V1_75_MICRO"
   #define V_REG						3.3

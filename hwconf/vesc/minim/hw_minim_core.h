@@ -1,5 +1,5 @@
 /*
-	Copyright 2023 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2023 - 2026 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -22,6 +22,8 @@
 
 #ifdef HW_MINIM
   #define HW_NAME			"Minim"
+#elif defined (HW_MINIM_W60)
+  #define HW_NAME			"Minim W60"
 #else
   #error "Must define hardware type"
 #endif
@@ -30,6 +32,10 @@
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_FILTERS
 #define INVERTED_SHUNT_POLARITY
+
+#ifdef HW_MINIM_W60
+#define HW_BOOT_VESC_CAN
+#endif
 
 // Macros
 #define LED_GREEN_GPIO			GPIOB
@@ -65,15 +71,40 @@
 #define OUT_3_OFF()		    palClearPad(OUT_3_GPIO, OUT_3_PIN)
 
 // Shutdown pin
-#define HW_SHUTDOWN_GPIO		GPIOA
-#define HW_SHUTDOWN_PIN			5
-#define HW_SHUTDOWN_HOLD_ON()	hw_shutdown_set_hold(true)
-#define HW_SHUTDOWN_HOLD_OFF()	hw_shutdown_set_hold(false)
-#define HW_SAMPLE_SHUTDOWN()	hw_sample_shutdown_button()
-#define HW_SHUTDOWN_NO
+#define HW_SHUTDOWN_NO // Normally open switch
+#define HW_SHUTDOWN_HOLD_ON()
+#define HW_SAMPLE_SHUTDOWN()				1
+#define HW_SHUTDOWN_HOLD_OFF()				smart_switch_shut_down()
+#define SHUTDOWN_SET_SAMPLING_DISABLED(d)	smart_switch_set_sampling_disabled(d); \
+											shutdown_set_sampling_disabled(d)
 
-// Hold shutdown pin early to wake up on short pulses
-#define HW_EARLY_INIT()			HW_SHUTDOWN_HOLD_ON()
+#define HW_EARLY_INIT()				smart_switch_pin_init(); \
+									smart_switch_thread_start();
+
+#define SMART_SWITCH_MSECS_PRESSED_OFF		1500
+
+#define SWITCH_OUT_GPIO				GPIOA
+#define SWITCH_OUT_PIN				5
+#define SWITCH_LED_3_GPIO			GPIOB
+#define SWITCH_LED_3_PIN			12
+#define SWITCH_LED_2_GPIO			GPIOC
+#define SWITCH_LED_2_PIN			12
+#define SWITCH_LED_1_GPIO			GPIOC
+#define SWITCH_LED_1_PIN			9
+
+#define LED_PWM1_ON()			palClearPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
+#define LED_PWM1_OFF()			palSetPad(SWITCH_LED_1_GPIO,SWITCH_LED_1_PIN)
+#define LED_PWM2_ON()			palClearPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
+#define LED_PWM2_OFF()			palSetPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
+#define LED_PWM3_ON()			palClearPad(SWITCH_LED_3_GPIO, SWITCH_LED_3_PIN)
+#define LED_PWM3_OFF()			palSetPad(SWITCH_LED_3_GPIO, SWITCH_LED_3_PIN)
+
+#define LED_SWITCH_R_ON()			palClearPad(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN)
+#define LED_SWITCH_R_OFF()			palSetPad(SWITCH_LED_3_GPIO,SWITCH_LED_3_PIN)
+#define LED_SWITCH_G_ON()			palClearPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
+#define LED_SWITCH_G_OFF()			palSetPad(SWITCH_LED_2_GPIO, SWITCH_LED_2_PIN)
+#define LED_SWITCH_B_ON()			palClearPad(SWITCH_LED_1_GPIO, SWITCH_LED_1_PIN)
+#define LED_SWITCH_B_OFF()			palSetPad(SWITCH_LED_1_GPIO, SWITCH_LED_1_PIN)
 
 /*
  * ADC Vector
@@ -238,39 +269,56 @@
 #define HW_DEAD_TIME_NSEC		200.0
 
 // Default setting overrides
-#ifndef MCCONF_L_MIN_VOLTAGE
-#define MCCONF_L_MIN_VOLTAGE			15.0		// Minimum voltage input
-#endif
-#ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			90.0	// Maximum input voltage
-#endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
 #endif
 #ifndef MCCONF_FOC_F_ZV
 #define MCCONF_FOC_F_ZV					30000.0
 #endif
+#ifndef APPCONF_SHUTDOWN_MODE
+#define APPCONF_SHUTDOWN_MODE			SHUTDOWN_MODE_TOGGLE_BUTTON_ONLY
+#endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT		80.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT		80.0
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
-#define MCCONF_L_IN_CURRENT_MAX			45.0	// Input current limit in Amperes (Upper)
+#define MCCONF_L_IN_CURRENT_MAX			45.0
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MIN
-#define MCCONF_L_IN_CURRENT_MIN			-45.0	// Input current limit in Amperes (Lower)
+#define MCCONF_L_IN_CURRENT_MIN			-45.0
+#endif
+#ifndef MCCONF_L_MIN_VOLTAGE
+#define MCCONF_L_MIN_VOLTAGE			15.0
 #endif
 
-// Setting limits
+#ifdef HW_MINIM_W60
+#ifndef MCCONF_L_MAX_VOLTAGE
+#define MCCONF_L_MAX_VOLTAGE			55.0
+#endif
+#define HW_LIM_CURRENT			-100.0, 100.0
+#define HW_LIM_CURRENT_IN		-100.0, 100.0
+#define HW_LIM_CURRENT_ABS		0.0, 150.0
+#define HW_LIM_VIN				11.0, 57.0
+#else
+#ifndef MCCONF_L_MAX_VOLTAGE
+#define MCCONF_L_MAX_VOLTAGE			90.0
+#endif
 #define HW_LIM_CURRENT			-65.0, 65.0
-#define HW_LIM_CURRENT_IN		-60.0, 60.0
+#define HW_LIM_CURRENT_IN		-65.0, 65.0
 #define HW_LIM_CURRENT_ABS		0.0, 110.0
 #define HW_LIM_VIN				11.0, 94.0
+#endif
+
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
-bool hw_sample_shutdown_button(void);
-void hw_shutdown_set_hold(bool hold);
+// Functions
+void smart_switch_thread_start(void);
+void smart_switch_pin_init(void);
+bool smart_switch_is_pressed(void);
+void smart_switch_shut_down(void);
+void smart_switch_set_sampling_disabled(bool dis);
 
 #endif /* HW_MINIM_CORE_H_ */
