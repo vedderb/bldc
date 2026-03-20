@@ -110,7 +110,7 @@
 
 //The voltage dividing acquisition circuit on the Makerbase VESC motherboard is 56K and 2.12K resistors.
 #ifndef VIN_R1
-#define VIN_R1				    58173.0 
+#define VIN_R1				    57,576.0 
 #endif
 #ifndef VIN_R2
 #define VIN_R2				    2200.0 
