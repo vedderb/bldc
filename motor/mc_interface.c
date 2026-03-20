@@ -2525,7 +2525,7 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 
 	float voltage_fc = powf(2.0, -(float)motor->m_conf.m_batt_filter_const * 0.25);
 	if (UTILS_AGE_S(0) < 10) {
-		// Run the filter faster in the beginning to avoid convergance latency at boot
+		// Run the filter faster in the beginning to avoid convergence latency at boot
 		voltage_fc = 0.01;
 	}
 	UTILS_LP_FAST(motor->m_input_voltage_filtered_slower, motor->m_input_voltage_filtered, voltage_fc);
@@ -2676,7 +2676,16 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 
 	// Monitor currents balance. The sum of the 3 currents should be zero
 #ifdef HW_HAS_3_SHUNTS
-	if (motor->m_conf.foc_current_sample_mode != FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT  && dc_cal_done) { // This won't work when high current sampling is used
+
+#ifdef HW_HAS_PHASE_SHUNTS
+	bool too_high_duty_for_unbalance_check = false;
+#else
+	const float duty_now_abs = fabsf(mc_interface_get_duty_cycle_now());
+	bool too_high_duty_for_unbalance_check = duty_now_abs > 0.8;
+#endif
+
+	if (motor->m_conf.foc_current_sample_mode != FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT  &&
+			dc_cal_done && !too_high_duty_for_unbalance_check) {
 		motor->m_motor_current_unbalance = mc_interface_get_abs_motor_current_unbalance();
 
 		if (fabsf(motor->m_motor_current_unbalance) > fabsf(MCCONF_MAX_CURRENT_UNBALANCE)) {
