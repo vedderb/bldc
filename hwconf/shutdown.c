@@ -21,6 +21,7 @@
 #include "app.h"
 #include "conf_general.h"
 #include "mc_interface.h"
+#include "utils.h"
 
 #ifdef USE_LISPBM
 #include "lispif.h"
@@ -115,16 +116,36 @@ static THD_FUNCTION(shutdown_thread, arg) {
 		float dt = (float)chVTTimeElapsedSinceX(last_iteration_time) / (float)CH_CFG_ST_FREQUENCY;
 		last_iteration_time = chVTGetSystemTimeX();
 
-		chMtxLock(&m_sample_mutex);
+		systime_t t0 = chVTGetSystemTimeX();
+		int sw_samples_t = 0;
+		int sw_samples_f = 0;
+		bool sampling_disabled_here = false;
 
-		if (m_sampling_disabled) {
+		while (UTILS_AGE_S(t0) < 0.7) {
+			chMtxLock(&m_sample_mutex);
+			if (m_sampling_disabled) {
+				chMtxUnlock(&m_sample_mutex);
+				sampling_disabled_here = true;
+				break;
+			}
+			bool sample_tmp = HW_SAMPLE_SHUTDOWN();
 			chMtxUnlock(&m_sample_mutex);
+
+			if (sample_tmp) {
+				sw_samples_t++;
+			} else {
+				sw_samples_f++;
+			}
+
+			chThdSleepMilliseconds(10);
+		}
+
+		if (sampling_disabled_here) {
 			chThdSleepMilliseconds(10);
 			continue;
 		}
 
-		bool sample = HW_SAMPLE_SHUTDOWN();
-		chMtxUnlock(&m_sample_mutex);
+		bool sample = sw_samples_t > sw_samples_f;
 		bool clicked = m_button_pressed && !sample;
 		m_button_pressed = sample;
 
@@ -170,7 +191,7 @@ static THD_FUNCTION(shutdown_thread, arg) {
 			if (m_inactivity_time >= SHUTDOWN_SAVE_BACKUPDATA_TIMEOUT) {
 				shutdown_reset_timer();
 				// If at least 1km was done then we can store data 
-				if((mc_interface_get_odometer()-odometer_old) >= 1000) {
+				if((mc_interface_get_odometer() - odometer_old) >= 1000) {
 					conf_general_store_backup_data();
 					odometer_old = mc_interface_get_odometer();
 				}
@@ -181,11 +202,11 @@ static THD_FUNCTION(shutdown_thread, arg) {
 		}
 
 		// If disabling the gates did not shut the VESC down within
-		// 2 seconds, enable the gates again.
+		// 3 seconds, enable the gates again.
 		if (gates_disabled_here && m_button_pressed) {
 			gate_disable_time += dt;
 
-			if (gate_disable_time > 2.0) {
+			if (gate_disable_time > 3.0) {
 				ENABLE_GATE();
 				gates_disabled_here = false;
 				gate_disable_time = 0.0;

@@ -3,6 +3,8 @@
 * Configurable HFI reset ERPM.
 * Removed D axis gain scaling parameters.
 * Sin/Cos encoder filter delay compensation.
+* Moved field weakening to fast loop for better stability.
+* New AB encoder sensor mode for encoders without index pulse.
 
 ### 6.06.6
 #### 2025-11-01
