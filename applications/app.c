@@ -153,7 +153,11 @@ void app_set_configuration(app_configuration *conf) {
 	app_adc_configure(&appconf.app_adc_conf);
 	app_pas_configure(&appconf.app_pas_conf);
 	app_uartcomm_configure(appconf.app_uart_baudrate, true, UART_PORT_COMM_HEADER);
-	app_uartcomm_configure(0, appconf.permanent_uart_enabled, UART_PORT_BUILTIN);
+#ifdef HW_UART_P_DEV
+	app_uartcomm_configure(
+			(HW_UART_P_BAUD == APPCONF_UART_BAUDRATE) ? appconf.app_uart_baudrate : 0,
+			appconf.permanent_uart_enabled, UART_PORT_BUILTIN);
+#endif
 	app_nunchuk_configure(&appconf.app_chuk_conf);
 
 #ifdef APP_CUSTOM_TO_USE
