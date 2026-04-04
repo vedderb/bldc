@@ -2004,6 +2004,21 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 					((uint32_t)CAN_PACKET_POLL_ROTOR_POS << 8), (uint8_t*)buffer, 4, true, 0);
 		} break;
 
+		case CAN_PACKET_UPDATE_BAUD: {
+			ind = 0;
+			int kbits = buffer_get_int16(data8, &ind);
+			int delay_msec = buffer_get_int16(data8, &ind);
+
+			CAN_BAUD baud = comm_can_kbits_to_baud(kbits);
+			if (baud != CAN_BAUD_INVALID) {
+				comm_can_set_baud(baud, delay_msec);
+
+				app_configuration *appconf = (app_configuration*)app_get_configuration();
+				appconf->can_baud_rate = baud;
+				conf_general_store_app_configuration(appconf);
+			}
+		} break;
+
 		default:
 			break;
 		}
@@ -2216,21 +2231,6 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 		d->speed = buffer_get_float16(data8, 1.0e2, &ind);
 		d->hdop = buffer_get_float16(data8, 1.0e2, &ind);
 		d->last_update = chVTGetSystemTimeX();
-	} break;
-
-	case CAN_PACKET_UPDATE_BAUD: {
-		ind = 0;
-		int kbits = buffer_get_int16(data8, &ind);
-		int delay_msec = buffer_get_int16(data8, &ind);
-
-		CAN_BAUD baud = comm_can_kbits_to_baud(kbits);
-		if (baud != CAN_BAUD_INVALID) {
-			comm_can_set_baud(baud, delay_msec);
-
-			app_configuration *appconf = (app_configuration*)app_get_configuration();
-			appconf->can_baud_rate = baud;
-			conf_general_store_app_configuration(appconf);
-		}
 	} break;
 
 	default:
