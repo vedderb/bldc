@@ -824,7 +824,6 @@ void comm_can_send_update_baud(int kbits, int delay_msec) {
 
 	buffer_append_int16(buffer, kbits, &send_index);
 	buffer_append_int16(buffer, delay_msec, &send_index);
-
 	comm_can_transmit_eid_replace(255 | ((uint32_t)CAN_PACKET_UPDATE_BAUD << 8),
 				buffer, send_index, false, 0);
 }
@@ -2005,17 +2004,19 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 		} break;
 
 		case CAN_PACKET_UPDATE_BAUD: {
-			ind = 0;
-			int kbits = buffer_get_int16(data8, &ind);
-			int delay_msec = buffer_get_int16(data8, &ind);
+			if (len == 4) {
+				ind = 0;
+				int kbits = buffer_get_int16(data8, &ind);
+				int delay_msec = buffer_get_int16(data8, &ind);
 
-			CAN_BAUD baud = comm_can_kbits_to_baud(kbits);
-			if (baud != CAN_BAUD_INVALID) {
-				comm_can_set_baud(baud, delay_msec);
+				CAN_BAUD baud = comm_can_kbits_to_baud(kbits);
+				if (baud != CAN_BAUD_INVALID) {
+					comm_can_set_baud(baud, delay_msec);
 
-				app_configuration *appconf = (app_configuration*)app_get_configuration();
-				appconf->can_baud_rate = baud;
-				conf_general_store_app_configuration(appconf);
+					app_configuration *appconf = (app_configuration*)app_get_configuration();
+					appconf->can_baud_rate = baud;
+					conf_general_store_app_configuration(appconf);
+				}
 			}
 		} break;
 
