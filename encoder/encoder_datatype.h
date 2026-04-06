@@ -42,6 +42,7 @@ typedef enum {
 	ENCODER_TYPE_PWM,
 	ENCODER_TYPE_PWM_ABI,
 	ENCODER_TYPE_MA782,
+	ENCODER_TYPE_AMT22
 } encoder_type_t;
 
 typedef struct {
@@ -361,5 +362,18 @@ typedef struct {
 	int en_pin;
 	ma782_state_t state;
 } ma782_config_t;
+
+typedef struct {
+	uint16_t spi_val;
+	float last_enc_angle;
+	uint32_t spi_error_cnt;
+	float spi_error_rate;
+	uint32_t last_update_time;
+} AMT22_state;
+
+typedef struct {
+	spi_bb_state sw_spi;
+	AMT22_state state;
+} AMT22_config_t;
 
 #endif /* ENCODER_DATATYPE_H_ */

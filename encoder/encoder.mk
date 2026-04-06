@@ -10,6 +10,7 @@ ENCSRC =	encoder/encoder.c \
 			encoder/enc_tle5012.c \
 			encoder/enc_ts5700n8501.c \
 			encoder/enc_pwm.c \
-			encoder/enc_ma782.c
+			encoder/enc_ma782.c \
+			encoder/enc_amt22.c
 
 ENCINC =	encoder

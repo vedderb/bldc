@@ -5,6 +5,8 @@
 * Sin/Cos encoder filter delay compensation.
 * Moved field weakening to fast loop for better stability.
 * New AB encoder sensor mode for encoders without index pulse.
+* Added MA782 encoder support. See https://github.com/vedderb/bldc/pull/886
+* Added AMT22 encoder support.
 
 ### 6.06.6
 #### 2025-11-01
