@@ -3799,6 +3799,82 @@ Read angle from the AS504x-encoder in degrees.
 
 ---
 
+### BME280
+
+#### bme280-start
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-start optRate optPinSda optPinScl)
+```
+
+Start BME280 pressure/humidity/temperature sensor driver over i2c. Takes the same arguments as i2c-start and shares the same i2c-pins. Also shares the i2c-mutex, so it can be used together with other I2C peripherals as long as they use the same pins. Example:
+
+```clj
+(bme280-start 'rate-100k 21 20)
+```
+
+---
+
+#### bme280-stop
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-stop)
+```
+
+Stop the BME280 driver.
+
+---
+
+#### bme280-hum
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-hum)
+```
+
+Read the relative humidity from the BME280.
+
+---
+
+#### bme280-temp
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-temp)
+```
+
+Read the temperature from the BME280 in degrees celcius.
+
+---
+
+#### bme280-pres
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-pres)
+```
+
+Read the pressure from the BME280 in pascal.
+
+---
+
 ### Configuration
 
 The following selection of app and motor parameters can be read and set from LispBM:
