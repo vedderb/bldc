@@ -624,6 +624,11 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 					break;
 				}
 			}
+
+			if (switch_state == SWITCH_TURNED_ON) {
+				break;
+			}
+
 			comm_can_shutdown(255);
 			mc_interface_set_current(0);
 			mc_interface_lock();

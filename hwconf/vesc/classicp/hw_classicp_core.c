@@ -491,6 +491,11 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 					break;
 				}
 			}
+
+			if (switch_state == SWITCH_TURNED_ON) {
+				break;
+			}
+
 			comm_can_shutdown(255);
 			smart_switch_shut_down();
 			chThdSleepMilliseconds(10000);
