@@ -3421,6 +3421,14 @@ Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C p
 'pin-hall1
 'pin-hall2
 'pin-hall3
+'pin-hall4
+'pin-hall5
+'pin-hall6
+'pin-adc1
+'pin-adc2
+'pin-adc3
+'pin-adc4
+'pin-ppm
 
 ; Note: On express the pins are a number
 ```
@@ -3540,6 +3548,9 @@ Configure GPIO pin to mode. Example:
 'pin-hall1  ; Sensor port hall1
 'pin-hall2  ; Sensor port hall2
 'pin-hall3  ; Sensor port hall3
+'pin-hall4  ; Sensor port motor 2 hall1 (FW 7.00+)
+'pin-hall5  ; Sensor port motor 2 hall2 (FW 7.00+)
+'pin-hall6  ; Sensor port motor 2 hall3 (FW 7.00+)
 'pin-adc1   ; ADC1-pin on COMM-port
 'pin-adc2   ; ADC2-pin on COMM-port
 'pin-adc3   ; ADC3-pin on COMM-port (if available)
@@ -4530,6 +4541,58 @@ Remap one or more AS504x encoder pins. All arguments are optional and nil can be
 'pin-hall1
 'pin-hall2
 'pin-hall3
+'pin-hall4
+'pin-hall5
+'pin-hall6
+'pin-adc1
+'pin-adc2
+'pin-adc3
+'pin-adc4
+'pin-ppm
+```
+
+---
+
+#### conf-remap-hall
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(conf-remap-hall optHall1 optHall2 optHall3 optHall1M2 optHall2M2 optHall3M2)
+```
+
+Remap one or more hall sensor pins. All arguments are optional and nil can be used to leave pins unchanged. Example:
+
+```clj
+
+; Use 'pin-swdio as hall 1 and 'pin-swclk as hall 2. Leave other pins
+; unchanged
+(conf-remap-hall 'pin-swdio 'pin-swclk)
+
+; Use 'pin-swclk as hall 2. Leave other pins unchanged
+(conf-remap-hall nil 'pin-swclk)
+
+; Restore default hall sensor mapping
+(conf-remap-hall)
+
+; Available pins
+'pin-rx
+'pin-tx
+'pin-swdio
+'pin-swclk
+'pin-hall1
+'pin-hall2
+'pin-hall3
+'pin-hall4
+'pin-hall5
+'pin-hall6
+'pin-adc1
+'pin-adc2
+'pin-adc3
+'pin-adc4
+'pin-ppm
 ```
 
 ---

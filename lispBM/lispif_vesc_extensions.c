@@ -117,6 +117,15 @@ typedef struct {
 	lbm_uint pin_hall1;
 	lbm_uint pin_hall2;
 	lbm_uint pin_hall3;
+#ifdef HW_HALL_ENC_GPIO4
+	lbm_uint pin_hall4;
+#endif
+#ifdef HW_HALL_ENC_GPIO5
+	lbm_uint pin_hall5;
+#endif
+#ifdef HW_HALL_ENC_GPIO6
+	lbm_uint pin_hall6;
+#endif
 #ifdef HW_ADC_EXT_GPIO
 	lbm_uint pin_adc1;
 #endif
@@ -391,6 +400,21 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 		} else if (comp == &syms_vesc.pin_hall3) {
 			lbm_add_symbol_const("pin-hall3", comp);
 		}
+#ifdef HW_HALL_ENC_GPIO4
+		else if (comp == &syms_vesc.pin_hall4) {
+			lbm_add_symbol_const("pin-hall4", comp);
+		}
+#endif
+#ifdef HW_HALL_ENC_GPIO5
+		else if (comp == &syms_vesc.pin_hall5) {
+			lbm_add_symbol_const("pin-hall5", comp);
+		}
+#endif
+#ifdef HW_HALL_ENC_GPIO6
+		else if (comp == &syms_vesc.pin_hall6) {
+			lbm_add_symbol_const("pin-hall6", comp);
+		}
+#endif
 #ifdef HW_ADC_EXT_GPIO
 		else if (comp == &syms_vesc.pin_adc1) {
 			lbm_add_symbol_const("pin-adc1", comp);
@@ -4991,7 +5015,7 @@ static lbm_value ext_conf_detect_hall(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_conf_remap_as504x(lbm_value *args, lbm_uint argn) {
 	for (lbm_uint i = 0;i < argn;i++) {
-		if (lbm_is_number(args[i])) {
+		if (lbm_is_symbol(args[i])) {
 
 			stm32_gpio_t *port; uint32_t pin;
 			if (lispif_symbol_to_io(lbm_dec_sym(args[0]), &port, &pin)) {
@@ -5033,6 +5057,94 @@ static lbm_value ext_conf_remap_as504x(lbm_value *args, lbm_uint argn) {
 	encoder_update_config(conf);
 
 	return ENC_SYM_TRUE;
+}
+
+static stm32_gpio_t *map_hall_port[6] = {
+		HW_HALL_ENC_GPIO1,
+		HW_HALL_ENC_GPIO2,
+		HW_HALL_ENC_GPIO3,
+#ifdef HW_HALL_ENC_GPIO4
+		HW_HALL_ENC_GPIO4,
+#else
+		HW_HALL_ENC_GPIO1,
+#endif
+#ifdef HW_HALL_ENC_GPIO5
+		HW_HALL_ENC_GPIO5,
+#else
+		HW_HALL_ENC_GPIO2,
+#endif
+#ifdef HW_HALL_ENC_GPIO6
+		HW_HALL_ENC_GPIO6,
+#else
+		HW_HALL_ENC_GPIO3,
+#endif
+};
+
+static uint32_t map_hall_pin[6] = {
+		HW_HALL_ENC_PIN1,
+		HW_HALL_ENC_PIN2,
+		HW_HALL_ENC_PIN3,
+#ifdef HW_HALL_ENC_PIN4
+		HW_HALL_ENC_PIN4,
+#else
+		HW_HALL_ENC_PIN1,
+#endif
+#ifdef HW_HALL_ENC_PIN5
+		HW_HALL_ENC_PIN5,
+#else
+		HW_HALL_ENC_PIN2,
+#endif
+#ifdef HW_HALL_ENC_PIN6
+		HW_HALL_ENC_PIN6,
+#else
+		HW_HALL_ENC_PIN3,
+#endif
+};
+
+static int read_hall_lbm(bool is_second_motor, int samples) {
+	samples = 1 + 2 * samples;
+
+	int h1 = 0, h2 = 0, h3 = 0;
+	int tres = samples / 2;
+
+	if (is_second_motor) {
+		while (samples--) {
+			h1 += palReadPad(map_hall_port[3], map_hall_pin[3]);
+			h2 += palReadPad(map_hall_port[4], map_hall_pin[4]);
+			h3 += palReadPad(map_hall_port[5], map_hall_pin[5]);
+		}
+	} else {
+		while (samples--) {
+			h1 += palReadPad(map_hall_port[0], map_hall_pin[0]);
+			h2 += palReadPad(map_hall_port[1], map_hall_pin[1]);
+			h3 += palReadPad(map_hall_port[2], map_hall_pin[2]);
+		}
+	}
+
+	return (h1 > tres) | ((h2 > tres) << 1) | ((h3 > tres) << 2);
+}
+
+static lbm_value ext_conf_remap_hall(lbm_value *args, lbm_uint argn) {
+	bool remap = false;
+
+	for (unsigned int i = 0;i < MIN(argn, 6);i++) {
+		stm32_gpio_t *port; uint32_t pin;
+		if (lbm_is_symbol(args[i]) &&
+				lispif_symbol_to_io(lbm_dec_sym(args[i]), &port, &pin)) {
+			palSetPadMode(port, pin, PAL_MODE_INPUT_PULLUP);
+			map_hall_port[i] = port;
+			map_hall_pin[i] = pin;
+			remap = true;
+		}
+	}
+
+	if (remap) {
+		utils_read_hall_fun = read_hall_lbm;
+		return ENC_SYM_TRUE;
+	} else {
+		utils_read_hall_fun = utils_read_hall_hw;
+		return ENC_SYM_NIL;
+	}
 }
 
 static lbm_value ext_uavcan_last_rawcmd(lbm_value *args, lbm_uint argn) {
@@ -6347,6 +6459,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("conf-detect-lambda-enc", ext_conf_detect_lambda_enc);
 		lbm_add_extension("conf-detect-hall", ext_conf_detect_hall);
 		lbm_add_extension("conf-remap-as504x", ext_conf_remap_as504x);
+		lbm_add_extension("conf-remap-hall", ext_conf_remap_hall);
 
 		// Native libraries
 		lbm_add_extension("load-native-lib", ext_load_native_lib);
@@ -6594,6 +6707,24 @@ bool lispif_symbol_to_io(lbm_uint sym, stm32_gpio_t **port, uint32_t *pin) {
 		*port = HW_HALL_ENC_GPIO3; *pin = HW_HALL_ENC_PIN3;
 		return true;
 	}
+#ifdef HW_HALL_ENC_GPIO4
+	else if (compare_symbol(sym, &syms_vesc.pin_hall4)) {
+		*port = HW_HALL_ENC_GPIO4; *pin = HW_HALL_ENC_PIN4;
+		return true;
+	}
+#endif
+#ifdef HW_HALL_ENC_GPIO5
+	else if (compare_symbol(sym, &syms_vesc.pin_hall5)) {
+		*port = HW_HALL_ENC_GPIO5; *pin = HW_HALL_ENC_PIN5;
+		return true;
+	}
+#endif
+#ifdef HW_HALL_ENC_GPIO6
+	else if (compare_symbol(sym, &syms_vesc.pin_hall6)) {
+		*port = HW_HALL_ENC_GPIO6; *pin = HW_HALL_ENC_PIN6;
+		return true;
+	}
+#endif
 #ifdef HW_ADC_EXT_GPIO
 	else if (compare_symbol(sym, &syms_vesc.pin_adc1)) {
 		*port = HW_ADC_EXT_GPIO; *pin = HW_ADC_EXT_PIN;
