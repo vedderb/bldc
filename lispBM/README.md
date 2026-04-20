@@ -7614,10 +7614,20 @@ The express can use the remote peripheral to drive addressable LEDs on any pin. 
 | Express | 6.05+ |
 
 ```clj
-(rgbled-init pin)
+(rgbled-init pin optTiming)
 ```
 
 Initialize the rgbled-driver on pin. If the driver already is initialized it will be de-initialized first.
+
+The optional argument optTiming can be used to specify the timing of the bitstream. Leaving it out is the same as setting it to 0.
+
+| Number | LED Type |
+|---|---|
+| 0 | Generic, works with most LEDs |
+| 1 | WS2812B |
+| 2 | WS2815 |
+| 3 | SK6812 |
+| 4 | SK6815 |
 
 ---
 
