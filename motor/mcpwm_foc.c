@@ -4675,6 +4675,8 @@ static void control_current(motor_all_state_t *motor, float dt) {
 
 	//state_m->vq_int += (state_m->vq - vq_presat);
 
+	utils_saturate_vector_2d((float*)&state_m->vd, (float*)&state_m->vq, max_v_mag);
+
 	FOC_PROFILE_LINE_FINE();
 
 	// mod_d and mod_q are normalized such that 1 corresponds to the max possible voltage:
