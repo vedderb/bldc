@@ -27,6 +27,7 @@
 #include "main.h"
 #include "app.h"
 #include "comm_can.h"
+#include "utils.h"
 
 typedef enum {
 	SWITCH_BOOTED = 0,
@@ -419,7 +420,7 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 			break;
 
 		case SWITCH_HELD_AFTER_TURN_ON:
-			if (smart_switch_is_pressed()) {
+			if (smart_switch_is_pressed() && conf->shutdown_mode != SHUTDOWN_MODE_ALWAYS_OFF) {
 				switch_state = SWITCH_HELD_AFTER_TURN_ON;
 			} else {
 				switch_state = SWITCH_TURNED_ON;
@@ -428,6 +429,7 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 
 		case SWITCH_TURNED_ON:
 			if (conf->shutdown_mode == SHUTDOWN_MODE_ALWAYS_OFF) {
+				switch_bright = 1.0;
 				if (!smart_switch_is_pressed()) {
 					switch_state = SWITCH_SHUTTING_DOWN;
 				}
@@ -448,9 +450,20 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 
 		case SWITCH_SHUTTING_DOWN:
 			switch_bright = 0;
+			systime_t tStart = chVTGetSystemTimeX();
 			while (smart_switch_is_pressed()) {
 				chThdSleepMilliseconds(10);
+				if (UTILS_AGE_S(tStart) > 10.0) {
+					millis_switch_pressed = 0;
+					switch_state = SWITCH_TURNED_ON;
+					break;
+				}
 			}
+
+			if (switch_state == SWITCH_TURNED_ON) {
+				break;
+			}
+
 			comm_can_shutdown(255);
 			smart_switch_shut_down();
 			chThdSleepMilliseconds(10000);

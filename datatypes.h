@@ -216,6 +216,7 @@ typedef enum {
 	SENSOR_PORT_MODE_PWM,
 	SENSOR_PORT_MODE_PWM_ABI,
 	SENSOR_PORT_MODE_MA782,
+	SENSOR_PORT_MODE_AMT22,
 } sensor_port_mode;
 
 typedef struct {

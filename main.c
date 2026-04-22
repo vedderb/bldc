@@ -52,6 +52,7 @@
 #include "conf_custom.h"
 #include "crc.h"
 #include "qmlui.h"
+#include "confgenerator.h"
 
 #if HAS_BLACKMAGIC
 #include "bm_if.h"
@@ -250,6 +251,45 @@ uint32_t main_calc_hw_crc(void) {
 	return crc;
 }
 
+#define PIN_CHECK() \
+		chThdSleep(1); \
+		if (palReadPad(GPIOA, 14) != READ_HALL2()) { \
+			goto check_end; \
+		}
+
+// Check if HALL2 and SWCLK (PA14) are connected together. If they
+// are we reset the configuration.
+static bool should_reset_config(void) {
+	bool res = false;
+
+	PIN_CHECK();
+
+	palSetPadMode(GPIOA, 14, PAL_MODE_INPUT);
+	PIN_CHECK();
+
+	palSetPadMode(GPIOA, 14, PAL_MODE_OUTPUT_PUSHPULL);
+
+	palSetPad(GPIOA, 14);
+	PIN_CHECK();
+
+	palClearPad(GPIOA, 14);
+	PIN_CHECK();
+
+	palSetPad(GPIOA, 14);
+	PIN_CHECK();
+
+	palClearPad(GPIOA, 14);
+	PIN_CHECK();
+
+	res = true;
+
+	check_end:
+	palSetPadMode(GPIOA, 14, PAL_MODE_INPUT);
+	palSetPadMode(GPIOA, 14, PAL_MODE_ALTERNATE(0));
+
+	return res;
+}
+
 int main(void) {
 	halInit();
 	chSysInit();
@@ -289,8 +329,17 @@ int main(void) {
 		}
 	}
 
+	bool cfg_reset = should_reset_config();
+
+	// Also erase LBM and Qml on config reset
+	if (cfg_reset) {
+		flash_helper_erase_code(CODE_IND_LISP_CONST);
+		flash_helper_erase_code(CODE_IND_LISP);
+		flash_helper_erase_code(CODE_IND_QML);
+	}
+
 	ledpwm_init();
-	mc_interface_init();
+	mc_interface_init(cfg_reset);
 
 	commands_init();
 
@@ -300,7 +349,13 @@ int main(void) {
 
 	app_uartcomm_initialize();
 	app_configuration *appconf = mempools_alloc_appconf();
-	conf_general_read_app_configuration(appconf);
+	if (cfg_reset) {
+		confgenerator_set_defaults_appconf(appconf);
+		conf_general_store_app_configuration(appconf);
+	} else {
+		conf_general_read_app_configuration(appconf);
+	}
+
 	app_uartcomm_start(UART_PORT_BUILTIN);
 	app_uartcomm_start(UART_PORT_EXTRA_HEADER);
 	app_set_configuration(appconf);

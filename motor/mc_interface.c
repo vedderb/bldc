@@ -42,6 +42,7 @@
 #include "bms.h"
 #include "events.h"
 #include "timer.h"
+#include "confgenerator.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -165,16 +166,25 @@ static thread_t *fault_stop_tp;
 static THD_WORKING_AREA(stat_thread_wa, 512);
 static THD_FUNCTION(stat_thread, arg);
 
-void mc_interface_init(void) {
+void mc_interface_init(bool reset_conf) {
 	memset((void*)&m_motor_1, 0, sizeof(motor_if_state_t));
 #ifdef HW_HAS_DUAL_MOTORS
 	memset((void*)&m_motor_2, 0, sizeof(motor_if_state_t));
 #endif
 
-	conf_general_read_mc_configuration((mc_configuration*)&m_motor_1.m_conf, false);
+	if (reset_conf) {
+		confgenerator_set_defaults_mcconf((mc_configuration*)&m_motor_1.m_conf);
+		conf_general_store_mc_configuration((mc_configuration*)&m_motor_1.m_conf, false);
 #ifdef HW_HAS_DUAL_MOTORS
-	conf_general_read_mc_configuration((mc_configuration*)&m_motor_2.m_conf, true);
+		confgenerator_set_defaults_mcconf((mc_configuration*)&m_motor_2.m_conf);
+		conf_general_store_mc_configuration((mc_configuration*)&m_motor_2.m_conf, true);
 #endif
+	} else {
+		conf_general_read_mc_configuration((mc_configuration*)&m_motor_1.m_conf, false);
+#ifdef HW_HAS_DUAL_MOTORS
+		conf_general_read_mc_configuration((mc_configuration*)&m_motor_2.m_conf, true);
+#endif
+	}
 
 #ifdef HW_HAS_DUAL_MOTORS
 	m_motor_1.m_conf.motor_type = MOTOR_TYPE_FOC;

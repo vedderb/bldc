@@ -318,6 +318,7 @@
 void smart_switch_thread_start(void);
 void smart_switch_pin_init(void);
 bool smart_switch_is_pressed(void);
+void hw_shutdown_set_hold(bool hold);
 void smart_switch_shut_down(void);
 void smart_switch_set_sampling_disabled(bool dis);
 

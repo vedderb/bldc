@@ -38,14 +38,14 @@ static THD_WORKING_AREA(encoder_thread_wa, 256);
 
 AS504x_config_t encoder_cfg_as504x = {
 		{
-				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3,
-				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1,
+				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3,	// CS
+				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1,	// SCK
 #ifdef AS504x_MOSI_GPIO
-				AS504x_MOSI_GPIO, AS504x_MOSI_PIN,
+				AS504x_MOSI_GPIO, AS504x_MOSI_PIN,		// MOSI
 #else
 				0, 0,
 #endif
-				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,
+				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,	// MISO
 				{{NULL, NULL}, NULL, NULL}, // Mutex
 				false // Mutex init done
 		},
@@ -235,4 +235,17 @@ ma782_config_t encoder_cfg_ma782 = {
 		0, 0,
 #endif
 		{0.0f, 0, 0.0f, 0, 0.0f, MA782_IDLE, 0, 0, 0, 0, 0, 0, {0}, {0}},
+};
+
+AMT22_config_t encoder_cfg_amt22 = {
+		{
+				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3,	// CS
+				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1,	// SCK
+				0, 0,									// MOSI (unused)
+				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,	// MISO
+				{{NULL, NULL}, NULL, NULL}, // Mutex
+				false // Mutex init done
+		},
+
+		{0} // State
 };

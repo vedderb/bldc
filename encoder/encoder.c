@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2025 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2026 Benjamin Vedder	benjamin@vedder.se
 	Copyright 2022 Jakub Tomczak
 
 	This file is part of the VESC firmware.
@@ -275,6 +275,19 @@ bool encoder_init(volatile mc_configuration *conf) {
 		res = true;
 	} break;
 
+	case SENSOR_PORT_MODE_AMT22: {
+		SENSOR_PORT_5V();
+
+		if (!enc_amt22_init(&encoder_cfg_amt22)) {
+			return false;
+		}
+
+		m_encoder_type_now = ENCODER_TYPE_AMT22;
+		timer_start(routine_rate_10k);
+
+		res = true;
+	} break;
+
 	case SENSOR_PORT_MODE_CUSTOM_ENCODER:
 		m_encoder_type_now = ENCODER_TYPE_CUSTOM;
 		res = true;
@@ -369,6 +382,11 @@ void encoder_update_config(volatile mc_configuration *conf) {
 		break;
 	}
 
+	case SENSOR_PORT_MODE_AMT22: {
+		spi_bb_init(&(encoder_cfg_amt22.sw_spi));
+		break;
+	}
+
 	default:
 		break;
 	}
@@ -404,6 +422,8 @@ void encoder_deinit(void) {
 		enc_abi_deinit(&encoder_cfg_ABI);
 	} else if (m_encoder_type_now == ENCODER_TYPE_MA782) {
 		enc_ma782_deinit(&encoder_cfg_ma782);
+	} else if (m_encoder_type_now == ENCODER_TYPE_AMT22) {
+		enc_amt22_deinit(&encoder_cfg_amt22);
 	}
 
 	m_encoder_type_now = ENCODER_TYPE_NONE;
@@ -480,6 +500,10 @@ float encoder_read_deg(void) {
 
 	case ENCODER_TYPE_MA782:
 		res = MA782_LAST_ANGLE(&encoder_cfg_ma782);
+		break;
+
+	case ENCODER_TYPE_AMT22:
+		res = AMT22_LAST_ANGLE(&encoder_cfg_amt22);
 		break;
 
 	case ENCODER_TYPE_CUSTOM:
@@ -618,6 +642,9 @@ float encoder_get_error_rate(void) {
 	case ENCODER_TYPE_MA782:
 		res = encoder_cfg_ma782.state.spi_error_rate;
 		break;
+	case ENCODER_TYPE_AMT22:
+		res = encoder_cfg_amt22.state.spi_error_rate;
+		break;
 	default:
 		break;
 	}
@@ -737,6 +764,11 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 				if (m_enc_custom_fault()) {
 					mc_interface_fault_stop(FAULT_CODE_ENCODER_FAULT, is_second_motor, false);
 				}
+			}
+			break;
+		case SENSOR_PORT_MODE_AMT22:
+			if (encoder_cfg_amt22.state.spi_error_rate > 0.05) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, is_second_motor, false);
 			}
 			break;
 
@@ -919,6 +951,11 @@ static void terminal_encoder(int argc, const char **argv) {
 		enc_ma782_print_status(&encoder_cfg_ma782);
 		break;
 
+	case SENSOR_PORT_MODE_AMT22:
+		commands_printf("Error rate: %.2f", (double)encoder_cfg_amt22.state.spi_error_rate);
+		commands_printf("Error cnt: %d", encoder_cfg_amt22.state.spi_error_cnt);
+		break;
+
 	default:
 		commands_printf("No encoder debug info available.");
 		break;
@@ -971,6 +1008,10 @@ static THD_FUNCTION(routine_thread, arg) {
 
 		case ENCODER_TYPE_MA782:
 			enc_ma782_routine(&encoder_cfg_ma782);
+			break;
+
+		case ENCODER_TYPE_AMT22:
+			enc_amt22_routine(&encoder_cfg_amt22);
 			break;
 
 		default:

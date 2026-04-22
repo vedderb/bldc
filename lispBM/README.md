@@ -3421,6 +3421,14 @@ Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C p
 'pin-hall1
 'pin-hall2
 'pin-hall3
+'pin-hall4
+'pin-hall5
+'pin-hall6
+'pin-adc1
+'pin-adc2
+'pin-adc3
+'pin-adc4
+'pin-ppm
 
 ; Note: On express the pins are a number
 ```
@@ -3540,6 +3548,9 @@ Configure GPIO pin to mode. Example:
 'pin-hall1  ; Sensor port hall1
 'pin-hall2  ; Sensor port hall2
 'pin-hall3  ; Sensor port hall3
+'pin-hall4  ; Sensor port motor 2 hall1 (FW 7.00+)
+'pin-hall5  ; Sensor port motor 2 hall2 (FW 7.00+)
+'pin-hall6  ; Sensor port motor 2 hall3 (FW 7.00+)
 'pin-adc1   ; ADC1-pin on COMM-port
 'pin-adc2   ; ADC2-pin on COMM-port
 'pin-adc3   ; ADC3-pin on COMM-port (if available)
@@ -3796,6 +3807,82 @@ De-initialize the AS504x-driver and restore the pins.
 ```
 
 Read angle from the AS504x-encoder in degrees.
+
+---
+
+### BME280
+
+#### bme280-start
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-start optRate optPinSda optPinScl)
+```
+
+Start BME280 pressure/humidity/temperature sensor driver over i2c. Takes the same arguments as i2c-start and shares the same i2c-pins. Also shares the i2c-mutex, so it can be used together with other I2C peripherals as long as they use the same pins. Example:
+
+```clj
+(bme280-start 'rate-100k 21 20)
+```
+
+---
+
+#### bme280-stop
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-stop)
+```
+
+Stop the BME280 driver.
+
+---
+
+#### bme280-hum
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-hum)
+```
+
+Read the relative humidity from the BME280.
+
+---
+
+#### bme280-temp
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-temp)
+```
+
+Read the temperature from the BME280 in degrees celcius.
+
+---
+
+#### bme280-pres
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-pres)
+```
+
+Read the pressure from the BME280 in pascal.
 
 ---
 
@@ -4454,6 +4541,58 @@ Remap one or more AS504x encoder pins. All arguments are optional and nil can be
 'pin-hall1
 'pin-hall2
 'pin-hall3
+'pin-hall4
+'pin-hall5
+'pin-hall6
+'pin-adc1
+'pin-adc2
+'pin-adc3
+'pin-adc4
+'pin-ppm
+```
+
+---
+
+#### conf-remap-hall
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(conf-remap-hall optHall1 optHall2 optHall3 optHall1M2 optHall2M2 optHall3M2)
+```
+
+Remap one or more hall sensor pins. All arguments are optional and nil can be used to leave pins unchanged. Example:
+
+```clj
+
+; Use 'pin-swdio as hall 1 and 'pin-swclk as hall 2. Leave other pins
+; unchanged
+(conf-remap-hall 'pin-swdio 'pin-swclk)
+
+; Use 'pin-swclk as hall 2. Leave other pins unchanged
+(conf-remap-hall nil 'pin-swclk)
+
+; Restore default hall sensor mapping
+(conf-remap-hall)
+
+; Available pins
+'pin-rx
+'pin-tx
+'pin-swdio
+'pin-swclk
+'pin-hall1
+'pin-hall2
+'pin-hall3
+'pin-hall4
+'pin-hall5
+'pin-hall6
+'pin-adc1
+'pin-adc2
+'pin-adc3
+'pin-adc4
+'pin-ppm
 ```
 
 ---
@@ -7475,10 +7614,20 @@ The express can use the remote peripheral to drive addressable LEDs on any pin. 
 | Express | 6.05+ |
 
 ```clj
-(rgbled-init pin)
+(rgbled-init pin optTiming)
 ```
 
 Initialize the rgbled-driver on pin. If the driver already is initialized it will be de-initialized first.
+
+The optional argument optTiming can be used to specify the timing of the bitstream. Leaving it out is the same as setting it to 0.
+
+| Number | LED Type |
+|---|---|
+| 0 | Generic, works with most LEDs |
+| 1 | WS2812B |
+| 2 | WS2815 |
+| 3 | SK6812 |
+| 4 | SK6815 |
 
 ---
 
