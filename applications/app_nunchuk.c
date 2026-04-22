@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2026 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -445,28 +445,7 @@ static THD_FUNCTION(output_thread, arg) {
 			const float ramp_step = ((float)OUTPUT_ITERATION_TIME_MS * current_range) / (ramp_time * 1000.0);
 
 			float current_goal = prev_current;
-			const float goal_tmp = current_goal;
 			utils_step_towards(&current_goal, current, ramp_step);
-			bool is_decreasing = current_goal < goal_tmp;
-
-			// Make sure the desired current is close to the actual current to avoid surprises
-			// when changing direction
-			float goal_tmp2 = current_goal;
-			if (is_reverse) {
-				if (fabsf(current_goal + current_highest) > max_current_diff) {
-					utils_step_towards(&goal_tmp2, -current_highest, 2.0 * ramp_step);
-				}
-			} else {
-				if (fabsf(current_goal - current_highest) > max_current_diff) {
-					utils_step_towards(&goal_tmp2, current_highest, 2.0 * ramp_step);
-				}
-			}
-
-			// Always allow negative ramping
-			bool is_decreasing2 = goal_tmp2 < current_goal;
-			if ((!is_decreasing || is_decreasing2) && fabsf(out_val) > 0.001) {
-				current_goal = goal_tmp2;
-			}
 
 			current = current_goal;
 		}
