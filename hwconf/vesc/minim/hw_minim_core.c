@@ -32,6 +32,7 @@
 #include "main.h"
 #include "app.h"
 #include "comm_can.h"
+#include "shutdown.h"
 
 typedef enum {
 	SWITCH_BOOTED = 0,
@@ -629,6 +630,7 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 				break;
 			}
 
+			shutdown_save_and_hold();
 			comm_can_shutdown(255);
 			mc_interface_set_current(0);
 			mc_interface_lock();
