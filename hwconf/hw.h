@@ -547,6 +547,10 @@
 #define HW_PERMANENT_NRF_FAILED_HOOK()
 #endif
 
+#ifndef REJECT_FLASH_LOADING
+#define REJECT_FLASH_LOADING false
+#endif
+
 #ifndef HW_EARLY_INIT
 #define HW_EARLY_INIT()
 #endif
