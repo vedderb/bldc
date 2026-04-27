@@ -4669,13 +4669,13 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	//state_m->vd_int += (state_m->vd - vd_presat);
 
 	float max_vq = sqrtf(SQ(max_v_mag) - SQ(state_m->vd));
+	UTILS_NAN_ZERO(max_vq);
+
 	//float vq_presat = state_m->vq;
 	utils_truncate_number_abs((float*)&state_m->vq, max_vq);
 	utils_truncate_number_abs((float*)&state_m->vq_int, max_vq);
 
 	//state_m->vq_int += (state_m->vq - vq_presat);
-
-	utils_saturate_vector_2d((float*)&state_m->vd, (float*)&state_m->vq, max_v_mag);
 
 	FOC_PROFILE_LINE_FINE();
 
