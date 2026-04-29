@@ -1423,6 +1423,34 @@ Get the set FOC q-axis current. This is the raw requested current.
 
 ---
 
+#### get-id-target
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(get-id-target)
+```
+
+Get the FOC d-axis target current. This is sent to the current controller after applying all limits, MTPA, HFI and field weakening.
+
+---
+
+#### get-iq-target
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(get-iq-target)
+```
+
+Get the FOC q-axis target current. This is sent to the current controller after applying all limits, MTPA, HFI and field weakening.
+
+---
+
 #### get-vd
 
 | Platforms | Firmware |

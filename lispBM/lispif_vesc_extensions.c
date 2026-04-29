@@ -2084,6 +2084,16 @@ static lbm_value ext_get_iq_set(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(mcpwm_foc_get_iq_set());
 }
 
+static lbm_value ext_get_id_target(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_id_target());
+}
+
+static lbm_value ext_get_iq_target(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_iq_target());
+}
+
 static lbm_value ext_get_vd(lbm_value *args, lbm_uint argn) {
 	int filter = 0;
 	if (!check_arg_filter(args, argn, &filter)) {
@@ -6316,6 +6326,8 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("get-iq", ext_get_iq);
 		lbm_add_extension("get-id-set", ext_get_id_set);
 		lbm_add_extension("get-iq-set", ext_get_iq_set);
+		lbm_add_extension("get-id-target", ext_get_id_target);
+		lbm_add_extension("get-iq-target", ext_get_iq_target);
 		lbm_add_extension("get-vd", ext_get_vd);
 		lbm_add_extension("get-vq", ext_get_vq);
 		lbm_add_extension("get-est-lambda", ext_foc_est_lambda);

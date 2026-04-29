@@ -71,6 +71,8 @@ float mcpwm_foc_get_id(void);
 float mcpwm_foc_get_iq(void);
 float mcpwm_foc_get_id_set(void);
 float mcpwm_foc_get_iq_set(void);
+float mcpwm_foc_get_id_target(void);
+float mcpwm_foc_get_iq_target(void);
 float mcpwm_foc_get_id_filter(void);
 float mcpwm_foc_get_iq_filter(void);
 float mcpwm_foc_get_tot_current_in(void);
