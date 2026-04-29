@@ -172,6 +172,7 @@ typedef enum {
 	FAULT_CODE_PHASE_FILTER,
 	FAULT_CODE_ENCODER_FAULT,
 	FAULT_CODE_LV_OUTPUT_FAULT,
+	FAULT_CODE_ENCODER_LOOSE_MAGNET
 } mc_fault_code;
 
 typedef enum {
@@ -582,6 +583,8 @@ typedef struct {
 
 	// BMS Configuration
 	bms_config bms;
+	// Enable mechanical slip detection
+	bool foc_encoder_check_slip;
 
 	// Protect from flash corruption.
 	uint16_t crc;
