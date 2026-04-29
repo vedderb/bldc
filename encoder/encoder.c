@@ -779,7 +779,7 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 		// encoder phase. If the motor is spinning fast enough for a stable observer
 		// estimate (>110% of open-loop threshold) and the phase gap exceeds 15 degrees
 		// for more than 500ms, trigger a LOOSE_MAGNET fault.
-		if (m_conf->foc_encoder_check_slip) {
+		if (m_conf->l_additional_faults & 1) {
 			float current_rpm = mc_interface_get_rpm();
 			float ol_erpm = m_conf->foc_openloop_rpm;
 			float stable_observer_threshold = ol_erpm * 1.1f;
@@ -795,7 +795,7 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 					uint32_t elapsed_ms = ST2MS(chVTTimeElapsedSinceX(fault_start_time));
 					if (elapsed_ms > 500) {
 						fault_start_time = 0;
-						mc_interface_fault_stop(FAULT_CODE_ENCODER_LOOSE_MAGNET, is_second_motor, false);
+						mc_interface_fault_stop(FAULT_CODE_ENCODER_SLIP, is_second_motor, false);
 					}
 				} else {
 					fault_start_time = 0;

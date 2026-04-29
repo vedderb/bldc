@@ -128,6 +128,9 @@
 #ifndef MCCONF_L_DUTY_START
 #define MCCONF_L_DUTY_START				1.0 // Start limiting current at this duty cycle
 #endif
+#ifndef MCCONF_L_ADDITIONAL_FAULTS
+#define MCCONF_L_ADDITIONAL_FAULTS		0 // Additional fault codes
+#endif
 
 // Common PID-parameters
 #ifndef MCCONF_SP_PID_LOOP_RATE
@@ -656,8 +659,5 @@
 #endif
 #ifndef MCCONF_BMS_FWD_CAN_MODE
 #define MCCONF_BMS_FWD_CAN_MODE			BMS_FWD_CAN_MODE_DISABLED
-#endif
-#ifndef MCCONF_FOC_ENCODER_CHECK_SLIP
-#define MCCONF_FOC_ENCODER_CHECK_SLIP 0
 #endif
 #endif /* MCCONF_DEFAULT_H_ */
