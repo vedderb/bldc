@@ -2241,12 +2241,15 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 
 	const float v_in = motor->m_input_voltage_filtered;
 	float rpm_now = 0.0;
+	float rpm_slow = 0.0; // Slow ERPM for fault codes
 
 	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
 		// Low latency is important for avoiding oscillations
 		rpm_now = DIR_MULT * mcpwm_foc_get_rpm_fast();
+		rpm_slow = DIR_MULT * mcpwm_foc_get_rpm();
 	} else {
 		rpm_now = mc_interface_get_rpm();
+		rpm_slow = rpm_now;
 	}
 
 	float rpm_abs = fabsf(rpm_now);
@@ -2429,6 +2432,18 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		lo_min_rpm = 0.0;
 	} else {
 		lo_min_rpm = utils_map(rpm_now, rpm_neg_cut_start, rpm_neg_cut_end, l_current_max_tmp, 0.0);
+	}
+
+	// RPM Faults
+	if ((conf->l_additional_faults & (1 << 1)) && rpm_slow > conf->l_max_erpm) {
+		mc_interface_fault_stop(FAULT_CODE_OVERSPEED, !is_motor_1, false);
+	}
+	if ((conf->l_additional_faults & (1 << 2)) && rpm_slow < conf->l_min_erpm) {
+		mc_interface_fault_stop(FAULT_CODE_UNDERSPEED, !is_motor_1, false);
+	}
+	if ((conf->l_additional_faults & (1 << 3)) &&
+			fabsf(rpm_slow) > fabsf(utils_max_abs(conf->l_min_erpm, conf->l_max_erpm))) {
+		mc_interface_fault_stop(FAULT_CODE_ABS_OVERSPEED, !is_motor_1, false);
 	}
 
 	// Start Current Decrease
