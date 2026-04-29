@@ -271,6 +271,13 @@
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
 #define MCCONF_FOC_SAMPLE_V0_V7		false	// Run control loop in both v0 and v7 (requires phase shunts)
 #endif
+#ifndef MCCONF_FOC_PHASE_FILTER_ENABLE
+#ifdef HW_HAS_PHASE_FILTERS
+#define MCCONF_FOC_PHASE_FILTER_ENABLE	true	// Use phase voltage filters when available
+#else
+#define MCCONF_FOC_PHASE_FILTER_ENABLE	false	// Use phase voltage filters when available
+#endif
+#endif
 #ifndef MCCONF_L_IN_CURRENT_MAX
 #define MCCONF_L_IN_CURRENT_MAX		100.0	// Input current limit in Amperes (Upper)
 #endif
