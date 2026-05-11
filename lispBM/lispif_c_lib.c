@@ -563,6 +563,7 @@ static bool lib_set_cfg_float(CFG_PARAM p, float value) {
 	}
 
 	if (changed_app > 0) {
+		commands_apply_appconf_hw_limits(appconf);
 		app_set_configuration(appconf);
 	}
 
@@ -599,6 +600,7 @@ static bool lib_set_cfg_int(CFG_PARAM p, int value) {
 	}
 
 	if (changed_app > 0) {
+		commands_apply_appconf_hw_limits(appconf);
 		app_set_configuration(appconf);
 	}
 

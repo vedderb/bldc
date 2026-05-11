@@ -160,11 +160,15 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 
+#if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_150_PH)
+	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_PULLUP);
+#else
 	// DAC as voltage reference for shunt amps
 	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
 	DAC->CR |= DAC_CR_EN1;
 	DAC->DHR12R1 = 2047;
+#endif
 
 	lispif_add_ext_load_callback(load_extensions);
 }

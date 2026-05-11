@@ -24,6 +24,10 @@
 	#define HW_NAME					"Maximp_150"
 #elif defined(HWMAXIMP_120)
 	#define HW_NAME					"Maximp_120"
+#elif defined(HWMAXIMP_120_PH)
+	#define HW_NAME					"Maximp_120_PH"
+#elif defined(HWMAXIMP_150_PH)
+	#define HW_NAME					"Maximp_150_PH"
 #else
 	#error "Must define hardware type"
 #endif
@@ -33,6 +37,11 @@
 #define INVERTED_SHUNT_POLARITY
 #define HW_HAS_PHASE_FILTERS
 #define HW_BOOT_VESC_CAN
+
+#if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_150_PH)
+#define IS_DRV_FAULT()			(!palReadPad(GPIOA, 4))
+#define HW_HAS_PHASE_SHUNTS
+#endif
 
 // Macros
 #define LED_GREEN_GPIO			GPIOC
@@ -136,11 +145,20 @@
 #ifndef VIN_R2
 #define VIN_R2					3300.0
 #endif
+#if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_150_PH)
+#ifndef CURRENT_AMP_GAIN
+#define CURRENT_AMP_GAIN		41.0
+#endif
+#ifndef CURRENT_SHUNT_RES
+#define CURRENT_SHUNT_RES		(0.0001 / 4.0)
+#endif
+#else
 #ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN		20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
 #define CURRENT_SHUNT_RES		(0.00025 / 5.0)
+#endif
 #endif
 
 #define ENCODER_SIN_VOLTS		ADC_VOLTS(ADC_IND_EXT4)
@@ -267,7 +285,7 @@
 #ifndef MCCONF_L_MIN_VOLTAGE
 #define MCCONF_L_MIN_VOLTAGE			20.0		// Minimum input voltage
 #endif
-#ifdef HWMAXIMP_120
+#if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_120)
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE			112.0	// Maximum input voltage
 #endif
@@ -302,7 +320,7 @@
 #endif
 
 // Setting limits
-#ifdef HWMAXIMP_120
+#if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_120)
 #define HW_LIM_CURRENT			-1000.0, 1000.0
 #define HW_LIM_CURRENT_IN		-1000.0, 1000.0
 #define HW_LIM_CURRENT_ABS		0.0, 1500.0

@@ -11,6 +11,15 @@
 	* Performance improvements and bug fixes
 	* AS5047 encoder pin remapping support
 	* Hall sensor pin remapping support
+	* Many new extensions and configuration parameters
+* VESC Remote coasting brake support.
+* Use highest value of field weakening and MTPA current instead of summing both.
+* Add FOC option to leave voltage headroom for Vq under full modulation.
+* Added new fault codes that can be enabled or disabled:
+	* Encoder slip
+	* Overspeed
+	* Underspeed
+	* Absolute overspeed
 
 ### 6.06.6
 #### 2025-11-01

@@ -146,6 +146,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer[ind++] = conf->foc_speed_soure;
 	buffer[ind++] = conf->foc_short_ls_on_zero_duty;
 	buffer_append_float16(buffer, conf->foc_overmod_factor, 10000, &ind);
+	buffer_append_float16(buffer, conf->foc_mag_vd_max, 10000, &ind);
 	buffer[ind++] = conf->sp_pid_loop_rate;
 	buffer_append_float32_auto(buffer, conf->s_pid_kp, &ind);
 	buffer_append_float32_auto(buffer, conf->s_pid_ki, &ind);
@@ -488,6 +489,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_speed_soure = buffer[ind++];
 	conf->foc_short_ls_on_zero_duty = buffer[ind++];
 	conf->foc_overmod_factor = buffer_get_float16(buffer, 10000, &ind);
+	conf->foc_mag_vd_max = buffer_get_float16(buffer, 10000, &ind);
 	conf->sp_pid_loop_rate = buffer[ind++];
 	conf->s_pid_kp = buffer_get_float32_auto(buffer, &ind);
 	conf->s_pid_ki = buffer_get_float32_auto(buffer, &ind);
@@ -826,6 +828,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_speed_soure = MCCONF_FOC_SPEED_SOURCE;
 	conf->foc_short_ls_on_zero_duty = MCCONF_FOC_SHORT_LS_ON_ZERO_DUTY;
 	conf->foc_overmod_factor = MCCONF_FOC_OVERMOD_FACTOR;
+	conf->foc_mag_vd_max = MCCONF_FOC_MAG_VD_MAX;
 	conf->sp_pid_loop_rate = MCCONF_SP_PID_LOOP_RATE;
 	conf->s_pid_kp = MCCONF_S_PID_KP;
 	conf->s_pid_ki = MCCONF_S_PID_KI;

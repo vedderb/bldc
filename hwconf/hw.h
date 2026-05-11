@@ -567,6 +567,14 @@
 #define HW_LIM_CURRENT_ABS		0.0, 140.0
 #endif
 
+// Limit sample rate for the LSM6DS3 IMU due to the current polling mechanism
+// causing rare unexplained MCU resets when the rate is too high
+#if defined(LSM6DS3_SPEED_700KHZ)
+#define HW_LIM_IMU_SAMPLE_RATE_HZ	1200
+#elif defined(LSM6DS3_SDA_GPIO) || defined(LSM6DS3_NSS_GPIO)
+#define HW_LIM_IMU_SAMPLE_RATE_HZ	900
+#endif
+
 #ifndef HW_LIM_FOC_CTRL_LOOP_FREQ
 #define HW_LIM_FOC_CTRL_LOOP_FREQ	3000.0, 30000.0
 #endif

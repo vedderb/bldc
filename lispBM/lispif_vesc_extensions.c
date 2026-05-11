@@ -221,6 +221,7 @@ typedef struct {
 	lbm_uint foc_fw_duty_start;
 	lbm_uint foc_short_ls_on_zero_duty;
 	lbm_uint foc_overmod_factor;
+	lbm_uint foc_mag_vd_max;
 	lbm_uint m_invert_direction;
 	lbm_uint m_out_aux_mode;
 	lbm_uint m_motor_temp_sens_type;
@@ -263,6 +264,22 @@ typedef struct {
 	lbm_uint adc_v1_min;
 	lbm_uint adc_v1_max;
 	lbm_uint pas_current_scaling;
+	lbm_uint vr_ctrl_type;
+	lbm_uint vr_hyst;
+	lbm_uint vr_ramp_time_pos;
+	lbm_uint vr_ramp_time_neg;
+	lbm_uint vr_cc_erpm_per_s;
+	lbm_uint vr_throttle_exp;
+	lbm_uint vr_throttle_exp_brake;
+	lbm_uint vr_throttle_exp_mode;
+	lbm_uint vr_multi_esc;
+	lbm_uint vr_tc;
+	lbm_uint vr_tc_max_diff;
+	lbm_uint vr_use_smart_rev;
+	lbm_uint vr_smart_rev_max_duty;
+	lbm_uint vr_smart_rev_ramp_time;
+	lbm_uint vr_coast_brake_level;
+	lbm_uint vr_coast_brake_ramp_time;
 
 	// Sysinfo
 	lbm_uint hw_name;
@@ -597,6 +614,8 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("foc-short-ls-on-zero-duty", comp);
 		} else if (comp == &syms_vesc.foc_overmod_factor) {
 			lbm_add_symbol_const("foc-overmod-factor", comp);
+		} else if (comp == &syms_vesc.foc_mag_vd_max) {
+			lbm_add_symbol_const("foc-mag-vd-max", comp);
 		} else if (comp == &syms_vesc.m_invert_direction) {
 			lbm_add_symbol_const("m-invert-direction", comp);
 		} else if (comp == &syms_vesc.m_out_aux_mode) {
@@ -681,6 +700,38 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("adc-v1-max", comp);
 		} else if (comp == &syms_vesc.pas_current_scaling) {
 			lbm_add_symbol_const("pas-current-scaling", comp);
+		} else if (comp == &syms_vesc.vr_ctrl_type) {
+			lbm_add_symbol_const("vr-ctrl-type", comp);
+		} else if (comp == &syms_vesc.vr_hyst) {
+			lbm_add_symbol_const("vr-hyst", comp);
+		} else if (comp == &syms_vesc.vr_ramp_time_pos) {
+			lbm_add_symbol_const("vr-ramp-time-pos", comp);
+		} else if (comp == &syms_vesc.vr_ramp_time_neg) {
+			lbm_add_symbol_const("vr-ramp-time-neg", comp);
+		} else if (comp == &syms_vesc.vr_cc_erpm_per_s) {
+			lbm_add_symbol_const("vr-cc-erpm-per-s", comp);
+		} else if (comp == &syms_vesc.vr_throttle_exp) {
+			lbm_add_symbol_const("vr-throttle-exp", comp);
+		} else if (comp == &syms_vesc.vr_throttle_exp_brake) {
+			lbm_add_symbol_const("vr-throttle-exp-brake", comp);
+		} else if (comp == &syms_vesc.vr_throttle_exp_mode) {
+			lbm_add_symbol_const("vr-throttle-exp-mode", comp);
+		} else if (comp == &syms_vesc.vr_multi_esc) {
+			lbm_add_symbol_const("vr-multi-esc", comp);
+		} else if (comp == &syms_vesc.vr_tc) {
+			lbm_add_symbol_const("vr-tc", comp);
+		} else if (comp == &syms_vesc.vr_tc_max_diff) {
+			lbm_add_symbol_const("vr-tc-max-diff", comp);
+		} else if (comp == &syms_vesc.vr_use_smart_rev) {
+			lbm_add_symbol_const("vr-use-smart-rev", comp);
+		} else if (comp == &syms_vesc.vr_smart_rev_max_duty) {
+			lbm_add_symbol_const("vr-smart-rev-max-duty", comp);
+		} else if (comp == &syms_vesc.vr_smart_rev_ramp_time) {
+			lbm_add_symbol_const("vr-smart-rev-ramp-time", comp);
+		} else if (comp == &syms_vesc.vr_coast_brake_level) {
+			lbm_add_symbol_const("vr-coast-brake-level", comp);
+		} else if (comp == &syms_vesc.vr_coast_brake_ramp_time) {
+			lbm_add_symbol_const("vr-coast-brake-ramp-time", comp);
 		}
 
 		else if (comp == &syms_vesc.hw_name) {
@@ -2149,6 +2200,11 @@ static lbm_value ext_foc_hfi_res(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_get_duty(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return lbm_enc_float(mc_interface_get_duty_cycle_now());
+}
+
+static lbm_value ext_get_duty_abs(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return lbm_enc_float(mcpwm_foc_get_duty_cycle_abs_filter());
 }
 
 static lbm_value ext_get_rpm(lbm_value *args, lbm_uint argn) {
@@ -3876,6 +3932,9 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.foc_overmod_factor)) {
 		mcconf->foc_overmod_factor = lbm_dec_as_float(args[1]);
 		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.foc_mag_vd_max)) {
+		mcconf->foc_mag_vd_max = lbm_dec_as_float(args[1]);
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.controller_id)) {
 		appconf->controller_id = lbm_dec_as_i32(args[1]);
 		changed_app = 1;
@@ -4088,6 +4147,54 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.pas_current_scaling)) {
 			appconf->app_pas_conf.current_scaling = lbm_dec_as_float(args[1]);
 			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_ctrl_type)) {
+			appconf->app_chuk_conf.ctrl_type = lbm_dec_as_i32(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_hyst)) {
+			appconf->app_chuk_conf.hyst = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_ramp_time_pos)) {
+			appconf->app_chuk_conf.ramp_time_pos = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_ramp_time_neg)) {
+			appconf->app_chuk_conf.ramp_time_neg = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_cc_erpm_per_s)) {
+			appconf->app_chuk_conf.stick_erpm_per_s_in_cc = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_throttle_exp)) {
+			appconf->app_chuk_conf.throttle_exp = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_throttle_exp_brake)) {
+			appconf->app_chuk_conf.throttle_exp_brake = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_throttle_exp_mode)) {
+			appconf->app_chuk_conf.throttle_exp_mode = lbm_dec_as_i32(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_multi_esc)) {
+			appconf->app_chuk_conf.multi_esc = lbm_dec_as_i32(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_tc)) {
+			appconf->app_chuk_conf.tc = lbm_dec_as_i32(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_tc_max_diff)) {
+			appconf->app_chuk_conf.tc_max_diff = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_use_smart_rev)) {
+			appconf->app_chuk_conf.use_smart_rev = lbm_dec_as_i32(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_smart_rev_max_duty)) {
+			appconf->app_chuk_conf.smart_rev_max_duty = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_smart_rev_ramp_time)) {
+			appconf->app_chuk_conf.smart_rev_ramp_time = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_coast_brake_level)) {
+			appconf->app_chuk_conf.coast_brake_level = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.vr_coast_brake_ramp_time)) {
+			appconf->app_chuk_conf.coast_brake_ramp_time = lbm_dec_as_float(args[1]);
+			changed_app = 2;
 		}
 	}
 
@@ -4098,6 +4205,7 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		}
 		res = ENC_SYM_TRUE;
 	} else if (changed_app > 0) {
+		commands_apply_appconf_hw_limits(appconf);
 		if (changed_app == 2) {
 			app_set_configuration(appconf);
 		}
@@ -4354,6 +4462,8 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_i(mcconf->foc_short_ls_on_zero_duty);
 	} else if (compare_symbol(name, &syms_vesc.foc_overmod_factor)) {
 		res = lbm_enc_float(mcconf->foc_overmod_factor);
+	} else if (compare_symbol(name, &syms_vesc.foc_mag_vd_max)) {
+		res = lbm_enc_float(mcconf->foc_mag_vd_max);
 	} else if (compare_symbol(name, &syms_vesc.m_invert_direction)) {
 		res = lbm_enc_i(mcconf->m_invert_direction);
 	} else if (compare_symbol(name, &syms_vesc.m_out_aux_mode)) {
@@ -4438,6 +4548,38 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(appconf->app_adc_conf.voltage_max);
 	} else if (compare_symbol(name, &syms_vesc.pas_current_scaling)) {
 		res = lbm_enc_float(appconf->app_pas_conf.current_scaling);
+	} else if (compare_symbol(name, &syms_vesc.vr_ctrl_type)) {
+		res = lbm_enc_i(appconf->app_chuk_conf.ctrl_type);
+	} else if (compare_symbol(name, &syms_vesc.vr_hyst)) {
+		res = lbm_enc_float(appconf->app_chuk_conf.hyst);
+	} else if (compare_symbol(name, &syms_vesc.vr_ramp_time_pos)) {
+		res = lbm_enc_float(appconf->app_chuk_conf.ramp_time_pos);
+	} else if (compare_symbol(name, &syms_vesc.vr_ramp_time_neg)) {
+		res = lbm_enc_float(appconf->app_chuk_conf.ramp_time_neg);
+	} else if (compare_symbol(name, &syms_vesc.vr_cc_erpm_per_s)) {
+		res = lbm_enc_float(appconf->app_chuk_conf.stick_erpm_per_s_in_cc);
+	} else if (compare_symbol(name, &syms_vesc.vr_throttle_exp)) {
+		res = lbm_enc_float(appconf->app_chuk_conf.throttle_exp);
+	} else if (compare_symbol(name, &syms_vesc.vr_throttle_exp_brake)) {
+		res = lbm_enc_float(appconf->app_chuk_conf.throttle_exp_brake);
+	} else if (compare_symbol(name, &syms_vesc.vr_throttle_exp_mode)) {
+		res = lbm_enc_i(appconf->app_chuk_conf.throttle_exp_mode);
+	} else if (compare_symbol(name, &syms_vesc.vr_multi_esc)) {
+		res = lbm_enc_i(appconf->app_chuk_conf.multi_esc);
+	} else if (compare_symbol(name, &syms_vesc.vr_tc)) {
+		res = lbm_enc_i(appconf->app_chuk_conf.tc);
+	} else if (compare_symbol(name, &syms_vesc.vr_tc_max_diff)) {
+		res = lbm_enc_float(appconf->app_chuk_conf.tc_max_diff);
+	} else if (compare_symbol(name, &syms_vesc.vr_use_smart_rev)) {
+		res = lbm_enc_i(appconf->app_chuk_conf.use_smart_rev);
+	} else if (compare_symbol(name, &syms_vesc.vr_smart_rev_max_duty)) {
+		res = lbm_enc_float(appconf->app_chuk_conf.smart_rev_max_duty);
+	} else if (compare_symbol(name, &syms_vesc.vr_smart_rev_ramp_time)) {
+		res = lbm_enc_float(appconf->app_chuk_conf.smart_rev_ramp_time);
+	} else if (compare_symbol(name, &syms_vesc.vr_coast_brake_level)) {
+		res = lbm_enc_float(appconf->app_chuk_conf.coast_brake_level);
+	} else if (compare_symbol(name, &syms_vesc.vr_coast_brake_ramp_time)) {
+		res = lbm_enc_float(appconf->app_chuk_conf.coast_brake_ramp_time);
 	}
 
 	if (defaultcfg) {
@@ -6335,6 +6477,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("get-est-ind", ext_foc_est_ind);
 		lbm_add_extension("get-hfi-res", ext_foc_hfi_res);
 		lbm_add_extension("get-duty", ext_get_duty);
+		lbm_add_extension("get-duty-abs", ext_get_duty_abs);
 		lbm_add_extension("get-rpm", ext_get_rpm);
 		lbm_add_extension("get-rpm-fast", ext_get_rpm_fast);
 		lbm_add_extension("get-rpm-faster", ext_get_rpm_faster);

@@ -51,6 +51,7 @@ void mcpwm_foc_set_fw_override(float current);
 int mcpwm_foc_set_tachometer_value(int steps);
 float mcpwm_foc_get_duty_cycle_set(void);
 float mcpwm_foc_get_duty_cycle_now(void);
+float mcpwm_foc_get_duty_cycle_abs_filter(void);
 float mcpwm_foc_get_pid_speed_set(void);
 float mcpwm_foc_get_pid_pos_set(void);
 float mcpwm_foc_get_pid_pos_now(void);

@@ -62,7 +62,7 @@ static void (*m_read_callback)(float *acc, float *gyro, float *mag, float dt) = 
 
 void imu_init(imu_config *set) {
 	bool imu_changed = set->sample_rate_hz != m_settings.sample_rate_hz ||
-			set->type != m_settings.type;
+			set->type != m_settings.type || set->filter != m_settings.filter;
 
 	m_settings = *set;
 
@@ -266,7 +266,15 @@ void imu_init_lsm6ds3(stm32_gpio_t *sda_gpio, int sda_pin,
 	m_i2c_bb.sda_pin = sda_pin;
 	m_i2c_bb.scl_gpio = scl_gpio;
 	m_i2c_bb.scl_pin = scl_pin;
+
+#ifdef LSM6DS3_SPEED_700KHZ
+	m_i2c_bb.rate = I2C_BB_RATE_700K;
+	commands_printf("LSM6DS3 speed: 700 kHz");
+#else
 	m_i2c_bb.rate = I2C_BB_RATE_400K;
+	commands_printf("LSM6DS3 speed: 400 kHz");
+#endif
+
 	i2c_bb_init(&m_i2c_bb);
 
 	lsm6ds3_init(&m_i2c_bb, m_thd_work_area, sizeof(m_thd_work_area));

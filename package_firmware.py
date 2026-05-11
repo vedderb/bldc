@@ -229,6 +229,10 @@ package_dict["Classic"] = [['classic', default_name],
                     ['classic_no_limits', no_limits_name]]
 package_dict["Classicp"] = [['classicp', default_name],
                     ['classicp_no_limits', no_limits_name]]
+package_dict["Maximp_120_PH"] = [['maximp_120_ph', default_name],
+                    ['maximp_120_ph_no_limits', no_limits_name]]
+package_dict["Maximp_150_PH"] = [['maximp_150_ph', default_name],
+                    ['maximp_150_ph_no_limits', no_limits_name]]
 
 # When the argument make_targets is passed print all make targets from the
 # dictianary. The output of this command can be used as arguments to make to

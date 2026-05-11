@@ -211,6 +211,7 @@
 #define LSM6DS3_SDA_PIN         2
 #define LSM6DS3_SCL_GPIO        GPIOA
 #define LSM6DS3_SCL_PIN         15
+#define LSM6DS3_SPEED_700KHZ
 
 // NRF SWD
 #define NRF5x_SWDIO_GPIO        GPIOB

@@ -508,6 +508,9 @@
 #ifndef MCCONF_FOC_OVERMOD_FACTOR
 #define MCCONF_FOC_OVERMOD_FACTOR 		1.0 // Overmodulation factor
 #endif
+#ifndef MCCONF_FOC_MAG_VD_MAX
+#define MCCONF_FOC_MAG_VD_MAX 			0.98 // Maximum D axis modulation
+#endif
 
 // GPD
 #ifndef MCCONF_GPD_BUFFER_NOTIFY_LEFT

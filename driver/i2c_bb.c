@@ -282,10 +282,16 @@ static bool i2c_read_bit(i2c_bb_state *s) {
 static bool clock_stretch_timeout(i2c_bb_state *s) {
 	uint32_t time_start = timer_time_now();
 
-	while(READ_SCL() == 0) {
+	while (READ_SCL() == 0) {
 		if (timer_seconds_elapsed_since(time_start) > 0.01) {
 			s->has_error = true;
 			return false;
+		}
+
+		// Avoid excessive CPU usage if clock stretching takes too long. This lets other
+		// tasks run in-between.
+		if (timer_seconds_elapsed_since(time_start) > 0.0002) {
+			chThdSleep(1);
 		}
 	}
 
