@@ -537,8 +537,9 @@ void bms_process_cmd(unsigned char *data, unsigned int len,
 		send_buffer[ind++] = m_values.data_version;
 
 		// Status string
-		strcpy((char*)(send_buffer + ind), (char*)m_values.status);
-		ind += strlen((char*)m_values.status) + 1;
+		memcpy((char*)(send_buffer + ind), (char*)m_values.status, BMS_STATUS_LEN - 1);
+		((char*)(send_buffer + ind))[BMS_STATUS_LEN - 1] = '\0';
+		ind += strlen((char*)(send_buffer + ind)) + 1;
 
 		reply_func(send_buffer, ind);
 	} break;
