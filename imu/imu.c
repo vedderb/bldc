@@ -131,7 +131,16 @@ void imu_init(imu_config *set) {
 		m_imu_type_internal = "LSM6DS3";
 #endif
 
-		// SPI not implemented yet, use as I2C
+#ifdef LSM6DS3_USE_SPI
+#ifdef LSM6DS3_NSS_GPIO
+		imu_init_lsm6ds3_spi(
+				LSM6DS3_NSS_GPIO, LSM6DS3_NSS_PIN,
+				LSM6DS3_SCK_GPIO, LSM6DS3_SCK_PIN,
+				LSM6DS3_MOSI_GPIO, LSM6DS3_MOSI_PIN,
+				LSM6DS3_MISO_GPIO, LSM6DS3_MISO_PIN);
+		m_imu_type_internal = "LSM6DS3_SPI";
+#endif
+#else
 #ifdef LSM6DS3_NSS_GPIO
 		palSetPadMode(LSM6DS3_NSS_GPIO, LSM6DS3_NSS_PIN, PAL_MODE_OUTPUT_PUSHPULL);
 		palSetPad(LSM6DS3_NSS_GPIO, LSM6DS3_NSS_PIN);
@@ -140,6 +149,7 @@ void imu_init(imu_config *set) {
 		imu_init_lsm6ds3(LSM6DS3_MOSI_GPIO, LSM6DS3_MOSI_PIN,
 				LSM6DS3_SCK_GPIO, LSM6DS3_SCK_PIN);
 		m_imu_type_internal = "LSM6DS3";
+#endif
 #endif
 
 #ifdef BMI160_SPI_PORT_NSS
@@ -255,7 +265,6 @@ void imu_init_bmi160_spi(stm32_gpio_t *nss_gpio, int nss_pin,
 	m_bmi_state.sensor.write = user_spi_write;
 
 	bmi160_wrapper_init(&m_bmi_state, m_thd_work_area, sizeof(m_thd_work_area));
-
 	bmi160_wrapper_set_read_callback(&m_bmi_state, imu_read_callback);
 }
 
@@ -277,9 +286,28 @@ void imu_init_lsm6ds3(stm32_gpio_t *sda_gpio, int sda_pin,
 
 	i2c_bb_init(&m_i2c_bb);
 
-	lsm6ds3_init(&m_i2c_bb, m_thd_work_area, sizeof(m_thd_work_area));
+	lsm6ds3_init(&m_i2c_bb, NULL, m_thd_work_area, sizeof(m_thd_work_area));
 	lsm6ds3_set_read_callback(imu_read_callback);
+}
 
+void imu_init_lsm6ds3_spi(stm32_gpio_t *nss_gpio, int nss_pin,
+		stm32_gpio_t *sck_gpio, int sck_pin, stm32_gpio_t *mosi_gpio, int mosi_pin,
+		stm32_gpio_t *miso_gpio, int miso_pin) {
+	imu_stop();
+
+	m_spi_bb.nss_gpio = nss_gpio;
+	m_spi_bb.nss_pin = nss_pin;
+	m_spi_bb.sck_gpio = sck_gpio;
+	m_spi_bb.sck_pin = sck_pin;
+	m_spi_bb.mosi_gpio = mosi_gpio;
+	m_spi_bb.mosi_pin = mosi_pin;
+	m_spi_bb.miso_gpio = miso_gpio;
+	m_spi_bb.miso_pin = miso_pin;
+
+	spi_bb_init(&m_spi_bb);
+
+	lsm6ds3_init(NULL, &m_spi_bb, m_thd_work_area, sizeof(m_thd_work_area));
+	lsm6ds3_set_read_callback(imu_read_callback);
 }
 
 void imu_stop(void) {

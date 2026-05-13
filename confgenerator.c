@@ -143,6 +143,7 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float16(buffer, conf->foc_fw_duty_start, 10000, &ind);
 	buffer_append_float16(buffer, conf->foc_fw_ramp_time, 1000, &ind);
 	buffer_append_float16(buffer, conf->foc_fw_q_current_factor, 10000, &ind);
+	buffer_append_float16(buffer, conf->foc_fw_backoff, 1000, &ind);
 	buffer[ind++] = conf->foc_speed_soure;
 	buffer[ind++] = conf->foc_short_ls_on_zero_duty;
 	buffer_append_float16(buffer, conf->foc_overmod_factor, 10000, &ind);
@@ -486,6 +487,7 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->foc_fw_duty_start = buffer_get_float16(buffer, 10000, &ind);
 	conf->foc_fw_ramp_time = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_fw_q_current_factor = buffer_get_float16(buffer, 10000, &ind);
+	conf->foc_fw_backoff = buffer_get_float16(buffer, 1000, &ind);
 	conf->foc_speed_soure = buffer[ind++];
 	conf->foc_short_ls_on_zero_duty = buffer[ind++];
 	conf->foc_overmod_factor = buffer_get_float16(buffer, 10000, &ind);
@@ -825,6 +827,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_fw_duty_start = MCCONF_FOC_FW_DUTY_START;
 	conf->foc_fw_ramp_time = MCCONF_FOC_FW_RAMP_TIME;
 	conf->foc_fw_q_current_factor = MCCONF_FOC_FW_Q_CURRENT_FACTOR;
+	conf->foc_fw_backoff = MCCONF_FOC_FW_BACKOFF;
 	conf->foc_speed_soure = MCCONF_FOC_SPEED_SOURCE;
 	conf->foc_short_ls_on_zero_duty = MCCONF_FOC_SHORT_LS_ON_ZERO_DUTY;
 	conf->foc_overmod_factor = MCCONF_FOC_OVERMOD_FACTOR;

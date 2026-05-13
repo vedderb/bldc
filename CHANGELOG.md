@@ -20,6 +20,8 @@
 	* Overspeed
 	* Underspeed
 	* Absolute overspeed
+* Added field weakening backoff gain parameter.
+* SPI-support for LSM6DS3 IMU
 
 ### 6.06.6
 #### 2025-11-01

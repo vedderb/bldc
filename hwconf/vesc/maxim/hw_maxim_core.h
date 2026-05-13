@@ -254,6 +254,7 @@
 #define HW_SPI_PIN_MISO			6
 
 // IMU
+#define LSM6DS3_USE_SPI
 #define LSM6DS3_NSS_GPIO		GPIOA
 #define LSM6DS3_NSS_PIN			15
 #define LSM6DS3_SCK_GPIO		GPIOB

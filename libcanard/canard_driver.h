@@ -31,5 +31,6 @@ typedef struct {
 void canard_driver_init(void);
 uavcan_cmd_info canard_driver_last_rawcmd(int can_if);
 uavcan_cmd_info canard_driver_last_rpmcmd(int can_if);
+int16_t canard_process_frame(CANRxFrame *msg, int interface);
 
 #endif /* LIBCANARD_CANARD_DRIVER_H_ */

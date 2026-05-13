@@ -1334,6 +1334,39 @@ static THD_FUNCTION(cancom_read_thread, arg) {
 #endif
 }
 
+static void process_frame_vesc(CANRxFrame rxmsg) {
+	if (rxmsg.IDE == CAN_IDE_EXT) {
+		bool eid_cb_used = false;
+		if (eid_callback) {
+			eid_cb_used = eid_callback(rxmsg.EID, rxmsg.data8, rxmsg.DLC);
+		}
+
+		if (!eid_cb_used) {
+			if (!bms_process_can_frame(rxmsg.EID, rxmsg.data8, rxmsg.DLC, true)) {
+				decode_msg(rxmsg.EID, rxmsg.data8, rxmsg.DLC, false);
+#ifdef USE_LISPBM
+				lispif_process_can(rxmsg.EID, rxmsg.data8, rxmsg.DLC, true);
+#endif
+			}
+		}
+	} else {
+		bool sid_cb_used = false;
+		if (sid_callback) {
+			sid_cb_used = sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
+		}
+
+		if (!sid_cb_used) {
+			sid_cb_used = bms_process_can_frame(rxmsg.SID, rxmsg.data8, rxmsg.DLC, false);
+		}
+
+#ifdef USE_LISPBM
+		if (!sid_cb_used) {
+			lispif_process_can(rxmsg.SID, rxmsg.data8, rxmsg.DLC, false);
+		}
+#endif
+	}
+}
+
 static THD_FUNCTION(cancom_process_thread, arg) {
 	(void)arg;
 
@@ -1387,40 +1420,27 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 		}
 
 		CANRxFrame *rxmsg_tmp;
-		while ((rxmsg_tmp = comm_can_get_rx_frame(0)) != 0) {
-			CANRxFrame rxmsg = *rxmsg_tmp;
-
-			if (rxmsg.IDE == CAN_IDE_EXT) {
-				bool eid_cb_used = false;
-				if (eid_callback) {
-					eid_cb_used = eid_callback(rxmsg.EID, rxmsg.data8, rxmsg.DLC);
-				}
-
-				if (!eid_cb_used) {
-					if (!bms_process_can_frame(rxmsg.EID, rxmsg.data8, rxmsg.DLC, true)) {
-						decode_msg(rxmsg.EID, rxmsg.data8, rxmsg.DLC, false);
-#ifdef USE_LISPBM
-						lispif_process_can(rxmsg.EID, rxmsg.data8, rxmsg.DLC, true);
-#endif
-					}
+		while ((rxmsg_tmp = comm_can_get_rx_frame(1)) != 0) {
+			if (app_get_configuration()->can_mode == CAN_MODE_VESC_UAVCAN) {
+				if (canard_process_frame(rxmsg_tmp, 1) != 0) {
+					process_frame_vesc(*rxmsg_tmp);
 				}
 			} else {
-				bool sid_cb_used = false;
-				if (sid_callback) {
-					sid_cb_used = sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
-				}
-
-				if (!sid_cb_used) {
-					sid_cb_used = bms_process_can_frame(rxmsg.SID, rxmsg.data8, rxmsg.DLC, false);
-				}
-
-#ifdef USE_LISPBM
-				if (!sid_cb_used) {
-					lispif_process_can(rxmsg.SID, rxmsg.data8, rxmsg.DLC, false);
-				}
-#endif
+				process_frame_vesc(*rxmsg_tmp);
 			}
 		}
+
+#ifdef HW_CAN2_DEV
+		while ((rxmsg_tmp = comm_can_get_rx_frame(2)) != 0) {
+			if (app_get_configuration()->can_mode == CAN_MODE_VESC_UAVCAN) {
+				if (canard_process_frame(rxmsg_tmp, 2) != 0) {
+					process_frame_vesc(*rxmsg_tmp);
+				}
+			} else {
+				process_frame_vesc(*rxmsg_tmp);
+			}
+		}
+#endif
 	}
 }
 

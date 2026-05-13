@@ -4093,6 +4093,9 @@ The following selection of app and motor parameters can be read and set from Lis
                         ; Bit 2: Auto-calibrate when undriven
 'foc-fw-current-max     ; Maximum field weakening current (Added in FW 6.05)
 'foc-fw-duty-start      ; Duty where field weakening starts (Added in FW 6.05)
+'foc-fw-ramp-time       ; Field weakening ramp time in seconds (Added in FW 7.00)
+'foc-fw-q-current-factor ; Field weakening q current factor (Added in FW 7.00)
+'foc-fw-backoff         ; Field weakening backoff (Added in FW 7.00)
 'foc-short-ls-on-zero-duty ; Short low-side FETs on 0 duty (Added in FW 6.05)
 'foc-overmod-factor     ; FOC overmodulation factor (Added in FW 6.06)
 'foc-mag-vd-max         ; FOC maximum D axis modulation (Added in FW 7.00)

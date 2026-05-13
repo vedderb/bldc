@@ -704,6 +704,9 @@ void foc_run_fw(motor_all_state_t *motor, float dt) {
 		return;
 	}
 
+	volatile motor_state_t *state_m = &motor->m_motor_state;
+	volatile mc_configuration *conf = motor->m_conf;
+
 	// Field Weakening
 	// FW is used in the current and speed control modes. If a different mode is used
 	// this code also runs if field weakening was active before. This allows
@@ -712,16 +715,29 @@ void foc_run_fw(motor_all_state_t *motor, float dt) {
 			(motor->m_control_mode == CONTROL_MODE_CURRENT ||
 					motor->m_control_mode == CONTROL_MODE_CURRENT_BRAKE ||
 					motor->m_control_mode == CONTROL_MODE_SPEED ||
-					motor->m_i_fw_set > motor->m_conf->cc_min_current)) {
+					motor->m_i_fw_set > conf->cc_min_current)) {
 		float fw_current_now = 0.0;
 		float duty_abs = motor->m_duty_abs_filtered;
 
-		if (motor->m_conf->foc_fw_duty_start < 0.99 &&
-				duty_abs > motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty) {
+		if (conf->foc_fw_duty_start < 0.99 && duty_abs > conf->foc_fw_duty_start * conf->l_max_duty) {
+
+			float i_fw_max = conf->foc_fw_current_max;
+
+			// When more field weakening than is possible to achieve is requested the current controller will
+			// place almost all voltage in vd. When that happens we can enter a runaway condition where the iq
+			// controller does not have enough headroom to overcome the D axis coupling. The backoff gain uses
+			// the iq error to reduce the field weakening setpoint when iq is greater than iq_target.
+			if (conf->foc_fw_backoff > 0.001) {
+				float i_err_backoff = SIGN(motor->m_speed_est_fast) * (state_m->iq - state_m->iq_target) / i_fw_max;
+				i_err_backoff *= conf->foc_fw_backoff;
+				utils_truncate_number(&i_err_backoff, 0.0, 1.0);
+				i_fw_max *= (1.0 - i_err_backoff);
+			}
+
 			fw_current_now = utils_map(duty_abs,
-					motor->m_conf->foc_fw_duty_start * motor->m_conf->l_max_duty,
-					motor->m_conf->l_max_duty,
-					0.0, motor->m_conf->foc_fw_current_max);
+					conf->foc_fw_duty_start * conf->l_max_duty,
+					conf->l_max_duty,
+					0.0, i_fw_max);
 
 			// m_current_off_delay is used to not stop the modulation too soon after leaving FW. If axis decoupling
 			// is not working properly an oscillation can occur on the modulation when changing the current

@@ -208,6 +208,7 @@
 #define HW_ICU_PIN				6
 
 // IMU
+#define LSM6DS3_USE_SPI
 #define LSM6DS3_NSS_GPIO		GPIOC
 #define LSM6DS3_NSS_PIN			4
 #define LSM6DS3_SCK_GPIO		GPIOA

@@ -569,7 +569,9 @@
 
 // Limit sample rate for the LSM6DS3 IMU due to the current polling mechanism
 // causing rare unexplained MCU resets when the rate is too high
-#if defined(LSM6DS3_SPEED_700KHZ)
+#if defined(LSM6DS3_USE_SPI)
+#define HW_LIM_IMU_SAMPLE_RATE_HZ 2400
+#elif defined(LSM6DS3_SPEED_700KHZ)
 #define HW_LIM_IMU_SAMPLE_RATE_HZ	1200
 #elif defined(LSM6DS3_SDA_GPIO) || defined(LSM6DS3_NSS_GPIO)
 #define HW_LIM_IMU_SAMPLE_RATE_HZ	900
