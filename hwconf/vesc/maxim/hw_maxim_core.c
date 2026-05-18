@@ -140,7 +140,7 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 
-#if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_150_PH)
+#if defined(HWMAXIM_120_PH) || defined(HWMAXIM_150_PH)
 	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_PULLUP);
 #else
 	// DAC as voltage reference for shunt amps
