@@ -75,6 +75,8 @@ package_dict["Cheap_FOCer_2"] = [['Cheap_FOCer_2', default_name],
                     ['Cheap_FOCer_2_no_limits', no_limits_name]]
 package_dict["Cheap_FOCer_2_V09"] = [['Cheap_FOCer_2_V09', default_name],
                     ['Cheap_FOCer_2_V09_no_limits', no_limits_name]]
+package_dict["FOCSTrot V3.0"] = [['FOCSTrot_V3', default_name]]
+package_dict["FOCSTrot V4.0"] = [['FOCSTrot_V4', default_name]]
 package_dict["STORMCORE_60D"] = [['stormcore_60d', default_name],
                     ['stormcore_60d_no_limits', no_limits_name]]
 package_dict["STORMCORE_60Dxs"] = [['stormcore_60dxs', default_name],
