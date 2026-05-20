@@ -29,9 +29,11 @@
 static thread_t *lsm6ds3_thread_ref = NULL;
 static i2c_bb_state *m_i2c_bb;
 static spi_bb_state *m_spi_bb;
+static SPIDriver *m_hwspi_dev;
 static volatile uint16_t lsm6ds3_addr;
 static int rate_hz = 1000;
 static IMU_FILTER filter;
+static const uint8_t spi_tx_0_12[12] = {0};
 
 static void terminal_read_reg(int argc, const char **argv);
 static bool read_reg(uint8_t reg, uint8_t *res);
@@ -50,13 +52,14 @@ void lsm6ds3_set_filter(IMU_FILTER f) {
 	filter = f;
 }
 
-void lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state,
+void lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *spi_hw,
 		stkalign_t *work_area, size_t work_area_size) {
 
 	read_callback = 0;
 
 	m_i2c_bb = i2c_state;
 	m_spi_bb = spi_state;
+	m_hwspi_dev = spi_hw;
 
 	uint8_t rxb[1];
 
@@ -248,6 +251,18 @@ static bool read_reg(uint8_t reg, uint8_t *res) {
 		spi_bb_end(m_spi_bb);
 		chMtxUnlock(&(m_spi_bb->mutex));
 		ok = true;
+	} else if (m_hwspi_dev) {
+		uint8_t txb[1];
+		uint8_t rxb[1];
+
+		spiSelect(m_hwspi_dev);
+		txb[0] = reg | 0x80;
+		spiExchange(m_hwspi_dev, 1, txb, rxb);
+		spi_bb_delay();
+		spiExchange(m_hwspi_dev, 1, spi_tx_0_12, rxb);
+		spiUnselect(m_hwspi_dev);
+		*res = rxb[0];
+		ok = true;
 	}
 
 	return ok;
@@ -270,6 +285,17 @@ static bool write_reg(uint8_t reg, uint8_t value) {
 		spi_bb_exchange_8_mode_3(m_spi_bb, value);
 		spi_bb_end(m_spi_bb);
 		chMtxUnlock(&(m_spi_bb->mutex));
+		ok = true;
+	} else if (m_hwspi_dev) {
+		uint8_t txb[1];
+		uint8_t rxb[1];
+
+		spiSelect(m_hwspi_dev);
+		txb[0] = reg & 0x7F;
+		spiExchange(m_hwspi_dev, 1, txb, rxb);
+		spi_bb_delay();
+		spiExchange(m_hwspi_dev, 1, spi_tx_0_12, rxb);
+		spiUnselect(m_hwspi_dev);
 		ok = true;
 	}
 
@@ -299,6 +325,18 @@ static bool read_gyro_accel(uint8_t *res) {
 
 		spi_bb_end(m_spi_bb);
 		chMtxUnlock(&(m_spi_bb->mutex));
+		ok = true;
+	} else if (m_hwspi_dev) {
+		uint8_t txb[12];
+		uint8_t rxb[1];
+
+		spiSelect(m_hwspi_dev);
+		txb[0] = LSM6DS3_ACC_GYRO_OUTX_L_G | 0x80;
+		spiExchange(m_hwspi_dev, 1, txb, rxb);
+		spi_bb_delay();
+		spiExchange(m_hwspi_dev, 12, spi_tx_0_12, res);
+		spiUnselect(m_hwspi_dev);
+		*res = rxb[0];
 		ok = true;
 	}
 
