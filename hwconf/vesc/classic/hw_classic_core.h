@@ -238,6 +238,7 @@
 #define LSM6DS3_MISO_GPIO		GPIOB
 #define LSM6DS3_MISO_PIN		4
 #define IMU_FLIP
+#define IMU_ROT_270
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
