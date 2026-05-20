@@ -252,16 +252,16 @@ static bool read_reg(uint8_t reg, uint8_t *res) {
 		chMtxUnlock(&(m_spi_bb->mutex));
 		ok = true;
 	} else if (m_hwspi_dev) {
-		uint8_t txb[1];
-		uint8_t rxb[1];
-
+		// Use polled exchange here as the DMA-version seems to freeze
+		// the CAN process thread for some reason. Performance does not
+		// matter during config.
+		spiAcquireBus(m_hwspi_dev);
 		spiSelect(m_hwspi_dev);
-		txb[0] = reg | 0x80;
-		spiExchange(m_hwspi_dev, 1, txb, rxb);
+		spiPolledExchange(m_hwspi_dev, reg | 0x80);
 		spi_bb_delay();
-		spiExchange(m_hwspi_dev, 1, spi_tx_0_12, rxb);
+		*res = spiPolledExchange(m_hwspi_dev, 0);
 		spiUnselect(m_hwspi_dev);
-		*res = rxb[0];
+		spiReleaseBus(m_hwspi_dev);
 		ok = true;
 	}
 
@@ -287,15 +287,16 @@ static bool write_reg(uint8_t reg, uint8_t value) {
 		chMtxUnlock(&(m_spi_bb->mutex));
 		ok = true;
 	} else if (m_hwspi_dev) {
-		uint8_t txb[1];
-		uint8_t rxb[1];
-
+		// Use polled exchange here as the DMA-version seems to freeze
+		// the CAN process thread for some reason. Performance does not
+		// matter during config.
+		spiAcquireBus(m_hwspi_dev);
 		spiSelect(m_hwspi_dev);
-		txb[0] = reg & 0x7F;
-		spiExchange(m_hwspi_dev, 1, txb, rxb);
+		spiPolledExchange(m_hwspi_dev, reg & 0x7f);
 		spi_bb_delay();
-		spiExchange(m_hwspi_dev, 1, spi_tx_0_12, rxb);
+		spiPolledExchange(m_hwspi_dev, value);
 		spiUnselect(m_hwspi_dev);
+		spiReleaseBus(m_hwspi_dev);
 		ok = true;
 	}
 
@@ -327,16 +328,17 @@ static bool read_gyro_accel(uint8_t *res) {
 		chMtxUnlock(&(m_spi_bb->mutex));
 		ok = true;
 	} else if (m_hwspi_dev) {
-		uint8_t txb[12];
+		uint8_t txb[1];
 		uint8_t rxb[1];
 
+		spiAcquireBus(m_hwspi_dev);
 		spiSelect(m_hwspi_dev);
 		txb[0] = LSM6DS3_ACC_GYRO_OUTX_L_G | 0x80;
 		spiExchange(m_hwspi_dev, 1, txb, rxb);
-		spi_bb_delay();
+		spi_bb_delay_short();
 		spiExchange(m_hwspi_dev, 12, spi_tx_0_12, res);
 		spiUnselect(m_hwspi_dev);
-		*res = rxb[0];
+		spiReleaseBus(m_hwspi_dev);
 		ok = true;
 	}
 
