@@ -41,7 +41,7 @@
 
 void lsm6ds3_set_rate_hz(int hz);
 void lsm6ds3_set_filter(IMU_FILTER f);
-void lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state,
+void lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *spi_hw,
 		stkalign_t *work_area, size_t work_area_size);
 void lsm6ds3_set_read_callback(void(*func)(float *accel, float *gyro, float *mag));
 void lsm6ds3_stop(void);
