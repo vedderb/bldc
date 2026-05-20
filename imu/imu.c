@@ -160,7 +160,11 @@ void imu_init(imu_config *set) {
 				LSM6DS3_SCK_GPIO, LSM6DS3_SCK_PIN,
 				LSM6DS3_MOSI_GPIO, LSM6DS3_MOSI_PIN,
 				LSM6DS3_MISO_GPIO, LSM6DS3_MISO_PIN);
+#ifdef LSM6DS3_HWSPI_DEV
+		m_imu_type_internal = "LSM6DS3_SPI_HW";
+#else
 		m_imu_type_internal = "LSM6DS3_SPI";
+#endif
 #endif
 #else
 #ifdef LSM6DS3_NSS_GPIO
