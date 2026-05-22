@@ -455,7 +455,7 @@ bool smart_switch_is_pressed(void) {
 
 	chMtxUnlock(&shutdown_mutex);
 
-	return (bt_diff < 0.31);
+	return (bt_diff < 0.34);
 }
 
 void hw_shutdown_set_hold(bool hold) {
@@ -593,12 +593,21 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 		case SWITCH_TURNED_ON:
 			if (conf->shutdown_mode == SHUTDOWN_MODE_ALWAYS_OFF) {
 				switch_bright = 1.0;
-				if (!smart_switch_is_pressed()) {
-					switch_state = SWITCH_SHUTTING_DOWN;
+
+				if (mc_interface_get_input_voltage_filtered() < 35.0) {
+					hw_shutdown_set_hold(false);
+				} else {
+					hw_shutdown_set_hold(true);
+					if (smart_switch_is_pressed()) {
+						switch_pressed_ts = chVTGetSystemTimeX();
+					}
+
+					if (UTILS_AGE_S(switch_pressed_ts) > ((float)(SMART_SWITCH_MSECS_PRESSED_OFF) / 1000.0)) {
+						switch_state = SWITCH_SHUTTING_DOWN;
+					}
 				}
 			} else {
-				if (smart_switch_is_pressed() &&
-						conf->shutdown_mode != SHUTDOWN_MODE_ALWAYS_ON) {
+				if (smart_switch_is_pressed() && conf->shutdown_mode != SHUTDOWN_MODE_ALWAYS_ON) {
 					switch_bright = 0.5;
 				} else {
 					switch_bright = 1.0;
@@ -607,9 +616,6 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 
 				if (UTILS_AGE_S(switch_pressed_ts) > ((float)(SMART_SWITCH_MSECS_PRESSED_OFF) / 1000.0)) {
 					switch_state = SWITCH_SHUTTING_DOWN;
-#ifdef USE_LISPBM
-					lispif_process_shutdown();
-#endif
 				}
 			}
 			break;
