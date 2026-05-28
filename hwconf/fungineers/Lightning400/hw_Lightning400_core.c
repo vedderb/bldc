@@ -41,8 +41,7 @@ static const I2CConfig i2cfg = {
 		STD_DUTY_CYCLE
 };
 
-void hw_Thor_buzzer_init(void) {
-	//    //Add early latch on code here
+void hw_Lightning_buzzer_init(void) {
 	// ShutDown
 	palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(HW_SHUTDOWN_SENSE_GPIO, HW_SHUTDOWN_SENSE_PIN, PAL_MODE_INPUT_ANALOG);
@@ -70,7 +69,7 @@ static void beep_on(void)
 void hw_init_gpio(void) {
 
 	chMtxObjectInit(&shutdown_mutex);
-	
+
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -120,8 +119,6 @@ void hw_init_gpio(void) {
 	// ShutDown
 	palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(HW_SHUTDOWN_SENSE_GPIO, HW_SHUTDOWN_SENSE_PIN, PAL_MODE_INPUT_ANALOG);
-	//    //Add early latch on code here
-	HW_SHUTDOWN_HOLD_ON();
 
 	// ADC Pins
 	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
@@ -133,6 +130,7 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 7, PAL_MODE_INPUT_ANALOG);
 
+
 	//palSetPadMode(GPIOB, 0, PAL_MODE_INPUT_ANALOG);//This is now an LED GREEN
 	palSetPadMode(GPIOB, 1, PAL_MODE_INPUT_ANALOG);
 
@@ -142,12 +140,6 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
-
-	//Start the buzzer and beep it
-	pwm_servo_init((uint32_t)4000, (float)0.5f);
-	HW_BUZZER_ON();
-	chThdSleepMilliseconds(100);
-	HW_BUZZER_OFF();
 }
 
 void hw_setup_adc_channels(void) {
@@ -290,7 +282,7 @@ void hw_try_restore_i2c(void) {
  * hw_sample_shutdown_button - return false if shutdown is requested, true otherwise
  *
  * The button is level triggered, but shutdown is delayed:
- * 
+ *
  * After 200ms the board shuts off with a short 30ms beep if the motor isn't moving aka
  * the ERPM is below 100
  *
@@ -347,7 +339,7 @@ bool hw_sample_shutdown_button(void) {
 }
 
 
-float hw_Thor_get_temp(void) {
+float hw_Lightning_get_temp(void) {
 	float t1 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
 	float t3 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_3]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
 	float res = 0.0;
@@ -356,6 +348,6 @@ float hw_Thor_get_temp(void) {
 		res = t1;
 	} else {
 		res = t3;
-	} 
+	}
 	return res;
 }
