@@ -268,6 +268,12 @@ static bool lib_io_set_mode(VESC_PIN pin_vesc, VESC_PIN_MODE mode) {
 	bool is_analog;
 	bool res = false;
 
+#ifdef HW_OVERRIDE_PIN_PPM_BUZZER
+	if (pin_vesc == VESC_PIN_PPM) {
+		return true;
+	}
+#endif
+
 	if (get_gpio(pin_vesc, &gpio, &pin, &is_analog)) {
 		switch (mode) {
 		case VESC_PIN_MODE_INPUT_NOPULL:
@@ -315,6 +321,19 @@ static bool lib_io_write(VESC_PIN pin_vesc, int state) {
 	uint32_t pin;
 	bool is_analog;
 	bool res = false;
+
+#ifdef HW_OVERRIDE_PIN_PPM_BUZZER
+	HW_OVERRIDE_PIN_PPM_BUZZER();
+	if (pin_vesc == VESC_PIN_PPM) {
+		if (state == 1) {
+			HW_BUZZER_ON();
+		} else {
+			HW_BUZZER_OFF();
+		}
+
+		return true;
+	}
+#endif
 
 	if (get_gpio(pin_vesc, &gpio, &pin, &is_analog)) {
 		palWritePad(gpio, pin, state);

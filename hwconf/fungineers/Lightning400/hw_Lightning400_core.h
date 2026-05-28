@@ -17,13 +17,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_Thor301_Core_H_
-#define HW_Thor301_Core_H_
+#ifndef HW_Lightning400_Core_H_
+#define HW_Lightning400_Core_H_
 
 // HW properties
 #define HW_HAS_3_SHUNTS
 #define HW_HAS_PHASE_FILTERS
-//#define INVERTED_SHUNT_POLARITY //Not inverted but low side
+#define INVERTED_SHUNT_POLARITY
 #define SERVO_BUZZER
 
 // Macros
@@ -68,7 +68,7 @@
 #define ADC_IND_SHUTDOWN		10
 #define ADC_IND_TEMP_MOS		8
 #define ADC_IND_TEMP_MOS_2    	16
-#define ADC_IND_TEMP_MOS_3		13
+#define ADC_IND_TEMP_MOS_3		16
 #define ADC_IND_TEMP_MOTOR		9
 #define ADC_IND_VREFINT			12
 
@@ -85,7 +85,7 @@
 #define VIN_R2				    3300.0
 #endif
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN		20.0
+#define CURRENT_AMP_GAIN		11.8787
 #endif
 #ifndef CURRENT_SHUNT_RES
 #define CURRENT_SHUNT_RES		(0.00025)
@@ -95,7 +95,7 @@
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
 // NTC Termistors
 #define NTC_RES(adc_val)		(10000.0 / ((4095.0 / (float)adc_val) - 1.0))
-#define NTC_TEMP(adc_ind)		hw_Thor_get_temp()
+#define NTC_TEMP(adc_ind)		hw_Lightning_get_temp()
 
 #define NTC_RES_MOTOR(adc_val)		(10000.0 / ((4095.0 / (float)adc_val) - 1.0))
 #define NTC_TEMP_MOTOR(beta)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
@@ -164,8 +164,8 @@
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
 // SPI pins
-#define HW_SPI_DEV			    SPID3
-#define HW_SPI_GPIO_AF			GPIO_AF_SPI3
+//#define HW_SPI_DEV			    SPID3
+//#define HW_SPI_GPIO_AF			GPIO_AF_SPI3
 #define HW_SPI_PORT_NSS			GPIOA
 #define HW_SPI_PIN_NSS			4
 #define HW_SPI_PORT_SCK			GPIOC
@@ -175,7 +175,10 @@
 #define HW_SPI_PORT_MISO		GPIOC
 #define HW_SPI_PIN_MISO			11
 
-// I2C/SPI for IMU
+// HWSPI for IMU
+#define LSM6DS3_USE_SPI
+#define LSM6DS3_HWSPI_DEV		SPID3
+#define LSM6DS3_HWSPI_AF		GPIO_AF_SPI3
 #define LSM6DS3_NSS_GPIO		GPIOA
 #define LSM6DS3_NSS_PIN			15
 #define LSM6DS3_SCK_GPIO		GPIOB
@@ -213,15 +216,14 @@
 #define READ_HALL2()			palReadPad(HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2)
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
-// Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC		500.0
+#define HW_DEAD_TIME_NSEC		450.0
 
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE
 #define MCCONF_L_MIN_VOLTAGE			40.0		// Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			92.0	// Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE			145.0	// Maximum input voltage
 #endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
@@ -230,7 +232,7 @@
 #define MCCONF_FOC_F_ZV				    30000.0
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT		250.0	// The maximum absolute current above which a fault is generated
+#define MCCONF_L_MAX_ABS_CURRENT		150.0	// The maximum absolute current above which a fault is generated
 #endif
 #ifndef MCCONF_FOC_SAMPLE_V0_V7
 #define MCCONF_FOC_SAMPLE_V0_V7			false	// Run control loop in both v0 and v7 (requires phase shunts)
@@ -243,14 +245,21 @@
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-300.0, 300.0
-#define HW_LIM_CURRENT_IN		-150.0, 150.0
-#define HW_LIM_CURRENT_ABS		0.0, 315.0
-#define HW_LIM_VIN			    38.0, 97.0
+#define HW_LIM_CURRENT			-400.0, 400.0
+#define HW_LIM_CURRENT_IN		-250.0, 250.0
+#define HW_LIM_CURRENT_ABS		0.0, 480.0
+#define HW_LIM_VIN			    38.0, 147.0
 #define HW_LIM_ERPM			    -200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
-#define HW_LIM_DUTY_MAX			0.0, 0.95
+#define HW_LIM_DUTY_MAX			0.0, 1.0
 #define HW_LIM_TEMP_FET			-40.0, 100.0
+
+// Functions
+float hw_Lightning_get_temp(void);
+bool hw_sample_shutdown_button(void);
+void hw_Lightning_buzzer_init(void);
+
+#define HW_EARLY_INIT()    hw_Lightning_buzzer_init();
 
 // Buzzer override for packages
 #define HW_OVERRIDE_PIN_PPM_BUZZER()	if (!pwm_servo_is_running()) {\
@@ -259,11 +268,4 @@
 #define HW_BUZZER_ON()    				pwm_servo_set_duty(0.5)
 #define HW_BUZZER_OFF()  				pwm_servo_set_duty(0.0)
 
-// Functions
-float hw_Thor_get_temp(void);
-bool hw_sample_shutdown_button(void);
-void hw_Thor_buzzer_init(void);
-
-#define HW_EARLY_INIT()    hw_Thor_buzzer_init()
-
-#endif /* HW_Thor301_Core_H_ */
+#endif /* HW_Lightning400_Core_H_ */

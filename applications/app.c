@@ -82,6 +82,7 @@ void app_set_configuration(app_configuration *conf) {
 	imu_init(&conf->imu_conf);
 
 	if (app_changed) {
+#ifndef HW_OVERRIDE_PIN_PPM_BUZZER
 		if (appconf.app_to_use != APP_PPM &&
 				appconf.app_to_use != APP_PPM_UART &&
 				appconf.servo_out_enable) {
@@ -90,10 +91,13 @@ void app_set_configuration(app_configuration *conf) {
 		} else {
 			pwm_servo_stop();
 		}
+#endif
 
 		switch (appconf.app_to_use) {
 		case APP_PPM:
+#ifndef HW_OVERRIDE_PIN_PPM_BUZZER
 			app_ppm_start();
+#endif
 			break;
 
 		case APP_ADC:
@@ -107,7 +111,9 @@ void app_set_configuration(app_configuration *conf) {
 
 		case APP_PPM_UART:
 			hw_stop_i2c();
+#ifndef HW_OVERRIDE_PIN_PPM_BUZZER
 			app_ppm_start();
+#endif
 			app_uartcomm_start(UART_PORT_COMM_HEADER);
 			break;
 
