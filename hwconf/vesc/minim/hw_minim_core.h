@@ -312,7 +312,7 @@
 
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
-#define HW_LIM_DUTY_MAX			0.0, 0.99
+#define HW_LIM_DUTY_MAX			0.0, 1.0
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
 // Functions
