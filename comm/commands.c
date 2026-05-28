@@ -1937,6 +1937,10 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
     // oscillate. At the moment we leave the responsibility of setting sane values
     // to the user.
 
+#if !MCCONF_L_SLOW_ABS_OVERCURRENT
+    mcconf->l_slow_abs_current = false;
+#endif
+
 #ifdef HW_LIM_CURRENT
 	utils_truncate_number(&mcconf->l_current_max, HW_LIM_CURRENT);
 	utils_truncate_number(&mcconf->l_current_min, HW_LIM_CURRENT);
