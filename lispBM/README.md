@@ -4186,7 +4186,7 @@ The following selection of app and motor parameters can be read and set from Lis
 'pas-current-scaling    ; PAS current scaling (Added in FW 6.05)
 
 ; VESC Remote App (Added in firmware 7.00)
-'vr_ctrl_type           ; Control Type
+'vr-ctrl-type           ; Control Type
                         ;    0: NONE
                         ;    1: CURRENT
                         ;    2: CURRENT_NOREV
