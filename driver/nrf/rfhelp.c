@@ -92,10 +92,22 @@ void rfhelp_stop(void) {
 }
 
 void rfhelp_update_conf(nrf_config *conf) {
-	nrf_conf = *conf;
-
 	if (init_done) {
-		rfhelp_restart();
+		if (conf->address[0] != nrf_conf.address[0] ||
+				conf->address[1] != nrf_conf.address[1] ||
+				conf->address[2] != nrf_conf.address[2] ||
+				conf->channel != nrf_conf.channel ||
+				conf->crc_type != nrf_conf.crc_type ||
+				conf->power != nrf_conf.power ||
+				conf->retries != nrf_conf.retries ||
+				conf->retry_delay != nrf_conf.retry_delay ||
+				conf->send_crc_ack != nrf_conf.send_crc_ack ||
+				conf->speed != nrf_conf.speed) {
+			nrf_conf = *conf;
+			rfhelp_restart();
+		}
+	} else {
+		nrf_conf = *conf;
 	}
 }
 
