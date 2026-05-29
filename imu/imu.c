@@ -109,9 +109,6 @@ void imu_init(imu_config *set) {
 		biquad_config(&gyro_z_biquad, BQ_LOWPASS, fc);
 	}
 
-
-	imu_ready = false;
-
 	if (!imu_changed) {
 		return;
 	}

@@ -57,6 +57,15 @@ void app_set_configuration(app_configuration *conf) {
 		app_changed = appconf.servo_out_enable != conf->servo_out_enable;
 	}
 
+#if CAN_ENABLE
+	if (conf->can_baud_rate != appconf.can_baud_rate)  {
+		comm_can_set_baud(conf->can_baud_rate, 0);
+	}
+#endif
+
+	bool uart_changed = conf->app_uart_baudrate != appconf.app_uart_baudrate ||
+			conf->permanent_uart_enabled != appconf.permanent_uart_enabled;
+
 	appconf = *conf;
 
 	if (app_changed) {
@@ -74,10 +83,6 @@ void app_set_configuration(app_configuration *conf) {
 	if (!conf_general_permanent_nrf_found) {
 		nrf_driver_stop();
 	}
-
-#if CAN_ENABLE
-	comm_can_set_baud(conf->can_baud_rate, 0);
-#endif
 
 	imu_init(&conf->imu_conf);
 
@@ -158,8 +163,12 @@ void app_set_configuration(app_configuration *conf) {
 	app_ppm_configure(&appconf.app_ppm_conf);
 	app_adc_configure(&appconf.app_adc_conf);
 	app_pas_configure(&appconf.app_pas_conf);
-	app_uartcomm_configure(appconf.app_uart_baudrate, true, UART_PORT_COMM_HEADER);
-	app_uartcomm_configure(0, appconf.permanent_uart_enabled, UART_PORT_BUILTIN);
+
+	if (uart_changed) {
+		app_uartcomm_configure(appconf.app_uart_baudrate, true, UART_PORT_COMM_HEADER);
+		app_uartcomm_configure(0, appconf.permanent_uart_enabled, UART_PORT_BUILTIN);
+	}
+
 	app_nunchuk_configure(&appconf.app_chuk_conf);
 
 #ifdef APP_CUSTOM_TO_USE
