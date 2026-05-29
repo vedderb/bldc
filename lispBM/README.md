@@ -4191,24 +4191,24 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    1: CURRENT
                         ;    2: CURRENT_NOREV
                         ;    3: CURRENT_BIDIRECTIONAL
-'vr_hyst                ; Input deadband, range 0 to 1
-'vr_ramp_time_pos       ; Positive ramping time in seconds
-'vr_ramp_time_neg       ; Negative ramping time in seconds
-'vr_cc_erpm_per_s       ; Cruise control ERPM per second throttle ramp speed
-'vr_throttle_exp        ; Curve gain for the throttle. 0 means linear.
-'vr_throttle_exp_brake  ; Curve gain for the throttle when braking
-'vr_throttle_exp_mode   ; Throttle curve mode
+'vr-hyst                ; Input deadband, range 0 to 1
+'vr-ramp-time-pos       ; Positive ramping time in seconds
+'vr-ramp-time-neg       ; Negative ramping time in seconds
+'vr-cc-erpm-per-s       ; Cruise control ERPM per second throttle ramp speed
+'vr-throttle-exp        ; Curve gain for the throttle. 0 means linear.
+'vr-throttle-exp-brake  ; Curve gain for the throttle when braking
+'vr-throttle-exp-mode   ; Throttle curve mode
                         ;    0: Exponential
                         ;    1: Natural
                         ;    2: Polynomial
-'vr_multi_esc           ; Control multiple ESCs over CAN
-'vr_tc                  ; Traction control (multi-ESC only)
-'vr_tc_max_diff         ; Traction control max ERPM diff
-'vr_use_smart_rev       ; Use smart reverse when holding full brake
-'vr_smart_rev_max_duty  ; Maximum duty cycle for smart reverse
-'vr_smart_rev_ramp_time ; Smart reverse ramp time in seconds
-'vr_coast_brake_level   ; Brake to apply when coasting
-'vr_coast_brake_ramp_time ; Time to ramp up coasting brake in seconds
+'vr-multi-esc           ; Control multiple ESCs over CAN
+'vr-tc                  ; Traction control (multi-ESC only)
+'vr-tc-max-diff         ; Traction control max ERPM diff
+'vr-use-smart-rev       ; Use smart reverse when holding full brake
+'vr-smart-rev-max-duty  ; Maximum duty cycle for smart reverse
+'vr-smart-rev-ramp-time ; Smart reverse ramp time in seconds
+'vr-coast-brake-level   ; Brake to apply when coasting
+'vr-coast-brake-ramp-time ; Time to ramp up coasting brake in seconds
 
 ; Express settings (Added in firmware 6.05)
 'controller-id          ; VESC CAN ID
