@@ -286,4 +286,7 @@
 float hw100_300_get_temp(void);
 bool hw_sample_shutdown_button(void);
 
+// Custom app: PPM throttle + ADC2 brake + reverse button
+#define APP_CUSTOM_TO_USE		"applications/app_ppm_brake.c"
+
 #endif /* HW_MKSESC_100_300_HP_H_ */
