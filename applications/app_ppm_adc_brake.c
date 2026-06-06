@@ -142,6 +142,10 @@ static volatile float dbg_throttle = 0.0;  // throttle after gain (0..1)
 static volatile float dbg_brake = 0.0;     // brake after gain (0..1)
 static volatile float dbg_cmd = 0.0;       // signed ramped output (-brake..+drive)
 
+// Experiment-plot streaming (toggled via the "ppm_adc_plot" terminal command).
+static volatile bool  plot_enabled = false;
+static volatile float plot_sample = 0.0;   // plot x-axis (seconds)
+
 static void servo_func(void) {
 	// servodec interrupt callback - nothing to do here.
 }
@@ -169,6 +173,31 @@ static void terminal_dbg(int argc, const char **argv) {
 			USE_ADC1_GAIN, mc_interface_get_fault());
 }
 
+// Terminal command: start/stop streaming live curves to VESC Tool's
+// Realtime Data -> Experiment plot. "ppm_adc_plot 1" on, "ppm_adc_plot 0" off,
+// no arg = toggle. Self-contained: no shared-code (app_adc/commands) changes.
+static void terminal_plot(int argc, const char **argv) {
+	bool en = !plot_enabled;            // toggle by default
+	if (argc == 2) {
+		en = (argv[1][0] != '0');       // "0" -> off, anything else -> on
+	}
+
+	if (en && !plot_enabled) {
+		commands_init_plot("Time (s)", "Value");
+		commands_plot_add_graph("ADC1 gain V"); // graph 0
+		commands_plot_add_graph("ADC2 brake V");// graph 1
+		commands_plot_add_graph("gain");        // graph 2
+		commands_plot_add_graph("throttle");    // graph 3
+		commands_plot_add_graph("brake");       // graph 4
+		plot_sample = 0.0;
+	}
+
+	plot_enabled = en;
+	commands_printf(en ?
+			"ppm_adc plot: ON  (open Realtime Data -> Experiment)" :
+			"ppm_adc plot: OFF");
+}
+
 static inline bool read_button(ioportid_t port, int pin) {
 	bool b = palReadPad(port, pin);
 #if BUTTONS_ACTIVE_LOW
@@ -194,6 +223,11 @@ void app_custom_start(void) {
 			"Print live PPM/ADC1/ADC2/gain/brake/throttle for app_ppm_adc_brake",
 			0,
 			terminal_dbg);
+	terminal_register_command_callback(
+			"ppm_adc_plot",
+			"Stream ADC1/ADC2/gain/throttle/brake to the Experiment plot (1=on 0=off, toggle if none)",
+			"[0/1]",
+			terminal_plot);
 
 	stop_now = false;
 	// Reset all persistent control state so a (re)start never acts on stale values.
@@ -203,6 +237,7 @@ void app_custom_start(void) {
 	cc_was_pid = false;
 	input_filtered_brake = 0.0;
 	input_filtered_gain = 0.0;
+	plot_enabled = false;
 	// Set is_running here (not just in the thread) so a configure() call that
 	// arrives right after start() applies the servo pulse options immediately.
 	is_running = true;
@@ -213,6 +248,7 @@ void app_custom_start(void) {
 void app_custom_stop(void) {
 	servodec_stop();
 	terminal_unregister_callback(terminal_dbg);
+	terminal_unregister_callback(terminal_plot);
 
 	stop_now = true;
 	while (is_running) {
@@ -339,6 +375,26 @@ static THD_FUNCTION(ppm_adc_brake_thread, arg) {
 		dbg_throttle = throttle;
 		dbg_brake = brake;
 		dbg_cmd = cmd;
+
+		// Stream live curves to the VESC Tool Experiment plot when enabled.
+		// Throttled to ~20 Hz (loop is 100 Hz) to keep the comm link light.
+		if (plot_enabled) {
+			static int plot_div = 0;
+			if (++plot_div >= 5) {
+				plot_div = 0;
+				commands_plot_set_graph(0);
+				commands_send_plot_points(plot_sample, ADC_VOLTS(ADC_IND_EXT));
+				commands_plot_set_graph(1);
+				commands_send_plot_points(plot_sample, ADC_VOLTS(ADC_IND_EXT2));
+				commands_plot_set_graph(2);
+				commands_send_plot_points(plot_sample, gain);
+				commands_plot_set_graph(3);
+				commands_send_plot_points(plot_sample, throttle);
+				commands_plot_set_graph(4);
+				commands_send_plot_points(plot_sample, brake);
+				plot_sample += 0.05;
+			}
+		}
 
 		// ---- Safe-start arming (PPM throttle only) ----
 		// Counts up ONLY while the throttle is idle; reset to 0 on boot/fault.
