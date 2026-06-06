@@ -110,7 +110,16 @@
 // ADC1 gain knob. 1 = throttle/brake scaled by ADC1 (the intended behaviour).
 // Set to 0 to bypass it (gain forced to 1.0) for bench-testing PPM-only when
 // nothing is wired to ADC1 - otherwise a low/unwired ADC1 zeroes the throttle.
+#ifndef USE_ADC1_GAIN
 #define USE_ADC1_GAIN			1
+#endif
+
+// ADC2 brake. 1 = proportional brake from ADC2. Set to 0 when ADC2 is not wired
+// so a FLOATING brake pin can't trigger spurious braking (brake has priority and
+// would otherwise block the throttle and inject brake current at standstill).
+#ifndef USE_ADC2_BRAKE
+#define USE_ADC2_BRAKE			1
+#endif
 
 #define MIN_MS_WITHOUT_POWER	500.0
 #define FILTER_SAMPLES			5
@@ -119,7 +128,7 @@
 
 // Threads
 static THD_FUNCTION(ppm_adc_brake_thread, arg);
-static THD_WORKING_AREA(ppm_adc_brake_thread_wa, 1024);
+static THD_WORKING_AREA(ppm_adc_brake_thread_wa, 2048);
 
 // Private variables
 static volatile bool stop_now = true;
@@ -290,9 +299,12 @@ static THD_FUNCTION(ppm_adc_brake_thread, arg) {
 		const volatile ppm_config *pconf = &appconf.app_ppm_conf;
 		const volatile adc_config *aconf = &appconf.app_adc_conf;
 
-		// ---- 1) Throttle from PPM (forward half only) ----
-		float throttle = servodec_get_servo(0); // -1.0 .. 1.0
-		utils_truncate_number(&throttle, 0.0, 1.0); // throttle only, min input -> 0
+		// ---- 1) Throttle from PPM ----
+		// servodec maps pulse_start..pulse_end -> -1..1. Use the FULL travel as
+		// 0..1 throttle. (The old truncate(0,1) discarded the lower half, so the
+		// throttle only responded past mid-stick - "press deep".)
+		float throttle = (servodec_get_servo(0) + 1.0) * 0.5;
+		utils_truncate_number(&throttle, 0.0, 1.0);
 
 		// Deadband + throttle curve on the RAW stick (PPM-page settings). Done
 		// before the ADC1 gain so the curve shape and the safe-start idle check
@@ -322,7 +334,9 @@ static THD_FUNCTION(ppm_adc_brake_thread, arg) {
 		throttle *= gain; // master gain scales the (curved) throttle
 
 		// ---- 2) Brake from ADC2 (ADC-page voltage2_start/end), also gain-scaled ----
-		float brake = ADC_VOLTS(ADC_IND_EXT2);
+		float brake = 0.0;
+#if USE_ADC2_BRAKE
+		brake = ADC_VOLTS(ADC_IND_EXT2);
 		UTILS_LP_MOVING_AVG_APPROX(input_filtered_brake, brake, FILTER_SAMPLES);
 		if (aconf->use_filter) {
 			brake = input_filtered_brake;
@@ -334,6 +348,7 @@ static THD_FUNCTION(ppm_adc_brake_thread, arg) {
 		}
 
 		brake *= gain; // scale brake by the same ADC1 knob
+#endif
 
 		// ---- 3) Buttons ----
 		bool rev_button = read_button(REV_BUTTON_PORT, REV_BUTTON_PIN);
