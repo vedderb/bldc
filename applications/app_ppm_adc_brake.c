@@ -112,8 +112,8 @@
 #define MAX_CAN_AGE				0.1
 
 // Threads
-static THD_FUNCTION(ppm_brake_thread, arg);
-static THD_WORKING_AREA(ppm_brake_thread_wa, 1024);
+static THD_FUNCTION(ppm_adc_brake_thread, arg);
+static THD_WORKING_AREA(ppm_adc_brake_thread_wa, 1024);
 
 // Private variables
 static volatile bool stop_now = true;
@@ -164,8 +164,8 @@ void app_custom_start(void) {
 	// Set is_running here (not just in the thread) so a configure() call that
 	// arrives right after start() applies the servo pulse options immediately.
 	is_running = true;
-	chThdCreateStatic(ppm_brake_thread_wa, sizeof(ppm_brake_thread_wa),
-			NORMALPRIO, ppm_brake_thread, NULL);
+	chThdCreateStatic(ppm_adc_brake_thread_wa, sizeof(ppm_adc_brake_thread_wa),
+			NORMALPRIO, ppm_adc_brake_thread, NULL);
 }
 
 void app_custom_stop(void) {
@@ -192,10 +192,10 @@ void app_custom_configure(app_configuration *conf) {
 	ms_without_power = 0.0;
 }
 
-static THD_FUNCTION(ppm_brake_thread, arg) {
+static THD_FUNCTION(ppm_adc_brake_thread, arg) {
 	(void)arg;
 
-	chRegSetThreadName("App PPM+Brake");
+	chRegSetThreadName("App PPM+ADC Brake");
 	is_running = true;
 
 	const float sleep_time_s = 0.01; // 10 ms loop
