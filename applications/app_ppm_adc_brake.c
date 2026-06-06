@@ -143,6 +143,7 @@ static volatile float output_ramp = 0.0;        // ramped signed output (-brake.
 static volatile systime_t last_ramp_time = 0;   // timestamp for the ramp dt
 static volatile bool  cc_was_pid = false;        // cruise-control latch
 static volatile float cc_pid_rpm = 0.0;          // cruise-control held rpm
+static volatile bool  ppm_rx = false;            // set by servo_func on each PPM pulse
 
 // Latest computed values, exposed via the "ppm_adc_dbg" terminal command.
 static volatile float dbg_ppm = 0.0;       // raw PPM servo value (-1..1)
@@ -150,13 +151,16 @@ static volatile float dbg_gain = 0.0;      // ADC1 gain (0..1)
 static volatile float dbg_throttle = 0.0;  // throttle after gain (0..1)
 static volatile float dbg_brake = 0.0;     // brake after gain (0..1)
 static volatile float dbg_cmd = 0.0;       // signed ramped output (-brake..+drive)
+static volatile bool  dbg_armed = false;   // safe-start armed (drive allowed by safe-start)
+static volatile bool  dbg_ppm_ok = false;  // valid PPM signal present this loop
 
 // Experiment-plot streaming (toggled via the "ppm_adc_plot" terminal command).
 static volatile bool  plot_enabled = false;
 static volatile float plot_sample = 0.0;   // plot x-axis (seconds)
 
 static void servo_func(void) {
-	// servodec interrupt callback - nothing to do here.
+	// Called by servodec on each decoded PPM pulse (interrupt context).
+	ppm_rx = true;
 }
 
 // Terminal command: prints the LIVE values the control loop is actually using.
@@ -177,9 +181,15 @@ static void terminal_dbg(int argc, const char **argv) {
 	commands_printf("gain=%.3f  throttle=%.3f  brake=%.3f  cmd=%.3f",
 			(double)dbg_gain, (double)dbg_throttle,
 			(double)dbg_brake, (double)dbg_cmd);
-	commands_printf("ms_idle=%.0f (>=%.0f to drive)  USE_ADC1_GAIN=%d  fault=%d",
-			(double)ms_without_power, (double)MIN_MS_WITHOUT_POWER,
-			USE_ADC1_GAIN, mc_interface_get_fault());
+	commands_printf("PPM signal=%s  safe-start armed=%s  ms_idle=%.0f/%.0f",
+			dbg_ppm_ok ? "OK" : "LOST",
+			dbg_armed ? "YES" : "NO (blocked)",
+			(double)ms_without_power, (double)MIN_MS_WITHOUT_POWER);
+	bool can_drive = dbg_ppm_ok && dbg_armed && !app_is_output_disabled();
+	commands_printf("can drive now=%s  output_disabled=%d  fault=%d  [GAIN=%d BRAKE=%d]",
+			can_drive ? "YES" : "NO",
+			app_is_output_disabled(), mc_interface_get_fault(),
+			USE_ADC1_GAIN, USE_ADC2_BRAKE);
 }
 
 // Terminal command: start/stop streaming live curves to VESC Tool's
@@ -193,11 +203,11 @@ static void terminal_plot(int argc, const char **argv) {
 
 	if (en && !plot_enabled) {
 		commands_init_plot("Time (s)", "Value");
-		commands_plot_add_graph("ADC1 gain V"); // graph 0
-		commands_plot_add_graph("ADC2 brake V");// graph 1
-		commands_plot_add_graph("gain");        // graph 2
-		commands_plot_add_graph("throttle");    // graph 3
-		commands_plot_add_graph("brake");       // graph 4
+		commands_plot_add_graph("ADC1 V");      // graph 0
+		commands_plot_add_graph("ADC2 V");      // graph 1
+		commands_plot_add_graph("throttle");    // graph 2
+		commands_plot_add_graph("cmd");         // graph 3 (+drive / -brake)
+		commands_plot_add_graph("armed");       // graph 4 (1=safe-start armed)
 		plot_sample = 0.0;
 	}
 
@@ -247,6 +257,7 @@ void app_custom_start(void) {
 	input_filtered_brake = 0.0;
 	input_filtered_gain = 0.0;
 	plot_enabled = false;
+	ppm_rx = false;
 	// Set is_running here (not just in the thread) so a configure() call that
 	// arrives right after start() applies the servo pulse options immediately.
 	is_running = true;
@@ -299,11 +310,24 @@ static THD_FUNCTION(ppm_adc_brake_thread, arg) {
 		const volatile ppm_config *pconf = &appconf.app_ppm_conf;
 		const volatile adc_config *aconf = &appconf.app_adc_conf;
 
+		// Feed the global timeout on every received PPM pulse (like the stock PPM
+		// app). Without this, if the global timeout ever latches during the boot/
+		// arming window our drive gate bails to brake WITHOUT resetting it, so it
+		// stays latched until an external timeout_reset() (VESC Tool COMM_ALIVE)
+		// -- the "only works after connecting VESC Tool" bug.
+		if (ppm_rx) {
+			ppm_rx = false;
+			timeout_reset();
+		}
+
 		// ---- 1) Throttle from PPM ----
 		// servodec maps pulse_start..pulse_end -> -1..1. Use the FULL travel as
 		// 0..1 throttle. (The old truncate(0,1) discarded the lower half, so the
 		// throttle only responded past mid-stick - "press deep".)
-		float throttle = (servodec_get_servo(0) + 1.0) * 0.5;
+		// With no valid PPM signal force 0 (servo_pos defaults to 0 -> would map
+		// to 0.5); this also lets safe-start arm during the no-signal boot window.
+		bool ppm_signal_ok = servodec_get_time_since_update() <= timeout_get_timeout_msec();
+		float throttle = ppm_signal_ok ? (servodec_get_servo(0) + 1.0) * 0.5 : 0.0;
 		utils_truncate_number(&throttle, 0.0, 1.0);
 
 		// Deadband + throttle curve on the RAW stick (PPM-page settings). Done
@@ -384,33 +408,6 @@ static THD_FUNCTION(ppm_adc_brake_thread, arg) {
 		}
 		float cmd = output_ramp;
 
-		// Expose live values for the ppm_adc_dbg terminal command
-		dbg_ppm = servodec_get_servo(0);
-		dbg_gain = gain;
-		dbg_throttle = throttle;
-		dbg_brake = brake;
-		dbg_cmd = cmd;
-
-		// Stream live curves to the VESC Tool Experiment plot when enabled.
-		// Throttled to ~20 Hz (loop is 100 Hz) to keep the comm link light.
-		if (plot_enabled) {
-			static int plot_div = 0;
-			if (++plot_div >= 5) {
-				plot_div = 0;
-				commands_plot_set_graph(0);
-				commands_send_plot_points(plot_sample, ADC_VOLTS(ADC_IND_EXT));
-				commands_plot_set_graph(1);
-				commands_send_plot_points(plot_sample, ADC_VOLTS(ADC_IND_EXT2));
-				commands_plot_set_graph(2);
-				commands_send_plot_points(plot_sample, gain);
-				commands_plot_set_graph(3);
-				commands_send_plot_points(plot_sample, throttle);
-				commands_plot_set_graph(4);
-				commands_send_plot_points(plot_sample, brake);
-				plot_sample += 0.05;
-			}
-		}
-
 		// ---- Safe-start arming (PPM throttle only) ----
 		// Counts up ONLY while the throttle is idle; reset to 0 on boot/fault.
 		// Driving does NOT reset it (matches the stock apps), so once you've held
@@ -422,6 +419,36 @@ static THD_FUNCTION(ppm_adc_brake_thread, arg) {
 		// Idle = stick released (pre-gain), so the gain knob can't fake idle.
 		if (throttle_stick < 0.001) {
 			ms_without_power += 1000.0 * sleep_time_s;
+		}
+		dbg_ppm_ok = ppm_signal_ok;
+		dbg_armed = !(ms_without_power < MIN_MS_WITHOUT_POWER && pconf->safe_start);
+
+		// Expose live values for the ppm_adc_dbg terminal command
+		dbg_ppm = servodec_get_servo(0);
+		dbg_gain = gain;
+		dbg_throttle = throttle;
+		dbg_brake = brake;
+		dbg_cmd = cmd;
+
+		// Stream live curves to the VESC Tool Experiment plot when enabled.
+		// Throttled to ~20 Hz (loop is 100 Hz) to keep the comm link light.
+		// Graphs: ADC1 V, ADC2 V, throttle, cmd (+drive/-brake), armed (0/1).
+		if (plot_enabled) {
+			static int plot_div = 0;
+			if (++plot_div >= 5) {
+				plot_div = 0;
+				commands_plot_set_graph(0);
+				commands_send_plot_points(plot_sample, ADC_VOLTS(ADC_IND_EXT));
+				commands_plot_set_graph(1);
+				commands_send_plot_points(plot_sample, ADC_VOLTS(ADC_IND_EXT2));
+				commands_plot_set_graph(2);
+				commands_send_plot_points(plot_sample, throttle);
+				commands_plot_set_graph(3);
+				commands_send_plot_points(plot_sample, cmd);
+				commands_plot_set_graph(4);
+				commands_send_plot_points(plot_sample, dbg_armed ? 1.0 : 0.0);
+				plot_sample += 0.05;
+			}
 		}
 
 		// Output disabled by another part of the firmware (e.g. detection)
