@@ -90,6 +90,7 @@
 #include "comm_can.h"
 #include "hw.h"
 #include "commands.h"
+#include "terminal.h"
 #include "timeout.h"
 
 #include <math.h>
@@ -105,6 +106,11 @@
 
 // Set to 1 to enable cruise-control (hold CC button with no throttle -> hold rpm)
 #define ENABLE_CRUISE_CONTROL	1
+
+// ADC1 gain knob. 1 = throttle/brake scaled by ADC1 (the intended behaviour).
+// Set to 0 to bypass it (gain forced to 1.0) for bench-testing PPM-only when
+// nothing is wired to ADC1 - otherwise a low/unwired ADC1 zeroes the throttle.
+#define USE_ADC1_GAIN			1
 
 #define MIN_MS_WITHOUT_POWER	500.0
 #define FILTER_SAMPLES			5
@@ -129,8 +135,38 @@ static volatile systime_t last_ramp_time = 0;   // timestamp for the ramp dt
 static volatile bool  cc_was_pid = false;        // cruise-control latch
 static volatile float cc_pid_rpm = 0.0;          // cruise-control held rpm
 
+// Latest computed values, exposed via the "ppm_adc_dbg" terminal command.
+static volatile float dbg_ppm = 0.0;       // raw PPM servo value (-1..1)
+static volatile float dbg_gain = 0.0;      // ADC1 gain (0..1)
+static volatile float dbg_throttle = 0.0;  // throttle after gain (0..1)
+static volatile float dbg_brake = 0.0;     // brake after gain (0..1)
+static volatile float dbg_cmd = 0.0;       // signed ramped output (-brake..+drive)
+
 static void servo_func(void) {
 	// servodec interrupt callback - nothing to do here.
+}
+
+// Terminal command: prints the LIVE values the control loop is actually using.
+// VESC Tool's ADC RT tab reads the dormant ADC-app telemetry (0 when a custom
+// app runs), so use this instead to see the real ADC pins. Type: ppm_adc_dbg
+static void terminal_dbg(int argc, const char **argv) {
+	(void)argc; (void)argv;
+	commands_printf("--- app_ppm_adc_brake ---");
+	commands_printf("PPM servo      : %.3f", (double)dbg_ppm);
+	commands_printf("ADC1 gain pin  : %.3f V   (range %.2f..%.2f V)",
+			(double)ADC_VOLTS(ADC_IND_EXT),
+			(double)appconf.app_adc_conf.voltage_start,
+			(double)appconf.app_adc_conf.voltage_end);
+	commands_printf("ADC2 brake pin : %.3f V   (range %.2f..%.2f V)",
+			(double)ADC_VOLTS(ADC_IND_EXT2),
+			(double)appconf.app_adc_conf.voltage2_start,
+			(double)appconf.app_adc_conf.voltage2_end);
+	commands_printf("gain=%.3f  throttle=%.3f  brake=%.3f  cmd=%.3f",
+			(double)dbg_gain, (double)dbg_throttle,
+			(double)dbg_brake, (double)dbg_cmd);
+	commands_printf("ms_idle=%.0f (>=%.0f to drive)  USE_ADC1_GAIN=%d  fault=%d",
+			(double)ms_without_power, (double)MIN_MS_WITHOUT_POWER,
+			USE_ADC1_GAIN, mc_interface_get_fault());
 }
 
 static inline bool read_button(ioportid_t port, int pin) {
@@ -153,6 +189,12 @@ void app_custom_start(void) {
 	// Start PPM/servo decoding on the ICU pin
 	servodec_init(servo_func);
 
+	terminal_register_command_callback(
+			"ppm_adc_dbg",
+			"Print live PPM/ADC1/ADC2/gain/brake/throttle for app_ppm_adc_brake",
+			0,
+			terminal_dbg);
+
 	stop_now = false;
 	// Reset all persistent control state so a (re)start never acts on stale values.
 	ms_without_power = 0.0;
@@ -170,6 +212,7 @@ void app_custom_start(void) {
 
 void app_custom_stop(void) {
 	servodec_stop();
+	terminal_unregister_callback(terminal_dbg);
 
 	stop_now = true;
 	while (is_running) {
@@ -225,7 +268,10 @@ static THD_FUNCTION(ppm_adc_brake_thread, arg) {
 
 		// ---- 1b) ADC1 = 0..1 gain knob (ADC-page voltage_start/end mapping) ----
 		// utils_map() does NOT clamp on its own, so the truncate is the 0..1 cap.
-		float gain = ADC_VOLTS(ADC_IND_EXT);
+		// With USE_ADC1_GAIN=0 the gain is forced to 1.0 (bench-test PPM-only).
+		float gain = 1.0;
+#if USE_ADC1_GAIN
+		gain = ADC_VOLTS(ADC_IND_EXT);
 		UTILS_LP_MOVING_AVG_APPROX(input_filtered_gain, gain, FILTER_SAMPLES);
 		if (aconf->use_filter) {
 			gain = input_filtered_gain;
@@ -235,6 +281,7 @@ static THD_FUNCTION(ppm_adc_brake_thread, arg) {
 		if (aconf->voltage_inverted) {
 			gain = 1.0 - gain;
 		}
+#endif
 
 		throttle *= gain; // master gain scales the (curved) throttle
 
@@ -285,6 +332,13 @@ static THD_FUNCTION(ppm_adc_brake_thread, arg) {
 			output_ramp = target;
 		}
 		float cmd = output_ramp;
+
+		// Expose live values for the ppm_adc_dbg terminal command
+		dbg_ppm = servodec_get_servo(0);
+		dbg_gain = gain;
+		dbg_throttle = throttle;
+		dbg_brake = brake;
+		dbg_cmd = cmd;
 
 		// ---- Safe-start arming (PPM throttle only) ----
 		// Counts up ONLY while the throttle is idle; reset to 0 on boot/fault.
