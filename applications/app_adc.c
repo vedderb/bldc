@@ -113,7 +113,10 @@ float app_adc_get_decoded_level(void) {
 }
 
 float app_adc_get_voltage(void) {
-	return read_voltage;
+	// When the ADC app itself is not running (e.g. a custom app is active), fall
+	// back to the live ADC pin so VESC Tool's ADC readout still shows the real
+	// voltage instead of a stale 0.
+	return is_running ? read_voltage : ADC_VOLTS(ADC_IND_EXT);
 }
 
 float app_adc_get_decoded_level2(void) {
@@ -121,7 +124,11 @@ float app_adc_get_decoded_level2(void) {
 }
 
 float app_adc_get_voltage2(void) {
+#ifdef ADC_IND_EXT2
+	return is_running ? read_voltage2 : ADC_VOLTS(ADC_IND_EXT2);
+#else
 	return read_voltage2;
+#endif
 }
 
 void app_adc_detach_adc(int detach) {
