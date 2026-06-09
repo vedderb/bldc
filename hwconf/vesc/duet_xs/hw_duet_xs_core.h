@@ -295,6 +295,22 @@
 #define LSM6DS3_SCL_GPIO		GPIOB
 #define LSM6DS3_SCL_PIN			8
 
+// TODO for next version
+// Also make it so that it tries HWSPI first and falls back
+// to I2C if it does not work to maintain backwards compatibility
+// with old hardware.
+//#define LSM6DS3_USE_SPI
+//#define LSM6DS3_HWSPI_DEV		SPID3
+//#define LSM6DS3_HWSPI_AF		GPIO_AF_SPI3
+//#define LSM6DS3_NSS_GPIO		GPIOB
+//#define LSM6DS3_NSS_PIN			12
+//#define LSM6DS3_SCK_GPIO		GPIOC
+//#define LSM6DS3_SCK_PIN			10
+//#define LSM6DS3_MOSI_GPIO		GPIOC
+//#define LSM6DS3_MOSI_PIN		12
+//#define LSM6DS3_MISO_GPIO		GPIOC
+//#define LSM6DS3_MISO_PIN		11
+
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
 #define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
