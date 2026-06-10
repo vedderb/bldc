@@ -70,6 +70,7 @@
  */
 //#include			"mcconf_default.h"
 //#include 			"mcconf_china_60kv.h"
+#include			"RTT_motor.h"
 
 /*
  * Select default user app configuration

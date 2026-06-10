@@ -142,11 +142,7 @@ else
   LDFLAGS  += -mno-thumb-interwork
 endif
 
-ifeq ($(OS),Windows_NT)
-  DEPPATH = build\$(PROJECT)\.dep
-else
-  DEPPATH = build/$(PROJECT)/.dep
-endif
+DEPPATH = build/$(PROJECT)/.dep
 
 # Generate dependency information
 ASFLAGS  += -MD -MP -MF $(DEPPATH)/$(@F).d
@@ -318,11 +314,7 @@ clean:
 #
 # Include the dependency files, should be the last of the makefile
 #
-ifeq ($(OS),Windows_NT)
-  $(shell cmd /C if not exist "$(DEPPATH)" mkdir "$(DEPPATH)")
-else
-  $(shell mkdir $(DEPPATH) 2>/dev/null)
-endif
+$(shell mkdir -p $(DEPPATH) 2>/dev/null)
 
 -include $(wildcard $(DEPPATH)/*)
 

@@ -68,7 +68,9 @@
 #define AUX_ON()				palSetPad(AUX_GPIO, AUX_PIN)
 #define AUX_OFF()				palClearPad(AUX_GPIO, AUX_PIN)
 
-#define CURRENT_FILTER_ON()		palSetPad(GPIOD, 2)
+// Force the hardware phase-current RC filter (GPIOD2) to stay disabled,
+// even where the core code calls CURRENT_FILTER_ON().
+#define CURRENT_FILTER_ON()		palClearPad(GPIOD, 2)
 #define CURRENT_FILTER_OFF()	palClearPad(GPIOD, 2)
 
 /*
