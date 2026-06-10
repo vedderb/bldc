@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include "virtual_motor.h"
 #include "foc_math.h"
+#include "blackbox.h"
 
 // Private variables
 static volatile bool m_dccal_done = false;
@@ -3815,6 +3816,27 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	// Release sample in the AD2S1205 resolver IC.
 	palSetPad(AD2S1205_SAMPLE_GPIO, AD2S1205_SAMPLE_PIN);
 #endif
+
+	// Blackbox: plain stores into a RAM ring buffer, no locks or formatting.
+	{
+		volatile bb_record_t *bb = blackbox_next_record_isr();
+		if (bb) {
+			bb->ia = ia;
+			bb->ib = ib;
+			bb->ic = ic;
+			bb->id = motor_now->m_motor_state.id;
+			bb->iq = motor_now->m_motor_state.iq;
+			bb->i_abs = motor_now->m_motor_state.i_abs;
+			bb->i_abs_filter = motor_now->m_motor_state.i_abs_filter;
+			bb->duty_now = motor_now->m_motor_state.duty_now;
+			bb->v_bus = motor_now->m_motor_state.v_bus;
+			bb->phase = motor_now->m_motor_state.phase;
+			bb->speed_rad_s = motor_now->m_pll_speed;
+			bb->state = (uint8_t)motor_now->m_state;
+			bb->control_mode = (uint8_t)motor_now->m_control_mode;
+			blackbox_commit_isr();
+		}
+	}
 
 #ifdef HW_HAS_DUAL_MOTORS
 	mc_interface_mc_timer_isr(is_second_motor);

@@ -38,6 +38,7 @@
 #include "mempools.h"
 #include "crc.h"
 #include "firmware_metadata.h"
+#include "blackbox.h"
 
 #include <string.h>
 #include <ctype.h>
@@ -184,6 +185,34 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 				commands_printf(" ");
 			}
 		}
+	} else if (strcmp(argv[0], "bb_status") == 0) {
+		commands_printf("Blackbox status");
+		commands_printf("ISR ticks   : %lu", blackbox_isr_tick());
+		commands_printf("Samples     : %lu", blackbox_sample_count());
+		commands_printf("Triggered   : %s", blackbox_is_triggered() ? "yes" : "no");
+		commands_printf("Frozen      : %s", blackbox_is_frozen() ? "yes" : "no");
+		commands_printf("Fault       : %s", mc_interface_fault_to_string((mc_fault_code)blackbox_fault_code()));
+
+		const volatile bb_record_t *r = blackbox_get_record(0);
+		if (r) {
+			commands_printf("Last record (tick %lu):", r->tick);
+			commands_printf("  ia/ib/ic     : %.2f / %.2f / %.2f A", (double)r->ia, (double)r->ib, (double)r->ic);
+			commands_printf("  id/iq        : %.2f / %.2f A", (double)r->id, (double)r->iq);
+			commands_printf("  i_abs (filt) : %.2f (%.2f) A", (double)r->i_abs, (double)r->i_abs_filter);
+			commands_printf("  duty         : %.3f", (double)r->duty_now);
+			commands_printf("  v_bus        : %.2f V", (double)r->v_bus);
+			commands_printf("  phase        : %.3f rad", (double)r->phase);
+			commands_printf("  speed        : %.1f rad/s (%.1f ERPM)",
+					(double)r->speed_rad_s, (double)(r->speed_rad_s * 60.0 / (2.0 * M_PI)));
+			commands_printf("  state/mode   : %d / %d", r->state, r->control_mode);
+			commands_printf("  flags        : 0x%02x", r->flags);
+		} else {
+			commands_printf("No records yet");
+		}
+		commands_printf(" ");
+	} else if (strcmp(argv[0], "bb_clear") == 0) {
+		blackbox_clear();
+		commands_printf("Blackbox cleared\n");
 	} else if (strcmp(argv[0], "tim") == 0) {
 		chSysLock();
 		volatile int t1_cnt = TIM1->CNT;
@@ -1180,6 +1209,12 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 
 		commands_printf("faults");
 		commands_printf("  Prints all stored fault codes and conditions when they arrived");
+
+		commands_printf("bb_status");
+		commands_printf("  Prints the blackbox ring buffer status and the latest record");
+
+		commands_printf("bb_clear");
+		commands_printf("  Clears and unfreezes the blackbox ring buffer");
 
 		commands_printf("tim");
 		commands_printf("  Prints tim1 and tim8 settings");

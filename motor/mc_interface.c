@@ -41,6 +41,7 @@
 #include "crc.h"
 #include "bms.h"
 #include "events.h"
+#include "blackbox.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -1846,6 +1847,10 @@ void mc_interface_set_fault_info(const char *str, int argn, float arg0, float ar
 void mc_interface_fault_stop(mc_fault_code fault, bool is_second_motor, bool is_isr) {
 	m_fault_data.fault_code = fault;
 	m_fault_data.is_second_motor = is_second_motor;
+
+	// Arm the blackbox post-trigger countdown at the exact trigger moment,
+	// before the fault_stop_thread runs.
+	blackbox_notify_fault((uint8_t)fault);
 
 	if (is_isr) {
 		chSysLockFromISR();

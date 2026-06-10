@@ -60,6 +60,7 @@
 #include "mempools.h"
 #include "events.h"
 #include "main.h"
+#include "blackbox.h"
 
 #ifdef CAN_ENABLE
 #include "comm_can.h"
@@ -286,6 +287,7 @@ int main(void) {
 	}
 
 	ledpwm_init();
+	blackbox_init();
 	mc_interface_init();
 
 	commands_init();
