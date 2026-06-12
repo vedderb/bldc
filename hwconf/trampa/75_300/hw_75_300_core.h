@@ -32,7 +32,10 @@
 
 // HW properties
 #define HW_HAS_3_SHUNTS
-#define HW_HAS_PHASE_SHUNTS
+// Custom board uses low-side shunts (not in series with the motor phases),
+// so HW_HAS_PHASE_SHUNTS must NOT be defined. Current is only valid during
+// the V0 vector and the firmware will skip sampling during V7.
+//#define HW_HAS_PHASE_SHUNTS
 #define HW_HAS_PHASE_FILTERS
 
 // Macros

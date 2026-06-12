@@ -32,7 +32,7 @@ Purpose : User configuration file for RTT.
 // non-blocking so the FOC ISR / threads are never stalled by a slow host.
 #define SEGGER_RTT_MAX_NUM_UP_BUFFERS     (1)
 #define SEGGER_RTT_MAX_NUM_DOWN_BUFFERS   (1)
-#define BUFFER_SIZE_UP                    (1024)
+#define BUFFER_SIZE_UP                    (3072)
 #define BUFFER_SIZE_DOWN                  (16)
 #define SEGGER_RTT_MODE_DEFAULT           SEGGER_RTT_MODE_NO_BLOCK_SKIP
 

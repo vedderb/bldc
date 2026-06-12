@@ -189,6 +189,7 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 		commands_printf("Blackbox status");
 		commands_printf("ISR ticks   : %lu", blackbox_isr_tick());
 		commands_printf("Samples     : %lu", blackbox_sample_count());
+		commands_printf("Freeze en.  : %s", blackbox_freeze_enabled() ? "yes" : "no");
 		commands_printf("Triggered   : %s", blackbox_is_triggered() ? "yes" : "no");
 		commands_printf("Frozen      : %s", blackbox_is_frozen() ? "yes" : "no");
 		commands_printf("Fault       : %s", mc_interface_fault_to_string((mc_fault_code)blackbox_fault_code()));
@@ -213,6 +214,9 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "bb_clear") == 0) {
 		blackbox_clear();
 		commands_printf("Blackbox cleared\n");
+	} else if (strcmp(argv[0], "bb_dump") == 0) {
+		blackbox_request_dump();
+		commands_printf("Blackbox dump over RTT requested\n");
 	} else if (strcmp(argv[0], "tim") == 0) {
 		chSysLock();
 		volatile int t1_cnt = TIM1->CNT;
@@ -1215,6 +1219,9 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 
 		commands_printf("bb_clear");
 		commands_printf("  Clears and unfreezes the blackbox ring buffer");
+
+		commands_printf("bb_dump");
+		commands_printf("  Streams the blackbox ring buffer over RTT as CSV");
 
 		commands_printf("tim");
 		commands_printf("  Prints tim1 and tim8 settings");

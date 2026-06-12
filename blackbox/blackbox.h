@@ -59,6 +59,13 @@ typedef struct {
 // Thread context API
 void blackbox_init(void);
 void blackbox_clear(void);
+// Ask the dump thread to stream the whole ring buffer over RTT as CSV.
+// Also triggerable from the host by sending 'd' on RTT down channel 0.
+void blackbox_request_dump(void);
+// Enable/disable freezing the buffer after a fault (default: disabled).
+// Also toggleable from the host with 'f' on the RTT down channel.
+void blackbox_set_freeze_enabled(bool enabled);
+bool blackbox_freeze_enabled(void);
 bool blackbox_is_frozen(void);
 bool blackbox_is_triggered(void);
 uint8_t blackbox_fault_code(void);
