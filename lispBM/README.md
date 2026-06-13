@@ -4182,6 +4182,8 @@ The following selection of app and motor parameters can be read and set from Lis
 'adc-v1-start           ; Throttle 1 start voltage (Added in FW 6.05)
 'adc-v1-end             ; Throttle 1 end voltage (Added in FW 6.05)
 'adc-v1-center          ; Center position voltage for throttle (Added in FW 7.00.1)
+'adc-tc                 ; Traction control (multi-ESC only, Added in FW 7.00.2)
+'adc-tc-max-diff        ; Traction control max ERPM diff (Added in FW 7.00.2)
 'adc-v1-min             ; Throttle 1 low fault voltage (Added in FW 6.05)
 'adc-v1-max             ; Throttle 1 high fault voltage (Added in FW 6.05)
 'adc-v2-start           ; Throttle 2 start voltage (Added in FW 7.00.1)
