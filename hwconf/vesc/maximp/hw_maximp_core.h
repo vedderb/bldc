@@ -79,7 +79,7 @@
 #define ADCMUX_MOS_TEMP1()		AD3_L();	AD2_H();	AD1_L();
 #define ADCMUX_MOS_TEMP2()		AD3_L();	AD2_H();	AD1_H();
 #define ADCMUX_12V_SENSE_I()	AD3_H();	AD2_L();	AD1_L();
-#define ADCMUX_5V_SENSE_V()		AD3_H();	AD2_L();	AD1_H();
+#define ADCMUX_MOS_TEMP4()		AD3_H();	AD2_L();	AD1_H();
 #define ADCMUX_MOS_TEMP3()		AD3_H();	AD2_H();	AD1_L();
 #define ADCMUX_TEMP_DCDC()		AD3_H();	AD2_H();	AD1_H();
 
@@ -98,7 +98,26 @@
 #define REG_5V_ON()				palSetPad(REG_5V_GPIO, REG_5V_PIN)
 #define REG_5V_OFF()			palClearPad(REG_5V_GPIO, REG_5V_PIN)
 
-#define MCPWM_FOC_CURRENT_SAMP_OFFSET				(2) // Offset from timer top for ADC samples
+#if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_150_PH)
+// Shutdown pin
+#define HW_SHUTDOWN_GPIO		GPIOB
+#define HW_SHUTDOWN_PIN			2
+#define HW_SHUTDOWN_HOLD_ON()	palSetPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
+#define HW_SHUTDOWN_HOLD_OFF()	palClearPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
+#define HW_SAMPLE_SHUTDOWN()	hw_sample_shutdown_button()
+#define HW_SHUTDOWN_NO // Normally open button
+
+#define HW_VERY_EARLY_INIT()	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE); \
+								RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE); \
+								palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
+								palSetPadMode(AUX_GPIO, AUX_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST); \
+								palSetPadMode(AUX2_GPIO, AUX2_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST); \
+								HW_SHUTDOWN_HOLD_ON(); \
+								AUX_OFF(); \
+								AUX2_OFF();
+
+#define HW_EARLY_INIT()			HW_VERY_EARLY_INIT()
+#endif
 
 /*
  * ADC Vector
@@ -119,7 +138,7 @@
 #define ADC_IND_EXT5			16
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
-#define ADC_IND_SHUTDOWN		10
+#define ADC_IND_SHUTDOWN		13
 #define ADC_IND_EXT3			14
 #define ADC_IND_ADC_MUX			15
 #define ADC_IND_EXT4			12
@@ -129,7 +148,7 @@
 #define ADC_IND_TEMP_MOS		20
 #define ADC_IND_TEMP_MOS_2		21 // Caps
 #define ADC_IND_12V_SENSE_I		22
-#define ADC_IND_5V_SENSE_V		23
+#define ADC_IND_TEMP_MOS_4		23
 #define ADC_IND_TEMP_MOS_3		24
 #define ADC_IND_TEMP_DCDC		25
 
@@ -169,7 +188,7 @@
 
 // NTC Termistors
 #define NTC_RES(adc_val)		(10000.0 / ((4095.0 / (float)adc_val) - 1.0))
-#define NTC_TEMP(adc_ind)		hw100_400_get_temp()
+#define NTC_TEMP(adc_ind)		hw_get_temp_mos()
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
@@ -342,6 +361,6 @@
 
 // HW-specific functions
 bool hw_sample_shutdown_button(void);
-float hw100_400_get_temp(void);
+float hw_get_temp_mos(void);
 
 #endif /* HW_MAXIMP_CORE_H_ */
