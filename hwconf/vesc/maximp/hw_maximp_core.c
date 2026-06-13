@@ -24,6 +24,8 @@
 #include "mc_interface.h"
 #include "lispif.h"
 #include "lispbm.h"
+#include "terminal.h"
+#include "commands.h"
 
 // Variables
 static volatile bool i2c_running = false;
@@ -57,9 +59,10 @@ static lbm_value ext_reg_t(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(NTC_TEMP_DCDC());
 }
 
+#if !(defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_150_PH))
 static lbm_value ext_reg5_v(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
-	float adc = (float)ADC_Value[ADC_IND_5V_SENSE_V];
+	float adc = (float)ADC_Value[ADC_IND_TEMP_MOS_4];
 	// V-div 10k - 10k
 	return lbm_enc_float(adc * (V_REG / 4095.0) * ((10.0 + 10.0) / 10.0));
 }
@@ -73,14 +76,36 @@ static lbm_value ext_reg5_en(lbm_value *args, lbm_uint argn) {
 	}
 	return ENC_SYM_TRUE;
 }
+#endif
 
 static void load_extensions(bool main_found) {
 	if (!main_found) {
 		lbm_add_extension("hw-reg-v", ext_reg_v);
 		lbm_add_extension("hw-reg-i", ext_reg_i);
 		lbm_add_extension("hw-reg-t", ext_reg_t);
+#if !(defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_150_PH))
 		lbm_add_extension("hw-reg5-v", ext_reg5_v);
 		lbm_add_extension("hw-reg5-en", ext_reg5_en);
+#endif
+	}
+}
+
+static void terminal_hw_diag(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	for (int i = 0;i < 40;i++) {
+		float t1 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
+		float t2 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_2]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
+		float t3 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_3]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
+		float t4 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_4]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
+
+		commands_printf("BT: %.2f", (double)ADC_VOLTS(ADC_IND_SHUTDOWN));
+		commands_printf("T1: %.2f", (double)t1);
+		commands_printf("T2: %.2f", (double)t2);
+		commands_printf("T3: %.2f", (double)t3);
+		commands_printf("T4: %.2f\n", (double)t4);
+		chThdSleepMilliseconds(100);
 	}
 }
 
@@ -140,9 +165,6 @@ void hw_init_gpio(void) {
 	AUX2_OFF();
 	palSetPadMode(AUX2_GPIO, AUX2_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 
-	REG_5V_ON();
-	palSetPadMode(REG_5V_GPIO, REG_5V_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-
 	// ADC Pins
 	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_ANALOG);
@@ -162,7 +184,11 @@ void hw_init_gpio(void) {
 
 #if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_150_PH)
 	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_PULLUP);
+	palSetPadMode(GPIOA, 5, PAL_MODE_INPUT_ANALOG);
 #else
+	REG_5V_ON();
+	palSetPadMode(REG_5V_GPIO, REG_5V_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
+
 	// DAC as voltage reference for shunt amps
 	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
@@ -171,6 +197,12 @@ void hw_init_gpio(void) {
 #endif
 
 	lispif_add_ext_load_callback(load_extensions);
+
+	terminal_register_command_callback(
+			"hw_diag",
+			"Print HW diagnostics",
+			0,
+			terminal_hw_diag);
 }
 
 void hw_setup_adc_channels(void) {
@@ -187,7 +219,7 @@ void hw_setup_adc_channels(void) {
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_1, 2, ADC_SampleTime_15Cycles);			// 4
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_6, 3, ADC_SampleTime_15Cycles);			// 7
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_15, 4, ADC_SampleTime_15Cycles);			// 10
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_0, 5, ADC_SampleTime_15Cycles);			// 13
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_5, 5, ADC_SampleTime_15Cycles);			// 13
 	ADC_RegularChannelConfig(ADC2, ADC_Channel_9, 6, ADC_SampleTime_15Cycles);			// 16
 
 	// ADC3 regular channels
@@ -349,9 +381,9 @@ static THD_FUNCTION(mux_thread, arg) {
 		chThdSleepMicroseconds(T_SAMP_US);
 		ADC_Value[ADC_IND_12V_SENSE_I] = ADC_Value[ADC_IND_ADC_MUX];
 
-		ADCMUX_5V_SENSE_V();
+		ADCMUX_MOS_TEMP4();
 		chThdSleepMicroseconds(T_SAMP_US);
-		ADC_Value[ADC_IND_5V_SENSE_V] = ADC_Value[ADC_IND_ADC_MUX];
+		ADC_Value[ADC_IND_TEMP_MOS_4] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ADCMUX_MOS_TEMP3();
 		chThdSleepMicroseconds(T_SAMP_US);
@@ -399,7 +431,32 @@ static THD_FUNCTION(mux_thread, arg) {
 	}
 }
 
-float hw100_400_get_temp(void) {
+bool hw_sample_shutdown_button(void) {
+	return ADC_VOLTS(ADC_IND_SHUTDOWN) > 0.25;
+}
+
+#if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_150_PH)
+float hw_get_temp_mos(void) {
+	float t1 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
+	float t2 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_2]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
+	float t3 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_3]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
+	float t4 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_4]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
+	float res = 0.0;
+
+	if (t1 > t2 && t1 > t3 && t1 > t4) {
+		res = t1;
+	} else if (t2 > t1 && t2 > t3 && t2 > t4) {
+		res = t2;
+	} else if (t3 > t1 && t3 > t2 && t3 > t4) {
+		res = t3;
+	} else {
+		res = t4;
+	}
+
+	return res;
+}
+#else
+float hw_get_temp_mos(void) {
 	float t1 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
 	float t2 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_2]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
 	float t3 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_3]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
@@ -415,3 +472,4 @@ float hw100_400_get_temp(void) {
 
 	return res;
 }
+#endif
