@@ -269,6 +269,8 @@ typedef struct {
 	lbm_uint adc_v1_center;
 	lbm_uint adc_v2_start;
 	lbm_uint adc_v2_end;
+	lbm_uint adc_tc;
+	lbm_uint adc_tc_max_diff;
 	lbm_uint pas_current_scaling;
 	lbm_uint vr_ctrl_type;
 	lbm_uint vr_hyst;
@@ -716,6 +718,10 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("adc-v2-start", comp);
 		} else if (comp == &syms_vesc.adc_v2_end) {
 			lbm_add_symbol_const("adc-v2-end", comp);
+		} else if (comp == &syms_vesc.adc_tc) {
+			lbm_add_symbol_const("adc-tc", comp);
+		} else if (comp == &syms_vesc.adc_tc_max_diff) {
+			lbm_add_symbol_const("adc-tc-max-diff", comp);
 		} else if (comp == &syms_vesc.pas_current_scaling) {
 			lbm_add_symbol_const("pas-current-scaling", comp);
 		} else if (comp == &syms_vesc.vr_ctrl_type) {
@@ -4177,6 +4183,12 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.adc_v2_end)) {
 			appconf->app_adc_conf.voltage2_end = lbm_dec_as_float(args[1]);
 			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.adc_tc)) {
+			appconf->app_adc_conf.tc = lbm_dec_as_i32(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.adc_tc_max_diff)) {
+			appconf->app_adc_conf.tc_max_diff = lbm_dec_as_float(args[1]);
+			changed_app = 2;
 		} else if (compare_symbol(name, &syms_vesc.pas_current_scaling)) {
 			appconf->app_pas_conf.current_scaling = lbm_dec_as_float(args[1]);
 			changed_app = 2;
@@ -4591,6 +4603,10 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(appconf->app_adc_conf.voltage2_start);
 	} else if (compare_symbol(name, &syms_vesc.adc_v2_end)) {
 		res = lbm_enc_float(appconf->app_adc_conf.voltage2_end);
+	} else if (compare_symbol(name, &syms_vesc.adc_tc)) {
+		res = lbm_enc_i(appconf->app_adc_conf.tc);
+	} else if (compare_symbol(name, &syms_vesc.adc_tc_max_diff)) {
+		res = lbm_enc_float(appconf->app_adc_conf.tc_max_diff);
 	} else if (compare_symbol(name, &syms_vesc.pas_current_scaling)) {
 		res = lbm_enc_float(appconf->app_pas_conf.current_scaling);
 	} else if (compare_symbol(name, &syms_vesc.vr_ctrl_type)) {
