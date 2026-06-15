@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #ifndef BB_STREAM_DECIMATION
 #define BB_STREAM_DECIMATION	1
@@ -23,17 +24,35 @@
 #endif
 
 #define BB_STREAM_MAGIC			"BBIN"
-#define BB_STREAM_VERSION		4
+#define BB_STREAM_VERSION		7
+
+// Compact binary stream fixed-point scales. Currents are int16 at
+// 0.02 A/LSB (+-655 A range). The electrical angle is int16 over the
+// firmware -pi..pi range. Keeps the record at 16 B to fit RTT bandwidth.
+#define BB_STREAM_I_LSB_PER_A	50.0f
+#define BB_STREAM_ANG_FULL		32768.0f
+#define BB_STREAM_ANG_LSB		(BB_STREAM_ANG_FULL / (float)M_PI)
+#define BB_STREAM_I16_MAX		32767.0f
+#define BB_STREAM_I16_MIN		(-32768.0f)
 
 typedef struct __attribute__((packed)) {
 	uint32_t tick;
-	float ia;
-	float ib;
-	float ic;
-	float duty_now;
-	uint8_t fault_code;
-	uint8_t reserved[3];
+	int16_t ia;				// Currents: int16, BB_STREAM_I_LSB_PER_A LSB per amp
+	int16_t ib;
+	int16_t ic;
+	int16_t id;
+	int16_t iq;
+	int16_t phase;			// Electrical angle: int16 over -pi..pi
 } bb_stream_record_t;
+
+static inline int16_t bb_stream_clamp_i16(float v) {
+	if (v > BB_STREAM_I16_MAX) {
+		v = BB_STREAM_I16_MAX;
+	} else if (v < BB_STREAM_I16_MIN) {
+		v = BB_STREAM_I16_MIN;
+	}
+	return (int16_t)v;
+}
 
 typedef struct __attribute__((packed)) {
 	char magic[4];
@@ -244,14 +263,12 @@ static void stream_binary(void) {
 		if ((r->tick % BB_STREAM_DECIMATION) == 0) {
 			bb_stream_record_t *out = (bb_stream_record_t*)&payload[payload_ofs];
 			out->tick = r->tick;
-			out->ia = r->ia;
-			out->ib = r->ib;
-			out->ic = r->ic;
-			out->duty_now = r->duty_now;
-			out->fault_code = r->fault_code;
-			out->reserved[0] = 0;
-			out->reserved[1] = 0;
-			out->reserved[2] = 0;
+			out->ia = bb_stream_clamp_i16(r->ia * BB_STREAM_I_LSB_PER_A);
+			out->ib = bb_stream_clamp_i16(r->ib * BB_STREAM_I_LSB_PER_A);
+			out->ic = bb_stream_clamp_i16(r->ic * BB_STREAM_I_LSB_PER_A);
+			out->id = bb_stream_clamp_i16(r->id * BB_STREAM_I_LSB_PER_A);
+			out->iq = bb_stream_clamp_i16(r->iq * BB_STREAM_I_LSB_PER_A);
+			out->phase = bb_stream_clamp_i16(r->phase * BB_STREAM_ANG_LSB);
 			payload_ofs += sizeof(bb_stream_record_t);
 		}
 

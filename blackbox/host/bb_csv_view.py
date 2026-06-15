@@ -25,8 +25,13 @@ from matplotlib.figure import Figure
 from matplotlib.widgets import RectangleSelector
 
 
+# Panels whose columns are absent in the loaded CSV are dropped automatically,
+# so this default works for both the trimmed live stream (ia/ib/ic/id/iq/
+# theta_used) and the full 'd' dump (which still carries duty/fault/v_bus).
 DEFAULT_PANELS = [
     {"title": "Phase currents", "cols": ["ia", "ib", "ic"]},
+    {"title": "dq currents", "cols": ["id", "iq"]},
+    {"title": "Theta used", "cols": ["theta_used", "phase"]},
     {"title": "Duty", "cols": ["duty"]},
     {"title": "Fault", "cols": ["fault"]},
 ]
@@ -41,6 +46,8 @@ def get_unit(col):
         return "code"
     if col == "v_bus":
         return "V"
+    if col in ("theta_used", "phase"):
+        return "rad"
     return ""
 
 

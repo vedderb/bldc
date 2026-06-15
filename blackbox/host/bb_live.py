@@ -41,20 +41,41 @@ except ImportError:
 
 MAGIC = b"BBIN"
 HEADER = struct.Struct("<4sBBHI")
-RECORD = struct.Struct("<IffffB3x")
+# Firmware stream layout (BB_STREAM_VERSION 7):
+# tick(u32), ia, ib, ic, id, iq (int16, 50 LSB/A), phase (int16 over -pi..pi).
+# Fixed-point keeps the record at 16 bytes to fit RTT bandwidth.
+RECORD = struct.Struct("<Ihhhhhh")
+STREAM_VERSION = 7
+STREAM_I_LSB_PER_A = 50.0
+STREAM_ANG_LSB = 32768.0 / math.pi
+
+
+def decode_record(raw):
+    # raw = (tick, ia, ib, ic, id, iq, phase) as fixed-point ints.
+    tick = raw[0]
+    ia, ib, ic, idq, iqq, phase = raw[1:7]
+    return (
+        tick,
+        ia / STREAM_I_LSB_PER_A,
+        ib / STREAM_I_LSB_PER_A,
+        ic / STREAM_I_LSB_PER_A,
+        idq / STREAM_I_LSB_PER_A,
+        iqq / STREAM_I_LSB_PER_A,
+        phase / STREAM_ANG_LSB,
+    )
 
 RAW_COLUMNS = [
-    "tick", "ia", "ib", "ic", "duty", "fault",
+    "tick", "ia", "ib", "ic", "id", "iq", "theta_used",
 ]
 
 PLOT_COLUMNS = [
-    "ia", "ib", "ic", "duty", "fault",
+    "ia", "ib", "ic", "id", "iq", "theta_used",
 ]
 
 DEFAULT_PANELS = [
     {"title": "Phase currents", "cols": ["ia", "ib", "ic"]},
-    {"title": "Duty", "cols": ["duty"]},
-    {"title": "Fault", "cols": ["fault"]},
+    {"title": "dq currents", "cols": ["id", "iq"]},
+    {"title": "Theta used", "cols": ["theta_used"]},
 ]
 
 
@@ -87,7 +108,7 @@ def parse_frames(buffer):
             return records, payloads, bad_frames
 
         magic, version, record_size, count, checksum = HEADER.unpack(buffer[:HEADER.size])
-        if magic != MAGIC or version != 4 or record_size != RECORD.size:
+        if magic != MAGIC or version != STREAM_VERSION or record_size != RECORD.size:
             del buffer[0]
             bad_frames += 1
             continue
@@ -105,7 +126,7 @@ def parse_frames(buffer):
         payloads.append(bytes(payload))
         pos = HEADER.size
         for _ in range(count):
-            records.append(RECORD.unpack(buffer[pos:pos + record_size]))
+            records.append(decode_record(RECORD.unpack(buffer[pos:pos + record_size])))
             pos += record_size
 
         del buffer[:frame_len]
@@ -129,7 +150,7 @@ def get_unit(col):
         return "ERPM"
     if col == "speed_rad_s":
         return "rad/s"
-    if col == "phase":
+    if col in ("phase", "theta_used"):
         return "rad"
     return ""
 
@@ -400,7 +421,7 @@ class RttScopeApp:
                     break
                 if len(data) != RECORD.size:
                     break
-                values = dict(zip(RAW_COLUMNS, RECORD.unpack(data)))
+                values = dict(zip(RAW_COLUMNS, decode_record(RECORD.unpack(data))))
                 if tick0 is None:
                     tick0 = values["tick"]
                 t_s = (values["tick"] - tick0) / self.args.sample_rate
