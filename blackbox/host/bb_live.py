@@ -6,7 +6,7 @@ Requires:
 
 Usage:
   python bb_live.py --out live.csv
-  python bb_live.py --speed 4000 --out live.csv
+  python bb_live.py --speed 8000 --out live.csv
 """
 
 import argparse
@@ -40,42 +40,49 @@ except ImportError:
     sys.exit("pylink not installed. Run: pip install pylink-square")
 
 MAGIC = b"BBIN"
-HEADER = struct.Struct("<4sBBHI")
-# Firmware stream layout (BB_STREAM_VERSION 7):
-# tick(u32), ia, ib, ic, id, iq (int16, 50 LSB/A), phase (int16 over -pi..pi).
-# Fixed-point keeps the record at 16 bytes to fit RTT bandwidth.
-RECORD = struct.Struct("<Ihhhhhh")
-STREAM_VERSION = 7
+# Header carries the ISR tick of the first record so the wire records can omit
+# the per-record tick (records in a batch are consecutive, decimation == 1).
+HEADER = struct.Struct("<4sBBHII")
+# Firmware wire record (BB_STREAM_VERSION 11), 14 bytes, no tick:
+# ia, ib, ic, id, iq (int16, 50 LSB/A),
+# theta (int16, full turn over int16 range), duty (int16, 10000 LSB/duty).
+WIRE = struct.Struct("<hhhhhhh")
+# Self-contained record stored in the temp .bin (tick reconstructed + 7 int16).
+RECORD = struct.Struct("<Ihhhhhhh")
+STREAM_VERSION = 11
 STREAM_I_LSB_PER_A = 50.0
-STREAM_ANG_LSB = 32768.0 / math.pi
+STREAM_DUTY_LSB = 10000.0
+STREAM_ANG_LSB = 32768.0 / (2.0 * math.pi)
 
 
 def decode_record(raw):
-    # raw = (tick, ia, ib, ic, id, iq, phase) as fixed-point ints.
+    # raw = (tick, ia, ib, ic, id, iq, theta, duty) as fixed-point ints.
     tick = raw[0]
-    ia, ib, ic, idq, iqq, phase = raw[1:7]
+    ia, ib, ic, idc, iqc, theta, duty = raw[1:8]
     return (
         tick,
         ia / STREAM_I_LSB_PER_A,
         ib / STREAM_I_LSB_PER_A,
         ic / STREAM_I_LSB_PER_A,
-        idq / STREAM_I_LSB_PER_A,
-        iqq / STREAM_I_LSB_PER_A,
-        phase / STREAM_ANG_LSB,
+        idc / STREAM_I_LSB_PER_A,
+        iqc / STREAM_I_LSB_PER_A,
+        theta / STREAM_ANG_LSB,
+        duty / STREAM_DUTY_LSB,
     )
 
 RAW_COLUMNS = [
-    "tick", "ia", "ib", "ic", "id", "iq", "theta_used",
+    "tick", "ia", "ib", "ic", "id", "iq", "theta", "duty",
 ]
 
 PLOT_COLUMNS = [
-    "ia", "ib", "ic", "id", "iq", "theta_used",
+    "ia", "ib", "ic", "id", "iq", "theta", "duty",
 ]
 
 DEFAULT_PANELS = [
     {"title": "Phase currents", "cols": ["ia", "ib", "ic"]},
     {"title": "dq currents", "cols": ["id", "iq"]},
-    {"title": "Theta used", "cols": ["theta_used"]},
+    {"title": "Theta", "cols": ["theta"]},
+    {"title": "Duty", "cols": ["duty"]},
 ]
 
 
@@ -107,8 +114,8 @@ def parse_frames(buffer):
         if len(buffer) < HEADER.size:
             return records, payloads, bad_frames
 
-        magic, version, record_size, count, checksum = HEADER.unpack(buffer[:HEADER.size])
-        if magic != MAGIC or version != STREAM_VERSION or record_size != RECORD.size:
+        magic, version, record_size, count, first_tick, checksum = HEADER.unpack(buffer[:HEADER.size])
+        if magic != MAGIC or version != STREAM_VERSION or record_size != WIRE.size:
             del buffer[0]
             bad_frames += 1
             continue
@@ -119,15 +126,23 @@ def parse_frames(buffer):
 
         payload = buffer[HEADER.size:frame_len]
         if stream_checksum(payload) != checksum:
-            del buffer[0]
+            next_magic = buffer.find(MAGIC, 1)
+            if next_magic >= 0:
+                del buffer[:next_magic]
+            else:
+                del buffer[:-3]
             bad_frames += 1
             continue
 
-        payloads.append(bytes(payload))
+        disk_chunk = bytearray()
         pos = HEADER.size
-        for _ in range(count):
-            records.append(decode_record(RECORD.unpack(buffer[pos:pos + record_size])))
+        for i in range(count):
+            wire = WIRE.unpack(buffer[pos:pos + record_size])
+            tick = first_tick + i
+            records.append(decode_record((tick,) + wire))
+            disk_chunk += RECORD.pack(tick, *wire)
             pos += record_size
+        payloads.append(bytes(disk_chunk))
 
         del buffer[:frame_len]
 
@@ -150,7 +165,7 @@ def get_unit(col):
         return "ERPM"
     if col == "speed_rad_s":
         return "rad/s"
-    if col in ("phase", "theta_used"):
+    if col in ("phase", "theta", "theta_used"):
         return "rad"
     return ""
 
@@ -808,7 +823,7 @@ class RttScopeApp:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--device", default="STM32F407VG", help="J-Link device name")
-    parser.add_argument("--speed", type=int, default=12000, help="SWD speed in kHz")
+    parser.add_argument("--speed", type=int, default=8000, help="SWD speed in kHz")
     parser.add_argument("--out", default="bb_live.csv", help="CSV output file")
     parser.add_argument("--png", help="Save figure to this PNG")
     parser.add_argument("--sample-rate", type=float, default=15000.0,

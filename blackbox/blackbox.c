@@ -20,29 +20,36 @@
 #endif
 
 #ifndef BB_STREAM_BATCH
-#define BB_STREAM_BATCH			16
+#define BB_STREAM_BATCH			32
+#endif
+
+#ifndef BB_STREAM_MAX_PACKETS_PER_LOOP
+#define BB_STREAM_MAX_PACKETS_PER_LOOP	8
 #endif
 
 #define BB_STREAM_MAGIC			"BBIN"
-#define BB_STREAM_VERSION		7
+#define BB_STREAM_VERSION		11
 
 // Compact binary stream fixed-point scales. Currents are int16 at
-// 0.02 A/LSB (+-655 A range). The electrical angle is int16 over the
-// firmware -pi..pi range. Keeps the record at 16 B to fit RTT bandwidth.
+// 0.02 A/LSB (+-655 A range). Duty is int16 at 0.0001/LSB. Electrical
+// phase is int16 mapping a full turn (0..2*pi) onto the int16 range.
 #define BB_STREAM_I_LSB_PER_A	50.0f
-#define BB_STREAM_ANG_FULL		32768.0f
-#define BB_STREAM_ANG_LSB		(BB_STREAM_ANG_FULL / (float)M_PI)
+#define BB_STREAM_DUTY_LSB		10000.0f
+#define BB_STREAM_ANG_LSB		(32768.0f / (2.0f * (float)M_PI))
 #define BB_STREAM_I16_MAX		32767.0f
 #define BB_STREAM_I16_MIN		(-32768.0f)
 
+// 14 bytes per record (no padding): 7 x int16. The per-record tick is not
+// transmitted; the host reconstructs it as header.first_tick + record_index.
+// This assumes BB_STREAM_DECIMATION == 1 so records in a batch are consecutive.
 typedef struct __attribute__((packed)) {
-	uint32_t tick;
-	int16_t ia;				// Currents: int16, BB_STREAM_I_LSB_PER_A LSB per amp
+	int16_t ia;				// Phase currents: int16, BB_STREAM_I_LSB_PER_A LSB per amp
 	int16_t ib;
 	int16_t ic;
-	int16_t id;
+	int16_t id;				// dq currents: int16, BB_STREAM_I_LSB_PER_A LSB per amp
 	int16_t iq;
-	int16_t phase;			// Electrical angle: int16 over -pi..pi
+	int16_t theta;			// Electrical phase used by FOC: int16, BB_STREAM_ANG_LSB LSB per rad
+	int16_t duty_now;		// Duty cycle: int16, BB_STREAM_DUTY_LSB LSB per duty
 } bb_stream_record_t;
 
 static inline int16_t bb_stream_clamp_i16(float v) {
@@ -59,6 +66,7 @@ typedef struct __attribute__((packed)) {
 	uint8_t version;
 	uint8_t record_size;
 	uint16_t count;
+	uint32_t first_tick;	// ISR tick of the first record in this batch
 	uint32_t checksum;
 } bb_stream_header_t;
 
@@ -243,8 +251,7 @@ static void stream_binary(void) {
 	uint32_t payload_len = rec_count * sizeof(bb_stream_record_t);
 	uint32_t packet_len = sizeof(bb_stream_header_t) + payload_len;
 	if (SEGGER_RTT_GetAvailWriteSpace(0) < packet_len) {
-		// Keep the control thread non-blocking. Drop stale data and resume live.
-		m_stream_next_count = available + 1;
+		// Keep the control thread non-blocking. Retry from the same record next loop.
 		return;
 	}
 
@@ -253,6 +260,7 @@ static void stream_binary(void) {
 	header->version = BB_STREAM_VERSION;
 	header->record_size = (uint8_t)sizeof(bb_stream_record_t);
 	header->count = rec_count;
+	header->first_tick = 0;
 
 	uint8_t *payload = &m_stream_packet[sizeof(bb_stream_header_t)];
 	uint32_t payload_ofs = 0;
@@ -261,14 +269,17 @@ static void stream_binary(void) {
 		volatile bb_record_t *r = &m_buf[idx];
 
 		if ((r->tick % BB_STREAM_DECIMATION) == 0) {
+			if (payload_ofs == 0) {
+				header->first_tick = r->tick;
+			}
 			bb_stream_record_t *out = (bb_stream_record_t*)&payload[payload_ofs];
-			out->tick = r->tick;
 			out->ia = bb_stream_clamp_i16(r->ia * BB_STREAM_I_LSB_PER_A);
 			out->ib = bb_stream_clamp_i16(r->ib * BB_STREAM_I_LSB_PER_A);
 			out->ic = bb_stream_clamp_i16(r->ic * BB_STREAM_I_LSB_PER_A);
 			out->id = bb_stream_clamp_i16(r->id * BB_STREAM_I_LSB_PER_A);
 			out->iq = bb_stream_clamp_i16(r->iq * BB_STREAM_I_LSB_PER_A);
-			out->phase = bb_stream_clamp_i16(r->phase * BB_STREAM_ANG_LSB);
+			out->theta = bb_stream_clamp_i16(r->phase * BB_STREAM_ANG_LSB);
+			out->duty_now = bb_stream_clamp_i16(r->duty_now * BB_STREAM_DUTY_LSB);
 			payload_ofs += sizeof(bb_stream_record_t);
 		}
 
@@ -320,7 +331,13 @@ static THD_FUNCTION(dump_thread, arg) {
 		}
 
 		if (m_stream_enabled) {
-			stream_binary();
+			for (int i = 0; i < BB_STREAM_MAX_PACKETS_PER_LOOP; i++) {
+				uint32_t before = m_stream_next_count;
+				stream_binary();
+				if (m_stream_next_count == before) {
+					break;
+				}
+			}
 		}
 
 		// 10 ms loop, live line every 20th iteration = 5 Hz.

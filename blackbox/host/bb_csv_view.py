@@ -3,7 +3,10 @@
 
 Usage:
   python bb_csv_view.py blackbox/host/bb_live_20260612_120355.csv
-  python bb_csv_view.py
+  python bb_csv_view.py        # open empty, then pick a file with "打开 CSV…"
+
+The window starts without requiring a file; use the "打开 CSV…" button to
+load or switch CSV files at any time without restarting from the command line.
 """
 
 import argparse
@@ -31,7 +34,7 @@ from matplotlib.widgets import RectangleSelector
 DEFAULT_PANELS = [
     {"title": "Phase currents", "cols": ["ia", "ib", "ic"]},
     {"title": "dq currents", "cols": ["id", "iq"]},
-    {"title": "Theta used", "cols": ["theta_used", "phase"]},
+    {"title": "Theta used", "cols": ["theta", "theta_used", "phase"]},
     {"title": "Duty", "cols": ["duty"]},
     {"title": "Fault", "cols": ["fault"]},
 ]
@@ -46,7 +49,7 @@ def get_unit(col):
         return "code"
     if col == "v_bus":
         return "V"
-    if col in ("theta_used", "phase"):
+    if col in ("theta", "theta_used", "phase"):
         return "rad"
     return ""
 
@@ -84,11 +87,32 @@ class CsvData:
 
 
 class CsvScopeApp:
-    def __init__(self, root, data):
+    def __init__(self, root, data=None):
         self.root = root
+        self.root.title("Blackbox CSV Viewer")
+        self.root.geometry("1450x900")
+
+        self.data = None
+        self.panels = []
+        self.current_panel = 0
+        self.axes = []
+        self.lines = {}
+        self.selectors = []
+        self.box_zoom_mode = None
+        self.wheel_mode = tk.StringVar(value="XY")
+        self.status_text = tk.StringVar(value="未加载数据，请点击“打开 CSV…”")
+
+        self.build_ui()
+
+        if data is not None:
+            self.apply_data(data)
+        else:
+            self.rebuild_figure(keep_xlim=False)
+
+    def apply_data(self, data):
         self.data = data
         self.root.title(f"Blackbox CSV Viewer - {os.path.basename(data.path)}")
-        self.root.geometry("1450x900")
+        self.path_label.config(text=os.path.basename(data.path))
 
         self.panels = []
         for panel in DEFAULT_PANELS:
@@ -99,15 +123,22 @@ class CsvScopeApp:
             self.panels.append({"title": "Panel 1", "cols": data.plot_columns[:3]})
 
         self.current_panel = 0
-        self.axes = []
-        self.lines = {}
-        self.selectors = []
-        self.box_zoom_mode = None
-        self.wheel_mode = tk.StringVar(value="XY")
-        self.status_text = tk.StringVar(value=f"{len(data.x())} rows")
-
-        self.build_ui()
+        self.status_text.set(f"{len(data.x())} rows")
         self.rebuild_figure(keep_xlim=False)
+
+    def open_csv(self):
+        path = filedialog.askopenfilename(
+            title="选择 bb_live CSV",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            data = CsvData(path)
+        except Exception as e:
+            messagebox.showerror("加载失败", str(e))
+            return
+        self.apply_data(data)
 
     def build_ui(self):
         main = ttk.Frame(self.root)
@@ -121,9 +152,11 @@ class CsvScopeApp:
         right.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
         ttk.Label(left, text="Blackbox CSV Viewer", font=("", 12, "bold")).pack(anchor="w")
-        ttk.Label(left, text=os.path.basename(self.data.path), wraplength=260).pack(anchor="w", pady=(2, 8))
+        self.path_label = ttk.Label(left, text="（未加载）", wraplength=260)
+        self.path_label.pack(anchor="w", pady=(2, 8))
 
-        ttk.Button(left, text="重置视图", command=self.reset_view).pack(fill=tk.X)
+        ttk.Button(left, text="打开 CSV…", command=self.open_csv).pack(fill=tk.X)
+        ttk.Button(left, text="重置视图", command=self.reset_view).pack(fill=tk.X, pady=(4, 0))
         ttk.Button(left, text="当前 X 范围内自动缩放 Y", command=self.autoscale_all_y_to_visible_x).pack(fill=tk.X, pady=(4, 0))
 
         ttk.Separator(left).pack(fill=tk.X, pady=10)
@@ -200,6 +233,8 @@ class CsvScopeApp:
         return result["cols"]
 
     def add_panel_dialog(self):
+        if self.data is None:
+            return
         cols = self.choose_columns_dialog("新增子图")
         if cols:
             self.panels.append({"title": f"Panel {len(self.panels) + 1}", "cols": cols})
@@ -207,7 +242,7 @@ class CsvScopeApp:
             self.rebuild_figure(keep_xlim=True)
 
     def edit_panel_dialog(self):
-        if not self.panels:
+        if self.data is None or not self.panels:
             return
         cols = self.choose_columns_dialog("编辑子图", self.panels[self.current_panel]["cols"])
         if cols:
@@ -262,7 +297,8 @@ class CsvScopeApp:
                 xs = self.data.x()
                 self.axes[0].set_xlim(xs[0], xs[-1] if xs[-1] > xs[0] else xs[0] + 1.0)
 
-        self.fig.tight_layout(rect=[0, 0, 1, 0.97])
+        if self.axes:
+            self.fig.tight_layout(rect=[0, 0, 1, 0.97])
         self.refresh_panel_list()
         self.create_selectors()
         self.autoscale_all_y_to_visible_x(redraw=False)
@@ -300,6 +336,8 @@ class CsvScopeApp:
             self.canvas.draw_idle()
 
     def reset_view(self):
+        if self.data is None:
+            return
         xs = self.data.x()
         if xs and self.axes:
             self.axes[0].set_xlim(xs[0], xs[-1] if xs[-1] > xs[0] else xs[0] + 1.0)
@@ -385,34 +423,19 @@ class CsvScopeApp:
         return self.wheel_mode.get().upper()
 
 
-def choose_file():
-    root = tk.Tk()
-    root.withdraw()
-    path = filedialog.askopenfilename(
-        title="选择 bb_live CSV",
-        filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
-    )
-    root.destroy()
-    return path
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("csvfile", nargs="?", help="Saved bb_live CSV")
+    parser.add_argument("csvfile", nargs="?", help="Saved bb_live CSV (optional)")
     args = parser.parse_args()
 
-    path = args.csvfile or choose_file()
-    if not path:
-        return
-
     root = tk.Tk()
-    try:
-        data = CsvData(path)
-        CsvScopeApp(root, data)
-        root.mainloop()
-    except Exception as e:
-        messagebox.showerror("bb_csv_view failed", str(e))
-        raise
+    app = CsvScopeApp(root)
+    if args.csvfile:
+        try:
+            app.apply_data(CsvData(args.csvfile))
+        except Exception as e:
+            messagebox.showerror("加载失败", str(e))
+    root.mainloop()
 
 
 if __name__ == "__main__":
