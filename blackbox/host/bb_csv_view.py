@@ -102,6 +102,10 @@ class CsvScopeApp:
         self.wheel_mode = tk.StringVar(value="XY")
         self.status_text = tk.StringVar(value="未加载数据，请点击“打开 CSV…”")
 
+        # Vertical cursor placed by a left click, snapped to the nearest sample.
+        self.cursor_x = None
+        self.cursor_lines = []
+
         self.build_ui()
 
         if data is not None:
@@ -199,6 +203,7 @@ class CsvScopeApp:
         self.toolbar.pack(side=tk.TOP, fill=tk.X)
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.canvas.mpl_connect("scroll_event", self.on_scroll)
+        self.canvas.mpl_connect("button_press_event", self.on_button_press)
 
     def choose_columns_dialog(self, title, initial=None):
         initial = set(initial or [])
@@ -273,6 +278,8 @@ class CsvScopeApp:
         self.fig.clear()
         self.axes = []
         self.lines = {}
+        # The cleared figure dropped any previous cursor artists.
+        self.cursor_lines = []
 
         n = len(self.panels)
         first_ax = None
@@ -302,6 +309,8 @@ class CsvScopeApp:
         self.refresh_panel_list()
         self.create_selectors()
         self.autoscale_all_y_to_visible_x(redraw=False)
+        if self.cursor_x is not None:
+            self.draw_cursor(redraw=False)
         self.canvas.draw_idle()
 
     def panel_ylabel(self, cols):
@@ -378,6 +387,64 @@ class CsvScopeApp:
         if mode == "X":
             self.autoscale_all_y_to_visible_x(redraw=False)
         self.canvas.draw_idle()
+
+    def on_button_press(self, event):
+        # Left click places a snapped vertical cursor across all subplots.
+        # Skip while box-zoom or the toolbar pan/zoom tools own the left button.
+        if event.button != 1 or self.data is None or not self.axes:
+            return
+        if self.box_zoom_mode is not None:
+            return
+        if getattr(self.toolbar, "mode", ""):
+            return
+        if event.inaxes not in self.axes or event.xdata is None:
+            return
+        panel_idx = self.axes.index(event.inaxes)
+        self.set_cursor(event.xdata, panel_idx)
+
+    def set_cursor(self, x, panel_idx=None):
+        xs = self.data.x()
+        if not xs:
+            return
+        idx = self.nearest_index(xs, x)
+        self.cursor_x = xs[idx]
+        self.draw_cursor()
+        self.update_cursor_status(idx, panel_idx if panel_idx is not None else self.current_panel)
+
+    @staticmethod
+    def nearest_index(xs, x):
+        i = bisect.bisect_left(xs, x)
+        if i <= 0:
+            return 0
+        if i >= len(xs):
+            return len(xs) - 1
+        return i if (xs[i] - x) < (x - xs[i - 1]) else i - 1
+
+    def clear_cursor_lines(self):
+        for line in self.cursor_lines:
+            try:
+                line.remove()
+            except (ValueError, NotImplementedError):
+                pass
+        self.cursor_lines = []
+
+    def draw_cursor(self, redraw=True):
+        self.clear_cursor_lines()
+        if self.cursor_x is None:
+            return
+        for ax in self.axes:
+            line = ax.axvline(self.cursor_x, color="0.35", linestyle="--", linewidth=0.9, zorder=5)
+            self.cursor_lines.append(line)
+        if redraw:
+            self.canvas.draw_idle()
+
+    def update_cursor_status(self, idx, panel_idx):
+        parts = [f"t={self.data.x()[idx]:.6f}s"]
+        if "tick" in self.data.data:
+            parts.append(f"tick={int(self.data.data['tick'][idx])}")
+        for col in self.panels[panel_idx]["cols"]:
+            parts.append(f"{col}={self.data.y(col)[idx]:.3f}")
+        self.status_text.set("  ".join(parts))
 
     def on_scroll(self, event):
         if not self.axes:
