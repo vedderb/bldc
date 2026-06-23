@@ -1,0 +1,25 @@
+name: Build BLDC
+on:
+  push
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+
+      - name: install ARM embedded
+        run: make arm_sdk_install
+
+      - name: test compiler
+        run: tools/gcc-arm-none-eabi-7-2018-q2-update/bin/arm-none-eabi-gcc -v
+
+      - name: build
+        run: make -j4 all_fw
+
+      - name: publish
+        uses: actions/upload-artifact@v2
+        with:
+          name: builds
+          path: build
