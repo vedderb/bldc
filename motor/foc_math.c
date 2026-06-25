@@ -19,6 +19,7 @@
 
 #include "foc_math.h"
 #include "utils_math.h"
+#include "hw.h"
 #include <math.h>
 
 // See http://cas.ensmp.fr/~praly/Telechargement/Journaux/2010-IEEE_TPEL-Lee-Hong-Nam-Ortega-Praly-Astolfi.pdf
