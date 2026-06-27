@@ -27,6 +27,9 @@
 #include "icm20948.h"
 #include "bmi160_wrapper.h"
 #include "lsm6ds3.h"
+#include "transport_i2c_bb.h"
+#include "transport_spi_bb.h"
+#include "transport_spi_hw.h"
 #include "utils_math.h"
 #include "Fusion.h"
 #include "digital_filter.h"
@@ -41,6 +44,7 @@ static float m_accel[3], m_gyro[3], m_mag[3];
 static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(1024) / sizeof(stkalign_t)];
 static i2c_bb_state m_i2c_bb;
 static spi_bb_state m_spi_bb;
+static transport_t m_transport;
 static ICM20948_STATE m_icm20948_state;
 static BMI_STATE m_bmi_state;
 static imu_config m_settings;
@@ -48,28 +52,6 @@ static systime_t init_time;
 static bool imu_ready;
 static Biquad acc_x_biquad, acc_y_biquad, acc_z_biquad, gyro_x_biquad, gyro_y_biquad, gyro_z_biquad;
 static char *m_imu_type_internal = "Unknown";
-
-#define SPI_BaudRatePrescaler_2         ((uint16_t)0x0000) //  42 MHz      21 MHZ
-#define SPI_BaudRatePrescaler_4         ((uint16_t)0x0008) //  21 MHz      10.5 MHz
-#define SPI_BaudRatePrescaler_8         ((uint16_t)0x0010) //  10.5 MHz    5.25 MHz
-#define SPI_BaudRatePrescaler_16        ((uint16_t)0x0018) //  5.25 MHz    2.626 MHz
-#define SPI_BaudRatePrescaler_32        ((uint16_t)0x0020) //  2.626 MHz   1.3125 MHz
-#define SPI_BaudRatePrescaler_64        ((uint16_t)0x0028) //  1.3125 MHz  656.25 KHz
-#define SPI_BaudRatePrescaler_128       ((uint16_t)0x0030) //  656.25 KHz  328.125 KHz
-#define SPI_BaudRatePrescaler_256       ((uint16_t)0x0038) //  328.125 KHz 164.06 KHz
-#define SPI_DATASIZE_8BIT				0
-#define SPI_DATASIZE_16BIT				SPI_CR1_DFF
-#define SPI_MODE_0						0
-#define SPI_MODE_1						SPI_CR1_CPHA
-#define SPI_MODE_2						SPI_CR1_CPOL
-#define SPI_MODE_3						SPI_CR1_CPOL | SPI_CR1_CPHA
-
-#ifdef LSM6DS3_HWSPI_DEV
-static SPIConfig m_lsm6ds3_hw_spi_cfg = {
-		NULL, LSM6DS3_NSS_GPIO, LSM6DS3_NSS_PIN,
-		SPI_BaudRatePrescaler_16 | SPI_MODE_3 | SPI_DATASIZE_8BIT
-};
-#endif
 
 // Private functions
 static void imu_read_callback(float *accel, float *gyro, float *mag);
@@ -224,7 +206,7 @@ void imu_reset_orientation(void) {
 }
 
 i2c_bb_state *imu_get_i2c(void) {
-	return &m_i2c_bb;
+	return &m_transport.bus.i2c_bb;
 }
 
 void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin,
@@ -302,22 +284,16 @@ void imu_init_bmi160_spi(stm32_gpio_t *nss_gpio, int nss_pin,
 void imu_init_lsm6ds3(stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin) {
 
-	m_i2c_bb.sda_gpio = sda_gpio;
-	m_i2c_bb.sda_pin = sda_pin;
-	m_i2c_bb.scl_gpio = scl_gpio;
-	m_i2c_bb.scl_pin = scl_pin;
-
 #ifdef LSM6DS3_SPEED_700KHZ
-	m_i2c_bb.rate = I2C_BB_RATE_700K;
+	uint32_t bus_hz = 700000;
 	commands_printf("LSM6DS3 speed: 700 kHz");
 #else
-	m_i2c_bb.rate = I2C_BB_RATE_400K;
+	uint32_t bus_hz = 400000;
 	commands_printf("LSM6DS3 speed: 400 kHz");
 #endif
 
-	i2c_bb_init(&m_i2c_bb);
-
-	lsm6ds3_init(&m_i2c_bb, NULL, NULL, m_thd_work_area, sizeof(m_thd_work_area));
+	transport_i2c_bb_init(&m_transport, sda_gpio, sda_pin, scl_gpio, scl_pin, bus_hz);
+	lsm6ds3_init(&m_transport, m_thd_work_area, sizeof(m_thd_work_area));
 	lsm6ds3_set_read_callback(imu_read_callback);
 }
 
@@ -327,32 +303,14 @@ bool imu_init_lsm6ds3_spi(stm32_gpio_t *nss_gpio, int nss_pin,
 	imu_stop();
 
 #ifdef LSM6DS3_HWSPI_DEV
-	palSetPadMode(nss_gpio, nss_pin,
-			PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(sck_gpio, sck_pin,
-			PAL_MODE_ALTERNATE(LSM6DS3_HWSPI_AF) | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(mosi_gpio, mosi_pin,
-			PAL_MODE_ALTERNATE(LSM6DS3_HWSPI_AF) | PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(miso_gpio, miso_pin,
-			PAL_MODE_ALTERNATE(LSM6DS3_HWSPI_AF) | PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_FLOATING);
-
-	spiStart(&LSM6DS3_HWSPI_DEV, &m_lsm6ds3_hw_spi_cfg);
-
-	bool res = lsm6ds3_init(NULL, NULL, &LSM6DS3_HWSPI_DEV, m_thd_work_area, sizeof(m_thd_work_area));
+	transport_spi_hw_init(&m_transport, &LSM6DS3_HWSPI_DEV, LSM6DS3_HWSPI_AF,
+			nss_gpio, nss_pin, sck_gpio, sck_pin, mosi_gpio, mosi_pin, miso_gpio, miso_pin, 0);
 #else
-	m_spi_bb.nss_gpio = nss_gpio;
-	m_spi_bb.nss_pin = nss_pin;
-	m_spi_bb.sck_gpio = sck_gpio;
-	m_spi_bb.sck_pin = sck_pin;
-	m_spi_bb.mosi_gpio = mosi_gpio;
-	m_spi_bb.mosi_pin = mosi_pin;
-	m_spi_bb.miso_gpio = miso_gpio;
-	m_spi_bb.miso_pin = miso_pin;
-
-	spi_bb_init(&m_spi_bb);
-	bool res = lsm6ds3_init(NULL, &m_spi_bb, NULL, m_thd_work_area, sizeof(m_thd_work_area));
+	transport_spi_bb_init(&m_transport, nss_gpio, nss_pin, sck_gpio, sck_pin,
+			mosi_gpio, mosi_pin, miso_gpio, miso_pin);
 #endif
 
+	bool res = lsm6ds3_init(&m_transport, m_thd_work_area, sizeof(m_thd_work_area));
 	lsm6ds3_set_read_callback(imu_read_callback);
 
 	return res;

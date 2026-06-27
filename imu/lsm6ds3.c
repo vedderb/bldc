@@ -27,13 +27,10 @@
 #include <string.h>
 
 static thread_t *lsm6ds3_thread_ref = NULL;
-static i2c_bb_state *m_i2c_bb;
-static spi_bb_state *m_spi_bb;
-static SPIDriver *m_hwspi_dev;
+static transport_t *m_transport;
 static volatile uint16_t lsm6ds3_addr;
 static int rate_hz = 1000;
 static IMU_FILTER filter;
-static const uint8_t spi_tx_0_12[12] = {0};
 
 static void terminal_read_reg(int argc, const char **argv);
 static bool read_reg(uint8_t reg, uint8_t *res);
@@ -52,14 +49,11 @@ void lsm6ds3_set_filter(IMU_FILTER f) {
 	filter = f;
 }
 
-bool lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *spi_hw,
-		stkalign_t *work_area, size_t work_area_size) {
+bool lsm6ds3_init(transport_t *transport, stkalign_t *work_area, size_t work_area_size) {
 
 	read_callback = 0;
 
-	m_i2c_bb = i2c_state;
-	m_spi_bb = spi_state;
-	m_hwspi_dev = spi_hw;
+	m_transport = transport;
 
 	uint8_t rxb[1];
 
@@ -231,120 +225,15 @@ void lsm6ds3_set_read_callback(void(*func)(float *accel, float *gyro, float *mag
 }
 
 static bool read_reg(uint8_t reg, uint8_t *res) {
-	bool ok = false;
-
-	if (m_i2c_bb) {
-		uint8_t txb[1];
-		uint8_t rxb[1];
-		txb[0] = reg;
-		ok = i2c_bb_tx_rx(m_i2c_bb, lsm6ds3_addr, txb, 1, rxb, 1);
-
-		if (ok) {
-			*res = rxb[0];
-		} else {
-			*res = 0;
-		}
-	} else if (m_spi_bb) {
-		chMtxLock(&(m_spi_bb->mutex));
-		spi_bb_begin(m_spi_bb);
-		spi_bb_exchange_8_mode_3(m_spi_bb, reg | 0x80);
-		spi_bb_delay();
-		*res = spi_bb_exchange_8_mode_3(m_spi_bb, 0);
-		spi_bb_end(m_spi_bb);
-		chMtxUnlock(&(m_spi_bb->mutex));
-		ok = true;
-	} else if (m_hwspi_dev) {
-		// Use polled exchange here as the DMA-version seems to freeze
-		// the CAN process thread for some reason. Performance does not
-		// matter during config.
-		spiAcquireBus(m_hwspi_dev);
-		spiSelect(m_hwspi_dev);
-		spiPolledExchange(m_hwspi_dev, reg | 0x80);
-		spi_bb_delay();
-		*res = spiPolledExchange(m_hwspi_dev, 0);
-		spiUnselect(m_hwspi_dev);
-		spiReleaseBus(m_hwspi_dev);
-		ok = true;
-	}
-
-	return ok;
+	return transport_read_reg(m_transport, lsm6ds3_addr, reg, res, 1);
 }
 
 static bool write_reg(uint8_t reg, uint8_t value) {
-	bool ok = false;
-
-	if (m_i2c_bb) {
-		uint8_t txb[2];
-		uint8_t rxb[1];
-		txb[0] = reg;
-		txb[1] = value;
-		ok = i2c_bb_tx_rx(m_i2c_bb, lsm6ds3_addr, txb, 2, rxb, 1);
-	} else if (m_spi_bb) {
-		chMtxLock(&(m_spi_bb->mutex));
-		spi_bb_begin(m_spi_bb);
-		spi_bb_exchange_8_mode_3(m_spi_bb, reg & 0x7F);
-		spi_bb_delay();
-		spi_bb_exchange_8_mode_3(m_spi_bb, value);
-		spi_bb_end(m_spi_bb);
-		chMtxUnlock(&(m_spi_bb->mutex));
-		ok = true;
-	} else if (m_hwspi_dev) {
-		// Use polled exchange here as the DMA-version seems to freeze
-		// the CAN process thread for some reason. Performance does not
-		// matter during config.
-		spiAcquireBus(m_hwspi_dev);
-		spiSelect(m_hwspi_dev);
-		spiPolledExchange(m_hwspi_dev, reg & 0x7f);
-		spi_bb_delay();
-		spiPolledExchange(m_hwspi_dev, value);
-		spiUnselect(m_hwspi_dev);
-		spiReleaseBus(m_hwspi_dev);
-		ok = true;
-	}
-
-	return ok;
+	return transport_write_reg(m_transport, lsm6ds3_addr, reg, &value, 1);
 }
 
 static bool read_gyro_accel(uint8_t *res) {
-	bool ok = false;
-
-	if (m_i2c_bb) {
-		uint8_t txb[1];
-		txb[0] = LSM6DS3_ACC_GYRO_OUTX_L_G;
-		ok = i2c_bb_tx_rx(m_i2c_bb, lsm6ds3_addr, txb, 1, res, 12);
-
-		if (!ok) {
-			memset(res, 0, 12);
-		}
-	} else if (m_spi_bb) {
-		chMtxLock(&(m_spi_bb->mutex));
-		spi_bb_begin(m_spi_bb);
-		spi_bb_exchange_8_mode_3(m_spi_bb, LSM6DS3_ACC_GYRO_OUTX_L_G | 0x80);
-		spi_bb_delay_short();
-
-		for (int i = 0;i < 12;i++) {
-			res[i] = spi_bb_exchange_8_mode_3(m_spi_bb, 0);
-		}
-
-		spi_bb_end(m_spi_bb);
-		chMtxUnlock(&(m_spi_bb->mutex));
-		ok = true;
-	} else if (m_hwspi_dev) {
-		uint8_t txb[1];
-		uint8_t rxb[1];
-
-		spiAcquireBus(m_hwspi_dev);
-		spiSelect(m_hwspi_dev);
-		txb[0] = LSM6DS3_ACC_GYRO_OUTX_L_G | 0x80;
-		spiExchange(m_hwspi_dev, 1, txb, rxb);
-		spi_bb_delay_short();
-		spiExchange(m_hwspi_dev, 12, spi_tx_0_12, res);
-		spiUnselect(m_hwspi_dev);
-		spiReleaseBus(m_hwspi_dev);
-		ok = true;
-	}
-
-	return ok;
+	return transport_read_reg(m_transport, lsm6ds3_addr, LSM6DS3_ACC_GYRO_OUTX_L_G, res, 12);
 }
 
 static void terminal_read_reg(int argc, const char **argv) {
