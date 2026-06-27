@@ -42,8 +42,6 @@ static ATTITUDE_INFO m_att;
 static FusionAhrs m_fusionAhrs;
 static float m_accel[3], m_gyro[3], m_mag[3];
 static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(1024) / sizeof(stkalign_t)];
-static i2c_bb_state m_i2c_bb;
-static spi_bb_state m_spi_bb;
 static transport_t m_transport;
 static ICM20948_STATE m_icm20948_state;
 static BMI_STATE m_bmi_state;
@@ -55,10 +53,6 @@ static char *m_imu_type_internal = "Unknown";
 
 // Private functions
 static void imu_read_callback(float *accel, float *gyro, float *mag);
-static int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
-static int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len);
-static int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
-static int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len);
 static void terminal_imu_type_internal(int argc, const char **argv);
 
 // Function pointers
@@ -233,19 +227,10 @@ void imu_init_bmi160_i2c(stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin) {
 	imu_stop();
 
-	m_i2c_bb.sda_gpio = sda_gpio;
-	m_i2c_bb.sda_pin = sda_pin;
-	m_i2c_bb.scl_gpio = scl_gpio;
-	m_i2c_bb.scl_pin = scl_pin;
-	m_i2c_bb.rate = I2C_BB_RATE_400K;
-	i2c_bb_init(&m_i2c_bb);
+	transport_i2c_bb_init(&m_transport, sda_gpio, sda_pin, scl_gpio, scl_pin, 0);
 
-	m_bmi_state.sensor.id = BMI160_I2C_ADDR;
-	m_bmi_state.sensor.interface = BMI160_I2C_INTF;
-	m_bmi_state.sensor.read = user_i2c_read;
-	m_bmi_state.sensor.write = user_i2c_write;
-
-	bmi160_wrapper_init(&m_bmi_state, m_thd_work_area, sizeof(m_thd_work_area));
+	bmi160_wrapper_init(&m_bmi_state, &m_transport, BMI160_I2C_INTF,
+			m_thd_work_area, sizeof(m_thd_work_area));
 	bmi160_wrapper_set_read_callback(&m_bmi_state, imu_read_callback);
 }
 
@@ -254,23 +239,11 @@ void imu_init_bmi160_spi(stm32_gpio_t *nss_gpio, int nss_pin,
 		stm32_gpio_t *miso_gpio, int miso_pin) {
 	imu_stop();
 
-	m_spi_bb.nss_gpio = nss_gpio;
-	m_spi_bb.nss_pin = nss_pin;
-	m_spi_bb.sck_gpio = sck_gpio;
-	m_spi_bb.sck_pin = sck_pin;
-	m_spi_bb.mosi_gpio = mosi_gpio;
-	m_spi_bb.mosi_pin = mosi_pin;
-	m_spi_bb.miso_gpio = miso_gpio;
-	m_spi_bb.miso_pin = miso_pin;
+	transport_spi_bb_init(&m_transport, nss_gpio, nss_pin, sck_gpio, sck_pin,
+			mosi_gpio, mosi_pin, miso_gpio, miso_pin);
 
-	spi_bb_init(&m_spi_bb);
-
-	m_bmi_state.sensor.id = 0;
-	m_bmi_state.sensor.interface = BMI160_SPI_INTF;
-	m_bmi_state.sensor.read = user_spi_read;
-	m_bmi_state.sensor.write = user_spi_write;
-
-	bmi160_wrapper_init(&m_bmi_state, m_thd_work_area, sizeof(m_thd_work_area));
+	bmi160_wrapper_init(&m_bmi_state, &m_transport, BMI160_SPI_INTF,
+			m_thd_work_area, sizeof(m_thd_work_area));
 	bmi160_wrapper_set_read_callback(&m_bmi_state, imu_read_callback);
 }
 
@@ -695,65 +668,6 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	if (m_read_callback) {
 		m_read_callback(m_accel, gyro_rad, m_mag, dt);
 	}
-}
-
-static int8_t user_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
-	m_i2c_bb.has_error = 0;
-
-	uint8_t txbuf[1];
-	txbuf[0] = reg_addr;
-	return i2c_bb_tx_rx(&m_i2c_bb, dev_addr, txbuf, 1, data, len) ? BMI160_OK : BMI160_E_COM_FAIL;
-}
-
-static int8_t user_i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
-	m_i2c_bb.has_error = 0;
-
-	uint8_t txbuf[len + 1];
-	txbuf[0] = reg_addr;
-	memcpy(txbuf + 1, data, len);
-	return i2c_bb_tx_rx(&m_i2c_bb, dev_addr, txbuf, len + 1, 0, 0) ? BMI160_OK : BMI160_E_COM_FAIL;
-}
-
-static int8_t user_spi_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len) {
-	(void)dev_id;
-	
-	int8_t rslt = BMI160_OK; // Return 0 for Success, non-zero for failure 
-
-	reg_addr = (reg_addr | BMI160_SPI_RD_MASK);
-
-	chMtxLock(&m_spi_bb.mutex);
-	spi_bb_begin(&m_spi_bb);
-	spi_bb_exchange_8(&m_spi_bb, reg_addr);
-	spi_bb_delay();
-
-	for (int i = 0; i < len; i++) {
-		data[i] = spi_bb_exchange_8(&m_spi_bb, 0);
-	}
-
-	spi_bb_end(&m_spi_bb);
-	chMtxUnlock(&m_spi_bb.mutex);
-	return rslt;
-}
-
-static int8_t user_spi_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *data, uint16_t len) {
-	(void)dev_id;
-
-	int8_t rslt = BMI160_OK; /* Return 0 for Success, non-zero for failure */
-	chMtxLock(&m_spi_bb.mutex);
-	spi_bb_begin(&m_spi_bb);
-	reg_addr = (reg_addr & BMI160_SPI_WR_MASK);
-	spi_bb_exchange_8(&m_spi_bb, reg_addr);
-	spi_bb_delay();
-
-	for (int i = 0; i < len; i++) {
-		spi_bb_exchange_8(&m_spi_bb, *data);
-		data++;
-	}
-
-	spi_bb_end(&m_spi_bb);
-	chMtxUnlock(&m_spi_bb.mutex);
-
-	return rslt;
 }
 
 static void terminal_imu_type_internal(int argc, const char **argv) {

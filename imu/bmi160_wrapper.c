@@ -30,8 +30,27 @@ static THD_FUNCTION(bmi_thread, arg);
 static bool reset_init_bmi(BMI_STATE *s);
 void user_delay_ms(uint32_t ms);
 
-void bmi160_wrapper_init(BMI_STATE *s, stkalign_t *work_area, size_t work_area_size) {
+// Bosch's read/write callbacks carry no context pointer, so the active transport is held
+// here (single BMI instance at a time).
+static transport_t *m_transport;
+
+static int8_t bmi_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+	return transport_read_reg(m_transport, dev_addr, reg_addr, data, len) ? BMI160_OK : BMI160_E_COM_FAIL;
+}
+
+static int8_t bmi_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len) {
+	return transport_write_reg(m_transport, dev_addr, reg_addr, data, len) ? BMI160_OK : BMI160_E_COM_FAIL;
+}
+
+void bmi160_wrapper_init(BMI_STATE *s, transport_t *transport, uint8_t interface,
+		stkalign_t *work_area, size_t work_area_size) {
+	m_transport = transport;
+
 	s->read_callback = 0;
+	s->sensor.interface = interface;
+	s->sensor.id = (interface == BMI160_I2C_INTF) ? BMI160_I2C_ADDR : 0;
+	s->sensor.read = bmi_read;
+	s->sensor.write = bmi_write;
 
 	if (s->sensor.interface == BMI160_SPI_INTF) {
 		s->rate_hz = MIN(s->rate_hz, 5000);

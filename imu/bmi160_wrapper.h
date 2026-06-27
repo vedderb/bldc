@@ -26,9 +26,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "i2c_bb.h"
-#include "spi_bb.h"
 #include "bmi160.h"
+#include "transport.h"
+#include "datatypes.h"
 
 typedef struct {
 	void(*read_callback)(float *accel, float *gyro, float *mag);
@@ -39,7 +39,8 @@ typedef struct {
 	IMU_FILTER filter;
 } BMI_STATE;
 
-void bmi160_wrapper_init(BMI_STATE *s, stkalign_t *work_area, size_t work_area_size);
+void bmi160_wrapper_init(BMI_STATE *s, transport_t *transport, uint8_t interface,
+		stkalign_t *work_area, size_t work_area_size);
 void bmi160_wrapper_set_read_callback(BMI_STATE *s, void(*func)(float *accel, float *gyro, float *mag));
 void bmi160_wrapper_stop(BMI_STATE *s);
 
