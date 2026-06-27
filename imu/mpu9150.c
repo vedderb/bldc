@@ -25,7 +25,6 @@
 #include "mpu9150.h"
 #include "utils_math.h"
 #include "stm32f4xx_conf.h"
-#include "i2c_bb.h"
 #include "terminal.h"
 #include "commands.h"
 
@@ -44,7 +43,6 @@
 
 // Private variables
 static unsigned char rx_buf[100];
-static unsigned char tx_buf[100];
 static volatile int16_t raw_accel_gyro_mag[9];
 static volatile int16_t raw_accel_gyro_mag_no_offset[9];
 static volatile int failed_reads;
@@ -54,7 +52,7 @@ static volatile systime_t update_time_diff;
 static volatile int mag_updated;
 static volatile uint16_t mpu_addr;
 static volatile bool is_mpu9250;
-static i2c_bb_state i2cs;
+static transport_t *m_transport;
 static volatile int16_t mpu9150_gyro_offsets[3];
 static volatile bool mpu_found;
 static volatile bool is_running;
@@ -66,6 +64,8 @@ static volatile bool use_magnetometer = true;
 static int reset_init_mpu(void);
 static int get_raw_accel_gyro(int16_t* accel_gyro);
 static uint8_t read_single_reg(uint8_t reg);
+static bool read_reg(uint8_t addr, uint8_t reg, uint8_t *rx, size_t len);
+static bool write_reg(uint8_t addr, uint8_t reg, uint8_t value);
 static int get_raw_mag(int16_t* mag);
 static THD_FUNCTION(mpu_thread, arg);
 static void terminal_status(int argc, const char **argv);
@@ -75,9 +75,7 @@ static thread_t *mpu_tp = 0;
 // Function pointers
 static void(*read_callback)(float *accel, float *gyro, float *mag) = 0;
 
-void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin,
-		stm32_gpio_t *scl_gpio, int scl_pin,
-		stkalign_t *work_area, size_t work_area_size) {
+void mpu9150_init(transport_t *transport, stkalign_t *work_area, size_t work_area_size) {
 
 	failed_reads = 0;
 	failed_mag_reads = 0;
@@ -92,12 +90,7 @@ void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin,
 
 	memset((void*)mpu9150_gyro_offsets, 0, sizeof(mpu9150_gyro_offsets));
 
-	i2cs.sda_gpio = sda_gpio;
-	i2cs.sda_pin = sda_pin;
-	i2cs.scl_gpio = scl_gpio;
-	i2cs.scl_pin = scl_pin;
-	i2cs.rate = I2C_BB_RATE_400K;
-	i2c_bb_init(&i2cs);
+	m_transport = transport;
 
 	reset_init_mpu();
 
@@ -376,13 +369,19 @@ static THD_FUNCTION(mpu_thread, arg) {
 	}
 }
 
+static bool read_reg(uint8_t addr, uint8_t reg, uint8_t *rx, size_t len) {
+	return transport_read_reg(m_transport, addr, reg, rx, len);
+}
+
+static bool write_reg(uint8_t addr, uint8_t reg, uint8_t value) {
+	return transport_write_reg(m_transport, addr, reg, &value, 1);
+}
+
 static int reset_init_mpu(void) {
-	i2c_bb_restore_bus(&i2cs);
+	transport_recover(m_transport);
 
 	// Set clock source to gyro x
-	tx_buf[0] = MPU9150_PWR_MGMT_1;
-	tx_buf[1] = 0x01;
-	bool res = i2c_bb_tx_rx(&i2cs, mpu_addr, tx_buf, 2, rx_buf, 0);
+	bool res = write_reg(mpu_addr, MPU9150_PWR_MGMT_1, 0x01);
 
 	// Try the other address
 	if (!res) {
@@ -393,9 +392,7 @@ static int reset_init_mpu(void) {
 		}
 
 		// Set clock source to gyro x
-		tx_buf[0] = MPU9150_PWR_MGMT_1;
-		tx_buf[1] = 0x01;
-		res = i2c_bb_tx_rx(&i2cs, mpu_addr, tx_buf, 2, rx_buf, 0);
+		res = write_reg(mpu_addr, MPU9150_PWR_MGMT_1, 0x01);
 
 		if (!res) {
 			return 0;
@@ -403,27 +400,21 @@ static int reset_init_mpu(void) {
 	}
 
 	// Set accelerometer full-scale range to +/- 16g
-	tx_buf[0] = MPU9150_ACCEL_CONFIG;
-	tx_buf[1] = MPU9150_ACCEL_FS_16 << MPU9150_ACONFIG_AFS_SEL_BIT;
-	res = i2c_bb_tx_rx(&i2cs, mpu_addr, tx_buf, 2, rx_buf, 0);
+	res = write_reg(mpu_addr, MPU9150_ACCEL_CONFIG, MPU9150_ACCEL_FS_16 << MPU9150_ACONFIG_AFS_SEL_BIT);
 
 	if (!res) {
 		return 0;
 	}
 
 	// Set gyroscope full-scale range to +/- 2000 deg/s
-	tx_buf[0] = MPU9150_GYRO_CONFIG;
-	tx_buf[1] = MPU9150_GYRO_FS_2000 << MPU9150_GCONFIG_FS_SEL_BIT;
-	res = i2c_bb_tx_rx(&i2cs, mpu_addr, tx_buf, 2, rx_buf, 0);
+	res = write_reg(mpu_addr, MPU9150_GYRO_CONFIG, MPU9150_GYRO_FS_2000 << MPU9150_GCONFIG_FS_SEL_BIT);
 
 	if (!res) {
 		return 0;
 	}
 
 	// Set low pass filter to 256Hz (1ms delay)
-	tx_buf[0] = MPU9150_CONFIG;
-	tx_buf[1] = MPU9150_DLPF_BW_256;
-	res = i2c_bb_tx_rx(&i2cs, mpu_addr, tx_buf, 2, rx_buf, 0);
+	res = write_reg(mpu_addr, MPU9150_CONFIG, MPU9150_DLPF_BW_256);
 
 	if (!res) {
 		return 0;
@@ -431,9 +422,7 @@ static int reset_init_mpu(void) {
 
 	if(use_magnetometer){
 		// Set the i2c bypass enable pin to true to access the magnetometer
-		tx_buf[0] = MPU9150_INT_PIN_CFG;
-		tx_buf[1] = 0x02;
-		res = i2c_bb_tx_rx(&i2cs, mpu_addr, tx_buf, 2, rx_buf, 0);
+		res = write_reg(mpu_addr, MPU9150_INT_PIN_CFG, 0x02);
 
 		if (!res) {
 			return 0;
@@ -446,8 +435,7 @@ static int reset_init_mpu(void) {
 }
 
 static int get_raw_accel_gyro(int16_t* accel_gyro) {
-	tx_buf[0] = MPU9150_ACCEL_XOUT_H;
-	bool res = i2c_bb_tx_rx(&i2cs, mpu_addr, tx_buf, 1, rx_buf, 14);
+	bool res = read_reg(mpu_addr, MPU9150_ACCEL_XOUT_H, rx_buf, 14);
 
 	if (!res) {
 		return 0;
@@ -469,13 +457,9 @@ static int get_raw_accel_gyro(int16_t* accel_gyro) {
 }
 
 static uint8_t read_single_reg(uint8_t reg) {
-	uint8_t rxb[2];
-	uint8_t txb[2];
+	uint8_t rxb[1];
 
-	txb[0] = reg;
-	bool res = i2c_bb_tx_rx(&i2cs, mpu_addr, txb, 1, rxb, 1);
-
-	if (res) {
+	if (read_reg(mpu_addr, reg, rxb, 1)) {
 		return rxb[0];
 	} else {
 		return 0;
@@ -483,8 +467,7 @@ static uint8_t read_single_reg(uint8_t reg) {
 }
 
 static int get_raw_mag(int16_t* mag) {
-	tx_buf[0] = MPU9150_HXL;
-	bool res = i2c_bb_tx_rx(&i2cs, 0x0C, tx_buf, 1, rx_buf, 6);
+	bool res = read_reg(0x0C, MPU9150_HXL, rx_buf, 6);
 
 	if (!res) {
 		return 0;
@@ -495,9 +478,7 @@ static int get_raw_mag(int16_t* mag) {
 	}
 
 	// Start the measurement for the next iteration
-	tx_buf[0] = MPU9150_CNTL;
-	tx_buf[1] = 0x01;
-	res = i2c_bb_tx_rx(&i2cs, 0x0C, tx_buf, 2, rx_buf, 0);
+	res = write_reg(0x0C, MPU9150_CNTL, 0x01);
 
 	if (!res) {
 		return 0;
