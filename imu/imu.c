@@ -223,15 +223,9 @@ void imu_init_icm20948(stm32_gpio_t *sda_gpio, int sda_pin,
 		stm32_gpio_t *scl_gpio, int scl_pin, int ad0_val) {
 	imu_stop();
 
-	m_i2c_bb.sda_gpio = sda_gpio;
-	m_i2c_bb.sda_pin = sda_pin;
-	m_i2c_bb.scl_gpio = scl_gpio;
-	m_i2c_bb.scl_pin = scl_pin;
-	m_i2c_bb.rate = I2C_BB_RATE_400K;
-	i2c_bb_init(&m_i2c_bb);
-
+	transport_i2c_bb_init(&m_transport, sda_gpio, sda_pin, scl_gpio, scl_pin, 0);
 	icm20948_init(&m_icm20948_state,
-			&m_i2c_bb, ad0_val,
+			&m_transport, ad0_val,
 			m_thd_work_area, sizeof(m_thd_work_area));
 	icm20948_set_read_callback(&m_icm20948_state, imu_read_callback);
 }

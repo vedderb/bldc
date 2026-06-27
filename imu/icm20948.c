@@ -31,16 +31,17 @@ static THD_FUNCTION(icm_thread, arg);
 // Private functions
 static bool reset_init_icm(ICM20948_STATE *s);
 static void terminal_read_reg(int argc, const char **argv);
+static bool read_reg(ICM20948_STATE *s, uint8_t reg, uint8_t *rx, size_t len);
 static uint8_t read_single_reg(ICM20948_STATE *s, uint8_t reg);
-static bool write_single_reg(ICM20948_STATE *s, uint8_t reg, uint8_t value);
+static bool write_reg(ICM20948_STATE *s, uint8_t reg, uint8_t value);
 
 // Private variables
 static ICM20948_STATE *m_terminal_state = 0;
 
-void icm20948_init(ICM20948_STATE *s, i2c_bb_state *i2c_state, int ad0_val,
+void icm20948_init(ICM20948_STATE *s, transport_t *transport, int ad0_val,
 		stkalign_t *work_area, size_t work_area_size) {
 
-	s->i2cs = i2c_state;
+	s->transport = transport;
 	s->i2c_address = ad0_val ? 0x69 : 0x68;
 	s->read_callback = 0;
 
@@ -84,11 +85,11 @@ static void terminal_read_reg(int argc, const char **argv) {
 		sscanf(argv[2], "%d", &reg);
 
 		if (reg >= 0 && (bank == 0 || bank == 1 || bank == 2)) {
-			write_single_reg(m_terminal_state, ICM20948_BANK_SEL, bank << 4);
+			write_reg(m_terminal_state, ICM20948_BANK_SEL, bank << 4);
 			unsigned int res = read_single_reg(m_terminal_state, reg);
 			char bl[9];
 
-			write_single_reg(m_terminal_state, ICM20948_BANK_SEL, 0 << 4);
+			write_reg(m_terminal_state, ICM20948_BANK_SEL, 0 << 4);
 
 			utils_byte_to_binary(res & 0xFF, bl);
 
@@ -101,24 +102,18 @@ static void terminal_read_reg(int argc, const char **argv) {
 	}
 }
 
-static bool write_single_reg(ICM20948_STATE *s, uint8_t reg, uint8_t value) {
-	uint8_t txb[2];
+static bool read_reg(ICM20948_STATE *s, uint8_t reg, uint8_t *rx, size_t len) {
+	return transport_read_reg(s->transport, s->i2c_address, reg, rx, len);
+}
 
-	txb[0] = reg;
-	txb[1] = value;
-
-	bool res = i2c_bb_tx_rx(s->i2cs, s->i2c_address, txb, 2, 0, 0);
-	return res;
+static bool write_reg(ICM20948_STATE *s, uint8_t reg, uint8_t value) {
+	return transport_write_reg(s->transport, s->i2c_address, reg, &value, 1);
 }
 
 static uint8_t read_single_reg(ICM20948_STATE *s, uint8_t reg) {
 	uint8_t rxb[1];
-	uint8_t txb[1];
 
-	txb[0] = reg;
-	bool res = i2c_bb_tx_rx(s->i2cs, s->i2c_address, txb, 1, rxb, 1);
-
-	if (res) {
+	if (read_reg(s, reg, rxb, 1)) {
 		return rxb[0];
 	} else {
 		return 0;
@@ -126,30 +121,30 @@ static uint8_t read_single_reg(ICM20948_STATE *s, uint8_t reg) {
 }
 
 static bool reset_init_icm(ICM20948_STATE *s) {
-	i2c_bb_restore_bus(s->i2cs);
+	transport_recover(s->transport);
 
 	chThdSleep(1);
 
 	// TODO: Check for errors
 
 	// Set clock source to auto
-	write_single_reg(s, ICM20948_BANK_SEL, 0 << 4);
-	write_single_reg(s, ICM20948_PWR_MGMT_1, 1);
+	write_reg(s, ICM20948_BANK_SEL, 0 << 4);
+	write_reg(s, ICM20948_PWR_MGMT_1, 1);
 
 	// Set accelerometer to +-16 G and disable lp filter
-	write_single_reg(s, ICM20948_BANK_SEL, 2 << 4);
-	write_single_reg(s, ICM20948_ACCEL_CONFIG, 0b00000110);
+	write_reg(s, ICM20948_BANK_SEL, 2 << 4);
+	write_reg(s, ICM20948_ACCEL_CONFIG, 0b00000110);
 
 	// Set gyro to +-2000 dps and disable lp filter
-	write_single_reg(s, ICM20948_BANK_SEL, 2 << 4);
-	write_single_reg(s, ICM20948_GYRO_CONFIG_1, 0b00000110);
+	write_reg(s, ICM20948_BANK_SEL, 2 << 4);
+	write_reg(s, ICM20948_GYRO_CONFIG_1, 0b00000110);
 
 	// I2C bypass to access magnetometer directly
-//	write_single_reg(s, ICM20948_BANK_SEL, 0);
-//	write_single_reg(s, ICM20948_PIN_CFG, 2);
+//	write_reg(s, ICM20948_BANK_SEL, 0);
+//	write_reg(s, ICM20948_PIN_CFG, 2);
 
 	// Select bank0 so that data can be polled.
-	write_single_reg(s, ICM20948_BANK_SEL, 0 << 4);
+	write_reg(s, ICM20948_BANK_SEL, 0 << 4);
 
 	return true;
 }
@@ -162,11 +157,9 @@ static THD_FUNCTION(icm_thread, arg) {
 	s->is_running = true;
 
 	for(;;) {
-		uint8_t txb[1];
 		uint8_t rxb[12];
-		txb[0] = ICM20948_ACCEL_XOUT_H;
 
-		bool res = i2c_bb_tx_rx(s->i2cs, s->i2c_address, txb, 1, rxb, 12);
+		bool res = read_reg(s, ICM20948_ACCEL_XOUT_H, rxb, 12);
 
 		if (res) {
 			float accel[3], gyro[3], mag[3];
