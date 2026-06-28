@@ -27,6 +27,7 @@
 #include "encoder/encoder.h"
 #include "main.h"
 #include "irq_handlers.h"
+#include "imu/drdy.h"
 
 CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 	CH_IRQ_PROLOGUE();
@@ -49,14 +50,24 @@ static void exti_gpio_dispatch(void) {
 		encoder_pin_isr();
 		EXTI_ClearITPendingBit(HW_ENC_EXTI_LINE);
 	}
+#ifdef IMU_DRDY_GPIO
+	if (EXTI_GetITStatus(IMU_DRDY_EXTI_LINE) != RESET) {
+		EXTI_ClearITPendingBit(IMU_DRDY_EXTI_LINE);
+		drdy_signal_isr();
+	}
+#endif
 }
 
 CH_IRQ_HANDLER(EXTI9_5_IRQHandler) {
+	CH_IRQ_PROLOGUE();
 	exti_gpio_dispatch();
+	CH_IRQ_EPILOGUE();
 }
 
 CH_IRQ_HANDLER(EXTI15_10_IRQHandler) {
+	CH_IRQ_PROLOGUE();
 	exti_gpio_dispatch();
+	CH_IRQ_EPILOGUE();
 }
 
 CH_IRQ_HANDLER(HW_ENC_TIM_ISR_VEC) {

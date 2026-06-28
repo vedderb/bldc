@@ -9,6 +9,7 @@ IMUSRC = 	imu/mpu9150.c \
 			imu/transport_spi_bb.c \
 			imu/transport_spi_hw.c \
 			imu/imu_thread.c \
+			imu/drdy.c \
 			imu/Fusion/FusionAhrs.c \
 			imu/Fusion/FusionBias.c \
 			imu/Fusion/FusionCompass.c

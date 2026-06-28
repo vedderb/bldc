@@ -18,6 +18,7 @@
 	*/
 
 #include "imu_thread.h"
+#include "drdy.h"
 #include "ch.h"
 #include "terminal.h"
 #include "commands.h"
@@ -25,12 +26,18 @@
 
 #include <stdio.h>
 
+// In DRDY mode, fall back to a timed read after this many sample periods
+// without a data-ready edge, so a missed edge or an unwired pin can't stall
+// the loop.
+#define DRDY_TIMEOUT_PERIODS 2
+
 static THD_FUNCTION(thread_func, arg);
 
 static stkalign_t m_wa[THD_WORKING_AREA_SIZE(1024) / sizeof(stkalign_t)];
 static thread_t *m_thd = NULL;
 static imu_device_t *m_dev;
 static volatile uint32_t m_read_fails;
+static bool m_drdy_active = false;
 static void (*m_cb)(float *accel, float *gyro, float *mag);
 static bool m_cmds_registered = false;
 
@@ -84,12 +91,25 @@ static void terminal_status(int argc, const char **argv) {
 			m_thd ? "yes" : "no",
 			m_dev->sample_rate_hz,
 			m_read_fails);
+
+	if (m_drdy_active) {
+		commands_printf(
+				"DRDY ints     : %u\n"
+				"DRDY timeouts : %u\n",
+				drdy_interrupt_count(),
+				drdy_timeout_count());
+	}
 }
 
 void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz) {
 	m_dev = dev;
 	m_dev->sample_rate_hz = rate_hz;
 	m_read_fails = 0;
+
+	// Interrupt mode only when both the board wires a DRDY pin and the device can route its
+	// data-ready to it; otherwise the timed loop runs and the hook is never called. Resolved
+	// here (before configure()) so the device's configure() can adapt its ODR/filter setup.
+	dev->use_drdy = drdy_present() && dev->interface->enable_drdy_output != NULL;
 
 	if (!m_cmds_registered) {
 		terminal_register_command_callback(
@@ -108,27 +128,50 @@ void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz) {
 
 void imu_thread_start(void (*cb)(float *accel, float *gyro, float *mag)) {
 	m_cb = cb;
+
+	m_drdy_active = m_dev->use_drdy;
+	if (m_drdy_active) {
+		drdy_init();
+		m_dev->interface->enable_drdy_output(m_dev, true);
+	}
+
 	m_thd = chThdCreateStatic(m_wa, sizeof(m_wa), NORMALPRIO, thread_func, NULL);
 }
 
 void imu_thread_stop(void) {
 	if (m_thd) {
 		chThdTerminate(m_thd);
+		drdy_signal(); // unblock a DRDY wait so the thread sees the terminate flag
 		chThdWait(m_thd);
 		m_thd = NULL;
 	}
+
+	if (m_dev && m_drdy_active) {
+		m_dev->interface->enable_drdy_output(m_dev, false);
+		drdy_deinit();
+	}
+
 	m_dev = NULL;
+	m_drdy_active = false;
 }
 
 static THD_FUNCTION(thread_func, arg) {
 	(void)arg;
 	chRegSetThreadName("IMU");
 
+	const systime_t period = US2ST(1000000 / m_dev->sample_rate_hz);
 	// One tick less so the actual rate is at least the configured one (US2ST rounds up).
-	const systime_t interval = US2ST(1000000 / m_dev->sample_rate_hz) - 1;
+	const systime_t interval = period - 1;
 
 	while (!chThdShouldTerminateX()) {
 		systime_t start_time = chVTGetSystemTimeX();
+
+		if (m_drdy_active) {
+			drdy_wait(DRDY_TIMEOUT_PERIODS * period);
+			if (chThdShouldTerminateX()) {
+				break;
+			}
+		}
 
 		float accel[3], gyro[3], mag[3];
 		if (!m_dev->interface->read_sample(m_dev, accel, gyro, mag)) {
@@ -145,11 +188,14 @@ static THD_FUNCTION(thread_func, arg) {
 			m_cb(accel, gyro, mag);
 		}
 
-		systime_t sleep_ticks = 1;
-		systime_t remaining = start_time + interval - chVTGetSystemTimeX();
-		if (remaining > 0 && remaining <= interval) {
-			sleep_ticks = remaining;
+		// In DRDY mode the next edge wakes the loop, we only sleep in timed mode
+		if (!m_drdy_active) {
+			systime_t sleep_ticks = 1;
+			systime_t remaining = start_time + interval - chVTGetSystemTimeX();
+			if (remaining > 0 && remaining <= interval) {
+				sleep_ticks = remaining;
+			}
+			chThdSleep(sleep_ticks);
 		}
-		chThdSleep(sleep_ticks);
 	}
 }

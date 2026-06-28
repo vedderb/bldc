@@ -41,6 +41,9 @@ typedef struct {
 
 	// Optional: failure policy, e.g. re-init. (NULL = just retry after a short sleep)
 	void (*on_read_fail)(imu_device_t *dev);
+
+	// Optional: enable the IMU data-ready signal on its INT pin. (NULL = timed read)
+	void (*enable_drdy_output)(imu_device_t *dev, bool enable);
 } imu_device_interface_t;
 
 struct imu_device {
@@ -52,6 +55,10 @@ struct imu_device {
 	// Sample rate (Hz) the read loop runs at. Set by imu_thread_set_device(); a device's
 	// configure() may override it with the effective rate it actually programmed.
 	uint16_t sample_rate_hz;
+	// Resolved in imu_thread_set_device(): true when the read loop will be DRDY-driven (the
+	// board wires a DRDY pin and this device routes its data-ready to it). Drivers consult
+	// it in configure() to match their ODR/filter setup to the access mode. false = timed poll.
+	bool use_drdy;
 	void *priv;
 };
 
