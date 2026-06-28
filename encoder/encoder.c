@@ -70,7 +70,6 @@ bool encoder_init(volatile mc_configuration *conf) {
 		encoder_deinit();
 	}
 
-	nvicDisableVector(HW_ENC_EXTI_CH);
 	nvicDisableVector(HW_ENC_TIM_ISR_CH);
 	TIM_DeInit(HW_ENC_TIM);
 
@@ -393,7 +392,6 @@ void encoder_update_config(volatile mc_configuration *conf) {
 }
 
 void encoder_deinit(void) {
-	nvicDisableVector(HW_ENC_EXTI_CH);
 	nvicDisableVector(HW_ENC_TIM_ISR_CH);
 	TIM_DeInit(HW_ENC_TIM);
 

@@ -51,6 +51,7 @@
 #include "flash_helper.h"
 #include "conf_custom.h"
 #include "crc.h"
+#include "irq_handlers.h"
 #include "qmlui.h"
 #include "confgenerator.h"
 
@@ -316,6 +317,8 @@ int main(void) {
 	hw_init_gpio();
 	LED_RED_OFF();
 	LED_GREEN_OFF();
+
+	irq_handlers_init();
 
 	conf_general_init();
 

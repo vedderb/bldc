@@ -26,6 +26,7 @@
 #include "hw.h"
 #include "encoder/encoder.h"
 #include "main.h"
+#include "irq_handlers.h"
 
 CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 	CH_IRQ_PROLOGUE();
@@ -34,13 +35,28 @@ CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 	CH_IRQ_EPILOGUE();
 }
 
-CH_IRQ_HANDLER(HW_ENC_EXTI_ISR_VEC) {
+void irq_handlers_init(void) {
+	nvicEnableVector(EXTI9_5_IRQn, 6);
+	nvicEnableVector(EXTI15_10_IRQn, 6);
+}
+
+// The STM32 multiplexes EXTI lines 5-9 and 10-15 onto one NVIC vector each. Every GPIO EXTI
+// source is checked here by line, so a source is serviced whichever group its pin falls in,
+// and sources that share a group's vector coalesce into one handler. Add a source by checking
+// its line below (and, for a source on EXTI lines 0-4, adding that line's handler).
+static void exti_gpio_dispatch(void) {
 	if (EXTI_GetITStatus(HW_ENC_EXTI_LINE) != RESET) {
 		encoder_pin_isr();
-
-		// Clear the EXTI line pending bit
 		EXTI_ClearITPendingBit(HW_ENC_EXTI_LINE);
 	}
+}
+
+CH_IRQ_HANDLER(EXTI9_5_IRQHandler) {
+	exti_gpio_dispatch();
+}
+
+CH_IRQ_HANDLER(EXTI15_10_IRQHandler) {
+	exti_gpio_dispatch();
 }
 
 CH_IRQ_HANDLER(HW_ENC_TIM_ISR_VEC) {
