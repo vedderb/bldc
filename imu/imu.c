@@ -30,6 +30,7 @@
 #include "transport_i2c_bb.h"
 #include "transport_spi_bb.h"
 #include "transport_spi_hw.h"
+#include "imu_thread.h"
 #include "utils_math.h"
 #include "Fusion.h"
 #include "digital_filter.h"
@@ -43,6 +44,7 @@ static FusionAhrs m_fusionAhrs;
 static float m_accel[3], m_gyro[3], m_mag[3];
 static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(1024) / sizeof(stkalign_t)];
 static transport_t m_transport;
+static imu_device_t m_dev;
 static ICM20948_STATE m_icm20948_state;
 static BMI_STATE m_bmi_state;
 static imu_config m_settings;
@@ -96,10 +98,8 @@ void imu_init(imu_config *set) {
 	mpu9150_set_rate_hz(MIN(set->sample_rate_hz, 1000));
 	m_icm20948_state.rate_hz = MIN(set->sample_rate_hz, 1000);
 	m_bmi_state.rate_hz = set->sample_rate_hz;
-	lsm6ds3_set_rate_hz(set->sample_rate_hz);
 
 	m_bmi_state.filter = set->filter;
-	lsm6ds3_set_filter(set->filter);
 
 	if (set->type == IMU_TYPE_INTERNAL) {
 #ifdef MPU9X50_SDA_GPIO
@@ -259,8 +259,11 @@ void imu_init_lsm6ds3(stm32_gpio_t *sda_gpio, int sda_pin,
 #endif
 
 	transport_i2c_bb_init(&m_transport, sda_gpio, sda_pin, scl_gpio, scl_pin, bus_hz);
-	lsm6ds3_init(&m_transport, m_thd_work_area, sizeof(m_thd_work_area));
-	lsm6ds3_set_read_callback(imu_read_callback);
+	m_dev = lsm6ds3_device(&m_transport);
+	imu_thread_set_device(&m_dev, m_settings.sample_rate_hz);
+	if (m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer)) {
+		imu_thread_start(imu_read_callback);
+	}
 }
 
 bool imu_init_lsm6ds3_spi(stm32_gpio_t *nss_gpio, int nss_pin,
@@ -276,17 +279,21 @@ bool imu_init_lsm6ds3_spi(stm32_gpio_t *nss_gpio, int nss_pin,
 			mosi_gpio, mosi_pin, miso_gpio, miso_pin);
 #endif
 
-	bool res = lsm6ds3_init(&m_transport, m_thd_work_area, sizeof(m_thd_work_area));
-	lsm6ds3_set_read_callback(imu_read_callback);
+	m_dev = lsm6ds3_device(&m_transport);
+	imu_thread_set_device(&m_dev, m_settings.sample_rate_hz);
+	if (m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer)) {
+		imu_thread_start(imu_read_callback);
+		return true;
+	}
 
-	return res;
+	return false;
 }
 
 void imu_stop(void) {
+	imu_thread_stop();
 	mpu9150_stop();
 	icm20948_stop(&m_icm20948_state);
 	bmi160_wrapper_stop(&m_bmi_state);
-	lsm6ds3_stop();
 
 #ifdef LSM6DS3_HWSPI_DEV
 	spiStop(&LSM6DS3_HWSPI_DEV);
