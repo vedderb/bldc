@@ -1,5 +1,6 @@
 /*
 	Copyright 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2026 Lukas Hrazky
 
 	This file is part of the VESC firmware.
 
@@ -20,28 +21,10 @@
 #ifndef IMU_BMI160_WRAPPER_H_
 #define IMU_BMI160_WRAPPER_H_
 
-#include "ch.h"
-#include "hal.h"
-
-#include <stdint.h>
-#include <stdbool.h>
-
+#include "device.h"
 #include "bmi160.h"
-#include "transport.h"
-#include "datatypes.h"
 
-typedef struct {
-	void(*read_callback)(float *accel, float *gyro, float *mag);
-	struct bmi160_dev sensor;
-	volatile bool is_running;
-	volatile bool should_stop;
-	int rate_hz;
-	IMU_FILTER filter;
-} BMI_STATE;
-
-void bmi160_wrapper_init(BMI_STATE *s, transport_t *transport, uint8_t interface,
-		stkalign_t *work_area, size_t work_area_size);
-void bmi160_wrapper_set_read_callback(BMI_STATE *s, void(*func)(float *accel, float *gyro, float *mag));
-void bmi160_wrapper_stop(BMI_STATE *s);
+// interface is BMI160_I2C_INTF or BMI160_SPI_INTF.
+imu_device_t bmi160_device(transport_t *transport, uint8_t interface);
 
 #endif /* IMU_BMI160_WRAPPER_H_ */

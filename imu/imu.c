@@ -42,10 +42,8 @@
 static ATTITUDE_INFO m_att;
 static FusionAhrs m_fusionAhrs;
 static float m_accel[3], m_gyro[3], m_mag[3];
-static stkalign_t m_thd_work_area[THD_WORKING_AREA_SIZE(1024) / sizeof(stkalign_t)];
 static transport_t m_transport;
 static imu_device_t m_dev;
-static BMI_STATE m_bmi_state;
 static imu_config m_settings;
 static systime_t init_time;
 static bool imu_ready;
@@ -92,10 +90,6 @@ void imu_init(imu_config *set) {
 
 	imu_stop();
 	imu_reset_orientation();
-
-	m_bmi_state.rate_hz = set->sample_rate_hz;
-
-	m_bmi_state.filter = set->filter;
 
 	if (set->type == IMU_TYPE_INTERNAL) {
 #ifdef MPU9X50_SDA_GPIO
@@ -230,9 +224,12 @@ void imu_init_bmi160_i2c(stm32_gpio_t *sda_gpio, int sda_pin,
 
 	transport_i2c_bb_init(&m_transport, sda_gpio, sda_pin, scl_gpio, scl_pin, 0);
 
-	bmi160_wrapper_init(&m_bmi_state, &m_transport, BMI160_I2C_INTF,
-			m_thd_work_area, sizeof(m_thd_work_area));
-	bmi160_wrapper_set_read_callback(&m_bmi_state, imu_read_callback);
+	m_dev = bmi160_device(&m_transport, BMI160_I2C_INTF);
+	int rate_hz = MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport));
+	imu_thread_set_device(&m_dev, rate_hz);
+	if (m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer)) {
+		imu_thread_start(imu_read_callback);
+	}
 }
 
 void imu_init_bmi160_spi(stm32_gpio_t *nss_gpio, int nss_pin,
@@ -243,9 +240,12 @@ void imu_init_bmi160_spi(stm32_gpio_t *nss_gpio, int nss_pin,
 	transport_spi_bb_init(&m_transport, nss_gpio, nss_pin, sck_gpio, sck_pin,
 			mosi_gpio, mosi_pin, miso_gpio, miso_pin);
 
-	bmi160_wrapper_init(&m_bmi_state, &m_transport, BMI160_SPI_INTF,
-			m_thd_work_area, sizeof(m_thd_work_area));
-	bmi160_wrapper_set_read_callback(&m_bmi_state, imu_read_callback);
+	m_dev = bmi160_device(&m_transport, BMI160_SPI_INTF);
+	int rate_hz = MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport));
+	imu_thread_set_device(&m_dev, rate_hz);
+	if (m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer)) {
+		imu_thread_start(imu_read_callback);
+	}
 }
 
 void imu_init_lsm6ds3(stm32_gpio_t *sda_gpio, int sda_pin,
@@ -292,7 +292,6 @@ bool imu_init_lsm6ds3_spi(stm32_gpio_t *nss_gpio, int nss_pin,
 
 void imu_stop(void) {
 	imu_thread_stop();
-	bmi160_wrapper_stop(&m_bmi_state);
 
 #ifdef LSM6DS3_HWSPI_DEV
 	spiStop(&LSM6DS3_HWSPI_DEV);
