@@ -1,5 +1,6 @@
 /*
 	Copyright 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2026 Lukas Hrazky
 
 	This file is part of the VESC firmware.
 
@@ -20,29 +21,11 @@
 #ifndef IMU_ICM20948_H_
 #define IMU_ICM20948_H_
 
-#include "ch.h"
-#include "hal.h"
+#include "device.h"
 
-#include <stdint.h>
-#include <stdbool.h>
+imu_device_t icm20948_device(transport_t *transport);
 
-#include "transport.h"
-
-typedef struct {
-	transport_t *transport;
-	uint8_t i2c_address;
-	void(*read_callback)(float *accel, float *gyro, float *mag);
-	volatile bool is_running;
-	volatile bool should_stop;
-	int rate_hz;
-} ICM20948_STATE;
-
-void icm20948_init(ICM20948_STATE *s, transport_t *transport, int ad0_val,
-		stkalign_t *work_area, size_t work_area_size);
-void icm20948_set_read_callback(ICM20948_STATE *s, void(*func)(float *accel, float *gyro, float *mag));
-void icm20948_stop(ICM20948_STATE *s);
-
-// All banks
+// All banks
 #define ICM20948_BANK_SEL						0x7F
 
 // Bank 0 registers
