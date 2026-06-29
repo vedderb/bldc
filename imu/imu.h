@@ -41,7 +41,7 @@ void imu_init_bmi160_spi(
         stm32_gpio_t *sck_gpio, int sck_pin,
         stm32_gpio_t *mosi_gpio, int mosi_pin,
         stm32_gpio_t *miso_gpio, int miso_pin);
-void imu_init_lsm6ds3_spi(
+bool imu_init_lsm6ds3_spi(
         stm32_gpio_t *nss_gpio, int nss_pin,
         stm32_gpio_t *sck_gpio, int sck_pin,
         stm32_gpio_t *mosi_gpio, int mosi_pin,

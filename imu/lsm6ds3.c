@@ -52,7 +52,7 @@ void lsm6ds3_set_filter(IMU_FILTER f) {
 	filter = f;
 }
 
-void lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *spi_hw,
+bool lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *spi_hw,
 		stkalign_t *work_area, size_t work_area_size) {
 
 	read_callback = 0;
@@ -71,7 +71,7 @@ void lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *s
 		res = read_reg(LSM6DS3_ACC_GYRO_WHO_AM_I_REG, rxb);
 		if (!res || (rxb[0] != 0x69 && rxb[0] != 0x6A && rxb[0] != 0x6C)) {
 			commands_printf("LSM6DS3 Address B failed (rx: %d)", rxb[0]);
-			return;
+			return false;
 		}
 	}
 
@@ -106,7 +106,7 @@ void lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *s
 	res = write_reg(LSM6DS3_ACC_GYRO_CTRL1_XL, regv);
 	if (!res){
 		commands_printf("LSM6DS3 Accel Config FAILED");
-		return;
+		return false;
 	}
 
 	// Extra accelerometer filtering for TRC variant
@@ -125,7 +125,7 @@ void lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *s
 		res = write_reg(LSM6DS3_ACC_GYRO_CTRL8_XL, regv);
 		if (!res) {
 			commands_printf("LSM6DS3 Accel Filter Config FAILED");
-			return;
+			return false;
 		}
 	}
 
@@ -158,7 +158,7 @@ void lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *s
 	res = write_reg(LSM6DS3_ACC_GYRO_CTRL2_G, regv);
 	if (!res){
 		commands_printf("LSM6DS3 Gyro Config FAILED");
-		return;
+		return false;
 	}
 
 	// Extra gyro filtering for TRC variant
@@ -178,7 +178,7 @@ void lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *s
 		res = write_reg(LSM6DS3_ACC_GYRO_CTRL6_G, regv);
 		if (!res){
 			commands_printf("LSM6DS3 Gyro Filter FAILED");
-			return;
+			return false;
 		}
 	}
 
@@ -195,7 +195,7 @@ void lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *s
 	res = write_reg(LSM6DS3_ACC_GYRO_CTRL4_C, regv);
 	if (!res) {
 		commands_printf("LSM6DS3 Misc Filter Config FAILED");
-		return;
+		return false;
 	}
 
 	// Configure block update and register auto-increment
@@ -203,7 +203,7 @@ void lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *s
 	res = write_reg(LSM6DS3_ACC_GYRO_CTRL3_C, regv);
 	if (!res) {
 		commands_printf("LSM6DS3 BDU Config FAILED");
-		return;
+		return false;
 	}
 
 	terminal_register_command_callback(
@@ -213,6 +213,8 @@ void lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *s
 			terminal_read_reg);
 
 	lsm6ds3_thread_ref = chThdCreateStatic(work_area, work_area_size, NORMALPRIO, lsm6ds3_thread, NULL);
+
+	return true;
 }
 
 void lsm6ds3_stop(void) {
