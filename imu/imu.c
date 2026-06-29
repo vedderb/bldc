@@ -19,10 +19,10 @@
 
 #include "imu.h"
 #include "hw.h"
+#include "imu_config.h"
 #include "mpu9150.h"
 #include "ahrs.h"
 #include "timer.h"
-#include "terminal.h"
 #include "commands.h"
 #include "icm20948.h"
 #include "bmi160_wrapper.h"
@@ -48,14 +48,45 @@ static imu_config m_settings;
 static systime_t init_time;
 static bool imu_ready;
 static Biquad acc_x_biquad, acc_y_biquad, acc_z_biquad, gyro_x_biquad, gyro_y_biquad, gyro_z_biquad;
-static char *m_imu_type_internal = "Unknown";
 
 // Private functions
 static void imu_read_callback(float *accel, float *gyro, float *mag);
-static void terminal_imu_type_internal(int argc, const char **argv);
 
 // Function pointers
 static void (*m_read_callback)(float *acc, float *gyro, float *mag, float dt) = NULL;
+
+static imu_device_t imu_device_create(uint8_t dev, uint8_t com, transport_t *transport) {
+	switch (dev) {
+	case IMU_DEV_MPU9X50:
+		return mpu9150_device(transport);
+	case IMU_DEV_ICM20948:
+		return icm20948_device(transport);
+	case IMU_DEV_BMI160:
+		return bmi160_device(transport, (com == IMU_COM_SPI_BB || com == IMU_COM_SPI_HW)
+				? BMI160_SPI_INTF : BMI160_I2C_INTF);
+	case IMU_DEV_LSM6DS3:
+		return lsm6ds3_device(transport);
+	default:
+		return (imu_device_t){0};
+	}
+}
+
+static uint8_t imu_dev_for_external(IMU_TYPE type) {
+	switch (type) {
+	case IMU_TYPE_EXTERNAL_MPU9X50:
+		return IMU_DEV_MPU9X50;
+	case IMU_TYPE_EXTERNAL_ICM20948:
+		return IMU_DEV_ICM20948;
+	case IMU_TYPE_EXTERNAL_BMI160:
+		return IMU_DEV_BMI160;
+	case IMU_TYPE_EXTERNAL_LSM6DS3:
+		return IMU_DEV_LSM6DS3;
+	case IMU_TYPE_OFF:
+	case IMU_TYPE_INTERNAL:
+		break;
+	}
+	return IMU_DEV_NONE;
+}
 
 void imu_init(imu_config *set) {
 	bool imu_changed = set->sample_rate_hz != m_settings.sample_rate_hz ||
@@ -91,94 +122,56 @@ void imu_init(imu_config *set) {
 	imu_stop();
 	imu_reset_orientation();
 
+	// Resolve the active (device, transport) pair: the internal IMU from
+	// compile-time board macros, an external IMU from the runtime type.
+	uint8_t dev = IMU_DEV_NONE;
+	uint8_t com = IMU_COM_NONE;
+
 	if (set->type == IMU_TYPE_INTERNAL) {
-#ifdef MPU9X50_SDA_GPIO
-		imu_init_mpu9x50(MPU9X50_SDA_GPIO, MPU9X50_SDA_PIN,
-				MPU9X50_SCL_GPIO, MPU9X50_SCL_PIN);
-		m_imu_type_internal = "MPU9X50";
-#endif
+#if IMU_DEV != IMU_DEV_NONE
+		dev = IMU_DEV;
+		com = IMU_COM;
 
-#ifdef ICM20948_SDA_GPIO
-		imu_init_icm20948(ICM20948_SDA_GPIO, ICM20948_SDA_PIN,
-				ICM20948_SCL_GPIO, ICM20948_SCL_PIN);
-		m_imu_type_internal = "ICM20948";
+#if IMU_COM == IMU_COM_I2C_BB
+		transport_i2c_bb_init(&m_transport, IMU_I2C_SDA_GPIO, IMU_I2C_SDA_PIN,
+				IMU_I2C_SCL_GPIO, IMU_I2C_SCL_PIN, IMU_BUS_SPEED_HZ);
+#elif IMU_COM == IMU_COM_SPI_BB
+		transport_spi_bb_init(&m_transport, IMU_SPI_NSS_GPIO, IMU_SPI_NSS_PIN,
+				IMU_SPI_SCK_GPIO, IMU_SPI_SCK_PIN, IMU_SPI_MOSI_GPIO, IMU_SPI_MOSI_PIN,
+				IMU_SPI_MISO_GPIO, IMU_SPI_MISO_PIN);
+#elif IMU_COM == IMU_COM_SPI_HW
+		transport_spi_hw_init(&m_transport, &IMU_SPI_DEV, IMU_SPI_AF,
+				IMU_SPI_NSS_GPIO, IMU_SPI_NSS_PIN, IMU_SPI_SCK_GPIO, IMU_SPI_SCK_PIN,
+				IMU_SPI_MOSI_GPIO, IMU_SPI_MOSI_PIN, IMU_SPI_MISO_GPIO, IMU_SPI_MISO_PIN,
+				IMU_BUS_SPEED_HZ);
+#elif IMU_COM == IMU_COM_I2C_BB_SPI
+		// LSM6DS3 wired to the SPI pins but driven as bit-bang I2C: park NSS high and MISO low, then
+		// run I2C with SDA on the MOSI pin and SCL on the SCK pin.
+		palSetPadMode(IMU_SPI_NSS_GPIO, IMU_SPI_NSS_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		palSetPad(IMU_SPI_NSS_GPIO, IMU_SPI_NSS_PIN);
+		palSetPadMode(IMU_SPI_MISO_GPIO, IMU_SPI_MISO_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+		palClearPad(IMU_SPI_MISO_GPIO, IMU_SPI_MISO_PIN);
+		transport_i2c_bb_init(&m_transport, IMU_SPI_MOSI_GPIO, IMU_SPI_MOSI_PIN,
+				IMU_SPI_SCK_GPIO, IMU_SPI_SCK_PIN, IMU_BUS_SPEED_HZ);
 #endif
-
-#ifdef BMI160_SDA_GPIO
-		imu_init_bmi160_i2c(BMI160_SDA_GPIO, BMI160_SDA_PIN,
-				BMI160_SCL_GPIO, BMI160_SCL_PIN);
-		m_imu_type_internal = "BMI160";
-#endif
-
-#if defined(LSM6DS3_SDA_GPIO) && !defined(LSM6DS3_USE_SPI)
-		imu_init_lsm6ds3(LSM6DS3_SDA_GPIO, LSM6DS3_SDA_PIN,
-				LSM6DS3_SCL_GPIO, LSM6DS3_SCL_PIN);
-		m_imu_type_internal = "LSM6DS3_I2C";
-#endif
-
-#ifdef LSM6DS3_USE_SPI
-#ifdef LSM6DS3_NSS_GPIO
-		if (imu_init_lsm6ds3_spi(
-				LSM6DS3_NSS_GPIO, LSM6DS3_NSS_PIN,
-				LSM6DS3_SCK_GPIO, LSM6DS3_SCK_PIN,
-				LSM6DS3_MOSI_GPIO, LSM6DS3_MOSI_PIN,
-				LSM6DS3_MISO_GPIO, LSM6DS3_MISO_PIN)) {
-#ifdef LSM6DS3_HWSPI_DEV
-			m_imu_type_internal = "LSM6DS3_SPI_HW";
-#else
-			m_imu_type_internal = "LSM6DS3_SPI";
-#endif
-		} else {
-			// I2C fallback
-#if defined(LSM6DS3_SDA_GPIO)
-			imu_init_lsm6ds3(LSM6DS3_SDA_GPIO, LSM6DS3_SDA_PIN,
-					LSM6DS3_SCL_GPIO, LSM6DS3_SCL_PIN);
-			m_imu_type_internal = "LSM6DS3_I2C";
-#endif
+#endif // IMU_DEV != IMU_DEV_NONE
+	} else {
+		dev = imu_dev_for_external(set->type);
+		if (dev != IMU_DEV_NONE) {
+			com = IMU_COM_I2C_BB;
+			transport_i2c_bb_init(&m_transport, HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
+					HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, 0);
 		}
-#endif
-#else
-#ifdef LSM6DS3_NSS_GPIO
-		palSetPadMode(LSM6DS3_NSS_GPIO, LSM6DS3_NSS_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-		palSetPad(LSM6DS3_NSS_GPIO, LSM6DS3_NSS_PIN);
-		palSetPadMode(LSM6DS3_MISO_GPIO, LSM6DS3_MISO_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-		palClearPad(LSM6DS3_MISO_GPIO, LSM6DS3_MISO_PIN);
-		imu_init_lsm6ds3(LSM6DS3_MOSI_GPIO, LSM6DS3_MOSI_PIN,
-				LSM6DS3_SCK_GPIO, LSM6DS3_SCK_PIN);
-		m_imu_type_internal = "LSM6DS3";
-#endif
-#endif
-
-#ifdef BMI160_SPI_PORT_NSS
-		imu_init_bmi160_spi(
-				BMI160_SPI_PORT_NSS, BMI160_SPI_PIN_NSS,
-				BMI160_SPI_PORT_SCK, BMI160_SPI_PIN_SCK,
-				BMI160_SPI_PORT_MOSI, BMI160_SPI_PIN_MOSI,
-				BMI160_SPI_PORT_MISO, BMI160_SPI_PIN_MISO);
-		m_imu_type_internal = "BMI160_SPI";
-#endif
-	} else if (set->type == IMU_TYPE_EXTERNAL_MPU9X50) {
-		imu_init_mpu9x50(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	} else if (set->type == IMU_TYPE_EXTERNAL_ICM20948) {
-		imu_init_icm20948(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	} else if (set->type == IMU_TYPE_EXTERNAL_BMI160) {
-		imu_init_bmi160_i2c(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	} else if(set->type == IMU_TYPE_EXTERNAL_LSM6DS3) {
-		imu_init_lsm6ds3(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	} else if (set->type == IMU_TYPE_EXTERNAL_BMI160) {
-		imu_init_bmi160_i2c(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
 	}
 
-	terminal_register_command_callback(
-			"imu_type_internal",
-			"Print internal IMU type",
-			0,
-			terminal_imu_type_internal);
+	if (dev != IMU_DEV_NONE) {
+		m_dev = imu_device_create(dev, com, &m_transport);
+		uint16_t rate_hz = MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport));
+		imu_thread_set_device(&m_dev, rate_hz);
+		if (m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer)) {
+			imu_thread_start(imu_read_callback);
+		}
+	}
 }
 
 void imu_reset_orientation(void) {
@@ -193,107 +186,11 @@ i2c_bb_state *imu_get_i2c(void) {
 	return &m_transport.bus.i2c_bb;
 }
 
-void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin,
-		stm32_gpio_t *scl_gpio, int scl_pin) {
-	imu_stop();
-
-	transport_i2c_bb_init(&m_transport, sda_gpio, sda_pin, scl_gpio, scl_pin, 0);
-	m_dev = mpu9150_device(&m_transport);
-	imu_thread_set_device(&m_dev, MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport)));
-	if (m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer)) {
-		imu_thread_start(imu_read_callback);
-	}
-}
-
-void imu_init_icm20948(stm32_gpio_t *sda_gpio, int sda_pin,
-		stm32_gpio_t *scl_gpio, int scl_pin) {
-	imu_stop();
-
-	transport_i2c_bb_init(&m_transport, sda_gpio, sda_pin, scl_gpio, scl_pin, 0);
-	m_dev = icm20948_device(&m_transport);
-	imu_thread_set_device(&m_dev, MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport)));
-	if (m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer)) {
-		imu_thread_start(imu_read_callback);
-	}
-}
-
-void imu_init_bmi160_i2c(stm32_gpio_t *sda_gpio, int sda_pin,
-		stm32_gpio_t *scl_gpio, int scl_pin) {
-	imu_stop();
-
-	transport_i2c_bb_init(&m_transport, sda_gpio, sda_pin, scl_gpio, scl_pin, 0);
-
-	m_dev = bmi160_device(&m_transport, BMI160_I2C_INTF);
-	int rate_hz = MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport));
-	imu_thread_set_device(&m_dev, rate_hz);
-	if (m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer)) {
-		imu_thread_start(imu_read_callback);
-	}
-}
-
-void imu_init_bmi160_spi(stm32_gpio_t *nss_gpio, int nss_pin,
-		stm32_gpio_t *sck_gpio, int sck_pin, stm32_gpio_t *mosi_gpio, int mosi_pin,
-		stm32_gpio_t *miso_gpio, int miso_pin) {
-	imu_stop();
-
-	transport_spi_bb_init(&m_transport, nss_gpio, nss_pin, sck_gpio, sck_pin,
-			mosi_gpio, mosi_pin, miso_gpio, miso_pin);
-
-	m_dev = bmi160_device(&m_transport, BMI160_SPI_INTF);
-	int rate_hz = MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport));
-	imu_thread_set_device(&m_dev, rate_hz);
-	if (m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer)) {
-		imu_thread_start(imu_read_callback);
-	}
-}
-
-void imu_init_lsm6ds3(stm32_gpio_t *sda_gpio, int sda_pin,
-		stm32_gpio_t *scl_gpio, int scl_pin) {
-
-#ifdef LSM6DS3_SPEED_700KHZ
-	uint32_t bus_hz = 700000;
-	commands_printf("LSM6DS3 speed: 700 kHz");
-#else
-	uint32_t bus_hz = 400000;
-	commands_printf("LSM6DS3 speed: 400 kHz");
-#endif
-
-	transport_i2c_bb_init(&m_transport, sda_gpio, sda_pin, scl_gpio, scl_pin, bus_hz);
-	m_dev = lsm6ds3_device(&m_transport);
-	imu_thread_set_device(&m_dev, m_settings.sample_rate_hz);
-	if (m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer)) {
-		imu_thread_start(imu_read_callback);
-	}
-}
-
-bool imu_init_lsm6ds3_spi(stm32_gpio_t *nss_gpio, int nss_pin,
-		stm32_gpio_t *sck_gpio, int sck_pin, stm32_gpio_t *mosi_gpio, int mosi_pin,
-		stm32_gpio_t *miso_gpio, int miso_pin) {
-	imu_stop();
-
-#ifdef LSM6DS3_HWSPI_DEV
-	transport_spi_hw_init(&m_transport, &LSM6DS3_HWSPI_DEV, LSM6DS3_HWSPI_AF,
-			nss_gpio, nss_pin, sck_gpio, sck_pin, mosi_gpio, mosi_pin, miso_gpio, miso_pin, 0);
-#else
-	transport_spi_bb_init(&m_transport, nss_gpio, nss_pin, sck_gpio, sck_pin,
-			mosi_gpio, mosi_pin, miso_gpio, miso_pin);
-#endif
-
-	m_dev = lsm6ds3_device(&m_transport);
-	imu_thread_set_device(&m_dev, m_settings.sample_rate_hz);
-	if (m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer)) {
-		imu_thread_start(imu_read_callback);
-		return true;
-	}
-
-	return false;
-}
-
 void imu_stop(void) {
 	imu_thread_stop();
 
-#ifdef LSM6DS3_HWSPI_DEV
-	spiStop(&LSM6DS3_HWSPI_DEV);
+#if IMU_COM == IMU_COM_SPI_HW
+	spiStop(&IMU_SPI_DEV);
 #endif
 }
 
@@ -672,9 +569,4 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	if (m_read_callback) {
 		m_read_callback(m_accel, gyro_rad, m_mag, dt);
 	}
-}
-
-static void terminal_imu_type_internal(int argc, const char **argv) {
-	(void)argc;(void)argv;
-	commands_printf(m_imu_type_internal);
 }
