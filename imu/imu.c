@@ -144,24 +144,32 @@ void imu_init(imu_config *set) {
 		m_imu_type_internal = "BMI160";
 #endif
 
-#ifdef LSM6DS3_SDA_GPIO
+#if defined(LSM6DS3_SDA_GPIO) && !defined(LSM6DS3_USE_SPI)
 		imu_init_lsm6ds3(LSM6DS3_SDA_GPIO, LSM6DS3_SDA_PIN,
 				LSM6DS3_SCL_GPIO, LSM6DS3_SCL_PIN);
-		m_imu_type_internal = "LSM6DS3";
+		m_imu_type_internal = "LSM6DS3_I2C";
 #endif
 
 #ifdef LSM6DS3_USE_SPI
 #ifdef LSM6DS3_NSS_GPIO
-		imu_init_lsm6ds3_spi(
+		if (imu_init_lsm6ds3_spi(
 				LSM6DS3_NSS_GPIO, LSM6DS3_NSS_PIN,
 				LSM6DS3_SCK_GPIO, LSM6DS3_SCK_PIN,
 				LSM6DS3_MOSI_GPIO, LSM6DS3_MOSI_PIN,
-				LSM6DS3_MISO_GPIO, LSM6DS3_MISO_PIN);
+				LSM6DS3_MISO_GPIO, LSM6DS3_MISO_PIN)) {
 #ifdef LSM6DS3_HWSPI_DEV
-		m_imu_type_internal = "LSM6DS3_SPI_HW";
+			m_imu_type_internal = "LSM6DS3_SPI_HW";
 #else
-		m_imu_type_internal = "LSM6DS3_SPI";
+			m_imu_type_internal = "LSM6DS3_SPI";
 #endif
+		} else {
+			// I2C fallback
+#if defined(LSM6DS3_SDA_GPIO)
+			imu_init_lsm6ds3(LSM6DS3_SDA_GPIO, LSM6DS3_SDA_PIN,
+					LSM6DS3_SCL_GPIO, LSM6DS3_SCL_PIN);
+			m_imu_type_internal = "LSM6DS3_I2C";
+#endif
+		}
 #endif
 #else
 #ifdef LSM6DS3_NSS_GPIO
@@ -313,7 +321,7 @@ void imu_init_lsm6ds3(stm32_gpio_t *sda_gpio, int sda_pin,
 	lsm6ds3_set_read_callback(imu_read_callback);
 }
 
-void imu_init_lsm6ds3_spi(stm32_gpio_t *nss_gpio, int nss_pin,
+bool imu_init_lsm6ds3_spi(stm32_gpio_t *nss_gpio, int nss_pin,
 		stm32_gpio_t *sck_gpio, int sck_pin, stm32_gpio_t *mosi_gpio, int mosi_pin,
 		stm32_gpio_t *miso_gpio, int miso_pin) {
 	imu_stop();
@@ -330,7 +338,7 @@ void imu_init_lsm6ds3_spi(stm32_gpio_t *nss_gpio, int nss_pin,
 
 	spiStart(&LSM6DS3_HWSPI_DEV, &m_lsm6ds3_hw_spi_cfg);
 
-	lsm6ds3_init(NULL, NULL, &LSM6DS3_HWSPI_DEV, m_thd_work_area, sizeof(m_thd_work_area));
+	bool res = lsm6ds3_init(NULL, NULL, &LSM6DS3_HWSPI_DEV, m_thd_work_area, sizeof(m_thd_work_area));
 #else
 	m_spi_bb.nss_gpio = nss_gpio;
 	m_spi_bb.nss_pin = nss_pin;
@@ -342,10 +350,12 @@ void imu_init_lsm6ds3_spi(stm32_gpio_t *nss_gpio, int nss_pin,
 	m_spi_bb.miso_pin = miso_pin;
 
 	spi_bb_init(&m_spi_bb);
-	lsm6ds3_init(NULL, &m_spi_bb, NULL, m_thd_work_area, sizeof(m_thd_work_area));
+	bool res = lsm6ds3_init(NULL, &m_spi_bb, NULL, m_thd_work_area, sizeof(m_thd_work_area));
 #endif
 
 	lsm6ds3_set_read_callback(imu_read_callback);
+
+	return res;
 }
 
 void imu_stop(void) {
