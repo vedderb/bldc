@@ -21,6 +21,8 @@
 #include "icm20948.h"
 #include "ch.h"
 
+#define ICM20948_I2C_ADDR1	0x68
+
 static bool read_reg(imu_device_t *dev, uint8_t reg, uint8_t *rx, size_t len) {
 	return transport_read_reg(dev->transport, dev->dev_addr, reg, rx, len);
 }
@@ -62,6 +64,7 @@ static bool configure(imu_device_t *dev, IMU_FILTER filter, bool use_mag) {
 	(void)filter;
 	(void)use_mag;
 
+	dev->dev_addr = ICM20948_I2C_ADDR1;
 	return reset_init_icm(dev);
 }
 

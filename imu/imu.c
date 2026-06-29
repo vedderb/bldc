@@ -100,7 +100,7 @@ void imu_init(imu_config *set) {
 
 #ifdef ICM20948_SDA_GPIO
 		imu_init_icm20948(ICM20948_SDA_GPIO, ICM20948_SDA_PIN,
-				ICM20948_SCL_GPIO, ICM20948_SCL_PIN, ICM20948_AD0_VAL);
+				ICM20948_SCL_GPIO, ICM20948_SCL_PIN);
 		m_imu_type_internal = "ICM20948";
 #endif
 
@@ -162,7 +162,7 @@ void imu_init(imu_config *set) {
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
 	} else if (set->type == IMU_TYPE_EXTERNAL_ICM20948) {
 		imu_init_icm20948(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, 0);
+				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
 	} else if (set->type == IMU_TYPE_EXTERNAL_BMI160) {
 		imu_init_bmi160_i2c(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 				HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
@@ -206,12 +206,11 @@ void imu_init_mpu9x50(stm32_gpio_t *sda_gpio, int sda_pin,
 }
 
 void imu_init_icm20948(stm32_gpio_t *sda_gpio, int sda_pin,
-		stm32_gpio_t *scl_gpio, int scl_pin, int ad0_val) {
+		stm32_gpio_t *scl_gpio, int scl_pin) {
 	imu_stop();
 
 	transport_i2c_bb_init(&m_transport, sda_gpio, sda_pin, scl_gpio, scl_pin, 0);
 	m_dev = icm20948_device(&m_transport);
-	m_dev.dev_addr = ad0_val ? 0x69 : 0x68; // AD0 pin selects the I2C address
 	imu_thread_set_device(&m_dev, MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport)));
 	if (m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer)) {
 		imu_thread_start(imu_read_callback);
