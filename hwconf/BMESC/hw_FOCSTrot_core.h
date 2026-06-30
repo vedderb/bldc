@@ -218,7 +218,11 @@
 
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE
-#define MCCONF_L_MIN_VOLTAGE            18.0        // Minimum input voltage
+#ifdef FOCSTROT_V3
+#define MCCONF_L_MIN_VOLTAGE            41.0        // Minimum input voltage
+#else
+#define MCCONF_L_MIN_VOLTAGE            52.0        // Minimum input voltage
+#endif
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
 #ifdef FOCSTROT_V3
@@ -260,10 +264,14 @@
 #define HW_LIM_CURRENT          -180.0, 180.0
 #define HW_LIM_CURRENT_IN       -80.0, 80.0
 #define HW_LIM_CURRENT_ABS      0.0, 250.0
-#define HW_LIM_VIN              18.0, 95.0
+#define HW_LIM_VIN              41.0, 95.0
 #else
-#define HW_LIM_VIN              18.0, 140.0
+#define HW_LIM_CURRENT          -200.0, 200.0
+#define HW_LIM_CURRENT_IN       -100.0, 100.0
+#define HW_LIM_CURRENT_ABS      0.0, 300.0
+#define HW_LIM_VIN              52.0, 140.0
 #endif
+
 #define HW_LIM_ERPM             -200e3, 200e3
 #define HW_LIM_DUTY_MIN         0.0, 0.1
 #define HW_LIM_DUTY_MAX         0.0, 0.99
