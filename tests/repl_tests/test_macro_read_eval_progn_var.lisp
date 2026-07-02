@@ -10,9 +10,9 @@
 (define time-read-eval
     (macro (str)
            `(progn
-              (var file-handle (fopen ,str "r"))
+              (var file-handle (f-open ,str "r"))
               (var test-program (load-file file-handle))
-              (fclose file-handle)
+              (f-close file-handle)
               (var t0 (systime))
               (var res (read-eval-program test-program))
               (print (- (systime) t0))

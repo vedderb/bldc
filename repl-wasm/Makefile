@@ -6,24 +6,29 @@ CFLAGS = -O2 \
          -I$(LISPBM)/include \
          -I$(LISPBM)/include/extensions \
          -I$(LISPBM)/src \
+         -I$(LISPBM)/utils \
          -I$(LISPBM)/platform/wasm/include
 
 LBMFLAGS = -DLBM_SINGLE_THREADED \
+           -DLBM_USE_SHEBANG_COMMENTS \
            -DLBM_USE_DYN_MACROS \
 	   -DLBM_USE_DYN_FUNS \
            -DLBM_USE_DYN_ARRAYS \
            -DLBM_USE_DYN_LOOPS \
-           -DLBM_USE_DYN_DEFSTRUCT
+           -DLBM_USE_DYN_DEFSTRUCT \
+	   -DLBM_WASM \
+	   -DLBM_TTF_USE_FREETYPE
 
 EMFLAGS = \
   -s SUPPORT_LONGJMP=emscripten \
   -s ASSERTIONS=1 \
   -s MODULARIZE=1 \
   -s EXPORT_NAME=LispBM \
-  -s EXPORTED_FUNCTIONS='["_lbm_wasm_init","_lbm_wasm_eval","_lbm_wasm_eval_program","_lbm_wasm_step","_lbm_wasm_run","_lbm_wasm_get_output","_lbm_wasm_clear_output","_lbm_wasm_is_running"]' \
-  -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]' \
+  -s EXPORTED_FUNCTIONS='["_lbm_wasm_init","_lbm_wasm_eval","_lbm_wasm_eval_program","_lbm_wasm_step","_lbm_wasm_run","_lbm_wasm_get_output","_lbm_wasm_clear_output","_lbm_wasm_is_running","_lbm_wasm_get_ctxs","_lbm_wasm_get_stats","_malloc","_free"]' \
+  -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","HEAP8","HEAPU8","HEAP32","setValue","FS"]' \
   -s INITIAL_MEMORY=16777216 \
-  -s ALLOW_MEMORY_GROWTH=1
+  -s ALLOW_MEMORY_GROWTH=1 \
+  -s USE_FREETYPE=1
 
 LISPBM_SRC = \
   $(LISPBM)/src/env.c \
@@ -44,7 +49,9 @@ LISPBM_SRC = \
   $(LISPBM)/src/lbm_prof.c \
   $(LISPBM)/src/lbm_defrag_mem.c \
   $(LISPBM)/src/lbm_image.c \
-  $(LISPBM)/src/buffer.c \
+  $(LISPBM)/utils/buffer.c \
+  $(LISPBM)/utils/crypto.c \
+  $(LISPBM)/utils/ecc.c \
   $(LISPBM)/src/extensions/array_extensions.c \
   $(LISPBM)/src/extensions/string_extensions.c \
   $(LISPBM)/src/extensions/math_extensions.c \
@@ -53,6 +60,13 @@ LISPBM_SRC = \
   $(LISPBM)/src/extensions/set_extensions.c \
   $(LISPBM)/src/extensions/lbm_dyn_lib.c \
   $(LISPBM)/src/extensions/crypto_extensions.c \
+  $(LISPBM)/src/extensions/dsp_extensions.c \
+  $(LISPBM)/src/extensions/ecc_extensions.c \
+  $(LISPBM)/src/extensions/display_extensions.c \
+  $(LISPBM)/src/extensions/tjpgd.c \
+  $(LISPBM)/src/extensions/ttf_extensions.c \
+  $(LISPBM)/src/extensions/ttf_backend.c \
+  $(LISPBM)/src/extensions/ttf_backend_freetype.c \
   $(LISPBM)/platform/wasm/src/platform_timestamp.c
 
 SRC = repl.c
@@ -70,6 +84,10 @@ serve:
 	python3 -m http.server 8080
 
 publish:
-	cp index.html ../../lispbm.com/repl-wasm
-	cp lispbm.js  ../../lispbm.com/repl-wasm
+	cp index.html  ../../lispbm.com/repl-wasm
+	cp repl.js     ../../lispbm.com/repl-wasm
+	cp lispbm.js   ../../lispbm.com/repl-wasm
 	cp lispbm.wasm ../../lispbm.com/repl-wasm
+	cp -r libs     ../../lispbm.com/repl-wasm
+	cp -r examples ../../lispbm.com/repl-wasm
+	cp -r scripts  ../../lispbm.com/repl-wasm

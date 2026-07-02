@@ -39,7 +39,7 @@ typedef lbm_value (*extension_fptr)(lbm_value*,lbm_uint);
  */
 typedef struct {
   extension_fptr fptr;
-  char *name;
+  const char *name;
 } lbm_extension_t;
 
 
@@ -91,7 +91,7 @@ bool lbm_clr_extension(lbm_uint sym_id);
  * \param ext The extension function pointer.
  * \return true on success and false on failure.
  */
-bool lbm_add_extension(char *sym_str, extension_fptr ext);
+bool lbm_add_extension(const char *sym_str, extension_fptr ext);
 
 /** Check if an lbm_value is a symbol that is bound to an extension.
  * \param exp Key to look up.

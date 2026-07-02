@@ -399,6 +399,8 @@ int test_lbm_add_symbol_base(void) {
   // Test 3: Try to add empty symbol name (should fail)
   lbm_uint empty_id;
   int result3 = lbm_add_symbol_base("", &empty_id);
+
+  printf("
   
   if (!result1 || !result2 || result3) {
     return 0;

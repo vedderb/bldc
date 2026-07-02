@@ -26,12 +26,12 @@
 #define DEBUG 0
 #endif
 
-// ------------------------------------------------------------
+// ////////////////////////////////////////////////////////////
 // Access to GC from eval_cps
 int lbm_perform_gc(void);
 
 
-// ------------------------------------------------------------
+// ////////////////////////////////////////////////////////////
 // Flatteners
 bool lbm_start_flatten(lbm_flat_value_t *v, size_t buffer_size) {
   bool res = false;
@@ -541,7 +541,7 @@ lbm_value flatten_value(lbm_value v) {
   return handle_flatten_error(required_mem);
 }
 
-// ------------------------------------------------------------
+// ////////////////////////////////////////////////////////////
 // Unflattening
 static bool extract_byte(lbm_flat_value_t *v, uint8_t *r) {
   if (v->buf_size >= v->buf_pos + 1) {

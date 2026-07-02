@@ -4,7 +4,7 @@
                      (if (not x) (print "TEST " i " FAILED: " x))))
 
 ;; Load a program file once
-(define file-handle (fopen "repl_tests/test_data/program_1000.lisp" "r"))
+(define file-handle (f-open "repl_tests/test_data/program_1000.lisp" "r"))
 (define test-program (load-file file-handle))
 
 (define expected-result 120)
@@ -38,7 +38,7 @@
 ;; Run the stress test
 (stress-test 0)
 
-(fclose file-handle)
+(f-close file-handle)
 
 ;; Final verification
 (define final-result (read-eval-program tp))

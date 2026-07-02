@@ -82,28 +82,47 @@
 #include "lbm_rtlsdr.h"
 #endif
 
+#ifdef WITH_LIMESDR
+#include "lbm_limesdr.h"
+#endif
+
+
 #ifndef LBM_WIN
 #include "lbm_gnuplot.h"
+#include "lbm_octave.h"
 #endif
 
 #include "platform_mutex.h"
 #include "platform_timestamp.h"
 #include "platform_thread.h"
 
+#ifdef WITH_MCP
+#include "lbm_mcp.h"
+#endif
+
+#ifdef WITH_QT
+#include "repl_qt.h"
+#endif
+
 // things directly copied from VESC_EXPRESS
 #include "packet.h"
-#include "comm_packet_id.h"
+#include "datatypes.h"
 #include "buffer.h"
 #include "crc.h"
+
+#ifdef TEST_FT4232H_NAND_DRIVER
+#include "ft4232h_w25n01.h"
+#endif
+
+#ifdef TEST_FT232H_NAND_DRIVER
+#include "ft232h_w25n01.h"
+#endif
+
 
 typedef void (*send_func_t)(unsigned char *, unsigned int);
 
 static void handle_repl_output(void);
 
-// ////////////////////////////////////////////////////////////
-// Stub loaders
-void load_vesc_express_extensions(void);
-void load_bldc_extensions(void);
 
 // ////////////////////////////////////////////////////////////
 // win util
@@ -210,7 +229,8 @@ void exit_on_alloc_failure(const void *mem) {
 #define DEFAULT_VESCIF_TCP_PORT 65107
 #define DEFAULT_VESCIF_TCP_PROGRAM_FLASH_SIZE 1024 * 1024
 
-static bool vesctcp = false;
+static bool vesctcp  = false;
+static bool mcp_mode = false;
 static uint16_t vesctcp_port = (uint16_t)DEFAULT_VESCIF_TCP_PORT;
 static volatile bool vesctcp_server_in_use = false;
 static const char *vesctcp_in_use = "Error: Server is in use\n";
@@ -243,10 +263,9 @@ static lbm_char_channel_t buffered_string_tok;
 // todo: is there a good way to pick a fixed virtual address ?
 
 static char *image_input_file = NULL;
+static bool persist_image = false;
 static size_t   image_storage_size = IMAGE_STORAGE_SIZE;
 static uint32_t *image_storage = NULL;
-
-static size_t constants_memory_size = 4096;  // size words
 
 // ////////////////////////////////////////////////////////////
 // LBM
@@ -271,8 +290,6 @@ static volatile bool silent_mode = false;
 
 static size_t lbm_memory_size = LBM_MEMORY_SIZE_10K;
 static size_t lbm_memory_bitmap_size = LBM_MEMORY_BITMAP_SIZE_10K;
-
-static lbm_uint *constants_memory = NULL;
 
 static lbm_uint *memory=NULL;
 static lbm_uint *bitmap=NULL;
@@ -365,21 +382,18 @@ void terminate_repl(int exit_code) {
   exit(exit_code);
 }
 
-bool const_heap_write(lbm_uint ix, lbm_uint w) {
-  if (ix >= constants_memory_size) return false;
-  if (constants_memory[ix] == 0xffffffff) {
-    constants_memory[ix] = w;
-    return true;
-  } else if (constants_memory[ix] == w) {
-    return true;
-  }
-  return false;
-}
-
 bool image_write(uint32_t w, int32_t ix, bool is_const_heap) { // ix >= 0 and ix <= image_size
   (void) is_const_heap;
   if (image_storage[ix] == 0xffffffff) {
     image_storage[ix] = w;
+    if (persist_image && image_input_file) {
+      FILE *f = fopen(image_input_file, "r+b");
+      if (f) {
+        fseek(f, ix * (long)sizeof(uint32_t), SEEK_SET);
+        fwrite(&w, sizeof(uint32_t), 1, f);
+        fclose(f);
+      }
+    }
     return true;
   } else if (image_storage[ix] == w) {
     return true;
@@ -627,19 +641,17 @@ void sym_it(const char *str) {
 #define TERMINATE            0x0404
 #define SILENT_MODE          0x0405
 #define LOAD_IMAGE           0x0406
+#define PERSIST_IMAGE        0x0412
 #define VESCTCP              0x0407
 #define VESCTCP_PORT         0x0408
 #define VESCTCP_PROGRAM_FLASH_SIZE   0x0409
 #define HISTORY_FILE         0x040A
 
-#define BLDC_STUBS           0x040B
-#define VESC_EXPRESS_STUBS   0x040C
-
 #define SHEBANG_MODE         0x040D
 #define SCRIPT_ARGS_START    0x040E
-
-bool use_bldc_stubs = false;
-bool use_vesc_express_stubs = false;
+#define MCP_MODE             0x040F
+#define MCP_DOC_PATH         0x0410
+#define CAN_PORT             0x0411
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
@@ -653,15 +665,16 @@ struct option options[] = {
   {"store_res", required_argument, NULL, STORE_RESULT},
   {"terminate", no_argument, NULL, TERMINATE},
   {"load_image", required_argument, NULL, LOAD_IMAGE},
+  {"persist_image", no_argument, NULL, PERSIST_IMAGE},
   {"silent", no_argument, NULL, SILENT_MODE},
   {"vesctcp",no_argument, NULL, VESCTCP},
   {"vesctcp_port",required_argument, NULL, VESCTCP_PORT},
   {"vesctcp_program_flash_size", required_argument, NULL, VESCTCP_PROGRAM_FLASH_SIZE},
   {"history_file", required_argument, NULL, HISTORY_FILE},
-  {"bldc_stubs", no_argument, NULL, BLDC_STUBS},
-  {"vesc_express_stubs", no_argument, NULL, VESC_EXPRESS_STUBS},
   {"shebang", required_argument, NULL, SHEBANG_MODE},
   {"script_args_start", required_argument, NULL, SCRIPT_ARGS_START},
+  {"mcp", no_argument, NULL, MCP_MODE},
+  {"mcp-doc-path", required_argument, NULL, MCP_DOC_PATH},
   {0,0,0,0}};
 
 typedef struct src_list_s {
@@ -739,7 +752,7 @@ void parse_opts(int argc, char **argv) {
       heap_size = (unsigned int)atoi((char*)optarg);
       break;
     case 'C':
-      constants_memory_size = (size_t)atoi((char*)optarg);
+      printf("Constant memory a dynamically growing part of the image\n");
       break;
     case 'M': {
       uint32_t sizebytes = (uint32_t)atoi((char*)optarg);
@@ -750,7 +763,7 @@ void parse_opts(int argc, char **argv) {
 
       uint32_t size_single_block_bytes = sizeof(lbm_uint) * LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(1);
 
-      if (!(sizebytes % size_single_block_bytes) == 0) {
+      if ((sizebytes % size_single_block_bytes) != 0) {
         printf("Warning: The lbm_memory must be a multiple of %d bytes in size\n", size_single_block_bytes);
         sizebytes = (sizebytes + (size_single_block_bytes - 1)) & ~(size_single_block_bytes - 1);
         printf("Using next multiple of %d: %d\n", size_single_block_bytes, sizebytes);
@@ -784,8 +797,14 @@ void parse_opts(int argc, char **argv) {
              "                                      specified with the --src/-s options.\n");
       printf("    --terminate                       Terminate the REPL after evaluating the\n" \
              "                                      source files specified with --src/-s\n");
-      printf("    --load_image=FILEPATH             load an image-file at startup\n");
+      printf("    --load_image=FILEPATH             Load an image-file at startup.\n"\
+             "                                      If the file does not exist, a fresh\n"\
+             "                                      image is created and saved to that path.\n");
+      printf("    --persist_image                   Write-through all image writes to the\n"\
+             "                                      file specified by --load_image.\n");
       printf("\n");
+      printf("    --mcp                             Start an MCP (Model Context Protocol) server\n"\
+             "                                      on stdio for AI tool integration.\n");
       printf("    --vesctcp                         Open a TCP server talking the VESC\n"\
              "                                      protocol on port %d\n", DEFAULT_VESCIF_TCP_PORT);
       printf("    --vesctcp_port=PORT               open the TCP server on this port instead.\n");
@@ -794,9 +813,6 @@ void parse_opts(int argc, char **argv) {
       printf("    --history_file=FILEPATH           Path to file used for the repl history.\n");
       printf("                                      An empty string disables loading or\n");
       printf("                                      writing the history. (see HISTORY FILE)\n");
-      printf("\n");
-      printf("    --bldc_stubs                      Load BLDC extension stub files\n");
-      printf("    --vesc_express_stubs              Load Vesc Express extension stub files\n");
       printf("\n");
       printf("    --shebang                         Executable script mode\n");
       printf("    --script_args_start               Index in argument list where arguments\n");
@@ -848,6 +864,9 @@ void parse_opts(int argc, char **argv) {
     case LOAD_IMAGE:
       image_input_file = (char*)optarg;
       break;
+    case PERSIST_IMAGE:
+      persist_image = true;
+      break;
     case VESCTCP:
       vesctcp = true;
       break;
@@ -864,12 +883,6 @@ void parse_opts(int argc, char **argv) {
       exit_on_alloc_failure(history_file_path);
       memcpy(history_file_path, optarg, len + 1);
     } break;
-    case BLDC_STUBS:
-      use_bldc_stubs = true;
-      break;
-    case VESC_EXPRESS_STUBS:
-      use_vesc_express_stubs = false;
-      break;
     case SHEBANG_MODE:
       shebang_mode = true;
       terminate_after_startup = true;
@@ -880,6 +893,17 @@ void parse_opts(int argc, char **argv) {
       break;
     case SCRIPT_ARGS_START:
       script_args_start_index = (int)atoi((char*)optarg);
+      break;
+    case MCP_MODE:
+      mcp_mode = true;
+      silent_mode = true;
+      break;
+    case MCP_DOC_PATH:
+#ifdef WITH_MCP
+      lbm_mcp_set_doc_path((char*)optarg);
+#endif
+      break;
+    case CAN_PORT:
       break;
     default:
       break;
@@ -1003,21 +1027,33 @@ int init_repl(void) {
   if (image_input_file) {
     FILE *f = fopen(image_input_file, "rb");
     if (!f) {
-      printf("Error opening file: %s\n", image_input_file);
-      return 0;
-    }
-    fseek(f, 0, SEEK_END);
-    size_t fsize = (size_t)ftell(f);
-    rewind(f);
-    // assume image files <= 128k
-    if (fsize > 0) {
-      // Load file into mapped reqion. Could map file instead.
-      size_t n = fread(image_storage, fsize, 1, f);
-      if ( n == 0) {
-        printf("Error: empty image!\n");
+      // File does not exist: create a fresh image and write it to the file.
+      image_clear();
+      lbm_image_create("bepa_1");
+      FILE *fw = fopen(image_input_file, "wb");
+      if (!fw) {
+        printf("Error creating image file: %s\n", image_input_file);
+        return 0;
       }
+      fwrite(image_storage, image_storage_size, 1, fw);
+      fclose(fw);
+    } else {
+      fseek(f, 0, SEEK_END);
+      size_t fsize = (size_t)ftell(f);
+      rewind(f);
+      // assume image files <= 128k
+      if (fsize > 0) {
+        // Load file into mapped region. Could map file instead.
+        size_t n = fread(image_storage, fsize, 1, f);
+        if (n == 0) {
+          printf("Error: empty image!\n");
+        }
+      } else {
+        image_clear();
+        lbm_image_create("bepa_1");
+      }
+      fclose(f);
     }
-    fclose(f);
   } else {
     image_clear();
     lbm_image_create("bepa_1");
@@ -1040,12 +1076,6 @@ int init_repl(void) {
   lbm_add_eval_symbols();
   if (!lbm_image_has_extensions()) {
     init_exts();
-    if (use_bldc_stubs) {
-      load_bldc_extensions();
-    }
-    if (use_vesc_express_stubs) {
-      load_vesc_express_extensions();
-    }
   } else {
     if (!silent_mode)
       printf("Image contains extensions\n");
@@ -1059,6 +1089,7 @@ int init_repl(void) {
 
 #ifndef LBM_WIN
   lbm_gnuplot_init();
+  lbm_octave_init();
 #endif
 
 /* Load clean_cl library into heap */
@@ -1147,7 +1178,7 @@ void startup_procedure(int argc, char **argv) {
     if (!fp) {
       terminate_repl(REPL_EXIT_UNABLE_TO_OPEN_ENV_FILE);
     }
-    uint32_t num_symbols = 0;
+    //uint32_t num_symbols = 0;
     while (true) {
       uint32_t name_len;
       size_t n = fread(&name_len, 1, sizeof(uint32_t), fp);
@@ -1188,7 +1219,7 @@ void startup_procedure(int argc, char **argv) {
         //printf("pos2: %u symbols added\n", num_symbols);
       }
 
-      num_symbols ++;
+      //num_symbols ++;
       lbm_value key = lbm_enc_sym(sym_id);
       uint32_t val_len;
       n = fread(&val_len, 1, sizeof(uint32_t), fp);
@@ -1277,7 +1308,7 @@ void startup_procedure(int argc, char **argv) {
         for (int i = script_args_start_index; i < argc; i ++) {
           lbm_value arg_str;
           char *str = argv[i];
-          unsigned int len = strlen(str) + 1;
+          unsigned int len = (unsigned int)(strlen(str) + 1);
           if (lbm_share_array(&arg_str, str, len)) {
             lbm_set_car(curr,arg_str);
           }
@@ -1387,7 +1418,8 @@ void shutdown_procedure(void) {
 #define PRINT_BUFFER_SIZE 1024
 #define HW_NAME "lispbm"
 #define FW_NAME "lispbm"
-#define HW_TYPE_CUSTOM_MODULE 2
+#define FW_VERSION_MAJOR 7
+#define FW_VERSION_MINOR 00
 #define FW_TEST_VERSION_NUMBER 0
 #define SEND_MAX_RETRY 10
 
@@ -1549,8 +1581,11 @@ static void vescif_sym_it(const char *str) {
 }
 
 
-bool vescif_restart(bool print, bool load_code, bool load_imports) {
-  bool res = false;
+// Core restart: kill threads, reinit LBM with current heap/memory sizes,
+// register all extensions. Leaves the evaluator paused.
+// done_cb and printf_cb may be NULL; caller sets them after return if needed.
+static bool restart_core(void (*done_cb)(eval_context_t *),
+                         int  (*printf_cb)(const char *, ...)) {
   if (prof_running) {
     prof_running = false;
     lbm_thread_destroy(&prof_thread);
@@ -1568,7 +1603,7 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   }
 
   heap_storage = (lbm_cons_t*)malloc(sizeof(lbm_cons_t) * heap_size);
-  if (heap_storage == NULL) return 0;
+  if (heap_storage == NULL) return false;
 
   if (!lbm_init(heap_storage, heap_size,
                 memory, lbm_memory_size,
@@ -1577,55 +1612,42 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
                 PRINT_STACK_SIZE,
                 extensions,
                 EXTENSION_STORAGE_SIZE)) {
-    return 0;
+    return false;
   }
 
-  if (!lbm_eval_init_events(20)) {
-    return 0;
-  }
+  if (!lbm_eval_init_events(20)) return false;
 
   lbm_image_init(image_storage,
-                 (uint32_t)(image_storage_size / sizeof(uint32_t)), //sizeof(lbm_uint),
+                 (uint32_t)(image_storage_size / sizeof(uint32_t)),
                  image_write);
   image_clear();
   lbm_image_create("bepa_1");
   lbm_image_boot();
 
   lbm_set_critical_error_callback(critical);
-  lbm_set_ctx_done_callback(vesc_lbm_done_callback);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dynamic_loader);
-  lbm_set_printf_callback(commands_printf_lisp);
+
+  if (done_cb)   lbm_set_ctx_done_callback(done_cb);
+  if (printf_cb) lbm_set_printf_callback(printf_cb);
 
   init_exts();
   lbm_add_eval_symbols();
-  lbm_add_extension("print", ext_vescif_print); // replace print
-  lbm_add_extension("import", ext_vescif_import); // dummy import
-
-  if (use_bldc_stubs) {
-    load_bldc_extensions();
-  }
-  if (use_vesc_express_stubs) {
-    load_vesc_express_extensions();
-  }
 
 #ifdef WITH_SDL
-  if (!lbm_sdl_init()) {
-    return 0;
-  }
+  if (!lbm_sdl_init()) return false;
 #endif
 
-  /* Load clean_cl library into heap */
 #ifdef CLEAN_UP_CLOSURES
   if (!load_flat_library(clean_cl_env, clean_cl_env_len)) {
     printf("Error loading a flat library\n");
-    return 1;
+    return false;
   }
 #endif
 
   if (!lbm_thread_create(&lispbm_thd, "eval", eval_thd_wrapper, NULL, LBM_THREAD_PRIO_NORMAL, 0)) {
     printf("Error creating evaluation thread\n");
-    return 0;
+    return false;
   }
   lispbm_thd_running = true;
 
@@ -1635,16 +1657,14 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
     sleep_callback(1000);
   }
 
-  /* lispif_load_vesc_extensions(); */
-  /* for (int i = 0;i < EXT_LOAD_CALLBACK_LEN;i++) { */
-  /*   if (ext_load_callbacks[i] == 0) { */
-  /*     break; */
-  /*   } */
+  return true;
+}
 
-  /*   ext_load_callbacks[i](); */
-  /* } */
+bool vescif_restart(bool print, bool load_code, bool load_imports) {
+  if (!restart_core(vesc_lbm_done_callback, commands_printf_lisp)) return false;
 
-  /* lbm_set_dynamic_load_callback(lispif_vesc_dynamic_loader); */
+  lbm_add_extension("print", ext_vescif_print);
+  lbm_add_extension("import", ext_vescif_import);
 
   char *code_data = (char*)vescif_program_flash+8;
   size_t code_len = vescif_program_flash_code_len;
@@ -1653,12 +1673,6 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
   if (code_data) {
     code_chars = strnlen(code_data, code_len);
   }
-
-  /* for (size_t i = 0; i < code_len; i ++)  { */
-  /*   printf("%i %c\n",i, code_data[i]); */
-
-  /* } */
-  /* printf("\n"); */
 
   // Load imports
   if (load_imports) {
@@ -1681,16 +1695,6 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
     }
   }
 
-  /* if (code_data == 0) { */
-  /*   code_data = (char*)flash_helper_code_data_raw(CODE_IND_LISP); */
-  /* } */
-
-  /* const_heap_max_ind = 0; */
-  /* const_heap_ptr = (lbm_uint*)(code_data + code_len + 16); */
-  /* const_heap_ptr = (lbm_uint*)((uint32_t)const_heap_ptr & 0xFFFFFFF4); */
-  /* uint32_t const_heap_len = ((uint32_t)code_data + flash_helper_code_size_raw(CODE_IND_LISP)) - (uint32_t)const_heap_ptr; */
-  /* lbm_const_heap_init(const_heap_write, &const_heap, (lbm_uint*)const_heap_ptr, const_heap_len); */
-
   code_data = (char*)vescif_program_flash+8;
 
   if (load_code) {
@@ -1704,10 +1708,39 @@ bool vescif_restart(bool print, bool load_code, bool load_imports) {
 
   lbm_continue_eval();
 
-  res = true;
-
-  return res;
+  return true;
 }
+
+#ifdef WITH_MCP
+static bool mcp_do_reset(void) {
+  return restart_core(NULL, NULL);
+}
+
+static bool mcp_do_reinit(uint32_t new_heap, uint32_t new_memory_bytes) {
+  if (new_heap > 0) {
+    heap_size = new_heap;
+  }
+  if (new_memory_bytes > 0) {
+    uint32_t block = (uint32_t)(sizeof(lbm_uint) * LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(1));
+    if (new_memory_bytes % block != 0) {
+      new_memory_bytes = (new_memory_bytes + block - 1) & ~(block - 1);
+    }
+    uint32_t num_blocks = new_memory_bytes / block;
+    size_t new_mem_size = LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(num_blocks);
+    size_t new_bmp_size = LBM_MEMORY_BITMAP_SIZE(num_blocks);
+    lbm_uint *new_mem = (lbm_uint*)malloc(new_mem_size * sizeof(lbm_uint));
+    lbm_uint *new_bmp = (lbm_uint*)malloc(new_bmp_size * sizeof(lbm_uint));
+    if (!new_mem || !new_bmp) { free(new_mem); free(new_bmp); return false; }
+    free(memory);
+    free(bitmap);
+    memory = new_mem;
+    bitmap = new_bmp;
+    lbm_memory_size = new_mem_size;
+    lbm_memory_bitmap_size = new_bmp_size;
+  }
+  return restart_core(NULL, NULL);
+}
+#endif
 
 unsigned int get_cpu_last_time = 1;
 long unsigned int get_cpu_last_ticks = 1;
@@ -1761,17 +1794,14 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     int32_t ind = 0;
     uint8_t send_buffer[65];
     send_buffer[ind++] = COMM_FW_VERSION;
-    send_buffer[ind++] = 6;
-    send_buffer[ind++] = 05;
+    send_buffer[ind++] = FW_VERSION_MAJOR;
+    send_buffer[ind++] = FW_VERSION_MINOR;
 
     strcpy((char*)(send_buffer + ind), HW_NAME);
     ind += (int32_t)strlen(HW_NAME) + 1;
 
-    //size_t size_bits = esp_efuse_get_field_size(ESP_EFUSE_MAC_FACTORY);
-    //esp_efuse_read_field_blob(ESP_EFUSE_MAC_FACTORY, send_buffer + ind, size_bits);
-    ind += 6;
-    memset(send_buffer + ind, 0, 6);
-    ind += 6;
+    memset(send_buffer + ind, 0, 12);
+    ind += 12;
 
     send_buffer[ind++] = 0;
     send_buffer[ind++] = FW_TEST_VERSION_NUMBER;
@@ -1782,16 +1812,14 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     send_buffer[ind++] = 0; // No phase filters
     send_buffer[ind++] = 0; // No HW QML
 
-    //if (flash_helper_code_size(CODE_IND_QML) > 0) {
-    //  send_buffer[ind++] = flash_helper_code_flags(CODE_IND_QML);
-    //} else {
-    send_buffer[ind++] = 0;
-    //}
+    send_buffer[ind++] = 0; // No QML flags
 
     send_buffer[ind++] = 0; // No NRF flags
 
     strcpy((char*)(send_buffer + ind), FW_NAME);
     ind += (int32_t)strlen(FW_NAME) + 1;
+
+    buffer_append_uint32(send_buffer, 0, &ind);
 
     reply_func(send_buffer, (unsigned int)ind);
   } break;
@@ -1823,7 +1851,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     }
     int32_t ind = 0;
     uint8_t send_buffer[50];
-    send_buffer[ind++] = packet_id;
+    send_buffer[ind++] = (uint8_t)packet_id;
     send_buffer[ind++] = ok;
     reply_func(send_buffer, (unsigned int)ind);
   } break;
@@ -1841,7 +1869,12 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
       print_all = data[0];
     }
 
-    lbm_gc_lock();
+    lbm_pause_eval();
+    while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+      lbm_pause_eval();
+      sleep_callback(1);
+    }
+
     if (lbm_heap_state.gc_num > 0) {
       heap_use = 100.0f * (float)(heap_size - lbm_heap_state.gc_last_free) / (float)heap_size;
     }
@@ -1851,7 +1884,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     uint8_t send_buffer_global[4096];
     int32_t ind = 0;
 
-    send_buffer_global[ind++] = packet_id;
+    send_buffer_global[ind++] = (uint8_t)packet_id;
     buffer_append_float16(send_buffer_global, cpu_use, 1e2, &ind);
     buffer_append_float16(send_buffer_global, heap_use, 1e2, &ind);
     buffer_append_float16(send_buffer_global, mem_use, 1e2, &ind);
@@ -1891,7 +1924,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
       }
     }
 
-    lbm_gc_unlock();
+    lbm_continue_eval();
 
     reply_func(send_buffer_global, (unsigned int)ind);
   } break;
@@ -2133,7 +2166,7 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
 
     int32_t send_ind = 0;
     uint8_t send_buffer[50];
-    send_buffer[send_ind++] = packet_id;
+    send_buffer[send_ind++] = (uint8_t)packet_id;
     buffer_append_int32(send_buffer, offset, &send_ind);
 
     if (offset_last == offset) {
@@ -2262,29 +2295,86 @@ void repl_process_cmd(unsigned char *data, unsigned int len,
     unsigned int num = (unsigned int)((int32_t)len - ind); // length of data;
     if (num + offset < vescif_program_flash_size) {
       memcpy((uint8_t*)vescif_program_flash+offset, data+ind, num);
-      vescif_program_flash_code_len = num;
+      vescif_program_flash_code_len = num + offset;
       result = 1;
     }
     ind = 0;
     uint8_t send_buffer[50];
-    send_buffer[ind++] = packet_id;
+    send_buffer[ind++] = (uint8_t)packet_id;
     send_buffer[ind++] = (uint8_t)result;
     buffer_append_uint32(send_buffer, offset, &ind);
     reply_func(send_buffer, (unsigned int)ind);
   } break;
 
   case COMM_LISP_READ_CODE: {
-  }break;
+    int32_t ind = 0;
+    int32_t len_req = buffer_get_int32(data, &ind);
+    int32_t ofs = buffer_get_int32(data, &ind);
+
+    int32_t total = (int32_t)vescif_program_flash_code_len;
+
+    if (total == 0) {
+      ind = 0;
+      uint8_t send_buffer[10];
+      send_buffer[ind++] = (uint8_t)packet_id;
+      buffer_append_int32(send_buffer, 0, &ind);
+      buffer_append_int32(send_buffer, 0, &ind);
+      reply_func(send_buffer, (unsigned int)ind);
+      break;
+    }
+
+    if (ofs < 0 || len_req < 0 || (len_req + ofs) > total) {
+      break;
+    }
+
+    uint8_t *send_buffer = malloc((size_t)(9 + len_req));
+    if (!send_buffer) break;
+
+    ind = 0;
+    send_buffer[ind++] = (uint8_t)packet_id;
+    buffer_append_int32(send_buffer, total, &ind);
+    buffer_append_int32(send_buffer, ofs, &ind);
+    memcpy(send_buffer + ind, vescif_program_flash + ofs, (size_t)len_req);
+    ind += len_req;
+    reply_func(send_buffer, (unsigned int)ind);
+    free(send_buffer);
+  } break;
+
   case COMM_LISP_ERASE_CODE: {
+    lbm_pause_eval();
+    while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+      lbm_pause_eval();
+      sleep_callback(1);
+    }
     memset(vescif_program_flash, 0, vescif_program_flash_size);
     vescif_program_flash_code_len = 0;
+    lbm_continue_eval();
+
     int32_t ind = 0;
     uint8_t send_buffer[50];
-    send_buffer[ind++] = packet_id;
+    send_buffer[ind++] = (uint8_t)packet_id;
     send_buffer[ind++] = 1;
     reply_func(send_buffer, (unsigned int)ind);
     break;
   }
+
+  case COMM_ALIVE:
+    break;
+
+  case COMM_FORWARD_CAN:
+    break;
+
+  case COMM_FW_INFO: {
+    int32_t ind = 0;
+    uint8_t send_buffer[100];
+    send_buffer[ind++] = (uint8_t)COMM_FW_INFO;
+    send_buffer[ind++] = FW_VERSION_MAJOR;
+    send_buffer[ind++] = FW_VERSION_MINOR;
+    send_buffer[ind++] = FW_TEST_VERSION_NUMBER;
+    send_buffer[ind++] = '\0'; // git commit hash (not available)
+    send_buffer[ind++] = '\0'; // user git commit hash (not available)
+    reply_func(send_buffer, (unsigned int)ind);
+  } break;
 
   case COMM_LISP_RMSG: /* fall through */
   default:
@@ -2529,10 +2619,395 @@ static void handle_repl_output(void) {
 
 
 // ////////////////////////////////////////////////////////////
+// REPL interactive loop — runs on main in the default build, or on a
+// dedicated thread when WITH_QT is defined so that Qt's event loop can
+// own the main thread.
+static void repl_loop(void *arg) {
+  (void)arg;
+  char output[1024];
+
+  if (silent_mode) {
+    rl_callback_handler_install("", line_handler);
+  } else {
+    rl_callback_handler_install("# ", line_handler);
+  }
+
+  lbm_set_printf_callback(printf_callback);
+
+  while (1) {
+    repl_mode = true;
+#ifdef LBM_WIN
+    {
+      HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+      DWORD wait_result = WaitForSingleObject(hStdin, 100);
+      if (wait_result == WAIT_OBJECT_0) {
+        INPUT_RECORD rec;
+        DWORD num_read = 0;
+        PeekConsoleInput(hStdin, &rec, 1, &num_read);
+        if (num_read > 0) {
+          if (rec.EventType == KEY_EVENT && rec.Event.KeyEvent.bKeyDown) {
+            rl_callback_read_char();
+          } else {
+            ReadConsoleInput(hStdin, &rec, 1, &num_read);
+          }
+        }
+      }
+    }
+#else
+    fd_set readfds;
+    int stdin_fd = fileno(stdin);
+
+    FD_ZERO(&readfds);
+    FD_SET(stdin_fd, &readfds);
+
+    struct timeval timeout = {0, 100000};
+    int result = select(stdin_fd + 1, &readfds, NULL, NULL, &timeout);
+    if (result > 0 && FD_ISSET(stdin_fd, &readfds)) {
+      rl_callback_read_char();
+    }
+#endif
+    if (line_ready && current_line) {
+      char *str = current_line;
+      if (str == NULL) terminate_repl(REPL_EXIT_SUCCESS);
+      size_t n = strlen(str);
+      if (n >= 5 && strncmp(str, ":info", 5) == 0) {
+        printf("--(LISP HEAP)-----------------------------------------------\n");
+        lbm_get_heap_state(&heap_state);
+        printf("Heap size: %u Bytes\n", heap_size * 8);
+        printf("Used cons cells: %"PRI_INT"\n", heap_size - lbm_heap_num_free());
+        printf("Free cons cells: %"PRI_INT"\n", lbm_heap_num_free());
+        printf("GC counter: %"PRI_INT"\n", heap_state.gc_num);
+        printf("Recovered: %"PRI_INT"\n", heap_state.gc_recovered);
+        printf("Recovered arrays: %"PRI_UINT"\n", heap_state.gc_recovered_arrays);
+        printf("Marked: %"PRI_INT"\n", heap_state.gc_marked);
+        printf("GC stack size: %"PRI_UINT"\n", lbm_get_gc_stack_size());
+        printf("GC SP max: %"PRI_UINT"\n", lbm_get_gc_stack_max());
+        printf("Global env cells: %"PRI_UINT"\n", lbm_get_global_env_size());
+        printf("--(Symbol and Array memory)---------------------------------\n");
+        printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());
+        printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
+        printf("Maximum usage %f%%\n", 100.0  * ((float)lbm_memory_maximum_used() / (float)lbm_memory_num_words()));
+        printf("Allocated arrays: %"PRI_UINT"\n", heap_state.num_alloc_arrays);
+        printf("Symbol table size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
+        printf("Symbol names size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names());
+        printf("Symbol table size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_flash());
+        printf("Symbol names size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names_flash());
+        printf("--(Flash)--\n");
+        printf("Size: %"PRI_UINT" words\n", const_heap.size);
+        printf("Used words: %"PRI_UINT"\n", const_heap.next);
+        printf("Free words: %"PRI_UINT"\n", const_heap.size - const_heap.next);
+        printf("image location: %p \n", (void*)image_storage);
+      } else if (strncmp(str, ":prof start", 11) == 0) {
+        lbm_prof_init(prof_data,
+                      PROF_DATA_NUM);
+        lbm_thread_t thd; // just forget this id.
+        prof_running = true;
+        if (!lbm_thread_create(&thd, "prof", prof_thd, NULL, LBM_THREAD_PRIO_LOW, 0)) {
+          printf("Error creating profiler thread\n");
+          goto repl_next_iteration;
+        }
+        printf("Profiler started\n");
+      } else if (strncmp(str, ":prof stop", 10) == 0) {
+        prof_running = false;
+        printf("Profiler stopped. Issue command ':prof report' for statistics\n.");
+      } else if (strncmp(str, ":prof report", 12) == 0) {
+        lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
+        lbm_uint num_system = lbm_prof_get_num_system_samples();
+        lbm_uint tot_samples = lbm_prof_get_num_samples();
+        lbm_uint tot_gc = 0;
+        printf("CID\tName\tSamples\t%%Load\t%%GC\n");
+        for (int i = 0; i < PROF_DATA_NUM; i ++) {
+          if (prof_data[i].cid == -1) break;
+          tot_gc += prof_data[i].gc_count;
+          printf("%"PRI_VALUE"\t%s\t%"PRI_UINT"\t%f\t%f\n",
+                 prof_data[i].cid,
+                 prof_data[i].name,
+                 prof_data[i].count,
+                 100.0 * ((float)prof_data[i].count) / (float) tot_samples,
+                 100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count);
+        }
+        printf("\n");
+        printf("GC:\t%"PRI_UINT"\t%f%%\n", tot_gc, 100.0 * ((float)tot_gc / (float)tot_samples));
+        printf("System:\t%"PRI_UINT"\t%f%%\n", num_system, 100.0 * ((float)num_system / (float)tot_samples));
+        printf("Sleep:\t%"PRI_UINT"\t%f%%\n", num_sleep, 100.0 * ((float)num_sleep / (float)tot_samples));
+        printf("Total:\t%"PRI_UINT" samples\n", tot_samples);
+      } else if (strncmp(str, ":env", 4) == 0) {
+        for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
+          lbm_value *env = lbm_get_global_env();
+          lbm_value curr = env[i];
+          printf("Environment [%d]:\r\n", i);
+          while (lbm_type_of(curr) == LBM_TYPE_CONS) {
+            lbm_print_value(output,1024, lbm_car(curr));
+            curr = lbm_cdr(curr);
+            printf("  %s\r\n",output);
+          }
+        }
+      } else if (strncmp(str, ":state", 6) == 0) {
+        switch (lbm_get_eval_state()) {
+        case EVAL_CPS_STATE_DEAD:
+          printf("DEAD\n");
+          break;
+        case EVAL_CPS_STATE_PAUSED:
+          printf("PAUSED\n");
+          break;
+        case EVAL_CPS_STATE_NONE:
+          printf("NO STATE\n");
+          break;
+        case EVAL_CPS_STATE_RUNNING:
+          printf("RUNNING\n");
+          break;
+        case EVAL_CPS_STATE_KILL:
+          printf("KILLING\n");
+          break;
+        }
+      } else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
+
+        char *file_str = load_file(&str[5]);
+        if (file_str) {
+          lbm_create_string_char_channel(&string_tok_state,
+                                         &string_tok,
+                                         file_str);
+
+          /* Get exclusive access to the heap */
+          lbm_pause_eval_with_gc(50);
+          while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+            sleep_callback(10);
+          }
+
+          lbm_cid loader = lbm_load_and_eval_program_incremental(&string_tok, NULL);
+          lbm_continue_eval();
+
+          if (loader < 0) {
+            printf("Error starting loader thread\n");
+          }
+
+          //printf("started ctx: %"PRI_UINT"\n", cid);
+          // TODO: Should free the file_str at some point!!
+          // but it is hard to figure out when to do that if loading incrementally.
+        } else {
+          printf("Error loading file: %s\n",&str[5]);
+        }
+      } else if (n >= 5 && strncmp(str, ":verb", 5) == 0) {
+        lbm_toggle_verbose();
+      } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
+        set_allow_print(true);
+      } else if (n >= 5 && strncmp(str, ":poff", 5) == 0) {
+        set_allow_print(false);
+      } else if (strncmp(str, ":ctxs", 5) == 0) {
+        printf("****** Running contexts ******\n");
+        lbm_running_iterator(print_ctx_info, NULL, NULL);
+        printf("****** Blocked contexts ******\n");
+        lbm_blocked_iterator(print_ctx_info, NULL, NULL);
+      } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
+        shutdown_procedure();
+        terminate_repl(REPL_EXIT_SUCCESS);
+        return;
+      } else if (strncmp(str, ":symbols", 8) == 0) {
+        lbm_symrepr_name_iterator(sym_it);
+      } else if (strncmp(str, ":heap", 5) == 0) {
+        int size = atoi(str + 5);
+        if (size > 0) {
+          heap_size = (unsigned int)size;
+          if (!init_repl()) {
+            printf("Failed to initialize REPL after heap resize\n");
+            terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
+          }
+        }
+      } else if (strncmp(str, ":reset", 6) == 0) {
+        if (!init_repl()) {
+          printf ("Failed to initialize REPL\n");
+          terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
+        }
+      } else if (strncmp(str, ":send", 5) == 0) {
+        int id;
+        int i_val;
+
+        if (sscanf(str + 5, "%d%d", &id, &i_val) == 2) {
+          lbm_pause_eval_with_gc(50);
+          while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+            sleep_callback(10);
+          }
+
+          if (lbm_send_message((lbm_cid)id, lbm_enc_i(i_val)) == 0) {
+            printf("Could not send message\n");
+          }
+
+          lbm_continue_eval();
+        } else {
+          printf("Incorrect arguments to send\n");
+        }
+      } else if (strncmp(str, ":pause", 6) == 0) {
+        lbm_pause_eval_with_gc(30);
+        while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+          sleep_callback(10);
+        }
+        printf("Evaluator paused\n");
+      } else if (strncmp(str, ":continue", 9) == 0) {
+        lbm_continue_eval();
+      } else if (strncmp(str, ":inspect", 8) == 0) {
+
+        int i = 8;
+        if (strlen(str) >= 8) {
+          while (str[i] == ' ') i++;
+        }
+        char *sym = str + i;
+        lbm_uint sym_id = 0;
+        if (lbm_get_symbol_by_name(sym, &sym_id)) {
+          lbm_all_ctxs_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
+        } else {
+          printf("symbol does not exist\n");
+        }
+      } else if (strncmp(str, ":undef", 6) == 0) {
+        lbm_pause_eval_with_gc(50);
+        while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+          sleep_callback(10);
+        }
+        char *sym = str + 7;
+        printf("undefining: %s\n", sym);
+        printf("%s\n", lbm_undefine(sym) ? "Cleared bindings" : "No definition found");
+        lbm_continue_eval();
+      } else { // The read an expression case!
+        /* Get exclusive access to the heap */
+        size_t len = strlen(str)+1;
+        char *buffer = malloc(len);
+        if (buffer) {
+          memcpy(buffer, str, len);
+          lbm_pause_eval_with_gc(50);
+          while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+            sleep_callback(10);
+          }
+          lbm_create_string_char_channel(&string_tok_state,
+                                         &string_tok,
+                                         buffer);
+          lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
+          add_reader(buffer, cid);
+          lbm_continue_eval();
+        } else {
+          printf("Error allocating reader buffer.\n");
+          terminate_repl(REPL_EXIT_SUCCESS);
+          return;
+        }
+      }
+    repl_next_iteration:
+      line_ready = false;
+      free(current_line);
+      current_line = NULL;
+      str = NULL; //(same as current line)
+    }
+    handle_repl_output();
+  }
+}
+
+// ////////////////////////////////////////////////////////////
 //
 int main(int argc, char **argv) {
   iobuffer_init();
 
+  // ////////////////////////////////////////////////////////////
+  // Test NAND flash FT4232H Driver.
+
+
+#if defined(TEST_FT4232H_NAND_DRIVER) || defined(TEST_FT232H_NAND_DRIVER)
+  
+
+#ifdef TEST_FT4232H_NAND_DRIVER
+  printf("NAND: opening FT4232H port A...\n");
+  if (!nand_open(0)) {
+#endif
+#ifdef TEST_FT232H_NAND_DRIVER
+    printf("NAND: opening FT232H...\n");
+  if (!nand_open()) {
+#endif    
+    printf("NAND: open failed\n");
+  } else {
+    printf("NAND: open OK\n");
+    
+    
+    nand_reset();
+
+    uint8_t id[3] = {0};
+    if (nand_read_id(id)) {
+      printf("NAND: JEDEC ID = %02X %02X %02X", id[0], id[1], id[2]);
+      if (id[0] == 0xEF && id[1] == 0xAA && id[2] == 0x21) {
+        printf("  (W25N01GVZEIG OK)\n");
+      } else {
+        printf("  (unexpected — check wiring)\n");
+      }
+    } else {
+      printf("NAND: read_id failed\n");
+    }
+
+    uint8_t sr1 = nand_read_status(NAND_SR1);
+    uint8_t sr2 = nand_read_status(NAND_SR2);
+    uint8_t sr3 = nand_read_status(NAND_SR3);
+    printf("NAND: SR1=%02X  SR2=%02X  SR3=%02X  BUSY=%d\n",
+           sr1, sr2, sr3, (sr3 & NAND_SR3_BUSY) ? 1 : 0);
+
+    // Clear block protection bits in SR1 so erase/write can proceed
+    printf("NAND: clearing SR1 block protection...\n");
+    nand_write_status(NAND_SR1, 0x00);
+    sr1 = nand_read_status(NAND_SR1);
+    printf("NAND: SR1 after clear = %02X%s\n", sr1, sr1 == 0x00 ? "  OK" : "  (unexpected)");
+
+    // Erase block 0
+    printf("NAND: erasing block 0...\n");
+    if (nand_erase_block(0)) {
+      printf("NAND: erase OK\n");
+    } else {
+      printf("NAND: erase FAILED (EFAIL set)\n");
+    }
+
+    // Write a test pattern to page 0 of block 0
+    static uint8_t wbuf[NAND_PAGE_DATA_SIZE];
+    for (int i = 0; i < NAND_PAGE_DATA_SIZE; i++) {
+      wbuf[i] = (uint8_t)(i & 0xFF);
+    }
+    uint16_t test_page = 0;
+    printf("NAND: writing test pattern to page 0 (block 0, page 0)...\n");
+    if (nand_write_page(test_page, 0, wbuf, NAND_PAGE_DATA_SIZE)) {
+      printf("NAND: write OK\n");
+    } else {
+      printf("NAND: write FAILED (PFAIL set)\n");
+    }
+
+    // Read back and verify
+    static uint8_t rbuf[NAND_PAGE_DATA_SIZE];
+    printf("NAND: reading back page 0 (block 0, page 0)...\n");
+    nand_ecc_t ecc = nand_read_page(test_page, 0, rbuf, NAND_PAGE_DATA_SIZE);
+    if (ecc != NAND_ECC_ERROR) {
+      if (ecc == NAND_ECC_CORRECTED)    printf("NAND: ECC corrected errors during read\n");
+      if (ecc == NAND_ECC_UNCORRECTABLE) printf("NAND: ECC uncorrectable errors — data invalid\n");
+      int errors = 0;
+      for (int i = 0; i < NAND_PAGE_DATA_SIZE; i++) {
+        if (rbuf[i] != wbuf[i]) errors++;
+      }
+      if (errors == 0) {
+        printf("NAND: read-back verify OK (%d bytes match)\n", NAND_PAGE_DATA_SIZE);
+      } else {
+        printf("NAND: read-back verify FAILED (%d/%d bytes wrong)\n",
+               errors, NAND_PAGE_DATA_SIZE);
+        printf("NAND: first 16 bytes read: ");
+        for (int i = 0; i < 16; i++) printf("%02X ", rbuf[i]);
+        printf("\n");
+      }
+    } else {
+      printf("NAND: read FAILED\n");
+    }
+
+
+    for (int i = 0; i < 1024; i ++) {
+      if (nand_is_bad_block(i)) {
+        printf("NAND: Block %d is bad!\n", i);
+      }
+    }
+
+    
+    nand_close();
+  }
+#endif
+
+
+  
   // ////////////////////////////////////////////////////////////
   // start timestamp cacher
   lbm_thread_create(&timestamp_thread, "timestamp", lbm_timestamp_cacher, NULL, LBM_THREAD_PRIO_NORMAL, 0);
@@ -2617,9 +3092,20 @@ int main(int argc, char **argv) {
   lbm_rtlsdr_init();
 #endif
 
+#ifdef WITH_LIMESDR
+  lbm_limesdr_init();
+#endif
+
   // TODO: Should the startup procedure work together with the VESC tcp serv?
   startup_procedure(argc,argv);
 
+#ifdef WITH_MCP
+  if (mcp_mode) {
+    lbm_mcp_set_reset_callback(mcp_do_reset);
+    lbm_mcp_set_reinit_callback(mcp_do_reinit);
+    lbm_mcp_run();
+  } else
+#endif
   if (vesctcp) {
 #ifdef LBM_WIN
     lbm_thread_t broadcast_thread;
@@ -2755,268 +3241,18 @@ int main(int argc, char **argv) {
     }
 #endif
   } else {
-    char output[1024];
-
-    if (silent_mode) {
-      rl_callback_handler_install("", line_handler);
-    } else {
-      rl_callback_handler_install("# ", line_handler);
+#ifdef WITH_QT
+    lbm_thread_t repl_thd;
+    if (!lbm_thread_create(&repl_thd, "repl", repl_loop, NULL, LBM_THREAD_PRIO_NORMAL, 0)) {
+      printf("Error creating REPL thread\n");
+      terminate_repl(REPL_EXIT_ERROR);
     }
-
-    // REPL interaction starts here. print via the iobuffer.
-    lbm_set_printf_callback(printf_callback);
-
-    while (1) {
-      repl_mode = true;
-#ifdef LBM_WIN
-      // Windows: Use WaitForSingleObject with console input handle
-      if (kbhit()) {
-        rl_callback_read_char();
-      }
+    repl_qt_run(argc, argv);
 #else
-      fd_set readfds;
-      int stdin_fd = fileno(stdin);
-
-      FD_ZERO(&readfds);
-      FD_SET(stdin_fd, &readfds);
-
-      struct timeval timeout = {0, 100000};
-      int result = select(stdin_fd + 1, &readfds, NULL, NULL, &timeout);
-      if (result > 0 && FD_ISSET(stdin_fd, &readfds)) {
-        rl_callback_read_char();
-      }
+    repl_loop(NULL);
 #endif
-      if (line_ready && current_line) {
-        char *str = current_line;
-        if (str == NULL) terminate_repl(REPL_EXIT_SUCCESS);
-        size_t n = strlen(str);
-        if (n >= 5 && strncmp(str, ":info", 5) == 0) {
-          printf("--(LISP HEAP)-----------------------------------------------\n");
-          lbm_get_heap_state(&heap_state);
-          printf("Heap size: %u Bytes\n", heap_size * 8);
-          printf("Used cons cells: %"PRI_INT"\n", heap_size - lbm_heap_num_free());
-          printf("Free cons cells: %"PRI_INT"\n", lbm_heap_num_free());
-          printf("GC counter: %"PRI_INT"\n", heap_state.gc_num);
-          printf("Recovered: %"PRI_INT"\n", heap_state.gc_recovered);
-          printf("Recovered arrays: %"PRI_UINT"\n", heap_state.gc_recovered_arrays);
-          printf("Marked: %"PRI_INT"\n", heap_state.gc_marked);
-          printf("GC stack size: %"PRI_UINT"\n", lbm_get_gc_stack_size());
-          printf("GC SP max: %"PRI_UINT"\n", lbm_get_gc_stack_max());
-          printf("Global env cells: %"PRI_UINT"\n", lbm_get_global_env_size());
-          printf("--(Symbol and Array memory)---------------------------------\n");
-          printf("Memory size: %"PRI_UINT" Words\n", lbm_memory_num_words());
-          printf("Memory free: %"PRI_UINT" Words\n", lbm_memory_num_free());
-          printf("Maximum usage %f%%\n", 100.0  * ((float)lbm_memory_maximum_used() / (float)lbm_memory_num_words()));
-          printf("Allocated arrays: %"PRI_UINT"\n", heap_state.num_alloc_arrays);
-          printf("Symbol table size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size());
-          printf("Symbol names size RAM: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names());
-          printf("Symbol table size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_flash());
-          printf("Symbol names size FLASH: %"PRI_UINT" Bytes\n", lbm_get_symbol_table_size_names_flash());
-          printf("--(Flash)--\n");
-          printf("Size: %"PRI_UINT" words\n", const_heap.size);
-          printf("Used words: %"PRI_UINT"\n", const_heap.next);
-          printf("Free words: %"PRI_UINT"\n", const_heap.size - const_heap.next);
-          printf("image location: %p \n", (void*)image_storage);
-        } else if (strncmp(str, ":prof start", 11) == 0) {
-          lbm_prof_init(prof_data,
-                        PROF_DATA_NUM);
-          lbm_thread_t thd; // just forget this id.
-          prof_running = true;
-          if (!lbm_thread_create(&thd, "prof", prof_thd, NULL, LBM_THREAD_PRIO_LOW, 0)) {
-            printf("Error creating profiler thread\n");
-            goto repl_next_iteration;
-          }
-          printf("Profiler started\n");
-        } else if (strncmp(str, ":prof stop", 10) == 0) {
-          prof_running = false;
-          printf("Profiler stopped. Issue command ':prof report' for statistics\n.");
-        } else if (strncmp(str, ":prof report", 12) == 0) {
-          lbm_uint num_sleep = lbm_prof_get_num_sleep_samples();
-          lbm_uint num_system = lbm_prof_get_num_system_samples();
-          lbm_uint tot_samples = lbm_prof_get_num_samples();
-          lbm_uint tot_gc = 0;
-          printf("CID\tName\tSamples\t%%Load\t%%GC\n");
-          for (int i = 0; i < PROF_DATA_NUM; i ++) {
-            if (prof_data[i].cid == -1) break;
-            tot_gc += prof_data[i].gc_count;
-            printf("%"PRI_VALUE"\t%s\t%"PRI_UINT"\t%f\t%f\n",
-                   prof_data[i].cid,
-                   prof_data[i].name,
-                   prof_data[i].count,
-                   100.0 * ((float)prof_data[i].count) / (float) tot_samples,
-                   100.0 * ((float)prof_data[i].gc_count) / (float)prof_data[i].count);
-          }
-          printf("\n");
-          printf("GC:\t%"PRI_UINT"\t%f%%\n", tot_gc, 100.0 * ((float)tot_gc / (float)tot_samples));
-          printf("System:\t%"PRI_UINT"\t%f%%\n", num_system, 100.0 * ((float)num_system / (float)tot_samples));
-          printf("Sleep:\t%"PRI_UINT"\t%f%%\n", num_sleep, 100.0 * ((float)num_sleep / (float)tot_samples));
-          printf("Total:\t%"PRI_UINT" samples\n", tot_samples);
-        } else if (strncmp(str, ":env", 4) == 0) {
-          for (int i = 0; i < GLOBAL_ENV_ROOTS; i ++) {
-            lbm_value *env = lbm_get_global_env();
-            lbm_value curr = env[i];
-            printf("Environment [%d]:\r\n", i);
-            while (lbm_type_of(curr) == LBM_TYPE_CONS) {
-              lbm_print_value(output,1024, lbm_car(curr));
-              curr = lbm_cdr(curr);
-              printf("  %s\r\n",output);
-            }
-          }
-        } else if (strncmp(str, ":state", 6) == 0) {
-          switch (lbm_get_eval_state()) {
-          case EVAL_CPS_STATE_DEAD:
-            printf("DEAD\n");
-            break;
-          case EVAL_CPS_STATE_PAUSED:
-            printf("PAUSED\n");
-            break;
-          case EVAL_CPS_STATE_NONE:
-            printf("NO STATE\n");
-            break;
-          case EVAL_CPS_STATE_RUNNING:
-            printf("RUNNING\n");
-            break;
-          case EVAL_CPS_STATE_KILL:
-            printf("KILLING\n");
-            break;
-          }
-        } else if (n >= 5 && strncmp(str, ":load", 5) == 0) {
 
-          char *file_str = load_file(&str[5]);
-          if (file_str) {
-            lbm_create_string_char_channel(&string_tok_state,
-                                           &string_tok,
-                                           file_str);
-
-            /* Get exclusive access to the heap */
-            lbm_pause_eval_with_gc(50);
-            while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-              sleep_callback(10);
-            }
-
-            lbm_cid loader = lbm_load_and_eval_program_incremental(&string_tok, NULL);
-            lbm_continue_eval();
-
-            if (loader < 0) {
-              printf("Error starting loader thread\n");
-            }
-
-            //printf("started ctx: %"PRI_UINT"\n", cid);
-            // TODO: Should free the file_str at some point!!
-            // but it is hard to figure out when to do that if loading incrementally.
-          } else {
-            printf("Error loading file: %s\n",&str[5]);
-          }
-        } else if (n >= 5 && strncmp(str, ":verb", 5) == 0) {
-          lbm_toggle_verbose();
-        } else if (n >= 4 && strncmp(str, ":pon", 4) == 0) {
-          set_allow_print(true);
-        } else if (n >= 5 && strncmp(str, ":poff", 5) == 0) {
-          set_allow_print(false);
-        } else if (strncmp(str, ":ctxs", 5) == 0) {
-          printf("****** Running contexts ******\n");
-          lbm_running_iterator(print_ctx_info, NULL, NULL);
-          printf("****** Blocked contexts ******\n");
-          lbm_blocked_iterator(print_ctx_info, NULL, NULL);
-        } else if (n >= 5 && strncmp(str, ":quit", 5) == 0) {
-          shutdown_procedure();
-          goto repl_cleanup_and_exit;
-        } else if (strncmp(str, ":symbols", 8) == 0) {
-          lbm_symrepr_name_iterator(sym_it);
-        } else if (strncmp(str, ":heap", 5) == 0) {
-          int size = atoi(str + 5);
-          if (size > 0) {
-            heap_size = (unsigned int)size;
-            if (!init_repl()) {
-              printf("Failed to initialize REPL after heap resize\n");
-              terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
-            }
-          }
-        } else if (strncmp(str, ":reset", 6) == 0) {
-          if (!init_repl()) {
-            printf ("Failed to initialize REPL\n");
-            terminate_repl(REPL_EXIT_UNABLE_TO_INIT_LBM);
-          }
-        } else if (strncmp(str, ":send", 5) == 0) {
-          int id;
-          int i_val;
-
-          if (sscanf(str + 5, "%d%d", &id, &i_val) == 2) {
-            lbm_pause_eval_with_gc(50);
-            while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-              sleep_callback(10);
-            }
-
-            if (lbm_send_message((lbm_cid)id, lbm_enc_i(i_val)) == 0) {
-              printf("Could not send message\n");
-            }
-
-            lbm_continue_eval();
-          } else {
-            printf("Incorrect arguments to send\n");
-          }
-        } else if (strncmp(str, ":pause", 6) == 0) {
-          lbm_pause_eval_with_gc(30);
-          while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-            sleep_callback(10);
-          }
-          printf("Evaluator paused\n");
-        } else if (strncmp(str, ":continue", 9) == 0) {
-          lbm_continue_eval();
-        } else if (strncmp(str, ":inspect", 8) == 0) {
-
-          int i = 8;
-          if (strlen(str) >= 8) {
-            while (str[i] == ' ') i++;
-          }
-          char *sym = str + i;
-          lbm_uint sym_id = 0;
-          if (lbm_get_symbol_by_name(sym, &sym_id)) {
-            lbm_all_ctxs_iterator(lookup_local, (void*)lbm_enc_sym(sym_id), (void*)sym);
-          } else {
-            printf("symbol does not exist\n");
-          }
-        } else if (strncmp(str, ":undef", 6) == 0) {
-          lbm_pause_eval_with_gc(50);
-          while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-            sleep_callback(10);
-          }
-          char *sym = str + 7;
-          printf("undefining: %s\n", sym);
-          printf("%s\n", lbm_undefine(sym) ? "Cleared bindings" : "No definition found");
-          lbm_continue_eval();
-        } else { // The read an expression case!
-          /* Get exclusive access to the heap */
-          size_t len = strlen(str)+1;
-          char *buffer = malloc(len);
-          if (buffer) {
-            memcpy(buffer, str, len);
-            lbm_pause_eval_with_gc(50);
-            while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-              sleep_callback(10);
-            }
-            lbm_create_string_char_channel(&string_tok_state,
-                                           &string_tok,
-                                           buffer);
-            lbm_cid cid = lbm_load_and_eval_expression(&string_tok);
-            add_reader(buffer, cid);
-            lbm_continue_eval();
-          } else {
-            printf("Error allocating reader buffer.\n");
-            goto repl_cleanup_and_exit;
-
-          }
-        }
-      repl_next_iteration:
-        line_ready = false;
-        free(current_line);
-        current_line = NULL;
-        str = NULL; //(same as current line)
-      }
-      handle_repl_output();
-    }
   }
 
- repl_cleanup_and_exit:
   terminate_repl(REPL_EXIT_SUCCESS);
 }

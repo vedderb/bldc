@@ -55,12 +55,12 @@ lbm_uint lbm_symrepr_get_next_id(void);
  */
 void lbm_symrepr_set_next_id(lbm_uint id);
 
-/** Store a symbol name on the constant heap (flash).
- * \param name Symbol name.
- * \param res Pointer where result address in flash is returned.
- * \return true on success and false otherwise.
- */
-bool store_symbol_name_flash(char *name, lbm_uint *res);
+/* /\** Store a symbol name on the constant heap (flash). */
+/*  * \param name Symbol name. */
+/*  * \param res Pointer where result address in flash is returned. */
+/*  * \return true on success and false otherwise. */
+/*  *\/ */
+/* bool store_symbol_name_flash(const char *name, lbm_uint *res); */
 
 /** Initialize the symbol table.
  *
@@ -72,14 +72,14 @@ bool lbm_symrepr_init(void);
  * \param symrepr_name_iterator_fun function taking a string
  */
 void lbm_symrepr_name_iterator(symrepr_name_iterator_fun f);
-int lbm_add_symbol_base(char *name, lbm_uint *id);
+int lbm_add_symbol_base(const char *name, lbm_uint *id);
 /** Add a symbol to the symbol table. The symbol name string is copied to arrays and symbols memory.
  *
  * \param name String representation of the symbol.
  * \param id Resulting id is returned through this argument.
  * \return 1 for success and 0 for failure.
  */
-int lbm_add_symbol(char *name, lbm_uint *id);
+int lbm_add_symbol(const char *name, lbm_uint *id);
 
 /** Name of symbol to symbol. If the symbol exists the ID of the symbol is returned.
     If the name does not match any existing symbol, one is created and that ID is returned.
@@ -87,7 +87,7 @@ int lbm_add_symbol(char *name, lbm_uint *id);
     \param id Resulting ID is returned through this argument.
     \return 1 for success and 0 for failure.
 */
-int lbm_str_to_symbol(char *name, lbm_uint *sym_id);
+int lbm_str_to_symbol(const char *name, lbm_uint *sym_id);
 /** Add a symbol to the symbol table. The name is assumed to be a statically allocated string.
  *
  * \param name Statically allocated name string.
@@ -95,27 +95,27 @@ int lbm_str_to_symbol(char *name, lbm_uint *sym_id);
  * \param link If The variable assigned the ID is restored upon an image-boot.
  * \return 1 for success and 0 for failure.
  */
-int lbm_add_symbol_const_base(char *name, lbm_uint* id, bool link);
+int lbm_add_symbol_const_base(const char *name, lbm_uint* id, bool link);
 /** Add a symbol to the symbol table. The name is assumed to be a statically allocated string.
  *
  * \param name Statically allocated name string.
  * \param id Resulting id is returned through this argument.
  * \return 1 for success and 0 for failure.
  */
-int lbm_add_symbol_const(char *name, lbm_uint *id);
+int lbm_add_symbol_const(const char *name, lbm_uint *id);
 /** Get a pointer to the list entry holding a symbol name, id mapping.
  *
  * \param name Name string to look up.
  * \return Pointer to list entry or NULL.
  */
-lbm_uint *lbm_get_symbol_list_entry_by_name(char *name);
+lbm_uint *lbm_get_symbol_list_entry_by_name(const char *name);
 /** Look up an id from the symbol table given a name.
  *
  * \param name Name string to look up.
  * \param id Resulting id is returned through this argument.
  * \return 1 on success (name was found) and 0 for failure.
  */
-int lbm_get_symbol_by_name(char *name, lbm_uint *id);
+int lbm_get_symbol_by_name(const char *name, lbm_uint *id);
 /** Look up a symbol name from the symbol table given an id.
  *
  * \param id The id to look up in the symbol table.

@@ -31,6 +31,10 @@ Do you want to get involved and help out?
 
  - Check out the [lispbm.com](http://www.lispbm.com) website.
  - Join the [discord server](https://discord.gg/urtJUUMnwQ).
+ - Read the [contributor guidelines](CONTRIBUTING.md) before submitting a pull request.
+ - Review the [security policy](SECURITY.md) for reporting vulnerabilities.
+ - Review the [testing information](TESTING.md) for details on how LispBM is tested.
+ - See [third-party notices](THIRD-PARTY-NOTICES.md) for information on bundled libraries.
  
 ### Documentation
 

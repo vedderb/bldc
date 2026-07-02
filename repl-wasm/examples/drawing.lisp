@@ -1,0 +1,7 @@
+(def tab (wasm-create-tab "my drawing"))
+(def canvas (wasm-add-canvas tab 320 240))
+(def img (img-buffer 'rgb888 320 240))
+(img-clear img 0x000000)                                                      
+(img-line img 10 10 310 230 0xff4400)
+(img-line img 310 10 10 230 0x00ff44)
+(disp-render img 0 0 '())

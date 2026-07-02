@@ -12,7 +12,7 @@
 (sample-signal my-chirp sample-rate sample-buffer)
 
 (with-file "wave.bin" "wb"
-           (lambda (x) (fwrite x sample-buffer)))
+           (lambda (x) (f-write x sample-buffer)))
 
 (plot-signal "wave.bin" "chirp_1.pdf" "chirp")
 
@@ -30,6 +30,6 @@
   )
   
 (with-file "fft.bin" "wb"
-           (lambda (x) (fwrite x magnitudes)))
+           (lambda (x) (f-write x magnitudes)))
 
 (plot-signal-spectrum "wave.bin" "fft.bin" "chirp_2.pdf" "chirp with spectrum" "chirp" "spectrum")

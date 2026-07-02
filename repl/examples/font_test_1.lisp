@@ -3,7 +3,7 @@
 (define win (sdl-create-window "AA Font" 320 200))
 (define rend (sdl-create-soft-renderer win))
 
-(define font-file (fopen "font_22_24_aa.bin" "r"))
+(define font-file (f-open "font_22_24_aa.bin" "r"))
 (define font (load-file font-file))
 
 (defun event-loop (w)

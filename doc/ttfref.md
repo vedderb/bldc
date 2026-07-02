@@ -99,7 +99,7 @@ Note that only characters mentioned in the `utf-string` will be usable.
 <td>
 
 ```clj
-[0 0 0 0 102 111 110 116 0 108 109 116 120 0 0 0 0 12 65 240 0 0 192 224 0 0 0 0 0 0 107 101 114 110 0 0 0 0 44 0 0 0 2 0 0 0 114 0 0 0 1 0 0 0 119 63 128 0 0 0 0 0 0 0 0 0 119 0 0 0 1 0 0 0 119 63 128 0 0 0 0 0 0 103 108 121 112 104 115 0 0 0 3 5 0 0 0 9 
+[0 0 0 0 102 111 110 116 0 108 109 116 120 0 0 0 0 12 65 238 151 142 192 193 137 56 63 101 96 66 107 101 114 110 0 0 0 0 96 0 0 0 4 0 0 0 104 0 0 0 1 0 0 0 119 190 212 253 244 0 0 0 0 0 0 0 111 0 0 0 1 0 0 0 119 190 212 253 244 0 0 0 0 0 0 0 114 0 0 0 1 0 
 ```
 
 
@@ -299,7 +299,7 @@ Obtain line-height from a prepared font object.
 <td>
 
 ```clj
-37.000000f32
+36.768002f32
 ```
 
 
@@ -333,7 +333,7 @@ Obtain the ascender metrics from a prepared font object.
 <td>
 
 ```clj
-30.000000f32
+29.824001f32
 ```
 
 
@@ -367,7 +367,7 @@ Obtain the descender metrics from a prepared font object.
 <td>
 
 ```clj
--7.000000f32
+-6.048000f32
 ```
 
 
@@ -401,7 +401,7 @@ Obtain the line-gap metrics from a prepared font object.
 <td>
 
 ```clj
-0.000000f32
+0.896000f32
 ```
 
 
@@ -435,7 +435,7 @@ Obtain the dimensions of a glyph from a prepared font object.
 <td>
 
 ```clj
-(17u 17u)
+(18u 20u)
 ```
 
 
@@ -469,7 +469,7 @@ Obtain the dimensions of a string of text rendered using a prepared font object.
 <td>
 
 ```clj
-(73u 37u)
+(72u 36u)
 ```
 
 

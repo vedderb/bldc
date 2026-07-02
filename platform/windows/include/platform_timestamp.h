@@ -23,6 +23,7 @@
 
 // Only on OS where timestamp is expensive
 extern void lbm_timestamp_cacher(void *v);
+extern void lbm_timestamp_cacher_stop(void);
 
 // timestamp interface
 extern uint32_t lbm_timestamp(void);

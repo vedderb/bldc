@@ -18,7 +18,6 @@
 #include <extensions/ttf_extensions.h>
 #include <extensions.h>
 #include <buffer.h>
-
 #include "ttf_backend.h"
 
 #ifdef LBM_TTF_USE_FREETYPE

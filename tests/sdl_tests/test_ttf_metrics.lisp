@@ -14,7 +14,7 @@
 (spawn 100 event-loop win)
 
 ;; Load a TTF font
-(define font-file (fopen "./sdl_tests/Ubuntu-Regular.ttf" "r"))
+(define font-file (f-open "./sdl_tests/Ubuntu-Regular.ttf" "r"))
 (define font-data (load-file font-file))
 (define font (ttf-prepare font-data 32 'indexed4 " HeloWrdTts123!@#EgfCrnx"))
 

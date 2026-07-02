@@ -29,7 +29,7 @@
                     (sinc (* nyquist-criterion-scaling
                              (- x (* 0.5 window-time))))))  samplerate buffer)
   (with-file "wave.bin" "wb"
-             (lambda (x) (fwrite x buffer)))
+             (lambda (x) (f-write x buffer)))
   (plot-signal "wave.bin" "sinc1.pdf"
                "sinc function")
   })
@@ -44,7 +44,7 @@
       (var leg filename)
       (sample-signal (signal-fun (lambda (x) (sinc (* nyquist-criterion-scaling (- x (* i symbol-time))))))  samplerate buffer)
       (with-file filename "wb"
-                 (lambda (x) (fwrite x buffer)))
+                 (lambda (x) (f-write x buffer)))
       (setq plot-files (cons `( ,filename . ,leg) plot-files))
       })
 

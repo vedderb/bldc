@@ -54,7 +54,7 @@ lbm_value ext_gnuplot_close(lbm_value *args, lbm_uint argn) {
       lbm_is_number(args[0])) {
 
     int32_t ix = lbm_dec_as_i32(args[0]);
-    if (ix >= 0 && gnuplot_instances[ix]) {
+    if (ix >= 0 && ix < MAX_GNUPLOT_INSTANCES &&gnuplot_instances[ix]) {
       fclose(gnuplot_instances[ix]);
       gnuplot_instances[ix] = NULL;
       res = ENC_SYM_TRUE;
@@ -77,9 +77,9 @@ lbm_value ext_gnuplot_cmd(lbm_value *args, lbm_uint argn) {
       char *cmd = lbm_dec_str(args[1]);
       fprintf(gnuplot_instances[ix],"%s\n", cmd);
       fflush(gnuplot_instances[ix]);
-      return ENC_SYM_TRUE;
+      res = ENC_SYM_TRUE;
     } else {
-      return ENC_SYM_NIL;
+      res = ENC_SYM_NIL;
     }
   }
   return res;

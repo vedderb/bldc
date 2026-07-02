@@ -1,0 +1,12 @@
+SDL2/
+SDL2_image/
+SDL2_64/
+SDL2_image_64/
+libpng/
+libpng_64/
+readline/
+readline_64/
+zlib/
+zlib_64/
+build/
+build64/
