@@ -11,9 +11,17 @@ expected_fails=("repl_tests/test_failure.lisp")
 
 timeout_val=10
 
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    TIMEOUT_CMD="gtimeout"
+    MAKE_FEATURES="coverage 64"
+else
+    TIMEOUT_CMD="timeout"
+    MAKE_FEATURES="coverage"
+fi    
+
 cd ../repl
 make clean
-make FEATURES="coverage"
+make FEATURES="$MAKE_FEATURES"
 cd ../tests
 
 date=$(date +"%Y-%m-%d_%H-%M")
@@ -23,7 +31,7 @@ for fn in repl_tests/*.lisp
 do
     ok=false
     fail_timeout=false;
-    timeout $timeout_val ../repl/repl --terminate -s $fn | grep 'SUCCESS' &> /dev/null
+    $TIMEOUT_CMD $timeout_val ../repl/repl --terminate -s $fn | grep 'SUCCESS' &> /dev/null
     res=$?
     if [ $res == 124 ]; then
         fail_timeout=true;

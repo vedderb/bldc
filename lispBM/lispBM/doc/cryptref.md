@@ -381,3 +381,598 @@ The crypto extensions provide cryptographic hash and block cipher primitives. Th
 <tr>
 <td> Example </td> <td> Result </td>
 </tr>
+<tr>
+<td>
+
+```clj
+(hex-to-bytes "deadbeef")
+```
+
+
+</td>
+<td>
+
+```clj
+[222 173 190 239]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(hex-to-bytes "DEADBEEF")
+```
+
+
+</td>
+<td>
+
+```clj
+[222 173 190 239]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(hex-to-bytes "000102ff")
+```
+
+
+</td>
+<td>
+
+```clj
+[0 1 2 255]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(hex-to-bytes (bytes-to-hex (sha256-str "abc")))
+```
+
+
+</td>
+<td>
+
+```clj
+[186 120 22 191 143 1 207 234 65 65 64 222 93 174 34 35 176 3 97 163 150 23 122 156 180 16 255 97 242 0 21 173]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+## Bignum Library
+
+The bignum library is meant as an entry point for implementation of, for example, RSA Crypto. This can be used for encrypted data transfers or for cryptographically signed files for Integrity and Authenticity! 
+
+
+### bn-add
+
+`bn-add` adds two bignum values The form of a `bn-add` expression is `(bn-add a b)` where `a` and `b` are bignum. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-add a b)
+```
+
+
+</td>
+<td>
+
+```clj
+[102 0 1 0 0 0 0 0]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-add (bn-from-u32 4294967295u32) (bn-from-u32 102))
+```
+
+
+</td>
+<td>
+
+```clj
+[101 0 0 0 1 0 0 0]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-add (bn-from-bytes (hex-to-bytes "FFFFFFFF")) (bn-from-u32 102))
+```
+
+
+</td>
+<td>
+
+```clj
+[101 0 0 0 1 0 0 0]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### bn-cmp
+
+`bn-cmp` compares two bignum values and return 1,0 or -1 depending on if the first argument is larger, equal, smaller than the second. The form of a `bn-cmp` expression is `(bn-cmp a b)` where `a` and ´b` are bignum. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-cmp a b)
+```
+
+
+</td>
+<td>
+
+```clj
+-1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-cmp b a)
+```
+
+
+</td>
+<td>
+
+```clj
+1
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-cmp a a)
+```
+
+
+</td>
+<td>
+
+```clj
+0
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### bn-divmod
+
+`bn-divmod` computes the quotient and remainder of an bignum (integer) division. The form of a `bn-divmod` expression is `(bn-divmod a b)` where `a` and `b` are bignum. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-divmod a b)
+```
+
+
+</td>
+<td>
+
+```clj
+([0 0 0 0] . [102 0 0 0])
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-divmod b a)
+```
+
+
+</td>
+<td>
+
+```clj
+([130 2 0 0] . [52 0 0 0])
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### bn-from-bytes
+
+`bn-from-bytes` creates a bignum from a bytearray. The internal representation of a  bignum is as a little-endian value for implementation efficiency reasons and converting a bytearray to a bignum reverses the byte order The form of a `bn-from-bytes` expression is `(bn-from-bytes ba)` where `ba` is a bytearray that is a multiple of 4 bytes long 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-from-bytes [255 170 0 17])
+```
+
+
+</td>
+<td>
+
+```clj
+[17 0 170 255]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### bn-from-u32
+
+`bn-from-u32` creates a bignum from an u 32. The form of a `bn-from-u32` expression is `(bn-from-u32 a)` where `a` is a number that will be interpreted as a u32. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-from-u32 1)
+```
+
+
+</td>
+<td>
+
+```clj
+[1 0 0 0]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-from-u32 4294967295u32)
+```
+
+
+</td>
+<td>
+
+```clj
+[255 255 255 255]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### bn-modexp
+
+`bn-modexp` computes bignum exponentiation modulo a modulus. The form of a `bn-modexp` expression is `(bn-modexp a e m)` where a is a bignum value, e is bignum exponent and m is bignum modulo. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-modexp a b c)
+```
+
+
+</td>
+<td>
+
+```clj
+[24 2 0 0]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### bn-mul
+
+`bn-mul` multiplies two bignum values The form of a `bn-mul` expression is `(bn-mul a b)` where `a` and `b` are bignum. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-mul a b)
+```
+
+
+</td>
+<td>
+
+```clj
+[0 0 102 0 0 0 0 0]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-mul (bn-from-u32 4294967295u32) (bn-from-u32 102))
+```
+
+
+</td>
+<td>
+
+```clj
+[154 255 255 255 101 0 0 0]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-mul (bn-from-bytes (hex-to-bytes "FFFFFFFF")) (bn-from-u32 102))
+```
+
+
+</td>
+<td>
+
+```clj
+[154 255 255 255 101 0 0 0]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### bn-sub
+
+`bn-sub` subtracts a bignum from another bignum value The form of a `bn-sub` expression is `(bn-sub a b)` where `a` and `b` are bignum. Requires that the first argument is larger than the second. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-sub b a)
+```
+
+
+</td>
+<td>
+
+```clj
+[154 255 0 0]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### bn-to-bytes
+
+`bn-to-bytes` converts a bignum to a bytearray that is compatible with `bn-from-bytes`. the form of a `bn-to-bytes` expression is `(bn-to-bytes a)` where `a` is a bignum. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-to-bytes a)
+```
+
+
+</td>
+<td>
+
+```clj
+[0 0 0 102]
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-to-bytes b)
+```
+
+
+</td>
+<td>
+
+```clj
+[0 1 0 0]
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+
+### bn-to-u32
+
+`bn-to-u32` converts a bignum to a u32 value. the form of a `bn-to-u32` expression is `(bn-to-u32 a)` where `a` is a bignum. Note that this requires that the bignum is a so-called single-limb value, that is it needs to <= 0xFFFFFFFF. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-to-u32 a)
+```
+
+
+</td>
+<td>
+
+```clj
+102u32
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(bn-to-u32 b)
+```
+
+
+</td>
+<td>
+
+```clj
+65536u32
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+---
+
+This document was generated by LispBM version 0.36.0 
+

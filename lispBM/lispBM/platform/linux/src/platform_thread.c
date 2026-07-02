@@ -24,6 +24,11 @@
 #include <errno.h>
 #include <string.h>
 
+#ifdef __APPLE__
+typedef time_t __time_t;
+typedef long __syscall_slong_t;
+#endif
+
 typedef struct {
   lbm_thread_func_t user_func;
   void *user_arg;
@@ -46,6 +51,7 @@ bool lbm_thread_create(lbm_thread_t *t,
                        lbm_thread_prio_t prio,
                        uint32_t stack_size) {
 
+  (void)name;
   platform_thread_t *thread = (platform_thread_t *)t;
   if (!thread) return false;
 
@@ -78,7 +84,9 @@ bool lbm_thread_create(lbm_thread_t *t,
   }
   // np apparently means "non-portable"
   // also requires the __GNU_SOURCE define.
+#ifndef __APPLE__
   if (name) pthread_setname_np(thread->handle, name);
+#endif
 
   return true;
 }

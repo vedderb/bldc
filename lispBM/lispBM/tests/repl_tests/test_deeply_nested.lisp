@@ -12,9 +12,9 @@
               res)))
 
 ;; Test deeply nested expressions from file (should work and return sum)
-(define file-handle (fopen "repl_tests/test_data/deeply_nested.lisp" "r"))
+(define file-handle (f-open "repl_tests/test_data/deeply_nested.lisp" "r"))
 (define nested-program (load-file file-handle))
-(fclose file-handle)
+(f-close file-handle)
 (define r1 (eq 'exit-error (car (trap (time-read-eval nested-program)))))
 
 (debug_test r1 1)

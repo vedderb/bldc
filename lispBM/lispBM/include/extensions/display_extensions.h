@@ -26,6 +26,10 @@
 
 #include "lispbm.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum { // correspond to bits
   indexed2 = 1,
   indexed4 = 2,
@@ -190,4 +194,8 @@ void lbm_display_extensions_set_callbacks(
                                           void(* volatile reset)(void)
                                           );
 
+
+#ifdef __cplusplus
+}
+#endif
 #endif

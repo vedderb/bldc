@@ -172,15 +172,16 @@
 #else
 #define IMAGE_INITIALIZED (uint32_t)0xBEEF2001    // [ 0xBEEF2001 ]
 #endif
-                                            // Address downwards ->
-#define CONSTANT_HEAP_IX  (uint32_t)0x02    // [ 0x02 | uint32]
-#define BINDING_CONST     (uint32_t)0x03    // [ 0x03 | key | lbm_uint ]
-#define BINDING_FLAT      (uint32_t)0x04    // [ 0x04 | size | key | flatval ]
-#define SYMBOL_ENTRY      (uint32_t)0x06    // [ 0x06 | NEXT_PTR |  ID | NAME PTR ] // symbol_entry with highest address is root.
-#define SYMBOL_LINK_ENTRY (uint32_t)0x07    // [ 0x07 | C_LINK_PTR | NEXT_PTR | ID | NAME PTR ]
-#define EXTENSION_TABLE   (uint32_t)0x08    // [ 0x08 | NUM | EXT ...]
-#define VERSION_ENTRY     (uint32_t)0x09    // [ 0x09 | size | string ]
-#define SHARING_TABLE     (uint32_t)0x10    // [ 0x10 | n    | n-entries}
+                                              // Address downwards ->
+#define CONSTANT_HEAP_IX  (uint32_t)0x02      // [ 0x02 | uint32]
+#define BINDING_CONST     (uint32_t)0x03      // [ 0x03 | key | lbm_uint ]
+#define BINDING_FLAT      (uint32_t)0x04      // [ 0x04 | size | key | flatval ]
+#define SYMBOL_ENTRY      (uint32_t)0x06      // [ 0x06 | NEXT_PTR |  ID | NAME PTR ] // symbol_entry with highest address is root.
+#define SYMBOL_LINK_ENTRY (uint32_t)0x07      // [ 0x07 | C_LINK_PTR | NEXT_PTR | ID | NAME PTR ]
+#define EXTENSION_TABLE   (uint32_t)0x08      // [ 0x08 | NUM | EXT ...]
+#define VERSION_ENTRY     (uint32_t)0x09      // [ 0x09 | size | string ]
+#define SHARING_TABLE     (uint32_t)0x10      // [ 0x10 | n    | n-entries]
+#define SYMBOL_NAME_ENTRY (uint32_t)0x11      // [ 0x11 | size | string ] 
 // Size is in number of 32bit words, even on 64 bit images.
 
 // To be able to work on an image incrementally (even though it is not recommended)
@@ -506,6 +507,48 @@ lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
   return NULL;
 }
 
+// Writes size in words followed by the string
+// todo sensible error detection.
+bool write_string_upwards(const char *str, size_t len) {
+  uint32_t bytes = (uint32_t)len + 1;
+  uint32_t words = (bytes % 4 == 0) ? bytes / 4 : (bytes / 4) + 1;
+  write_u32(words, &write_index, DOWNWARDS);
+  uint32_t w = 0;
+  char *buf = (char*)&w;
+  uint32_t i = 0;
+  int32_t ix = write_index - (int32_t)(words -1);
+  int wi = 0;
+  while (i < bytes) {
+    if (wi == 0 ) {
+      w = 0;
+    } 
+    if (wi == 4) wi = 0;
+    buf[wi] = str[i];
+    if (wi == 3) {
+      write_u32(w, &ix, UPWARDS);
+      w = 0;
+    }
+    i ++;
+    wi ++;
+  }
+  if (wi != 0) {
+    write_u32(w, &ix, UPWARDS);
+  }
+  write_index -= (int32_t)words;
+  return true;
+}
+
+// return the address the string
+char *lbm_image_add_symbol_name(const char *name, size_t len) {
+  if (len > 0) { 
+    bool r = write_u32(SYMBOL_NAME_ENTRY, &write_index, DOWNWARDS);
+    r = r && write_string_upwards(name, len);
+    if (r) 
+      return (char*)(image_address + write_index + 1);
+  }
+  return NULL;
+}
+
 // The symbol id is written to the link address upon image-boot
 lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlist, lbm_uint *link) {
   // 64 bit                             | 32 bit
@@ -602,7 +645,6 @@ lbm_uint *lbm_image_add_and_link_symbol(char *name, lbm_uint id, lbm_uint symlis
 #endif
 
 #define SHARING_TABLE_TRUE   0xDEADBEEFu
-#define SHARING_TABLE_FALSE  0xDEADBEEFu
 
 int32_t index_sharing_table(sharing_table *st, int32_t i) {
   if (i < 0) return i; // maybe check if more than num?
@@ -1005,6 +1047,8 @@ bool lbm_image_save_global_env(void) {
 #endif
 
               // TODO: What error handling makes sense?
+            } else {
+              return false;
             }
             write_index = write_index - fv_size - 1; // subtract fv_size
           } else {
@@ -1042,7 +1086,7 @@ bool lbm_image_save_extensions(void) {
     for (lbm_uint i = 0; i < num; i ++) {
       if (!r) return r;
 
-      char *name_ptr = extension_table[i].name;
+      const char *name_ptr = extension_table[i].name;
       lbm_uint addr;
       // when PIC, name pointers may move around
       // between restarts. It is also the case that
@@ -1053,12 +1097,16 @@ bool lbm_image_save_extensions(void) {
       //#ifdef __PIC__
       //r = store_symbol_name_flash(name_ptr, &addr);
       //if (!r) return r;
-      //name_ptr = (char *)addr;
+      //name_ptr = (const char *)addr;
       //#else
+
+      // I dont think this code makes sense anymore given that
+      // all symbols are always in flash. So if you have a symbol name
+      // lbm_memory_ptr_inside(name) will never be true.
       if (lbm_memory_ptr_inside((lbm_uint *)name_ptr)) {
-        r = store_symbol_name_flash(name_ptr, &addr);
-        if (!r) return r;
-        name_ptr = (char *)addr;
+        addr = (lbm_uint)lbm_image_add_symbol_name(name_ptr, strlen(name_ptr));
+        if (!addr) return false;
+        name_ptr = (const char *)addr;
       }
       //#endif
 #ifdef LBM64
@@ -1104,31 +1152,8 @@ void lbm_image_init(uint32_t* image_mem_address,
 void lbm_image_create(char *version_str) {
   write_u32(IMAGE_INITIALIZED, &write_index, DOWNWARDS);
   if (version_str) {
-    uint32_t bytes = (uint32_t)(strlen(version_str) + 1);
-    uint32_t words = (bytes % 4 == 0) ? bytes / 4 : (bytes / 4) + 1;
     write_u32(VERSION_ENTRY, &write_index, DOWNWARDS);
-    write_u32(words, &write_index, DOWNWARDS);
-    uint32_t w = 0;
-    char *buf = (char*)&w;
-    uint32_t i = 0;
-    int32_t ix = write_index - (int32_t)(words -1);
-    int wi = 0;
-    while (i < bytes) {
-      if (wi == 0 ) {
-        w = 0;
-      }
-      if (wi == 4) wi = 0;
-      buf[wi] = version_str[i];
-      if (wi == 3) {
-        write_u32(w, &ix, UPWARDS);
-      }
-      i ++;
-      wi ++;
-    }
-    if (wi != 0) {
-      write_u32(w, &ix, UPWARDS);
-    }
-    write_index -= (int32_t)words;
+    write_string_upwards(version_str, strlen(version_str));
   }
 }
 
@@ -1155,6 +1180,11 @@ bool lbm_image_boot(void) {
     case VERSION_ENTRY: {
       uint32_t size = read_u32(pos); pos --;
       image_version = (char*)(image_address + (pos - (int32_t)size + 1));
+      pos -= (int32_t)size;
+    } break;
+    case SYMBOL_NAME_ENTRY: {
+      // Just jump accross the string.
+      uint32_t size = read_u32(pos); pos --;
       pos -= (int32_t)size;
     } break;
     case CONSTANT_HEAP_IX: {

@@ -74,6 +74,8 @@ lbm_value lbm_env_copy_spine(lbm_value env) {
 
 // env_lookup that should be safe even in the presence of incorrectly
 // structured env. Could be the case when user manually creates closure.
+// Note that a closure can be stored in FLASH and if so
+// its local environment will be in flash too.
 bool lbm_env_lookup_b(lbm_value *res, lbm_value sym, lbm_value env) {
   lbm_value curr = env;
 

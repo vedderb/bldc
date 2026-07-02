@@ -96,7 +96,11 @@
 //  - Optimize function for size.
 //  - Possibly move cold functions to a separate area of memory.
 //  - Act as a branch predition hint for branches leading to "cold" calls.
+#ifdef __clang__
+#define sizeopt __attribute__((cold, noinline))
+#else
 #define sizeopt __attribute__((cold, noinline, optimize("Os")))
+#endif
 
 static jmp_buf error_jmp_buf;
 static jmp_buf critical_error_jmp_buf;
@@ -223,11 +227,11 @@ static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid);
 static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx);
 static int gc(void);
 #ifdef LBM_USE_ERROR_LINENO
-static void error_ctx(lbm_value, int line_no);
-static void error_at_ctx(lbm_value err_val, lbm_value at, int line_no);
+static noreturn void error_ctx(lbm_value, int line_no);
+static noreturn void error_at_ctx(lbm_value err_val, lbm_value at, int line_no);
 #else
-static void error_ctx(lbm_value);
-static void error_at_ctx(lbm_value err_val, lbm_value at);
+static noreturn void error_ctx(lbm_value);
+static noreturn void error_at_ctx(lbm_value err_val, lbm_value at);
 #endif
 static void mailbox_add_mail(eval_context_t *ctx, lbm_value mail);
 
@@ -5910,17 +5914,27 @@ void lbm_add_eval_symbols(void) {
 
 
 #ifdef LBM_SINGLE_THREADED
-void lbm_eval_step(void) {
+bool lbm_eval_step(int n) {
   if (setjmp(critical_error_jmp_buf) > 0) {
     lbm_printf_callback("GC stack overflow!\n");
     critical_error_callback();
     eval_running = false;
-    return;
+    return false; // uninteresting on a critical error.
   }
-  if (setjmp(error_jmp_buf) > 0) { return; }
+  if (setjmp(error_jmp_buf) > 0) { return false; }
+
+  bool busy = false;
 
   if (ctx_running) {
-    evaluation_step();
+    busy = true;
+    while (n > 0 && ctx_running) {
+      evaluation_step();
+      n--;
+    }
+    if (ctx_running) {
+      enqueue_ctx_nm(&queue, ctx_running);
+      ctx_running = NULL;
+    }  
   } else {
     if (gc_requested) gc();
     process_events();
@@ -5929,6 +5943,7 @@ void lbm_eval_step(void) {
     ctx_running = dequeue_ctx_nm(&queue);
     lbm_mutex_unlock(&qmutex);
   }
+  return busy;  
 }
 
 bool lbm_eval_init(void) {

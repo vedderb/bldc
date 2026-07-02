@@ -41,6 +41,8 @@ static const char* lbm_dyn_fun[] = {
   "(defun zip (xs ys) "
   "(zipwith cons xs ys))",
 
+  "(defun unzip (xs) (cons (map car xs) (map cdr xs)))",
+
   "(defun filter (f lst)"
   "(let ((filter-rec (lambda (f lst ys)"
   "(if (eq lst nil)"

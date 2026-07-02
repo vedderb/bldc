@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LispBM WebAssembly REPL</title>
+  <link rel="icon" href="https://www.lispbm.com/ico/favicon.ico">
   <meta name="description" content="Try LispBM in your browser — an embeddable Lisp/Scheme for microcontrollers, running live via WebAssembly.">
   <meta name="keywords" content="LispBM, Lisp, Scheme, WebAssembly, WASM, REPL, embedded, microcontroller">
   <meta property="og:title" content="LispBM WebAssembly REPL">
@@ -11,8 +12,9 @@
   <meta property="og:url" content="https://www.lispbm.com/repl-wasm/index.html">
   <meta property="og:type" content="website">
   <link rel="canonical" href="https://www.lispbm.com/repl-wasm/index.html">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <link rel="stylesheet" href="scripts/codemirror/codemirror.min.css">
+  <link rel="stylesheet" href="scripts/codemirror/theme/dracula.min.css">
+  <link rel="stylesheet" href="scripts/uplot/uPlot.min.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -33,59 +35,210 @@
       gap: 8px;
       min-height: 0;
     }
-    #output {
+    /* --- Left panel: tabbed --- */
+    #left-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+    }
+    #output-tab-bar {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 2px;
+      padding: 4px 4px 0;
+      background: #181818;
+      flex-shrink: 0;
+    }
+    #output-tab-bar::-webkit-scrollbar { height: 3px; }
+    #output-tab-bar::-webkit-scrollbar-thumb { background: #444; }
+    .tab-btn {
+      background: #2a2a2a;
+      color: #777;
+      border: 1px solid #383838;
+      border-bottom: none;
+      padding: 3px 10px;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab-btn.active { background: #111; color: #d4d4d4; border-color: #555; }
+    .tab-btn:hover:not(.active) { background: #333; color: #bbb; }
+    .tab-close { color: #555; font-size: 20px; line-height: 1; }
+    .tab-close:hover { color: #e06c75; }
+    #output-tab-contents {
       flex: 1;
       background: #111;
       border: 1px solid #333;
-      padding: 10px;
-      overflow-y: auto;
-      white-space: pre;
-      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
     }
+    .tab-pane {
+      display: none;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+    }
+    .tab-pane.active { display: block; }
+    .tab-pane.active.output-flex-pane { display: flex; flex-direction: column; gap: 8px; }
+    #output-tab-console { padding: 10px; cursor: text; }
+    #console-current-line { white-space: pre; }
+    #console-prompt { color: #569cd6; }
+    #console-cursor {
+      border-left: 2px solid #d4d4d4;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+    .plot-pane { padding: 8px; }
+    /* uPlot dark theme overrides */
+    .uplot .u-title  { color: #d4d4d4 !important; font-family: "Courier New", monospace; font-size: 13px; }
+    .uplot .u-legend { color: #888 !important; font-family: "Courier New", monospace; font-size: 12px; }
+    .uplot .u-select { background: rgba(86, 156, 214, 0.25); border: 1px solid rgba(86, 156, 214, 0.6); }
+    /* --- Right panel: editor --- */
     #editor-panel {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 4px;
       min-width: 0;
     }
-    /* Make CodeMirror fill the available space */
+    #editor-tab-bar {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 2px;
+      padding: 4px 4px 0;
+      background: #181818;
+      flex-shrink: 0;
+      align-items: center;
+    }
+    #editor-tab-bar::-webkit-scrollbar { height: 3px; }
+    #editor-tab-bar::-webkit-scrollbar-thumb { background: #444; }
+    #btn-new-editor-tab {
+      background: #222;
+      color: #888;
+      border: 1px solid #383838;
+      padding: 2px 8px;
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    #btn-new-editor-tab:hover { color: #d4d4d4; background: #333; }
+    #editor-tab-contents {
+      flex: 1;
+      background: #111;
+      border: 1px solid #333;
+      min-height: 0;
+      position: relative;
+    }
+    .editor-pane {
+      display: none;
+      width: 100%;
+      height: 100%;
+      flex-direction: column;
+    }
+    .editor-pane.active { display: flex; }
     .CodeMirror {
       flex: 1;
       height: 100%;
       font-family: "Courier New", monospace;
       font-size: 14px;
-      border: 1px solid #444;
-    }
-    .CodeMirror-focused { border-color: #569cd6; }
-    #btn-load {
-      align-self: flex-end;
-      background: #0e639c;
-      color: #fff;
       border: none;
-      padding: 4px 16px;
-      font-family: inherit;
-      cursor: pointer;
     }
+    .CodeMirror-focused { outline: 1px solid #569cd6; }
+    #editor-btn-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    #sim-controls { display: flex; align-items: center; gap: 4px; }
+    #editor-file-btns { display: flex; gap: 4px; }
     #btn-load:disabled { background: #333; color: #666; cursor: default; }
     #btn-load:hover:not(:disabled) { background: #1177bb; }
-    #input-row {
-      display: flex;
-      gap: 8px;
+    #btn-open, #btn-open-url, #btn-save, #btn-examples, #btn-import, #btn-export { background: #3a3a3a; color: #d4d4d4; border: 1px solid #555; }
+    #btn-open:hover, #btn-open-url:hover, #btn-save:hover, #btn-examples:hover, #btn-import:hover, #btn-export:hover { background: #4a4a4a; }
+    .sim-value-pane { padding: 8px; overflow-y: auto; }
+    .sim-value-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .sim-value-table th { text-align: left; color: #569cd6; padding: 4px 8px; border-bottom: 1px solid #333; }
+    .sim-value-table td { padding: 2px 4px; border-bottom: 1px solid #1a1a1a; }
+    .sim-value-key { color: #4ec9b0; font-family: "Courier New", monospace; white-space: nowrap; padding-right: 16px; }
+    .sim-value-input { background: #1e1e1e; color: #d4d4d4; border: 1px solid #383838; font-size: 12px; width: 100%; box-sizing: border-box; padding: 2px 6px; }
+    .inspect-section-hdr { color: #569cd6; font-size: 11px; padding: 4px 2px 2px; margin-bottom: 2px; border-bottom: 1px solid #333; }
+    .sim-add-btn { background: #222; border: 1px solid #383838; color: #888; padding: 1px 8px; font-size: 11px; cursor: pointer; font-family: inherit; }
+    .sim-add-btn:hover { color: #d4d4d4; background: #2e2e2e; }
+    .sim-value-add { display: flex; gap: 4px; padding: 8px 4px 4px; align-items: center; }
+    .sim-value-key-inp { background: #1e1e1e; color: #d4d4d4; border: 1px solid #383838; font-size: 12px; padding: 2px 6px; flex: 1; min-width: 0; width: 0; }
+    .sim-value-add .sim-value-input { width: 80px; flex: none; }
+    .sim-type-select { background: #1e1e1e; color: #888; border: 1px solid #383838; font-size: 11px; padding: 1px 2px; cursor: pointer; }
+    .sim-type-select:focus { outline: none; color: #d4d4d4; }
+    .sim-list-len { background: #1e1e1e; color: #d4d4d4; border: 1px solid #383838; font-size: 12px; width: 48px; padding: 2px 4px; }
+    .sim-list-subrow td { background: #151515; }
+    .sim-list-idx { color: #888 !important; padding-left: 20px !important; }
+    #examples-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
       align-items: center;
+      justify-content: center;
     }
-    #prompt { color: #569cd6; }
-    #input {
-      flex: 1;
-      background: #2d2d2d;
-      color: #d4d4d4;
+    #examples-modal.open { display: flex; }
+    #examples-box {
+      background: #1e1e1e;
       border: 1px solid #444;
-      padding: 4px 8px;
-      font-family: inherit;
-      font-size: inherit;
-      outline: none;
+      padding: 16px;
+      min-width: 340px;
+      max-width: 520px;
+      max-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
-    #input:focus { border-color: #569cd6; }
+    #examples-box h2 { font-size: 14px; color: #569cd6; }
+    #fs-dialog { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200; align-items:center; justify-content:center; }
+    #fs-dialog.open { display:flex; }
+    #fs-dialog-box { background:#1e1e1e; border:1px solid #444; padding:14px; width:420px; max-height:70vh; display:flex; flex-direction:column; gap:8px; }
+    #fs-dialog-title { font-size:13px; color:#569cd6; margin:0 0 4px; }
+    #fs-dialog-path { font-size:11px; color:#888; font-family:"Courier New",monospace; margin-bottom:2px; }
+    #fs-dialog-list { overflow-y:auto; flex:1; border:1px solid #2a2a2a; background:#141414; min-height:120px; max-height:300px; }
+    .fs-dialog-entry { display:flex; align-items:center; padding:3px 8px; font-size:12px; cursor:pointer; border-bottom:1px solid #1a1a1a; user-select:none; }
+    .fs-dialog-entry:hover { background:#252525; }
+    .fs-dialog-entry.selected { background:#1a3a5c; }
+    .fs-dialog-entry-name { flex:1; font-family:"Courier New",monospace; }
+    .fs-dialog-dir  { color:#dcdcaa; }
+    .fs-dialog-file { color:#d4d4d4; }
+    #fs-dialog-mkdir-row { display:flex; gap:6px; }
+    #fs-dialog-mkdir-inp { flex:1; background:#1e1e1e; color:#d4d4d4; border:1px solid #383838; padding:3px 6px; font-size:12px; font-family:"Courier New",monospace; }
+    #fs-dialog-filename-row { display:flex; align-items:center; gap:6px; font-size:12px; }
+    #fs-dialog-filename { flex:1; background:#1e1e1e; color:#d4d4d4; border:1px solid #383838; padding:3px 6px; font-size:12px; font-family:"Courier New",monospace; }
+    #fs-dialog-btns { display:flex; justify-content:flex-end; gap:6px; }
+    .fs-dialog-btn { background:#3a3a3a; border:1px solid #555; color:#d4d4d4; padding:3px 14px; font-size:12px; cursor:pointer; font-family:inherit; }
+    .fs-dialog-btn:hover { background:#4a4a4a; }
+    .fs-dialog-btn.primary { background:#0e639c; border-color:#1177bb; }
+    .fs-dialog-btn.primary:hover { background:#1177bb; }
+    #examples-list { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .example-item {
+      background: #2a2a2a;
+      border: 1px solid #383838;
+      padding: 8px 10px;
+      cursor: pointer;
+    }
+    .example-item:hover { background: #333; border-color: #569cd6; }
+    .example-item .ex-name { color: #d4d4d4; font-size: 13px; }
+    .example-item .ex-desc { color: #888; font-size: 11px; margin-top: 3px; }
+    #examples-close { align-self: flex-end; background: #3a3a3a; border: 1px solid #555; color: #d4d4d4; }
+    /* --- Input row --- */
     button {
       background: #0e639c;
       color: #fff;
@@ -97,129 +250,126 @@
     button:disabled { background: #333; color: #666; cursor: default; }
     button:hover:not(:disabled) { background: #1177bb; }
     #status { font-size: 12px; color: #888; }
+    #busy-led {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #333;
+      display: inline-block;
+      transition: background 0.1s;
+    }
+    #busy-led.on { background: #4ec9b0; box-shadow: 0 0 4px #4ec9b0; }
+    #output-tab-docs.active { display: flex !important; flex-direction: column; gap: 6px; padding: 8px; }
+    #docs-search {
+      width: 100%; background: #2d2d2d; color: #d4d4d4;
+      border: 1px solid #444; padding: 6px 8px;
+      font-family: inherit; font-size: 13px; outline: none; flex-shrink: 0;
+    }
+    #docs-search:focus { border-color: #569cd6; }
+    #docs-results { overflow-y: auto; flex: 1; }
+    .docs-result { padding: 8px 10px; border-bottom: 1px solid #222; cursor: pointer; }
+    .docs-result:hover { background: #1e1e1e; }
+    .docs-result-title { color: #569cd6; font-size: 12px; margin-bottom: 4px; }
+    .docs-result-excerpt { color: #888; font-size: 11px; line-height: 1.4; }
+    .docs-result-excerpt mark { background: none; color: #dcdcaa; }
+    /* Sim dropdown */
+    #sim-menu-container { position:relative; margin-left:4px; flex-shrink:0; }
+    #sim-menu-btn { background:#222; color:#888; border:1px solid #383838; padding:2px 8px; font-family:inherit; font-size:13px; cursor:pointer; line-height:1; }
+    #sim-menu-btn:hover { color:#d4d4d4; background:#333; }
+    #sim-dropdown { display:none; position:absolute; bottom:100%; right:0; background:#1e1e1e; border:1px solid #444; z-index:1000; min-width:150px; padding:2px 0; margin-bottom:2px; }
+    #sim-dropdown.open { display:block; }
+    .sim-dropdown-item { padding:5px 12px; cursor:pointer; font-size:12px; color:#d4d4d4; white-space:nowrap; }
+    .sim-dropdown-item:hover { background:#2a2a2a; }
+    .sim-pane { display:none; width:100%; height:100%; overflow:auto; padding:8px; box-sizing:border-box; font-size:12px; }
+    .sim-pane.active { display:block; }
+    #output-tab-about.active { display: block !important; overflow: auto; padding: 16px; }
+    #output-tab-about h2 { font-size: 13px; color: #569cd6; margin: 16px 0 6px; }
+    #output-tab-about h2:first-child { margin-top: 0; }
+    #output-tab-about p { font-size: 12px; color: #888; line-height: 1.6; margin-bottom: 8px; }
+    #output-tab-about code { color: #4ec9b0; }
+    .about-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; }
+    .about-table th { text-align: left; color: #569cd6; padding: 4px 10px; border-bottom: 1px solid #333; white-space: nowrap; }
+    .about-table td { padding: 3px 10px; border-bottom: 1px solid #1a1a1a; color: #d4d4d4; vertical-align: top; }
+    .about-table td:first-child { color: #4ec9b0; white-space: nowrap; }
+    .about-table td:nth-child(2) { color: #888; white-space: nowrap; }
+    .about-table tr:hover td { background: #1a1a1a; }
   </style>
 </head>
 <body>
   <h1>LispBM WebAssembly REPL &mdash; <a href="https://www.lispbm.com" style="color:#569cd6;font-size:12px;">lispbm.com</a></h1>
   <div id="main">
-    <div id="output"></div>
+    <div id="left-panel">
+      <div id="output-tab-bar"></div>
+      <div id="output-tab-contents"></div>
+    </div>
     <div id="editor-panel">
-      <textarea id="editor" placeholder="Enter LispBM code here..."></textarea>
-      <button id="btn-load" disabled>Load</button>
+      <div id="editor-tab-bar">
+        <button id="btn-new-editor-tab">+</button>
+      </div>
+      <div id="editor-tab-contents"></div>
+      <div id="editor-btn-row">
+        <div id="sim-controls">
+          <div id="sim-menu-container">
+            <button id="sim-menu-btn">Sim &#9650;</button>
+            <div id="sim-dropdown">
+              <div class="sim-dropdown-item" data-sim="bms">BMS</div>
+              <div class="sim-dropdown-item" data-sim="config">Config</div>
+              <div class="sim-dropdown-item" data-sim="eeprom">EEPROM</div>
+              <div class="sim-dropdown-item" data-sim="gnss">GNSS</div>
+              <div class="sim-dropdown-item" data-sim="gpio">GPIO</div>
+            </div>
+          </div>
+        </div>
+        <div id="editor-file-btns">
+          <button id="btn-examples">Examples</button>
+          <button id="btn-open">Open</button>
+          <button id="btn-open-url">Open URL</button>
+          <button id="btn-save">Save</button>
+          <button id="btn-import">Import</button>
+          <button id="btn-export">Export</button>
+          <button id="btn-load" disabled>Eval Tab</button>
+        </div>
+      </div>
+      <input type="file" id="file-input" accept=".lisp,.lbm" style="display:none">
     </div>
   </div>
-  <div id="input-row">
-    <span id="prompt">#</span>
-    <input id="input" type="text" placeholder="Enter expression..." autocomplete="off" disabled>
-    <button id="btn-eval" disabled>Eval</button>
+  <div id="status" style="display:flex;align-items:center;gap:6px;"><span id="busy-led"></span><span id="status-text">Activity</span><span style="flex:1"></span><label for="steps-select" style="font-size:12px;color:#888;">steps:</label><select id="steps-select" style="background:#2d2d2d;color:#d4d4d4;border:1px solid #555;font-size:12px;"><option value="100">100</option><option value="500">500</option><option value="1000" selected>1000</option><option value="5000">5000</option></select></div>
+
+  <div id="fs-dialog">
+    <div id="fs-dialog-box">
+      <div id="fs-dialog-title">Open file</div>
+      <div id="fs-dialog-path">/</div>
+      <div id="fs-dialog-list"></div>
+      <div id="fs-dialog-mkdir-row">
+        <input id="fs-dialog-mkdir-inp" type="text" placeholder="new directory name" spellcheck="false">
+        <button class="fs-dialog-btn" id="fs-dialog-mkdir-btn">New Dir</button>
+      </div>
+      <div id="fs-dialog-filename-row">
+        <span style="color:#888;">Name:</span>
+        <input id="fs-dialog-filename" type="text" spellcheck="false">
+      </div>
+      <div id="fs-dialog-btns">
+        <button class="fs-dialog-btn" id="fs-dialog-cancel">Cancel</button>
+        <button class="fs-dialog-btn primary" id="fs-dialog-ok">OK</button>
+      </div>
+    </div>
   </div>
-  <div id="status">Loading...</div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/scheme/scheme.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <div id="examples-modal">
+    <div id="examples-box">
+      <h2>Examples</h2>
+      <div id="examples-list"></div>
+      <button id="examples-close">Close</button>
+    </div>
+  </div>
+
+  <script src="scripts/codemirror/codemirror.min.js"></script>
+  <script src="scripts/codemirror/mode/scheme/scheme.min.js"></script>
+  <script src="scripts/codemirror/addon/edit/matchbrackets.min.js"></script>
+  <script src="scripts/codemirror/addon/edit/closebrackets.min.js"></script>
+  <script src="scripts/uplot/uPlot.iife.min.js"></script>
+  <script src="scripts/fflate.min.js"></script>
   <script src="lispbm.js"></script>
-  <script>
-    const cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
-      mode: 'scheme',
-      theme: 'dracula',
-      lineNumbers: true,
-      matchBrackets: true,
-      autoCloseBrackets: true,
-      indentUnit: 2,
-      tabSize: 2,
-      indentWithTabs: false,
-      extraKeys: {
-        'Tab': cm => cm.execCommand('indentMore'),
-        'Shift-Tab': cm => cm.execCommand('indentLess'),
-      }
-    });
-    cm.setSize('100%', '100%');
-
-    LispBM().then(lbm => {
-      const output  = document.getElementById('output');
-      const input   = document.getElementById('input');
-      const btnEval = document.getElementById('btn-eval');
-      const btnLoad = document.getElementById('btn-load');
-      const status  = document.getElementById('status');
-
-      function appendOutput(text) {
-        output.textContent += text;
-        output.scrollTop = output.scrollHeight;
-      }
-
-      function pollOutput() {
-        const text = lbm.ccall('lbm_wasm_get_output', 'string', [], []);
-        if (text && text.length > 0) {
-          appendOutput(text);
-          lbm.ccall('lbm_wasm_clear_output', null, [], []);
-        }
-      }
-
-      console.log('calling lbm_wasm_init...');
-      const ok = lbm.ccall('lbm_wasm_init', 'number', [], []);
-      console.log('lbm_wasm_init returned:', ok);
-      if (!ok) {
-        appendOutput('Failed to initialise LispBM.\n');
-        status.textContent = 'Init failed';
-        return;
-      }
-
-      btnEval.disabled = false;
-      btnLoad.disabled = false;
-      cm.setOption('readOnly', false);
-      input.disabled = false;
-      input.focus();
-      status.textContent = 'Ready';
-
-      function loop() {
-        const deadline = performance.now() + 8;
-        try {
-          while (performance.now() < deadline) {
-            lbm.ccall('lbm_wasm_run', null, ['number'], [100]);
-          }
-        } catch(e) {
-          appendOutput('CRASH in step: ' + e + '\n');
-          status.textContent = 'Crashed';
-          return;
-        }
-        try {
-          pollOutput();
-        } catch(e) {
-          appendOutput('CRASH in pollOutput: ' + e + '\n');
-          status.textContent = 'Crashed';
-          return;
-        }
-        setTimeout(loop, 0);
-      }
-      setTimeout(loop, 0);
-
-      function evalExpr() {
-        const code = input.value.trim();
-        if (!code) return;
-        appendOutput('# ' + code + '\n');
-        lbm.ccall('lbm_wasm_eval', null, ['string'], [code]);
-        input.value = '';
-      }
-
-      function loadEditor() {
-        const code = cm.getValue().trim();
-        if (!code) return;
-        appendOutput('-- load --\n');
-        lbm.ccall('lbm_wasm_eval_program', null, ['string'], [code]);
-      }
-
-      btnEval.addEventListener('click', evalExpr);
-      input.addEventListener('keydown', e => {
-        if (e.key === 'Enter') evalExpr();
-      });
-
-      btnLoad.addEventListener('click', loadEditor);
-
-    }).catch(err => {
-      document.getElementById('status').textContent = 'Error: ' + err;
-    });
-  </script>
+  <script src="repl.js"></script>
 </body>
 </html>

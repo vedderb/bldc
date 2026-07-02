@@ -339,7 +339,7 @@ const char *lbm_get_name_by_symbol(lbm_uint id) {
   return res;
 }
 
-lbm_uint *lbm_get_symbol_list_entry_by_name(char *name) {
+lbm_uint *lbm_get_symbol_list_entry_by_name(const char *name) {
   lbm_uint *curr = symlist;
   while (curr) {
     char *str = (char*)curr[NAME];
@@ -352,7 +352,7 @@ lbm_uint *lbm_get_symbol_list_entry_by_name(char *name) {
 }
 
 // Lookup symbol id given symbol name
-int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
+int lbm_get_symbol_by_name(const char *name, lbm_uint* id) {
   int res = 0;
   lbm_uint *curr;
 
@@ -387,28 +387,28 @@ int lbm_get_symbol_by_name(char *name, lbm_uint* id) {
 
 extern lbm_flash_status lbm_write_const_array_padded(uint8_t *data, lbm_uint n, lbm_uint *res);
 
-bool store_symbol_name_flash(char *name, lbm_uint *res) {
-  bool ret = false;
-  size_t n = strlen(name) + 1;
-  if (n > 1) {
+/* bool store_symbol_name_flash(const char *name, lbm_uint *res) { */
+/*   bool ret = false; */
+/*   size_t n = strlen(name) + 1; */
+/*   if (n > 1) { */
 
-    lbm_uint alloc_size;
-    if (n % sizeof(lbm_uint) == 0) {
-      alloc_size = n/(sizeof(lbm_uint));
-    } else {
-      alloc_size = (n/(sizeof(lbm_uint))) + 1;
-    }
+/*     lbm_uint alloc_size; */
+/*     if (n % sizeof(lbm_uint) == 0) { */
+/*       alloc_size = n/(sizeof(lbm_uint)); */
+/*     } else { */
+/*       alloc_size = (n/(sizeof(lbm_uint))) + 1; */
+/*     } */
 
-    lbm_uint symbol_addr = 0;
-    lbm_flash_status s = lbm_write_const_array_padded((uint8_t*)name, n, &symbol_addr);
-    if (s == LBM_FLASH_WRITE_OK && symbol_addr) {
-      symbol_table_size_strings_flash += alloc_size;
-      *res = symbol_addr;
-      ret = true;
-    }
-  }
-  return ret;
-}
+/*     lbm_uint symbol_addr = 0; */
+/*     lbm_flash_status s = lbm_write_const_array_padded((uint8_t*)name, n, &symbol_addr); */
+/*     if (s == LBM_FLASH_WRITE_OK && symbol_addr) { */
+/*       symbol_table_size_strings_flash += alloc_size; */
+/*       *res = symbol_addr; */
+/*       ret = true; */
+/*     } */
+/*   } */
+/*   return ret; */
+/* } */
 
 // Symbol table
 // non-const name copied into symbol-table-entry:
@@ -426,11 +426,13 @@ bool store_symbol_name_flash(char *name, lbm_uint *res) {
 //        [name n-bytes]
 //
 
-int lbm_add_symbol_base(char *name, lbm_uint *id) {
+int lbm_add_symbol_base(const char *name, lbm_uint *id) {
   int res = 0;
-  lbm_uint symbol_name_storage;
-  if (store_symbol_name_flash(name, &symbol_name_storage)) {
-    lbm_uint *new_symlist = lbm_image_add_symbol((char*)symbol_name_storage, next_symbol_id, (lbm_uint)symlist);
+  size_t len = strlen(name);
+  char *name_ptr = lbm_image_add_symbol_name(name, len);
+  if (name_ptr) {
+    lbm_uint *new_symlist = lbm_image_add_symbol(name_ptr, next_symbol_id, (lbm_uint)symlist);
+    symbol_table_size_strings_flash += len; // approximation
     if (new_symlist) {
       symlist = new_symlist;
       *id = next_symbol_id ++;
@@ -440,7 +442,7 @@ int lbm_add_symbol_base(char *name, lbm_uint *id) {
   return res;
 }
 
-int lbm_add_symbol(char *name, lbm_uint* id) {
+int lbm_add_symbol(const char *name, lbm_uint* id) {
   int res = 0;
   if (lbm_get_symbol_by_name(name, id)) {
     res = 1;
@@ -452,7 +454,7 @@ int lbm_add_symbol(char *name, lbm_uint* id) {
 
 // on Linux, win, etc a const string may not be at
 // the same address between runs.
-int lbm_add_symbol_const_base(char *name, lbm_uint* id, bool link) {
+int lbm_add_symbol_const_base(const char *name, lbm_uint* id, bool link) {
   lbm_uint symbol_name_storage = (lbm_uint)name;
   lbm_uint *new_symlist;
   int res = 0;
@@ -469,7 +471,7 @@ int lbm_add_symbol_const_base(char *name, lbm_uint* id, bool link) {
   return res;
 }
 
-int lbm_add_symbol_const(char *name, lbm_uint* id) {
+int lbm_add_symbol_const(const char *name, lbm_uint* id) {
   int res = 0;
   if (lbm_get_symbol_by_name(name, id)) {
     res = 1;
@@ -479,7 +481,7 @@ int lbm_add_symbol_const(char *name, lbm_uint* id) {
   return res;
 }
 
-int lbm_str_to_symbol(char *name, lbm_uint *sym_id) {
+int lbm_str_to_symbol(const char *name, lbm_uint *sym_id) {
   int res = lbm_get_symbol_by_name(name, sym_id);
   if (!res)
     res = lbm_add_symbol(name, sym_id);

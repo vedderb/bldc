@@ -23,11 +23,13 @@
 #include <stdbool.h>
 #include <stdatomic.h>
 
-static atomic_uint_least32_t timestamp_cache = ATOMIC_VAR_INIT(0);
+static atomic_uint_least32_t timestamp_cache   = ATOMIC_VAR_INIT(0);
+static atomic_int            timestamp_running  = ATOMIC_VAR_INIT(0);
 
 void lbm_timestamp_cacher(void *v) {
   (void) v;
-  while(true) {
+  atomic_store(&timestamp_running, 1);
+  while(atomic_load(&timestamp_running)) {
     struct timeval tv;
     gettimeofday(&tv,NULL);
     atomic_store(&timestamp_cache, (uint32_t)(tv.tv_sec * 1000000 + tv.tv_usec));
@@ -38,6 +40,10 @@ void lbm_timestamp_cacher(void *v) {
     s.tv_nsec = (long)us * 1000;
     nanosleep(&s, &r);
   }
+}
+
+void lbm_timestamp_cacher_stop(void) {
+  atomic_store(&timestamp_running, 0);
 }
 
 uint32_t lbm_timestamp(void) {

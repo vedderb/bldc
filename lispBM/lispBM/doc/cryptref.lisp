@@ -161,6 +161,166 @@
                  entry-hex-to-bytes
                  )))
 
+;; ------------------------------------------------------------
+;; Bignum 
+
+(define a (bn-from-u32 102))
+(define b (bn-from-u32 65536))
+(define c (bn-from-u32 1000))
+  
+
+(define entry-bn-add
+  (ref-entry "bn-add"
+             (list
+              (para (list "`bn-add` adds two bignum values"
+                          "The form of a `bn-add` expression is `(bn-add a b)`"
+                          "where `a` and `b` are bignum."
+                          ))
+              (code '((bn-add a b)
+                      (bn-add (bn-from-u32 0xFFFFFFFFu32) (bn-from-u32 102))
+                      (bn-add (bn-from-bytes (hex-to-bytes "FFFFFFFF")) (bn-from-u32 102))
+                     ))
+              )))
+
+(define entry-bn-cmp
+  (ref-entry "bn-cmp"
+             (list
+              (para (list "`bn-cmp` compares two bignum values and return 1,0 or -1"
+                          "depending on if the first argument is larger, equal, smaller than the second."
+                          "The form of a `bn-cmp` expression is `(bn-cmp a b)`"
+                          "where `a` and ´b` are bignum."
+                          ))
+              (code '((bn-cmp a b)
+                      (bn-cmp b a)
+                      (bn-cmp a a)
+                      ))
+              )))
+
+(define entry-bn-divmod
+  (ref-entry "bn-divmod"
+             (list
+              (para (list "`bn-divmod` computes the quotient and remainder of an bignum (integer) division."
+                          "The form of a `bn-divmod` expression is `(bn-divmod a b)`"
+                          "where `a` and `b` are bignum."
+                          ))
+              (code '((bn-divmod a b)
+                      (bn-divmod b a)
+                    ))
+              )))
+
+(define entry-bn-from-bytes
+  (ref-entry "bn-from-bytes"
+             (list
+              (para (list "`bn-from-bytes` creates a bignum from a bytearray."
+                          "The internal representation of a  bignum is as a little-endian value for implementation"
+                          "efficiency reasons and converting a bytearray to a bignum reverses the byte order"
+                          "The form of a `bn-from-bytes` expression is `(bn-from-bytes ba)`"
+                          "where `ba` is a bytearray that is a multiple of 4 bytes long"
+                          ))
+              (code '((bn-from-bytes [0xff 0xaa 0x00 0x11])
+                      ))
+              )))
+
+(define entry-bn-from-u32
+  (ref-entry "bn-from-u32"
+             (list
+              (para (list "`bn-from-u32` creates a bignum from an u 32."
+                          "The form of a `bn-from-u32` expression is `(bn-from-u32 a)`"
+                          "where `a` is a number that will be interpreted as a u32."
+                          ))
+              (code '((bn-from-u32 1)
+                      (bn-from-u32 0xFFFFFFFFu32)
+                      ))
+              )))
+
+(define entry-bn-modexp
+  (ref-entry "bn-modexp"
+             (list
+              (para (list "`bn-modexp` computes bignum exponentiation modulo a modulus."
+                          "The form of a `bn-modexp` expression is `(bn-modexp a e m)`"
+                          "where a is a bignum value, e is bignum exponent and m is bignum modulo."
+                          ))
+              (code '((bn-modexp a b c)
+                      ))
+              )))
+
+
+(define entry-bn-mul
+  (ref-entry "bn-mul"
+             (list
+              (para (list "`bn-mul` multiplies two bignum values"
+                          "The form of a `bn-mul` expression is `(bn-mul a b)`"
+                          "where `a` and `b` are bignum."
+                          ))
+              (code '((bn-mul a b)
+                      (bn-mul (bn-from-u32 0xFFFFFFFFu32) (bn-from-u32 102))
+                      (bn-mul (bn-from-bytes (hex-to-bytes "FFFFFFFF")) (bn-from-u32 102))
+                      ))
+              )))
+
+(define entry-bn-sub
+  (ref-entry "bn-sub"
+             (list
+              (para (list "`bn-sub` subtracts a bignum from another bignum value"
+                          "The form of a `bn-sub` expression is `(bn-sub a b)`"
+                          "where `a` and `b` are bignum."
+                          "Requires that the first argument is larger than the second."
+                          ))
+              (code '((bn-sub b a)
+                     ))
+              )))
+
+(define entry-bn-to-bytes
+  (ref-entry "bn-to-bytes"
+             (list
+              (para (list "`bn-to-bytes` converts a bignum to a bytearray that is compatible with `bn-from-bytes`."
+                          "the form of a `bn-to-bytes` expression is `(bn-to-bytes a)`"
+                          "where `a` is a bignum."
+                          ))
+              (code '((bn-to-bytes a)
+                      (bn-to-bytes b)
+                      ))
+              )))
+
+(define entry-bn-to-u32
+  (ref-entry "bn-to-u32"
+             (list
+              (para (list "`bn-to-u32` converts a bignum to a u32 value."
+                          "the form of a `bn-to-u32` expression is `(bn-to-u32 a)`"
+                          "where `a` is a bignum."
+                          "Note that this requires that the bignum is a so-called single-limb"
+                          "value, that is it needs to <= 0xFFFFFFFF."
+                          ))
+              (code '((bn-to-u32 a)
+                      (bn-to-u32 b)
+                      ))
+              )))
+
+                    
+
+(define chapter-bignum
+  (section 2 "Bignum Library"
+           (list
+            (para (list "The bignum library is meant as an entry point for implementation"
+                        "of, for example, RSA Crypto."
+                        "This can be used for encrypted data transfers or for cryptographically"
+                        "signed files, areas of flash or buffers for Integrity and Authenticity!"
+                        ))
+                 entry-bn-add
+                 entry-bn-cmp
+                 entry-bn-divmod
+                 entry-bn-from-bytes
+                 entry-bn-from-u32
+                 entry-bn-modexp
+                 entry-bn-mul
+                 entry-bn-sub
+                 entry-bn-to-bytes
+                 entry-bn-to-u32)))
+
+
+
+;; ------------------------------------------------------------
+;; toplevel
 
 (define manual
   (list
@@ -176,6 +336,7 @@
              chapter-sha256
              chapter-aes
              chapter-utilities
+             chapter-bignum
              ))
    info
    )

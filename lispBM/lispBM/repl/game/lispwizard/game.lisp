@@ -21,21 +21,21 @@
     (lambda (pos)
       (let (((x . y) pos)
             (room-file (ix (ix map-of-rooms y) x))
-            (room-h (fopen room-file "r"))
+            (room-h (f-open room-file "r"))
             (room (load-file room-h))
             (room-fun (read-eval-program room))
             (room-cid (spawn room-file room-fun)))
         {
-        (fclose room-h)
+        (f-close room-h)
         (setq game-state (setassoc game-state 'room-cid room-cid))
         })))
 
 ;; Load the tile system
 (define load-tile-system (lambda ()
   {
-    (var tile-file (fopen "room_tiles.lisp" "r"))
+    (var tile-file (f-open "room_tiles.lisp" "r"))
     (var tile-code (load-file tile-file))
-    (fclose tile-file)
+    (f-close tile-file)
     (read-eval-program tile-code)
   }))
 
@@ -130,7 +130,7 @@
 (sdl-renderer-set-color rend 255 255 255)
 (sdl-set-active-renderer rend) ;; Connect the renderer to the display library
 
-(define font-file (fopen "Ubuntu-Regular.ttf" "r"))
+(define font-file (f-open "Ubuntu-Regular.ttf" "r"))
 (define font (load-file font-file))
 (define ttf (ttf-prepare font 32 'indexed4 "abcdefghijklmnopqrstuvxyz1234567890+-*/"))
 (define aa-green '(0 17408 39168 65280))

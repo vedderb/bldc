@@ -1,0 +1,36 @@
+; hello_widgets — first sim scenario
+;
+; Creates a small set of interactive widgets and echoes events to the
+; log pane (tap the ▲ button in the corner) and adb logcat.
+
+(def root (qt-root))
+
+(def lbl (qt-label root "Waiting for input..."))
+(def btn (qt-button root "Press Me"))
+
+(def hbox (qt-container root 'hbox))
+(def chk  (qt-checkbox hbox "Enable slider"))
+(qt-stretch hbox 'horizontal)
+
+(def sld     (qt-slider root 0 100))
+(def sld-lbl (qt-label  root "Slider: 0"))
+
+(qt-set-enabled sld nil)
+
+(print "hello_widgets loaded")
+
+(defun on-event ()
+  { (recv
+      ((button-pressed _)
+       { (qt-set-label lbl "Button pressed!")
+         (print "button-pressed") })
+      ((checkbox-changed _ (? v))
+       { (qt-set-enabled sld v)
+         (print "checkbox: " v) })
+      ((slider-changed _ (? v))
+       { (qt-set-label sld-lbl (str-merge "Slider: " (to-str v)))
+         (print "slider: " v) })
+      ((? _) (print "unhandled event")))
+    (on-event) })
+
+(event-register-handler (spawn on-event))

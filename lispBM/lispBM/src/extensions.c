@@ -96,7 +96,7 @@ bool lbm_lookup_extension_id(char *sym_str, lbm_uint *ix) {
   return false;
 }
 
-bool lbm_add_extension(char *sym_str, extension_fptr ext) {
+bool lbm_add_extension(const char *sym_str, extension_fptr ext) {
   lbm_value symbol;
 
   // symbol_by_name loops through all symbols. It may be enough

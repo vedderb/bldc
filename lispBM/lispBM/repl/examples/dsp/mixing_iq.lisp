@@ -93,10 +93,10 @@
 (mag li-buffer lq-buffer mag-buffer)
 
 (with-file "wave1.bin" "wb"
-           (lambda (x) (fwrite x tx-buffer)))
+           (lambda (x) (f-write x tx-buffer)))
 
 (with-file "wave2.bin" "wb"
-           (lambda (x) (fwrite x mag-buffer)))
+           (lambda (x) (f-write x mag-buffer)))
 
 (print "output: mixing_iq1.pdf")
 (plot-signal-signal "wave1.bin" "wave2.bin" "mixing_iq1.pdf"
@@ -105,10 +105,10 @@
                     "IQ Demodulated signal")
 
 (with-file "i_channel.bin" "wb"
-           (lambda (x) (fwrite x li-buffer)))
+           (lambda (x) (f-write x li-buffer)))
 
 (with-file "q_channel.bin" "wb"
-           (lambda (x) (fwrite x lq-buffer)))
+           (lambda (x) (f-write x lq-buffer)))
 
 (print "output: iq_channels.pdf")
 (plot-signals '(("i_channel.bin" . "I channel (in-phase)")
@@ -126,10 +126,10 @@
 })
 
 (with-file "magnitude.bin" "wb"
-           (lambda (x) (fwrite x mag-buffer)))
+           (lambda (x) (f-write x mag-buffer)))
 
 (with-file "phase.bin" "wb"
-           (lambda (x) (fwrite x phase-buffer)))
+           (lambda (x) (f-write x phase-buffer)))
 
 (print "output: magnitude_phase.pdf")
 (plot-signal-signal "magnitude.bin" "phase.bin" "magnitude_phase.pdf"
@@ -180,7 +180,7 @@
 
       (var filename (str-join (list "iq_wave" (to-str j) ".bin")))
       (with-file filename "wb"
-        (lambda (x) (fwrite x stronger-buffer)))
+        (lambda (x) (f-write x stronger-buffer)))
       (setq phaseplots (cons `(,filename . ,description) phaseplots))
 })
 

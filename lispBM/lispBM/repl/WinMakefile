@@ -27,28 +27,55 @@ LIBS = -lws2_32 \
 	windows/SDL2_image/lib/libSDL2_image.dll.a \
 	windows/libpng/lib/libpng.dll.a \
 	windows/readline/lib/libhistory.dll.a \
-	windows/readline/lib/libreadline.dll.a
+	windows/readline/lib/libreadline.dll.a \
+	-lm
+
+MINGW32_GCC_DIR = $(dir $(shell $(CC32) -print-libgcc-file-name))
+MINGW64_GCC_DIR = $(dir $(shell $(CC64) -print-libgcc-file-name))
 
 DLLS = windows/build/SDL2.dll \
        windows/build/SDL2_image.dll \
-       windows/build/history.dll \
-       windows/build/readline.dll \
-       windows/build/libpng16-16.dll
+       windows/build/libpng16-16.dll \
+       windows/build/zlib1.dll \
+       windows/build/libgcc_s_dw2-1.dll \
+       windows/build/.readline_copied32
+
+LIBS64 = -lws2_32 \
+	windows/SDL2_64/lib/libSDL2main.a \
+	windows/SDL2_64/lib/libSDL2.dll.a \
+	windows/SDL2_image_64/lib/libSDL2_image.dll.a \
+	windows/libpng_64/lib/libpng.dll.a \
+	windows/readline_64/lib/libhistory.dll.a \
+	windows/readline_64/lib/libreadline.dll.a
+
+INC64 = -Iwindows/readline_64/include \
+        -Iwindows/libpng_64/include \
+        -Iwindows/SDL2_64/include \
+        -Iwindows/SDL2_64/include/SDL2 \
+        -Iwindows/SDL2_image_64/include \
+        -I../utils
+
+DLLS64 = windows/build64/SDL2.dll \
+         windows/build64/SDL2_image.dll \
+         windows/build64/libpng16-16.dll \
+         windows/build64/zlib1.dll \
+         windows/build64/libgcc_s_seh-1.dll \
+         windows/build64/libwinpthread-1.dll \
+         windows/build64/.readline_copied
 
 INC = -Iwindows/readline/include \
       -Iwindows/libpng/include \
       -Iwindows/SDL2/include \
       -Iwindows/SDL2/include/SDL2 \
-      -Iwindows/SDL2_image/include
+      -Iwindows/SDL2_image/include \
+      -I../utils
 
 CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -fno-pie -no-pie -Wl,--disable-dynamicbase
 
-LISPBM_SRC += $(LISPBM_EVAL_CPS_SRC)
-
 REPL_SRC= repl.c \
 	  repl_exts.c \
-          crc.c \
-          packet.c \
+          ../utils/crc.c \
+          ../utils/packet.c \
 	  lbm_sdl.c \
           vesc_express_extension_stubs.c \
           bldc_extension_stubs.c
@@ -66,19 +93,47 @@ windows/build/SDL2.dll:
 windows/build/SDL2_image.dll:
 	cp windows/SDL2_image/bin/*.dll windows/build
 
-windows/build/history.dll:
-	cp windows/readline/bin/*.dll windows/build
-
-windows/build/readline.dll:
-	cp windows/readline/bin/*.dll windows/build
-
 windows/build/libpng16-16.dll:
 	cp windows/libpng/bin/*.dll windows/build
 
-# Think this may need 64bit variant of libreadline.
-# TODO: Try to build libreadline for 64bit windows.
-#windows/build/lbm64.exe: repl_win.c
-#	$(CC64) -DLBM_WIN -DLBM64 $(CCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(REPL_SRC) -o windows/build/lbm64.exe $(PLATFORM_INCLUDE) $(LISPBM_INC) $(INC) $(LIBS)
+windows/build/zlib1.dll:
+	cp windows/zlib/bin/*.dll windows/build
+
+windows/build/libgcc_s_dw2-1.dll:
+	cp $(MINGW32_GCC_DIR)/libgcc_s_dw2-1.dll windows/build
+
+windows/build/.readline_copied32:
+	cp windows/readline/bin/*.dll windows/build
+	touch windows/build/.readline_copied32
+
+lbm64: windows/build64/lbm64.exe
+
+$(shell mkdir -p windows/build64)
+
+windows/build64/lbm64.exe: $(DLLS64) $(REPL_SRC) $(LISPBM_SRC) $(LISPBM_DEPS) $(LISPBM_H)
+	$(CC64) -DLBM_WIN -DLBM64 -DWITH_SDL $(CCFLAGS) $(LISPBM_SRC) $(PLATFORM_SRC) $(REPL_SRC) -o windows/build64/lbm64.exe $(PLATFORM_INCLUDE) $(LISPBM_INC) $(INC64) $(LIBS64)
+
+windows/build64/SDL2.dll:
+	cp windows/SDL2_64/bin/*.dll windows/build64/
+
+windows/build64/SDL2_image.dll:
+	cp windows/SDL2_image_64/bin/*.dll windows/build64/
+
+windows/build64/libpng16-16.dll:
+	cp windows/libpng_64/bin/*.dll windows/build64/
+
+windows/build64/zlib1.dll:
+	cp windows/zlib_64/bin/*.dll windows/build64/
+
+windows/build64/libgcc_s_seh-1.dll:
+	cp $(MINGW64_GCC_DIR)/libgcc_s_seh-1.dll windows/build64/
+
+windows/build64/libwinpthread-1.dll:
+	cp /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll windows/build64/
+
+windows/build64/.readline_copied:
+	cp windows/readline_64/bin/*.dll windows/build64/
+	touch windows/build64/.readline_copied
 
 # Instructions for Windows users:
 # 1. Open Command Prompt (cmd) or PowerShell
@@ -92,4 +147,6 @@ windows/build/libpng16-16.dll:
 
 clean:
 	rm -f windows/build/lbm32.exe
-	rm -f windows/build/lbm64.exe
+	rm -f windows/build/.readline_copied32
+	rm -f windows/build64/lbm64.exe
+	rm -f windows/build64/.readline_copied

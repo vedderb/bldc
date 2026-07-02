@@ -67,7 +67,6 @@ ifeq ($(PLATFORM), macos-arm64)
 endif
 
 SOURCE_DIR = src
-INCLUDE_DIR = -I./include -I./include/extensions
 EXTENSIONS = src/extensions
 
 $(shell mkdir -p ${BUILD_DIR})
@@ -111,10 +110,10 @@ $(LIB): $(OBJECTS)
 	$(AR) -rcs $@ $(OBJECTS)
 
 $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c
-	$(CC) $(INCLUDE_DIR) -I$(PLATFORMINC) $(CCFLAGS) -c $< -o $@
+	$(CC) $(LISPBM_INC) -I$(PLATFORMINC) $(CCFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/heap_vis.o: $(SOURCE_DIR)/visual/heap_vis.c
-	$(CC) $(INCLUDE_DIR) -I$(PLAFORMINC) $(CCFLAGS) -c $< -o $@
+	$(CC) $(LISPBM_INC) -I$(PLAFORMINC) $(CCFLAGS) -c $< -o $@
 
 test:
 	cd tests && ./run_tests.sh

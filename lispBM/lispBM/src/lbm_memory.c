@@ -70,17 +70,14 @@ bool lbm_memory_init(lbm_uint *data, lbm_uint data_size,
   bool res = false;
   if (data && bits) {
 
-    if (((lbm_uint)data % sizeof(lbm_uint) != 0) || // Alignment requirement
-        (data_size * 2) != (bits_size * sizeof(lbm_uint) * 8) ||
-        data_size % 4 != 0 ||
-        ((lbm_uint)bits % sizeof(lbm_uint) != 0) || // Alignment requirement
-        bits_size < 1) {
-        //bits_size % 4 != 0) { // lets try without this requirement a while
-      // data is not aligned to sizeof lbm_uint
-      // size is too small
-      // or size is not a multiple of 4
-    } else {
+    // Data_size, size of the memory in words.
+    // Every word of memory needs 2x status bits.
+    // so bitmap bits_size should be 2x BITS compared to num words data.
+    // Really the number of bits needed should be less than the number of bits we have.
 
+    if ((lbm_uint)data % sizeof(lbm_uint) == 0 &&              // Alignment req data.
+        (lbm_uint)bits % sizeof(lbm_uint) == 0 &&              // Alignment req bitmap.
+        data_size *2 <= (bits_size * sizeof(lbm_uint)) * 8) {  // size requirement.
       bitmap = bits;
       bitmap_size = bits_size;
 
