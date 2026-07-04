@@ -30,7 +30,7 @@
 #define SPI_MODE_3			(SPI_CR1_CPOL | SPI_CR1_CPHA)
 
 // Default IMU SPI clock used when bus_hz is 0.
-#define SPI_HW_DEFAULT_HZ	2625000
+#define SPI_HW_DEFAULT_HZ	10500000
 
 static SPIDriver *dev_of(transport_t *t) {
 	return t->bus.spi_hw.spid;
