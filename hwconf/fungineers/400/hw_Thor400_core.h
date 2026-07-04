@@ -173,9 +173,11 @@
 #define HW_SPI_PORT_MISO		GPIOC
 #define HW_SPI_PIN_MISO			11
 
-// I2C/SPI for IMU
+// Hardware SPI for IMU
 #define IMU_DEV				IMU_DEV_LSM6DS3
-#define IMU_COM				IMU_COM_I2C_BB_SPI
+#define IMU_COM				IMU_COM_SPI_HW
+#define IMU_SPI_DEV			SPID1
+#define IMU_SPI_AF			GPIO_AF_SPI1
 #define IMU_SPI_NSS_GPIO		GPIOA
 #define IMU_SPI_NSS_PIN			15
 #define IMU_SPI_SCK_GPIO		GPIOB
