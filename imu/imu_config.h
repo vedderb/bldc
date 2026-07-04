@@ -46,6 +46,7 @@
 #define IMU_DEV_ICM20948	2
 #define IMU_DEV_BMI160		3
 #define IMU_DEV_LSM6DS3		4
+#define IMU_DEV_LSM6DSV32X	5
 
 // IMU transport:
 #define IMU_COM_NONE		0

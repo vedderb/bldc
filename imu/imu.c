@@ -27,6 +27,7 @@
 #include "icm20948.h"
 #include "bmi160_wrapper.h"
 #include "lsm6ds3.h"
+#include "lsm6dsv32x.h"
 #include "transport_i2c_bb.h"
 #include "transport_spi_bb.h"
 #include "transport_spi_hw.h"
@@ -66,6 +67,8 @@ static imu_device_t imu_device_create(uint8_t dev, uint8_t com, transport_t *tra
 				? BMI160_SPI_INTF : BMI160_I2C_INTF);
 	case IMU_DEV_LSM6DS3:
 		return lsm6ds3_device(transport);
+	case IMU_DEV_LSM6DSV32X:
+		return lsm6dsv32x_device(transport);
 	default:
 		return (imu_device_t){0};
 	}
