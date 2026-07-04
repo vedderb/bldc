@@ -224,14 +224,16 @@
 #define HW_SPI_PIN_MISO			6
 
 // IMU
-#define LSM6DS3_NSS_GPIO		GPIOC
-#define LSM6DS3_NSS_PIN			13
-#define LSM6DS3_SCK_GPIO		GPIOB
-#define LSM6DS3_SCK_PIN			12
-#define LSM6DS3_MOSI_GPIO		GPIOB
-#define LSM6DS3_MOSI_PIN		3
-#define LSM6DS3_MISO_GPIO		GPIOB
-#define LSM6DS3_MISO_PIN		4
+#define IMU_DEV				IMU_DEV_LSM6DS3
+#define IMU_COM				IMU_COM_I2C_BB_SPI
+#define IMU_SPI_NSS_GPIO		GPIOC
+#define IMU_SPI_NSS_PIN			13
+#define IMU_SPI_SCK_GPIO		GPIOB
+#define IMU_SPI_SCK_PIN			12
+#define IMU_SPI_MOSI_GPIO		GPIOB
+#define IMU_SPI_MOSI_PIN		3
+#define IMU_SPI_MISO_GPIO		GPIOB
+#define IMU_SPI_MISO_PIN		4
 #define IMU_FLIP
 
 // Measurement macros

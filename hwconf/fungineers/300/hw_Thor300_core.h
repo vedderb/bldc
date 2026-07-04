@@ -176,10 +176,12 @@
 #define HW_SPI_PIN_MISO			11
 
 // I2C for IMU
-#define LSM6DS3_SDA_GPIO		GPIOD
-#define LSM6DS3_SDA_PIN			2
-#define LSM6DS3_SCL_GPIO		GPIOB
-#define LSM6DS3_SCL_PIN			5
+#define IMU_DEV				IMU_DEV_LSM6DS3
+#define IMU_COM				IMU_COM_I2C_BB
+#define IMU_I2C_SDA_GPIO		GPIOD
+#define IMU_I2C_SDA_PIN			2
+#define IMU_I2C_SCL_GPIO		GPIOB
+#define IMU_I2C_SCL_PIN			5
 
 // UART Peripheral
 #define HW_UART_DEV		        SD4

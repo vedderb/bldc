@@ -181,10 +181,12 @@
 #define HW_ICU_PIN				6
 
 // I2C for IMU, logger and output control
-#define LSM6DS3_SDA_GPIO		GPIOC
-#define LSM6DS3_SDA_PIN			12
-#define LSM6DS3_SCL_GPIO		GPIOA
-#define LSM6DS3_SCL_PIN			4
+#define IMU_DEV				IMU_DEV_LSM6DS3
+#define IMU_COM				IMU_COM_I2C_BB
+#define IMU_I2C_SDA_GPIO		GPIOC
+#define IMU_I2C_SDA_PIN			12
+#define IMU_I2C_SCL_GPIO		GPIOA
+#define IMU_I2C_SCL_PIN			4
 #define ATTINY1616_ADDR  		0X68 // Low side body diode OC and logger
 #define ATTINY3216_ADDR  		0X69 // Low side Mosfet Channel OC and Aux output control
 #define TPL0401A_10DCKR_ADDR  	0X2E // Low side Mosfet Channel OC limit digipot

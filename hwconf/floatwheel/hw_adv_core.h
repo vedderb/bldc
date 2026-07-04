@@ -199,16 +199,20 @@
 
 #ifdef ADV200
 // IMU: BMI160
-#define BMI160_SDA_GPIO         GPIOB
-#define BMI160_SDA_PIN          2
-#define BMI160_SCL_GPIO         GPIOA
-#define BMI160_SCL_PIN          15
+#define IMU_DEV                 IMU_DEV_BMI160
+#define IMU_COM                 IMU_COM_I2C_BB
+#define IMU_I2C_SDA_GPIO        GPIOB
+#define IMU_I2C_SDA_PIN         2
+#define IMU_I2C_SCL_GPIO        GPIOA
+#define IMU_I2C_SCL_PIN         15
 #else
 // LSM6DS3
-#define LSM6DS3_SDA_GPIO        GPIOB
-#define LSM6DS3_SDA_PIN         2
-#define LSM6DS3_SCL_GPIO        GPIOA
-#define LSM6DS3_SCL_PIN         15
+#define IMU_DEV                 IMU_DEV_LSM6DS3
+#define IMU_COM                 IMU_COM_I2C_BB
+#define IMU_I2C_SDA_GPIO        GPIOB
+#define IMU_I2C_SDA_PIN         2
+#define IMU_I2C_SCL_GPIO        GPIOA
+#define IMU_I2C_SCL_PIN         15
 #endif
 
 // NRF SWD

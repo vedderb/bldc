@@ -192,10 +192,12 @@
 #define HW_ICU_PIN				6
 
 // I2C for IMU
-#define LSM6DS3_SDA_GPIO		GPIOC
-#define LSM6DS3_SDA_PIN			12
-#define LSM6DS3_SCL_GPIO		GPIOA
-#define LSM6DS3_SCL_PIN			4
+#define IMU_DEV				IMU_DEV_LSM6DS3
+#define IMU_COM				IMU_COM_I2C_BB
+#define IMU_I2C_SDA_GPIO		GPIOC
+#define IMU_I2C_SDA_PIN			12
+#define IMU_I2C_SCL_GPIO		GPIOA
+#define IMU_I2C_SCL_PIN			4
 
 // Hardware protection
 #define HW_RESET_DRV_FAULTS()	hw_a200s_reset_faults()
