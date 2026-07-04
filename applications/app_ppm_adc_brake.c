@@ -121,6 +121,12 @@
 #define USE_ADC2_BRAKE			1
 #endif
 
+// The power-ratio (ADC1 gain) and the reverse direction are only re-sampled
+// while the motor is at STANDSTILL and the throttle is released, then held for
+// the whole ride so they can't change mid-drive. "Standstill" = |erpm| below the
+// PPM page's "Max ERPM for direction" (max_erpm_for_dir), or this if that is 0.
+#define LATCH_ERPM_FALLBACK		2000.0
+
 #define MIN_MS_WITHOUT_POWER	500.0
 #define FILTER_SAMPLES			5
 #define RPM_FILTER_SAMPLES		8
@@ -144,6 +150,8 @@ static volatile systime_t last_ramp_time = 0;   // timestamp for the ramp dt
 static volatile bool  cc_was_pid = false;        // cruise-control latch
 static volatile float cc_pid_rpm = 0.0;          // cruise-control held rpm
 static volatile bool  ppm_rx = false;            // set by servo_func on each PPM pulse
+static volatile float latched_gain = 1.0;        // power ratio (ADC1) held during a ride
+static volatile bool  latched_rev = false;       // reverse direction held during a ride
 
 // Latest computed values, exposed via the "ppm_adc_dbg" terminal command.
 static volatile float dbg_ppm = 0.0;       // raw PPM servo value (-1..1)
@@ -185,6 +193,8 @@ static void terminal_dbg(int argc, const char **argv) {
 			dbg_ppm_ok ? "OK" : "LOST",
 			dbg_armed ? "YES" : "NO (blocked)",
 			(double)ms_without_power, (double)MIN_MS_WITHOUT_POWER);
+	commands_printf("latched reverse=%d  latched gain=%.3f  (sampled only at standstill+idle)",
+			latched_rev, (double)latched_gain);
 	bool can_drive = dbg_ppm_ok && dbg_armed && !app_is_output_disabled();
 	commands_printf("can drive now=%s  output_disabled=%d  fault=%d  [GAIN=%d BRAKE=%d]",
 			can_drive ? "YES" : "NO",
@@ -258,6 +268,8 @@ void app_custom_start(void) {
 	input_filtered_gain = 0.0;
 	plot_enabled = false;
 	ppm_rx = false;
+	latched_gain = 1.0;
+	latched_rev = false;
 	// Set is_running here (not just in the thread) so a configure() call that
 	// arrives right after start() applies the servo pulse options immediately.
 	is_running = true;
@@ -338,6 +350,14 @@ static THD_FUNCTION(ppm_adc_brake_thread, arg) {
 				pconf->throttle_exp_brake, pconf->throttle_exp_mode);
 		float throttle_stick = throttle; // pre-gain, for safe-start idle detection
 
+		// At rest = motor near standstill AND throttle released. The power ratio
+		// (ADC1) and reverse are only re-sampled while at rest, then latched for
+		// the whole ride so they can't change mid-drive.
+		float latch_erpm = pconf->max_erpm_for_dir > 1.0 ?
+				pconf->max_erpm_for_dir : LATCH_ERPM_FALLBACK;
+		bool at_rest = fabsf(mc_interface_get_rpm()) < latch_erpm &&
+				throttle_stick < 0.001;
+
 		// ---- 1b) ADC1 = 0..1 gain knob (ADC-page voltage_start/end mapping) ----
 		// utils_map() does NOT clamp on its own, so the truncate is the 0..1 cap.
 		// With USE_ADC1_GAIN=0 the gain is forced to 1.0 (bench-test PPM-only).
@@ -354,6 +374,11 @@ static THD_FUNCTION(ppm_adc_brake_thread, arg) {
 			gain = 1.0 - gain;
 		}
 #endif
+		// Only sample the power ratio at standstill+idle; otherwise hold it.
+		if (at_rest) {
+			latched_gain = gain;
+		}
+		gain = latched_gain;
 
 		throttle *= gain; // master gain scales the (curved) throttle
 
@@ -375,7 +400,11 @@ static THD_FUNCTION(ppm_adc_brake_thread, arg) {
 #endif
 
 		// ---- 3) Buttons ----
-		bool rev_button = read_button(REV_BUTTON_PORT, REV_BUTTON_PIN);
+		// Reverse is only re-sampled at standstill+idle, then latched for the ride.
+		if (at_rest) {
+			latched_rev = read_button(REV_BUTTON_PORT, REV_BUTTON_PIN);
+		}
+		bool rev_button = latched_rev;
 		bool cc_button  = read_button(CC_BUTTON_PORT,  CC_BUTTON_PIN);
 
 		// Brake has priority: when the ADC2 brake is pressed we respect it and
