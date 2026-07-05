@@ -142,7 +142,7 @@ static bool configure(imu_device_t *dev, IMU_FILTER filter, bool use_mag) {
 	if (is_trc) {
 		#define LSM6DS3TRC_FTYPE_L 0x00
 		#define LSM6DS3TRC_FTYPE_M 0x01
-		#define LSM6DS3TRC_FTYPE_H 0x10
+		#define LSM6DS3TRC_FTYPE_H 0x02
 		regv = 0;
 		if (filter == IMU_FILTER_LOW) {
 			regv |= LSM6DS3TRC_FTYPE_L;
