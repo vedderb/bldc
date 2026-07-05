@@ -22,6 +22,48 @@
 #include "lsm6ds3.h"
 #include "commands.h"
 
+/*
+ * Anti-alias low-pass cutoffs at different IMU_FILTER values:
+ * fs = output rate, based on the configured Sample Rate (the poll frequency in poll mode, or the
+ * data-ready rate in DRDY mode)
+ *
+ * This file drives two variants:
+ *
+ * LSM6DS3TR-C (most controllers)
+ *   poll:
+ *     ODR: both 6.66 kHz
+ *
+ *     filter   accel               gyro
+ *     LOW      400 Hz (analog)     351 Hz
+ *     MEDIUM   133 Hz (ODR/50)     237 Hz
+ *     HIGH     67 Hz  (ODR/100)    173 Hz
+ *
+ *   DRDY:
+ *     ODR: both fs
+ *
+ *     filter   accel               gyro (scales with ODR)
+ *     LOW      fs/2 (<=400 Hz)     245-351 Hz
+ *     MEDIUM   fs/4                195-237 Hz
+ *     HIGH     fs/9                155-173 Hz
+ *
+ * LSM6DS3 (legacy, not used on current hardware)
+ *   poll:
+ *     ODR: accel 6.66 kHz, gyro fs (<=1.66 kHz)
+ *
+ *     filter   accel                        gyro
+ *     LOW      none (6.66 kHz unfiltered)   ODR default (~fs)
+ *     MEDIUM   fs/4                         ODR default (~fs)
+ *     HIGH     fs/8                         ODR default (~fs)
+ *
+ *   DRDY:
+ *     ODR: both fs (<=1.66 kHz)
+ *
+ *     filter   accel                        gyro
+ *     LOW      fs/2 (<=400 Hz)              ODR default (~fs)
+ *     MEDIUM   fs/4                         ODR default (~fs)
+ *     HIGH     fs/8                         ODR default (~fs)
+ */
+
 static bool read_reg(imu_device_t *dev, uint8_t reg, uint8_t *res) {
 	return transport_read_reg(dev->transport, dev->dev_addr, reg, res, 1);
 }
@@ -53,6 +95,16 @@ static const struct { uint16_t hz; uint8_t code; } odr_ladder[] = {
 };
 #define ODR_LADDER_N (sizeof(odr_ladder) / sizeof(odr_ladder[0]))
 
+// Lowest ladder index whose ODR >= rate_hz, capped at max_hz.
+static uint8_t odr_index(uint16_t rate_hz, uint16_t max_hz) {
+	uint16_t target = rate_hz < max_hz ? rate_hz : max_hz;
+	uint8_t i = 0;
+	while (i < ODR_LADDER_N - 1 && odr_ladder[i].hz < target) {
+		i++;
+	}
+	return i;
+}
+
 static bool configure(imu_device_t *dev, IMU_FILTER filter, bool use_mag) {
 	(void)use_mag;
 
@@ -76,22 +128,24 @@ static bool configure(imu_device_t *dev, IMU_FILTER filter, bool use_mag) {
 		dev->variant = "TR-C";
 	}
 
-	// ODR selection. The accelerometer runs at its max ODR so the poll always reads the
-	// freshest sample. The TR-C gyro has a separate filter and does the same; the non-TR-C
-	// gyro has no separate filter (its bandwidth follows the ODR) and tops out at 1660 Hz, so
-	// it tracks the sample rate instead of oversampling.
-	uint8_t accel_odr = odr_ladder[ODR_LADDER_N - 1].code;
-	uint8_t gyro_odr;
-	if (is_trc) {
-		gyro_odr = odr_ladder[ODR_LADDER_N - 1].code;
+	// The non-TR-C gyro tops out at 1660 Hz; the TR-C gyro reaches the accel's 6660 Hz.
+	uint16_t gyro_max = is_trc ? 6660 : 1660;
+
+	// ODR selection. In DRDY mode the gyro's data-ready drives one read per sample, so run both
+	// sensors at the (quantized) sample rate, synchronized. In poll mode the accelerometer runs
+	// at its max ODR so the poll always reads the freshest sample; the TR-C gyro does the same,
+	// while the non-TR-C gyro has no separate filter (its bandwidth follows the ODR) and so
+	// tracks the sample rate instead of oversampling.
+	uint8_t accel_odr, gyro_odr;
+	if (dev->use_drdy) {
+		uint8_t idx = odr_index(dev->sample_rate_hz, gyro_max);
+		accel_odr = gyro_odr = odr_ladder[idx].code;
+		dev->sample_rate_hz = odr_ladder[idx].hz; // the quantized ODR is the real output rate
 	} else {
-		// non-TR-C gyro tops out at 1660 Hz
-		int gyro_rate = dev->sample_rate_hz < 1660 ? dev->sample_rate_hz : 1660;
-		uint8_t i = 0;
-		while (i < ODR_LADDER_N - 1 && odr_ladder[i].hz < gyro_rate) {
-			i++;
+		accel_odr = gyro_odr = odr_ladder[ODR_LADDER_N - 1].code;
+		if (!is_trc) {
+			gyro_odr = odr_ladder[odr_index(dev->sample_rate_hz, gyro_max)].code;
 		}
-		gyro_odr = odr_ladder[i].code;
 	}
 
 	// Accelerometer resolution and data rate
@@ -103,6 +157,11 @@ static bool configure(imu_device_t *dev, IMU_FILTER filter, bool use_mag) {
 	if (is_trc) {
 		// Always use accelerometer analog low-pass at 400Hz
 		regv |= LSM6DS3TRC_BW0_XL;
+		// In DRDY mode the accel runs at the sample rate, so anti-alias with the digital LPF1:
+		// ODR/2 (LOW) or ODR/4 (MEDIUM). HIGH switches to LPF2 in CTRL8_XL below.
+		if (dev->use_drdy && filter == IMU_FILTER_MEDIUM) {
+			regv |= LSM6DS3TRC_LPF1_BW_SEL;
+		}
 	} else if (dev->sample_rate_hz >= 208 && filter >= IMU_FILTER_MEDIUM) {
 		// Filter at ODR/4 for MEDIUM and ODR/8 for HIGH
 		// This filter also needs to be enabled in CTRL4_C
@@ -125,10 +184,19 @@ static bool configure(imu_device_t *dev, IMU_FILTER filter, bool use_mag) {
 		#define LSM6DS3TRC_HPCF_XL_ODR50 0x00
 		#define LSM6DS3TRC_HPCF_XL_ODR100 0x20
 		regv = 0;
-		if (filter == IMU_FILTER_MEDIUM) {
-			regv |= LSM6DS3TRC_LPF2_XL_EN | LSM6DS3TRC_HPCF_XL_ODR50;
-		} else if (filter == IMU_FILTER_HIGH) {
-			regv |= LSM6DS3TRC_LPF2_XL_EN | LSM6DS3TRC_HPCF_XL_ODR100;
+		if (dev->use_drdy) {
+			// Accel at the sample rate: LOW/MEDIUM use LPF1 (ODR/2, ODR/4 set above); HIGH
+			// uses LPF2 at ODR/9 for a tighter cutoff.
+			if (filter == IMU_FILTER_HIGH) {
+				regv |= LSM6DS3TRC_LPF2_XL_EN | LSM6DS3TRC_HPCF_XL_ODR9;
+			}
+		} else {
+			// Poll (accel at 6660 Hz): LPF2 anti-aliases the sub-sampled stream.
+			if (filter == IMU_FILTER_MEDIUM) {
+				regv |= LSM6DS3TRC_LPF2_XL_EN | LSM6DS3TRC_HPCF_XL_ODR50;
+			} else if (filter == IMU_FILTER_HIGH) {
+				regv |= LSM6DS3TRC_LPF2_XL_EN | LSM6DS3TRC_HPCF_XL_ODR100;
+			}
 		}
 
 		ok = ok && write_reg(dev, LSM6DS3_ACC_GYRO_CTRL8_XL, regv);
@@ -165,6 +233,10 @@ static bool configure(imu_device_t *dev, IMU_FILTER filter, bool use_mag) {
 		// Standard LSM6DS3 only: Set XL anti-aliasing filter to be manually configured
 		regv = LSM6DS3_ACC_GYRO_BW_SCAL_ODR_ENABLED;
 	}
+	#define LSM6DS3_ACC_GYRO_DRDY_MASK 0x08 // CTRL4_C: hold DRDY off until the filters settle
+	if (dev->use_drdy) {
+		regv |= LSM6DS3_ACC_GYRO_DRDY_MASK;
+	}
 	ok = ok && write_reg(dev, LSM6DS3_ACC_GYRO_CTRL4_C, regv);
 
 	// Configure block update and register auto-increment
@@ -195,11 +267,17 @@ static bool read_sample(imu_device_t *dev, float accel[3], float gyro[3], float 
 	return true;
 }
 
+static void enable_drdy_output(imu_device_t *dev, bool enable) {
+	write_reg(dev, LSM6DS3_ACC_GYRO_INT1_CTRL,
+			enable ? LSM6DS3_ACC_GYRO_INT1_DRDY_G_ENABLED : 0);
+}
+
 static const imu_device_interface_t lsm6ds3_interface = {
 	.name = "LSM6DS3",
 	.configure = configure,
 	.read_sample = read_sample,
 	.on_read_fail = NULL,
+	.enable_drdy_output = enable_drdy_output,
 };
 
 imu_device_t lsm6ds3_device(transport_t *transport) {
