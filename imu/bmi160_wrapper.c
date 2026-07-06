@@ -21,7 +21,20 @@
 #include "bmi160_wrapper.h"
 #include "ch.h"
 
-#include <math.h>
+/*
+ * Anti-alias 3 dB cutoffs (poll mode only, DRDY interrupt support not implemented). The ODR
+ * is pinned at max (accel 1600 Hz, gyro 3200 Hz) and IMU_FILTER selects the oversampling ratio
+ * (acc_bwp/gyr_bwp); with the ODR fixed this acts as a fixed-cutoff selector. Datasheet table 12
+ * (accel) and the gyroscope cutoff table.
+ *
+ * poll:
+ *   ODR: accel 1600 Hz, gyro 3200 Hz
+ *
+ *   filter          accel          gyro
+ *   LOW    (normal)  684 Hz         890 Hz
+ *   MEDIUM (OSR2)    342 Hz         445 Hz
+ *   HIGH   (OSR4)    171 Hz         222 Hz
+ */
 
 static struct bmi160_dev m_sensor;
 
@@ -41,53 +54,36 @@ static void user_delay_ms(uint32_t ms) {
 	chThdSleepMilliseconds(ms);
 }
 
-static bool reset_init_bmi(struct bmi160_dev *sensor, uint16_t rate_hz, IMU_FILTER filter) {
+static bool reset_init_bmi(struct bmi160_dev *sensor, IMU_FILTER filter) {
 	sensor->delay_ms = user_delay_ms;
 
 	bmi160_init(sensor);
 
+	// Poll scheme (mirrors the LSM6DS3 non-DRDY path): run both sensors at their max ODR so the
+	// asynchronous poll always reads the freshest sample.
+	// Unlike the LSM6DS3 the BMI160 has no absolute-Hz anti-alias filter: acc_bwp/gyr_bwp only pick
+	// an oversampling ratio whose 3dB cutoff is a fixed fraction of the ODR (normal power mode).
+	// With the ODR pinned at max, that ratio acts as a fixed-cutoff selector, so IMU_FILTER maps
+	// straight onto it. The narrowest cutoff is tied to the max ODR (accel 1600 Hz is the binding
+	// constraint), so a sample rate below ~350 Hz cannot be fully anti-aliased (a limit of using
+	// this approach).
 	sensor->accel_cfg.range = BMI160_ACCEL_RANGE_16G;
 	sensor->accel_cfg.power = BMI160_ACCEL_NORMAL_MODE;
+	sensor->accel_cfg.odr = BMI160_ACCEL_ODR_1600HZ;
 
 	sensor->gyro_cfg.range = BMI160_GYRO_RANGE_2000_DPS;
 	sensor->gyro_cfg.power = BMI160_GYRO_NORMAL_MODE;
+	sensor->gyro_cfg.odr = BMI160_GYRO_ODR_3200HZ;
 
-	if (rate_hz <= 25) {
-		sensor->accel_cfg.odr = BMI160_ACCEL_ODR_25HZ;
-		sensor->gyro_cfg.odr = BMI160_GYRO_ODR_25HZ;
-	} else if (rate_hz <= 50) {
-		sensor->accel_cfg.odr = BMI160_ACCEL_ODR_50HZ;
-		sensor->gyro_cfg.odr = BMI160_GYRO_ODR_50HZ;
-	} else if (rate_hz <= 100) {
-		sensor->accel_cfg.odr = BMI160_ACCEL_ODR_100HZ;
-		sensor->gyro_cfg.odr = BMI160_GYRO_ODR_100HZ;
-	} else if (rate_hz <= 200) {
-		sensor->accel_cfg.odr = BMI160_ACCEL_ODR_200HZ;
-		sensor->gyro_cfg.odr = BMI160_GYRO_ODR_200HZ;
-	} else if (rate_hz <= 400) {
-		sensor->accel_cfg.odr = BMI160_ACCEL_ODR_400HZ;
-		sensor->gyro_cfg.odr = BMI160_GYRO_ODR_400HZ;
-	} else if (rate_hz <= 800) {
-		sensor->accel_cfg.odr = BMI160_ACCEL_ODR_800HZ;
-		sensor->gyro_cfg.odr = BMI160_GYRO_ODR_800HZ;
-	} else {
-		sensor->accel_cfg.odr = BMI160_ACCEL_ODR_1600HZ;
-		sensor->gyro_cfg.odr = BMI160_GYRO_ODR_1600HZ;
-	}
-
-	if (filter == IMU_FILTER_LOW) {
-		sensor->accel_cfg.bw = BMI160_ACCEL_BW_NORMAL_AVG4;
-		sensor->gyro_cfg.bw = BMI160_GYRO_BW_NORMAL_MODE;
+	if (filter == IMU_FILTER_HIGH) {
+		sensor->accel_cfg.bw = BMI160_ACCEL_BW_OSR4_AVG1;
+		sensor->gyro_cfg.bw = BMI160_GYRO_BW_OSR4_MODE;
 	} else if (filter == IMU_FILTER_MEDIUM) {
 		sensor->accel_cfg.bw = BMI160_ACCEL_BW_OSR2_AVG2;
 		sensor->gyro_cfg.bw = BMI160_GYRO_BW_OSR2_MODE;
-		sensor->accel_cfg.odr = fmin(sensor->accel_cfg.odr + 1, BMI160_ACCEL_ODR_1600HZ);
-		sensor->gyro_cfg.odr = fmin(sensor->gyro_cfg.odr + 1, BMI160_GYRO_ODR_3200HZ);
-	} else if (filter == IMU_FILTER_HIGH) {
-		sensor->accel_cfg.bw = BMI160_ACCEL_BW_OSR4_AVG1;
-		sensor->gyro_cfg.bw = BMI160_GYRO_BW_OSR4_MODE;
-		sensor->accel_cfg.odr = fmin(sensor->accel_cfg.odr + 2, BMI160_ACCEL_ODR_1600HZ);
-		sensor->gyro_cfg.odr = fmin(sensor->gyro_cfg.odr + 2, BMI160_GYRO_ODR_3200HZ);
+	} else { // IMU_FILTER_LOW
+		sensor->accel_cfg.bw = BMI160_ACCEL_BW_NORMAL_AVG4;
+		sensor->gyro_cfg.bw = BMI160_GYRO_BW_NORMAL_MODE;
 	}
 
 	chThdSleepMilliseconds(50);
@@ -109,7 +105,7 @@ static bool configure(imu_device_t *dev, IMU_FILTER filter, bool use_mag) {
 	sensor->read = bmi_read;
 	sensor->write = bmi_write;
 
-	return reset_init_bmi(sensor, dev->sample_rate_hz, filter);
+	return reset_init_bmi(sensor, filter);
 }
 
 static bool read_sample(imu_device_t *dev, float accel[3], float gyro[3], float mag[3]) {
