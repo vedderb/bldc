@@ -176,6 +176,7 @@
 // I2C for IMU
 #define IMU_DEV				IMU_DEV_LSM6DS3
 #define IMU_COM				IMU_COM_I2C_BB
+#define IMU_BUS_SPEED_HZ		700000
 #define IMU_I2C_SDA_GPIO		GPIOD
 #define IMU_I2C_SDA_PIN			2
 #define IMU_I2C_SCL_GPIO		GPIOB
