@@ -88,6 +88,20 @@ static uint8_t imu_dev_for_external(IMU_TYPE type) {
 	return IMU_DEV_NONE;
 }
 
+#ifdef IMU_FALLBACK_COM
+// Bind m_transport to the board's fallback bus. A board declares IMU_FALLBACK_COM
+// plus the matching IMU_FALLBACK_* pins when it wires the IMU to a different bus
+// on some hardware revisions (see imu/imu_config.h).
+static void imu_fallback_transport_init(void) {
+#if IMU_FALLBACK_COM == IMU_COM_I2C_BB
+	transport_i2c_bb_init(&m_transport, IMU_FALLBACK_I2C_SDA_GPIO, IMU_FALLBACK_I2C_SDA_PIN,
+			IMU_FALLBACK_I2C_SCL_GPIO, IMU_FALLBACK_I2C_SCL_PIN, IMU_FALLBACK_BUS_SPEED_HZ);
+#else
+#error "IMU_FALLBACK_COM currently supports only IMU_COM_I2C_BB"
+#endif
+}
+#endif
+
 void imu_init(imu_config *set) {
 	bool imu_changed = set->sample_rate_hz != m_settings.sample_rate_hz ||
 			set->type != m_settings.type || set->filter != m_settings.filter;
@@ -168,7 +182,24 @@ void imu_init(imu_config *set) {
 		m_dev = imu_device_create(dev, com, &m_transport);
 		uint16_t rate_hz = MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport));
 		imu_thread_set_device(&m_dev, rate_hz);
-		if (m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer)) {
+		bool configured = m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer);
+
+#ifdef IMU_FALLBACK_COM
+		if (!configured) {
+			// No response on the primary bus. Some hardware revisions wire the
+			// same IMU to a different bus, so re-bind to the fallback transport
+			// and try once more.
+			commands_printf("IMU: no response on primary bus, trying fallback");
+			imu_fallback_transport_init();
+			com = IMU_FALLBACK_COM;
+			m_dev = imu_device_create(dev, com, &m_transport);
+			rate_hz = MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport));
+			imu_thread_set_device(&m_dev, rate_hz);
+			configured = m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer);
+		}
+#endif
+
+		if (configured) {
 			imu_thread_start(imu_read_callback);
 		}
 	}

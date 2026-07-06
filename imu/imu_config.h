@@ -31,6 +31,14 @@
 //   #define IMU_SPI_DEV / IMU_SPI_AF                       (hardware SPI only)
 //   #define IMU_I2C_SDA_GPIO/_PIN, _SCL_                   (I2C transport)
 //   #define IMU_BUS_SPEED_HZ                               (optional bus clock in Hz; 0/unset = transport default)
+//
+// A board may also declare a fallback transport that imu_init switches to when the
+// IMU does not answer on the primary bus (e.g. SPI on new hardware, I2C on old). It
+// mirrors the primary selectors with an IMU_FALLBACK_ prefix:
+//
+//   #define IMU_FALLBACK_COM   IMU_COM_I2C_BB              (only IMU_COM_I2C_BB is supported)
+//   #define IMU_FALLBACK_I2C_SDA_GPIO/_PIN, _SCL_          (fallback I2C pins)
+//   #define IMU_FALLBACK_BUS_SPEED_HZ 700000               (optional; 0/unset = transport default)
 
 // IMU model:
 #define IMU_DEV_NONE		0
@@ -147,6 +155,11 @@
 // 0 lets each transport pick its own default bus clock.
 #ifndef IMU_BUS_SPEED_HZ
 #define IMU_BUS_SPEED_HZ	0
+#endif
+#ifdef IMU_FALLBACK_COM
+#ifndef IMU_FALLBACK_BUS_SPEED_HZ
+#define IMU_FALLBACK_BUS_SPEED_HZ	0
+#endif
 #endif
 
 #endif /* IMU_IMU_CONFIG_H_ */
