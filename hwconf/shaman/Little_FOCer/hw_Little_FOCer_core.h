@@ -248,6 +248,7 @@
 // BMI160
 #define IMU_DEV                 IMU_DEV_BMI160
 #define IMU_COM                 IMU_COM_I2C_BB
+#define IMU_BUS_SPEED_HZ        700000
 #define IMU_I2C_SDA_GPIO        GPIOB
 #define IMU_I2C_SDA_PIN         2
 #define IMU_I2C_SCL_GPIO        GPIOA
