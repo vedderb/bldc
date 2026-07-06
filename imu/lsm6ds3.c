@@ -51,7 +51,7 @@
  *     ODR: accel 6.66 kHz, gyro fs (<=1.66 kHz)
  *
  *     filter   accel                        gyro
- *     LOW      none (6.66 kHz unfiltered)   ODR default (~fs)
+ *     LOW      fs/2 (<=400 Hz)              ODR default (~fs)
  *     MEDIUM   fs/4                         ODR default (~fs)
  *     HIGH     fs/8                         ODR default (~fs)
  *
@@ -162,10 +162,14 @@ static bool configure(imu_device_t *dev, IMU_FILTER filter, bool use_mag) {
 		if (dev->use_drdy && filter == IMU_FILTER_MEDIUM) {
 			regv |= LSM6DS3TRC_LPF1_BW_SEL;
 		}
-	} else if (dev->sample_rate_hz >= 208 && filter >= IMU_FILTER_MEDIUM) {
-		// Filter at ODR/4 for MEDIUM and ODR/8 for HIGH
-		// This filter also needs to be enabled in CTRL4_C
-		uint16_t scaled_rate = filter == IMU_FILTER_HIGH ? dev->sample_rate_hz / 2 : dev->sample_rate_hz;
+	} else {
+		// Standard LSM6DS3: absolute analog anti-alias (BW_XL) targeting rate/2 (LOW), rate/4
+		// (MEDIUM) or rate/8 (HIGH). At the 6.66 kHz poll ODR the automatic ODR-tied bandwidth is
+		// "not used" (datasheet table 48), so the anti-alias has to be set manually (also enabled
+		// in CTRL4_C below). BW_XL is an absolute {400,200,100,50} Hz cutoff, picked as
+		// ~scaled_rate/4 and clamped at 400 Hz.
+		uint16_t scaled_rate = filter == IMU_FILTER_HIGH ? dev->sample_rate_hz / 2 :
+				filter == IMU_FILTER_MEDIUM ? dev->sample_rate_hz : dev->sample_rate_hz * 2;
 		if (scaled_rate <= 208) {
 			regv |= LSM6DS3_ACC_GYRO_BW_XL_50Hz;
 		} else if (scaled_rate <= 416) {
@@ -173,6 +177,7 @@ static bool configure(imu_device_t *dev, IMU_FILTER filter, bool use_mag) {
 		} else if (scaled_rate <= 833) {
 			regv |= LSM6DS3_ACC_GYRO_BW_XL_200Hz;
 		}
+		// else: BW_XL_400Hz (register value 0x00, the widest)
 	}
 
 	ok = ok && write_reg(dev, LSM6DS3_ACC_GYRO_CTRL1_XL, regv);
@@ -229,8 +234,9 @@ static bool configure(imu_device_t *dev, IMU_FILTER filter, bool use_mag) {
 	if (is_trc) {
 		// Enable gyroscope digital low-pass filter LPF1
 		regv = LSM6DS3_ACC_GYRO_LPF1_SEL_G_ENABLED;
-	} else if (dev->sample_rate_hz >= 208 && filter >= IMU_FILTER_MEDIUM) {
-		// Standard LSM6DS3 only: Set XL anti-aliasing filter to be manually configured
+	} else {
+		// Standard LSM6DS3: use the manually-set BW_XL anti-alias (CTRL1_XL above) instead of the
+		// ODR-tied automatic bandwidth, which is disabled at the 6.66 kHz poll ODR (table 48).
 		regv = LSM6DS3_ACC_GYRO_BW_SCAL_ODR_ENABLED;
 	}
 	#define LSM6DS3_ACC_GYRO_DRDY_MASK 0x08 // CTRL4_C: hold DRDY off until the filters settle
