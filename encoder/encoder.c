@@ -116,6 +116,20 @@ bool encoder_init(volatile mc_configuration *conf) {
 		res = true;
 	} break;
 
+	case SENSOR_PORT_MODE_MT6835_SPI_HW: {
+		SENSOR_PORT_5V();
+
+		if (!enc_mt6835_init(&encoder_cfg_mt6835)) {
+			m_encoder_type_now = ENCODER_TYPE_NONE;
+			return false;
+		}
+
+		m_encoder_type_now = ENCODER_TYPE_MT6835;
+		timer_start(routine_rate_10k);
+
+		res = true;
+	} break;
+
 	// ssc (3 wire) sw spi on hall pins
 	case SENSOR_PORT_MODE_TLE5012_SSC_SW: {
 		SENSOR_PORT_5V();
@@ -330,7 +344,7 @@ bool encoder_init(volatile mc_configuration *conf) {
 
 	terminal_register_command_callback(
 			"encoder",
-			"Prints the status of the AS5047, AS5x47U, AD2S1205, TLE5012, MT6816, or TS5700N8501 encoder.",
+			"Prints the status of the AS5047, AS5x47U, AD2S1205, TLE5012, MT6816, MT6835, or TS5700N8501 encoder.",
 			0,
 			terminal_encoder);
 
@@ -401,6 +415,8 @@ void encoder_deinit(void) {
 		enc_as504x_deinit(&encoder_cfg_as504x);
 	} else if (m_encoder_type_now == ENCODER_TYPE_MT6816) {
 		enc_mt6816_deinit(&encoder_cfg_mt6816);
+	} else if (m_encoder_type_now == ENCODER_TYPE_MT6835) {
+		enc_mt6835_deinit(&encoder_cfg_mt6835);
 	} else if (m_encoder_type_now == ENCODER_TYPE_TLE5012) {
 		enc_tle5012_deinit(&encoder_cfg_tle5012);
 	} else if (m_encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
@@ -468,6 +484,10 @@ float encoder_read_deg(void) {
 
 	case ENCODER_TYPE_MT6816:
 		res = MT6816_LAST_ANGLE(&encoder_cfg_mt6816);
+		break;
+
+	case ENCODER_TYPE_MT6835:
+		res = MT6835_LAST_ANGLE(&encoder_cfg_mt6835);
 		break;
 
 	case ENCODER_TYPE_TLE5012:
@@ -612,6 +632,9 @@ float encoder_get_error_rate(void) {
 	case ENCODER_TYPE_MT6816:
 		res = encoder_cfg_mt6816.state.encoder_no_magnet_error_rate;
 		break;
+	case ENCODER_TYPE_MT6835:
+		res = encoder_cfg_mt6835.state.spi_error_rate;
+		break;
 	case ENCODER_TYPE_TLE5012:
 		res = encoder_cfg_tle5012.state.spi_error_rate;
 		break;
@@ -686,6 +709,12 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 		case SENSOR_PORT_MODE_MT6816_SPI_HW:
 			if (encoder_cfg_mt6816.state.encoder_no_magnet_error_rate > 0.05) {
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, is_second_motor, false);
+			}
+			break;
+
+		case SENSOR_PORT_MODE_MT6835_SPI_HW:
+			if (encoder_cfg_mt6835.state.spi_error_rate > 0.05) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, is_second_motor, false);
 			}
 			break;
 		
@@ -842,6 +871,13 @@ static void terminal_encoder(int argc, const char **argv) {
 		commands_printf("Low flux error (no magnet): errors: %d, error rate: %.3f %%",
 				encoder_cfg_mt6816.state.encoder_no_magnet_error_cnt,
 				(double)(encoder_cfg_mt6816.state.encoder_no_magnet_error_rate * 100.0));
+		break;
+
+	case SENSOR_PORT_MODE_MT6835_SPI_HW:
+		commands_printf("MT6835 - Angle raw: %d, error rate: %.3f %%, error cnt: %d",
+				encoder_cfg_mt6835.state.spi_val,
+				(double)(encoder_cfg_mt6835.state.spi_error_rate * 100.0),
+				encoder_cfg_mt6835.state.spi_error_cnt);
 		break;
 
 	case SENSOR_PORT_MODE_TLE5012_SSC_HW:
@@ -1017,6 +1053,10 @@ static THD_FUNCTION(routine_thread, arg) {
 
 		case ENCODER_TYPE_MT6816:
 			enc_mt6816_routine(&encoder_cfg_mt6816);
+			break;
+
+		case ENCODER_TYPE_MT6835:
+			enc_mt6835_routine(&encoder_cfg_mt6835);
 			break;
 
 		case ENCODER_TYPE_TLE5012:
