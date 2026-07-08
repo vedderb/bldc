@@ -187,6 +187,12 @@
 #define IMU_SPI_MISO_GPIO		GPIOB
 #define IMU_SPI_MISO_PIN		4
 
+#define IMU_DRDY_GPIO			GPIOC
+#define IMU_DRDY_PIN			9
+#define IMU_DRDY_EXTI_PORTSRC	EXTI_PortSourceGPIOC
+#define IMU_DRDY_EXTI_PINSRC	EXTI_PinSource9
+#define IMU_DRDY_EXTI_LINE		EXTI_Line9
+
 // UART Peripheral
 #define HW_UART_DEV		        SD4
 #define HW_UART_GPIO_AF		    GPIO_AF_UART4
