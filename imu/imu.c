@@ -105,34 +105,38 @@ static void imu_fallback_transport_init(void) {
 }
 #endif
 
+// (Re)configure the software low-pass biquads, normalizing the cutoffs to the
+// actual sample rate. A non-positive rate (no active device) leaves them untouched.
+static void configure_biquads(float rate_hz) {
+	if (rate_hz <= 0) {
+		return;
+	}
+	if (m_settings.accel_lowpass_filter_x > 0) {
+		biquad_config(&acc_x_biquad, BQ_LOWPASS, m_settings.accel_lowpass_filter_x / rate_hz);
+	}
+	if (m_settings.accel_lowpass_filter_y > 0) {
+		biquad_config(&acc_y_biquad, BQ_LOWPASS, m_settings.accel_lowpass_filter_y / rate_hz);
+	}
+	if (m_settings.accel_lowpass_filter_z > 0) {
+		biquad_config(&acc_z_biquad, BQ_LOWPASS, m_settings.accel_lowpass_filter_z / rate_hz);
+	}
+	if (m_settings.gyro_lowpass_filter > 0) {
+		float fc = m_settings.gyro_lowpass_filter / rate_hz;
+		biquad_config(&gyro_x_biquad, BQ_LOWPASS, fc);
+		biquad_config(&gyro_y_biquad, BQ_LOWPASS, fc);
+		biquad_config(&gyro_z_biquad, BQ_LOWPASS, fc);
+	}
+}
+
 void imu_init(imu_config *set) {
 	bool imu_changed = set->sample_rate_hz != m_settings.sample_rate_hz ||
 			set->type != m_settings.type || set->filter != m_settings.filter;
 
 	m_settings = *set;
 
-	//Biquad filters
-	float fc;
-	if(m_settings.accel_lowpass_filter_x > 0){
-		fc = m_settings.accel_lowpass_filter_x / m_settings.sample_rate_hz;
-		biquad_config(&acc_x_biquad, BQ_LOWPASS, fc);
-	}
-	if(m_settings.accel_lowpass_filter_y > 0){
-		fc = m_settings.accel_lowpass_filter_y / m_settings.sample_rate_hz;
-		biquad_config(&acc_y_biquad, BQ_LOWPASS, fc);
-	}
-	if(m_settings.accel_lowpass_filter_z > 0){
-		fc = m_settings.accel_lowpass_filter_z / m_settings.sample_rate_hz;
-		biquad_config(&acc_z_biquad, BQ_LOWPASS, fc);
-	}
-	if(m_settings.gyro_lowpass_filter > 0){
-		fc = m_settings.gyro_lowpass_filter / m_settings.sample_rate_hz;
-		biquad_config(&gyro_x_biquad, BQ_LOWPASS, fc);
-		biquad_config(&gyro_y_biquad, BQ_LOWPASS, fc);
-		biquad_config(&gyro_z_biquad, BQ_LOWPASS, fc);
-	}
-
 	if (!imu_changed) {
+		// The device is unchanged, only the biquad cutoffs may have changed.
+		configure_biquads(m_dev.sample_rate_hz);
 		return;
 	}
 
@@ -203,6 +207,7 @@ void imu_init(imu_config *set) {
 #endif
 
 		if (configured) {
+			configure_biquads(m_dev.sample_rate_hz);
 			imu_thread_start(imu_read_callback);
 		}
 	}
