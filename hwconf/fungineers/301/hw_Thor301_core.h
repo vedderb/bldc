@@ -157,9 +157,7 @@
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
 #define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOC
 #define HW_ENC_EXTI_PINSRC		EXTI_PinSource8
-#define HW_ENC_EXTI_CH			EXTI9_5_IRQn
 #define HW_ENC_EXTI_LINE		EXTI_Line8
-#define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
@@ -175,15 +173,19 @@
 #define HW_SPI_PORT_MISO		GPIOC
 #define HW_SPI_PIN_MISO			11
 
-// I2C/SPI for IMU
-#define LSM6DS3_NSS_GPIO		GPIOA
-#define LSM6DS3_NSS_PIN			15
-#define LSM6DS3_SCK_GPIO		GPIOB
-#define LSM6DS3_SCK_PIN			3
-#define LSM6DS3_MOSI_GPIO		GPIOB
-#define LSM6DS3_MOSI_PIN		5
-#define LSM6DS3_MISO_GPIO		GPIOB
-#define LSM6DS3_MISO_PIN		4
+// Hardware SPI for IMU
+#define IMU_DEV				IMU_DEV_LSM6DS3
+#define IMU_COM				IMU_COM_SPI_HW
+#define IMU_SPI_DEV			SPID1
+#define IMU_SPI_AF			GPIO_AF_SPI1
+#define IMU_SPI_NSS_GPIO		GPIOA
+#define IMU_SPI_NSS_PIN			15
+#define IMU_SPI_SCK_GPIO		GPIOB
+#define IMU_SPI_SCK_PIN			3
+#define IMU_SPI_MOSI_GPIO		GPIOB
+#define IMU_SPI_MOSI_PIN		5
+#define IMU_SPI_MISO_GPIO		GPIOB
+#define IMU_SPI_MISO_PIN		4
 
 // UART Peripheral
 #define HW_UART_DEV		        SD4

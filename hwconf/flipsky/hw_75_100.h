@@ -208,9 +208,7 @@
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
 #define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOC
 #define HW_ENC_EXTI_PINSRC		EXTI_PinSource8
-#define HW_ENC_EXTI_CH			EXTI9_5_IRQn
 #define HW_ENC_EXTI_LINE		EXTI_Line8
-#define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 

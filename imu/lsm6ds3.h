@@ -36,15 +36,9 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "i2c_bb.h"
-#include "spi_bb.h"
+#include "device.h"
 
-void lsm6ds3_set_rate_hz(int hz);
-void lsm6ds3_set_filter(IMU_FILTER f);
-bool lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *spi_hw,
-		stkalign_t *work_area, size_t work_area_size);
-void lsm6ds3_set_read_callback(void(*func)(float *accel, float *gyro, float *mag));
-void lsm6ds3_stop(void);
+imu_device_t lsm6ds3_device(transport_t *transport);
 
 
 #define LSM6DS3_ACC_GYRO_ADDR_A  				0X6A

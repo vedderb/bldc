@@ -190,9 +190,7 @@
 #define HW_ENC_TIM_CLK_EN()     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
 #define HW_ENC_EXTI_PORTSRC     EXTI_PortSourceGPIOC
 #define HW_ENC_EXTI_PINSRC      EXTI_PinSource8
-#define HW_ENC_EXTI_CH          EXTI9_5_IRQn
 #define HW_ENC_EXTI_LINE        EXTI_Line8
-#define HW_ENC_EXTI_ISR_VEC     EXTI9_5_IRQHandler
 #define HW_ENC_TIM_ISR_CH       TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC      TIM3_IRQHandler
 
@@ -223,11 +221,13 @@
 // IMU:
 
 // LSM6DS3
-#define LSM6DS3_SDA_GPIO        GPIOB
-#define LSM6DS3_SDA_PIN         2
-#define LSM6DS3_SCL_GPIO        GPIOA
-#define LSM6DS3_SCL_PIN         15
-#define LSM6DS3_SPEED_700KHZ
+#define IMU_DEV                 IMU_DEV_LSM6DS3
+#define IMU_COM                 IMU_COM_I2C_BB
+#define IMU_BUS_SPEED_HZ        700000
+#define IMU_I2C_SDA_GPIO        GPIOB
+#define IMU_I2C_SDA_PIN         2
+#define IMU_I2C_SCL_GPIO        GPIOA
+#define IMU_I2C_SCL_PIN         15
 
 
 // NRF SWD
