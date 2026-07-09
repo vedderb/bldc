@@ -15,15 +15,5 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+// lbm_timestamp is now a static inline in platform_timestamp.h
 #include "platform_timestamp.h"
-#include <ctype.h>
-#include <ch.h>
-#include <hal.h>
-#include <chvt.h>
-#include <chtime.h>
-
-uint32_t lbm_timestamp(void) {
-  systime_t t = chVTGetSystemTime();
-  uint32_t ts = (uint32_t) ((1000000 / CH_CFG_ST_FREQUENCY) * t);
-  return ts;
-}

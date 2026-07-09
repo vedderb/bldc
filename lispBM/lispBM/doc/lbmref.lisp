@@ -3293,8 +3293,8 @@
 
 
 (defun render-manual ()
-  (let ((h (fopen "lbmref.md" "w"))
-        (r (lambda (s) (fwrite-str h s))))
+  (let ((h (f-open "lbmref.md" "w"))
+        (r (lambda (s) (f-write-str h s))))
     {
     (var t0 (systime))
     (render r manual)

@@ -799,8 +799,8 @@
   )
 
 (defun render-manual ()
-  (let ((h (fopen "displayref.md" "w"))
-        (r (lambda (s) (fwrite-str h s))))
+  (let ((h (f-open "displayref.md" "w"))
+        (r (lambda (s) (f-write-str h s))))
     {
     (var t0 (systime))
     (render r manual)

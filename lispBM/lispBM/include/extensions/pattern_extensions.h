@@ -1,5 +1,5 @@
 /*
-    Copyright 2025 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2026 Joel Svensson        svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,22 +15,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PLATFORM_TIMESTAMP_H_
-#define PLATFORM_TIMESTAMP_H_
+#ifndef PATTERN_EXTENSIONS_H_
+#define PATTERN_EXTENSIONS_H_
 
-#if defined(ESP_PLATFORM)
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#else
-#include <FreeRTOS.h>
-#include <task.h>
+#include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
 #endif
-#include <stdint.h>
 
-// timestamp interface
-static inline uint32_t lbm_timestamp(void) {
-  TickType_t t = xTaskGetTickCount();
-  return (uint32_t) ((1000 / portTICK_PERIOD_MS) * t);
+void lbm_pattern_extensions_init(void);
+
+#ifdef __cplusplus
 }
-
+#endif
 #endif

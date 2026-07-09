@@ -189,8 +189,8 @@
   )
 
 (defun render-manual ()
-  (let ((h (fopen "dspref.md" "w"))
-        (r (lambda (s) (fwrite-str h s))))
+  (let ((h (f-open "dspref.md" "w"))
+        (r (lambda (s) (f-write-str h s))))
     {
     (gc)
     (var t0 (systime))

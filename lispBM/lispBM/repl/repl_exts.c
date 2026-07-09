@@ -50,6 +50,7 @@
 #include "extensions/dsp_extensions.h"
 #include "extensions/crypto_extensions.h"
 #include "extensions/ecc_extensions.h"
+#include "extensions/pattern_extensions.h"
 
 #ifdef WITH_VESC
 #include "vesc_extension_stubs.h"
@@ -616,7 +617,11 @@ static lbm_value ext_fs_mkdir(lbm_value *args, lbm_uint argn) {
   if (argn != 1 || !lbm_is_array_r(args[0])) return ENC_SYM_TERROR;
   const char *path = lbm_dec_str(args[0]);
   if (!path) return ENC_SYM_TERROR;
+#ifdef LBM_WIN
+  return mkdir(path) == 0 ? ENC_SYM_TRUE : ENC_SYM_NIL;
+#else
   return mkdir(path, 0777) == 0 ? ENC_SYM_TRUE : ENC_SYM_NIL;
+#endif
 }
 
 static lbm_value ext_fs_rm(lbm_value *args, lbm_uint argn) {
@@ -1546,6 +1551,7 @@ int init_exts(void) {
   lbm_dsp_extensions_init();
   lbm_crypto_extensions_init();
   lbm_ecc_extensions_init();
+  lbm_pattern_extensions_init();
 
 #ifndef LBM_WIN
   init_proc_management();

@@ -15,8 +15,5 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+// lbm_timestamp is now a static inline in platform_timestamp.h
 #include "platform_timestamp.h"
-
-uint32_t lbm_timestamp(void) {
-  return (uint32_t)k_cyc_to_us_floor32(k_cycle_get_32());
-}
