@@ -15,9 +15,5 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+// lbm_timestamp is now a static inline in platform_timestamp.h
 #include "platform_timestamp.h"
-
-uint32_t lbm_timestamp(void) {
-  TickType_t t = xTaskGetTickCount();
-  return (uint32_t) ((1000 / portTICK_PERIOD_MS) * t);
-}

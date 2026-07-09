@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <eval_cps.h>
+#include <lbm_c_interop.h>
 
 #include "extensions.h"
 #include "lbm_utils.h"
@@ -198,4 +199,26 @@ bool strmatch(const char *str1, const char *str2) {
   }
 
   return same;
+}
+
+
+bool dec_opt_uint(lbm_value *args, lbm_uint argn, lbm_uint idx,
+                   size_t default_val, size_t *out) {
+  if (idx >= argn) { *out = default_val; return true; }
+  if (!lbm_is_number(args[idx])) return false;
+  int32_t v = lbm_dec_as_i32(args[idx]);
+  *out = (v < 0) ? 0 : (size_t)v;
+  return true;
+}
+
+/* create a lbm string from a substring from a c-string
+   (and then also from other lbm strings)
+*/
+lbm_value span_to_lbm(const char *data, size_t len) {
+  lbm_value res;
+  if (!lbm_create_array(&res, len + 1)) return ENC_SYM_MERROR;
+  lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
+  memcpy(arr->data, data, len);
+  ((char*)(arr->data))[len] = '\0';
+  return res;
 }

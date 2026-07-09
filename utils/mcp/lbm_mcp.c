@@ -1,5 +1,3 @@
-#define _POSIX_C_SOURCE 200809L
-
 /*
     Copyright 2025 Joel Svensson  svenssonjoel@yahoo.se
 
@@ -26,7 +24,9 @@
 #include "print.h"
 #include "eval_cps.h"
 
-#include <pthread.h>
+#include "platform_mutex.h"
+#include "platform_thread.h"
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -58,8 +58,7 @@ void lbm_mcp_set_reinit_callback(bool (*cb)(uint32_t h, uint32_t m))       { rei
 // Shared eval state
 // ------------------------------------------------------------------
 
-static pthread_mutex_t eval_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t  eval_cond  = PTHREAD_COND_INITIALIZER;
+static lbm_mutex_t     eval_mutex;
 static volatile bool   eval_done  = false;
 static volatile lbm_cid wait_cid  = -1;
 static char eval_result[MCP_RESULT_MAX];
@@ -89,13 +88,12 @@ static int mcp_printf(const char *fmt, ...) {
 }
 
 static void mcp_done_callback(eval_context_t *ctx) {
-  pthread_mutex_lock(&eval_mutex);
+  lbm_mutex_lock(&eval_mutex);
   if (ctx->id == wait_cid) {
     lbm_print_value(eval_result, MCP_RESULT_MAX, ctx->r);
     eval_done = true;
-    pthread_cond_signal(&eval_cond);
   }
-  pthread_mutex_unlock(&eval_mutex);
+  lbm_mutex_unlock(&eval_mutex);
 }
 
 // ------------------------------------------------------------------
@@ -148,8 +146,7 @@ static bool pause_and_wait(void) {
   lbm_pause_eval_with_gc(30);
   int timeout = 1000;
   while (lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED && timeout-- > 0) {
-    struct timespec ts = {0, 1000000L};
-    nanosleep(&ts, NULL);
+    lbm_thread_sleep_us(1000);
   }
   return timeout > 0;
 }
@@ -165,16 +162,18 @@ static void format_combined(char *out, size_t out_size) {
 }
 
 static void run_eval(const char *src, bool is_program, char *out, size_t out_size) {
-  char *buf = strdup(src);
+  size_t src_len = strlen(src);
+  char *buf = malloc(src_len + 1);
   if (!buf) {
     snprintf(out, out_size, "error: out of memory");
     return;
   }
+  memcpy(buf, src, src_len + 1);
 
   output_pos = 0;
-  pthread_mutex_lock(&eval_mutex);
+  lbm_mutex_lock(&eval_mutex);
   eval_done = false;
-  pthread_mutex_unlock(&eval_mutex);
+  lbm_mutex_unlock(&eval_mutex);
 
   if (!pause_and_wait()) {
     free(buf);
@@ -195,18 +194,18 @@ static void run_eval(const char *src, bool is_program, char *out, size_t out_siz
     return;
   }
 
-  pthread_mutex_lock(&eval_mutex);
+  lbm_mutex_lock(&eval_mutex);
   wait_cid = cid;
-  pthread_mutex_unlock(&eval_mutex);
+  lbm_mutex_unlock(&eval_mutex);
 
   lbm_continue_eval();
 
-  pthread_mutex_lock(&eval_mutex);
   while (!eval_done) {
-    pthread_cond_wait(&eval_cond, &eval_mutex);
+    lbm_thread_sleep_us(1000);
   }
+  lbm_mutex_lock(&eval_mutex);
   format_combined(out, out_size);
-  pthread_mutex_unlock(&eval_mutex);
+  lbm_mutex_unlock(&eval_mutex);
 
   free(buf);
 }
@@ -314,7 +313,7 @@ static void handle_search_docs(cJSON *id, cJSON *args) {
     if (!fp) continue;
 
     char line[1024];
-    char section_hdr[256]  = "";
+    char section_hdr[1024] = "";
     char section_body[SEARCH_SECTION_MAX] = "";
     int  body_pos = 0;
 
@@ -628,6 +627,7 @@ static void handle_tools_call(cJSON *id, cJSON *params) {
 // ------------------------------------------------------------------
 
 void lbm_mcp_run(void) {
+  lbm_mutex_init(&eval_mutex);
   lbm_set_ctx_done_callback(mcp_done_callback);
   lbm_set_printf_callback(mcp_printf);
 

@@ -304,6 +304,16 @@ char *lbm_dec_str(lbm_value val) {
   return res;
 }
 
+bool lbm_dec_str_size(lbm_value val, char **data, size_t *size) {
+  lbm_array_header_t *array = lbm_dec_array_r(val);
+  if (array) {
+    *data = (char*)array->data;
+    *size = array->size;
+    return true;
+  }
+  return false;
+}
+
 lbm_array_header_t *lbm_dec_array_r(lbm_value val) {
   lbm_array_header_t *array = NULL;
   if (lbm_is_array_r(val)) {
@@ -856,14 +866,19 @@ void lbm_gc_mark_env(lbm_value env) {
     c->cdr = lbm_set_gc_mark(c->cdr); // mark the environent list structure.
     lbm_cons_t *b = lbm_ref_cell(c->car);
     b->cdr = lbm_set_gc_mark(b->cdr); // mark the binding list head cell.
-    lbm_gc_mark_phase(b->cdr);        // mark the bound object.
     lbm_heap_state.gc_marked +=2;
+    if (lbm_is_ptr(b->cdr)) {
+      lbm_gc_mark_phase(b->cdr); // mark the bound object.
+    }
     curr = c->cdr;
   }
 }
 
 
-void lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
+// Marks a continuation stack which contains CONTINUATION markers.
+// Continuation markers look like pointers to the GC and would be
+// incorrectly followed unless they are filtered out.
+void lbm_gc_mark_continuation_stack(lbm_uint *aux_data, lbm_uint aux_size) {
   for (lbm_uint i = 0; i < aux_size; i ++) {
     if (lbm_is_ptr(aux_data[i])) {
       lbm_type pt_t = lbm_type_of(aux_data[i]);
@@ -879,7 +894,9 @@ void lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
 
 void lbm_gc_mark_roots(lbm_uint *roots, lbm_uint num_roots) {
   for (lbm_uint i = 0; i < num_roots; i ++) {
-    lbm_gc_mark_phase(roots[i]);
+    if (lbm_is_ptr(roots[i])) {
+      lbm_gc_mark_phase(roots[i]);
+    }
   }
 }
 

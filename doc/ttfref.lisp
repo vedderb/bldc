@@ -265,8 +265,8 @@
   )
 
 (defun render-manual ()
-  (let ((h (fopen "ttfref.md" "w"))
-        (r (lambda (s) (fwrite-str h s))))
+  (let ((h (f-open "ttfref.md" "w"))
+        (r (lambda (s) (f-write-str h s))))
     {
     (var t0 (systime))
     (render r manual)

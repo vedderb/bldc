@@ -76,8 +76,8 @@
   )
 
 (defun render-manual ()
-  (let ((h (fopen "mutexref.md" "w"))
-        (r (lambda (s) (fwrite-str h s))))
+  (let ((h (f-open "mutexref.md" "w"))
+        (r (lambda (s) (f-write-str h s))))
     {
     (gc)
     (var t0 (systime))

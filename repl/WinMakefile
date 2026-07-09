@@ -17,9 +17,9 @@ LBMFLAGS = -DFULL_RTS_LIB \
            -DLBM_USE_DYN_LOOPS \
            -DLBM_USE_DYN_FUNS \
            -DLBM_USE_DYN_ARRAYS \
-           -DLBM_USE_DYN_DEFSTRUCT \
            -DLBM_USE_TIME_QUOTA \
-           -DLBM_USE_ERROR_LINENO
+           -DLBM_USE_ERROR_LINENO \
+           -DWITH_MCP -DWITH_VESC
 
 LIBS = -lws2_32 \
 	windows/SDL2/lib/libSDL2main.a \
@@ -53,7 +53,8 @@ INC64 = -Iwindows/readline_64/include \
         -Iwindows/SDL2_64/include \
         -Iwindows/SDL2_64/include/SDL2 \
         -Iwindows/SDL2_image_64/include \
-        -I../utils
+        -I../utils \
+        -I../utils/mcp
 
 DLLS64 = windows/build64/SDL2.dll \
          windows/build64/SDL2_image.dll \
@@ -68,7 +69,8 @@ INC = -Iwindows/readline/include \
       -Iwindows/SDL2/include \
       -Iwindows/SDL2/include/SDL2 \
       -Iwindows/SDL2_image/include \
-      -I../utils
+      -I../utils \
+      -I../utils/mcp
 
 CCFLAGS =  -g -O2 -Wall -Wconversion -Wsign-compare -pedantic -std=c11 $(LBMFLAGS) -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -fno-pie -no-pie -Wl,--disable-dynamicbase
 
@@ -77,8 +79,9 @@ REPL_SRC= repl.c \
           ../utils/crc.c \
           ../utils/packet.c \
 	  lbm_sdl.c \
-          vesc_express_extension_stubs.c \
-          bldc_extension_stubs.c
+          vesc_extension_stubs.c \
+          ../utils/mcp/lbm_mcp.c \
+          ../utils/mcp/cJSON.c
 
 
 

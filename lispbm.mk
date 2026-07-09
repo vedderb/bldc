@@ -2,11 +2,13 @@ first_rule: all
 
 LISPBM_UTILS_SRC = $(LISPBM)/utils/buffer.c \
                    $(LISPBM)/utils/crypto.c \
-                   $(LISPBM)/utils/ecc.c
+                   $(LISPBM)/utils/ecc.c \
+                   $(LISPBM)/utils/luamatch.c
 
 LISPBM_UTILS_H = $(LISPBM)/utils/buffer.h \
                  $(LISPBM)/utils/crypto.h \
-                 $(LISPBM)/utils/ecc.h
+                 $(LISPBM)/utils/ecc.h \
+                 $(LISPBM)/utils/luamatch.h
 
 LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/fundamental.c \
@@ -42,6 +44,7 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/dsp_extensions.c \
              $(LISPBM)/src/extensions/crypto_extensions.c \
              $(LISPBM)/src/extensions/ecc_extensions.c \
+             $(LISPBM)/src/extensions/pattern_extensions.c \
 	     $(LISPBM_UTILS_SRC)
 
 LISPBM_H = $(LISPBM)/include/env.h \
@@ -81,6 +84,7 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/extensions/ttf_extensions.h \
            $(LISPBM)/include/extensions/crypto_extensions.h \
            $(LISPBM)/include/extensions/ecc_extensions.h \
+           $(LISPBM)/include/extensions/pattern_extensions.h \
 	   $(LISPBM_UTILS_H)
 
 LISPBM_INC = -I$(LISPBM)/include \

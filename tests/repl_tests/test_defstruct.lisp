@@ -39,7 +39,50 @@
 (debug_test r4 4)
 
 
-(if (and r1 r2 r3 r4)
+;; Setters via accessor functions (extra arg -> setix instead of ix)
+(define p3 (make-point 1 2))
+(point-x p3 42)
+(define r5 (and (= (point-x p3) 42)
+                (= (point-y p3) 2)))
+
+(debug_test r5 5)
+
+(point-y p3 99)
+(define r6 (and (= (point-x p3) 42)
+                (= (point-y p3) 99)))
+
+(debug_test r6 6)
+
+
+;; Generated predicate function
+(define r7 (and (point? p1)
+                 (point? p3)
+                 (not (point? a))
+                 (not (point? 5))
+                 (not (point? nil))
+                 (sg1? a)
+                 (not (sg1? p1))))
+
+(debug_test r7 7)
+
+
+;; Partial initialization (fewer initials than fields)
+(define p4 (make-point 100))
+(define r8 (and (= (point-x p4) 100)
+                (eq (point-y p4) nil)))
+
+(debug_test r8 8)
+
+
+;; Excess initialization args are ignored
+(define p5 (make-point 1 2 3))
+(define r9 (and (= (point-x p5) 1)
+                (= (point-y p5) 2)))
+
+(debug_test r9 9)
+
+
+(if (and r1 r2 r3 r4 r5 r6 r7 r8 r9)
     (print "SUCCESS")
     (print "FAILURE"))
 

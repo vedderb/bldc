@@ -132,11 +132,11 @@ static inline lbm_uint *bitmap_ix_to_address(lbm_uint ix) {
 #ifndef LBM64
 #define WORD_IX_SHIFT 5
 #define WORD_MOD_MASK 0x1F
-#define BITMAP_SIZE_SHIFT 4  // 16 statuses per bitmap word
+//#define BITMAP_SIZE_SHIFT 4  // 16 statuses per bitmap word
 #else
 #define WORD_IX_SHIFT 6      // divide by 64
 #define WORD_MOD_MASK 0x3F   // mod 64
-#define BITMAP_SIZE_SHIFT 5  // times 32, 32 statuses per bitmap word
+//#define BITMAP_SIZE_SHIFT 5  // times 32, 32 statuses per bitmap word
 #endif
 
 static inline lbm_uint status(lbm_uint i) {

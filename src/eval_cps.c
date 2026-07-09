@@ -1,6 +1,6 @@
 /*
     Copyright 2018, 2020 - 2026 Joel Svensson    svenssonjoel@yahoo.se
-              2025 Rasmus Söderhielm rasmus.soderhielm@gmail.com
+              2025 - 2026 Rasmus Söderhielm rasmus.soderhielm@gmail.com
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -349,7 +349,9 @@ void lbm_request_gc(void) {
 */
 
 #define EVAL_CPS_DEFAULT_STACK_SIZE 256
-#define EVAL_TIME_QUOTA 400 // time in used, if time quota
+// The intended unit on the QUOTA is us (microseconds) and this should
+// be ensured by the platform support libraries for a given platform.
+#define EVAL_TIME_QUOTA 400
 #define EVAL_CPS_MIN_SLEEP 200
 #define EVAL_STEPS_QUOTA   10
 
@@ -1750,7 +1752,7 @@ static void mark_context(eval_context_t *ctx, void *arg1, void *arg2) {
   lbm_gc_mark_env(ctx->curr_env);
   lbm_gc_mark_roots(roots, 4);
   lbm_gc_mark_roots(ctx->mailbox, ctx->num_mail);
-  lbm_gc_mark_aux(ctx->K.data, ctx->K.sp);
+  lbm_gc_mark_continuation_stack(ctx->K.data, ctx->K.sp);
 }
 
 static int gc(void) {
@@ -3177,13 +3179,11 @@ static void apply_kill(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     }
     lbm_mutex_lock(&qmutex);
     eval_context_t *found = NULL;
-    found = lookup_ctx_nm(&blocked, cid);
-    if (found)
+    if ((found = lookup_ctx_nm(&blocked, cid))) {
       unlink_ctx_nm(&blocked, found);
-    else
-      found = lookup_ctx_nm(&queue, cid);
-    if (found)
+    } else if ((found = lookup_ctx_nm(&queue, cid))) {
       unlink_ctx_nm(&queue, found);
+    }
 
     if (found) {
       found->K.data[found->K.sp - 1] = KILL;
