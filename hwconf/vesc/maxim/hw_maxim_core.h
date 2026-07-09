@@ -335,6 +335,12 @@
 #define APPCONF_APP_TO_USE				APP_NONE
 #endif
 
+#if defined(HWMAXIM_120_PH) || defined(HWMAXIM_150_PH)
+#ifndef MCCONF_FOC_CURRENT_SAMPLE_MODE
+#define MCCONF_FOC_CURRENT_SAMPLE_MODE	FOC_CURRENT_SAMPLE_MODE_ALL_SENSORS
+#endif
+#endif
+
 // Setting limits
 #if defined(HWMAXIM_120_PH) || defined(HWMAXIM_120)
 #define HW_LIM_CURRENT			-650.0, 650.0
