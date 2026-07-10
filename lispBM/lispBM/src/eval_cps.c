@@ -4458,28 +4458,38 @@ static void cont_read_next_token(eval_context_t *ctx) {
     lbm_uint symbol_id;
     if (!lbm_get_symbol_by_name(tokpar_sym_str, &symbol_id)) {
       int r = 0;
-      if (n > 4 && // Checked for every symbol read.
+
+      // Checked for every symbol read.
+      if (n > 4 &&
           (memcmp(tokpar_sym_str, "ext-", 4) == 0)) {
-        lbm_uint ext_id;
-        lbm_uint ext_name_len = (lbm_uint)n + 1;
+
+        // "ext-" symbols shouldnt have a regular symbol-id.
+        // These symbols take a slot in the extension table
+        // and follow a specialised lookup procedure.
+        lbm_uint id;
+        if (!lbm_lookup_extension_id(tokpar_sym_str, &id)) {
+          lbm_uint ext_name_len = (lbm_uint)n + 1;
 #ifdef LBM_ALWAYS_GC
-        gc();
-#endif
-        char *ext_name = lbm_malloc(ext_name_len);
-        if (!ext_name) {
           gc();
-          ext_name = lbm_malloc(ext_name_len);
-        }
-        if (ext_name) {
-          memcpy(ext_name, tokpar_sym_str, ext_name_len);
-          r = lbm_add_extension(ext_name, lbm_extensions_default);
-          if (!lbm_lookup_extension_id(ext_name, &ext_id)) {
-            ERROR_CTX(ENC_SYM_FATAL_ERROR);
+#endif
+          char *ext_name = lbm_malloc(ext_name_len);
+          if (!ext_name) {
+            gc();
+            ext_name = lbm_malloc(ext_name_len);
           }
-          symbol_id = ext_id;
-        } else {
-          ERROR_CTX(ENC_SYM_MERROR);
+          if (ext_name) {
+            memcpy(ext_name, tokpar_sym_str, ext_name_len);
+            lbm_add_extension(ext_name, lbm_extensions_default);
+          } else {
+            ERROR_CTX(ENC_SYM_MERROR);
+          }
         }
+        // TODO: Change API so that an extra O(N) not needed?
+        if (!lbm_lookup_extension_id(tokpar_sym_str, &id)) {
+          ERROR_CTX(ENC_SYM_FATAL_ERROR);
+        }
+        symbol_id = id;
+        r = 1;
       } else {
         r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id);
       }
