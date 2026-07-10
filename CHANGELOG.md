@@ -1,3 +1,7 @@
+### 7.01
+#### TBD
+* Major IMU refactor, IMU DRDY support. See https://github.com/vedderb/bldc/pull/917
+
 ### 7.00
 #### 2026-05-15
 * Configurable HFI reset ERPM.
