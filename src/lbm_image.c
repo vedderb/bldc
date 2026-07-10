@@ -1,5 +1,5 @@
 /*
-    Copyright 2025 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2025, 2026 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -189,8 +189,8 @@
 // over earlier ones.
 
 
-#define DOWNWARDS true
-#define UPWARDS   false
+#define DOWNWARDS false
+#define UPWARDS   true
 
 static lbm_image_write_fun image_write = NULL;
 
@@ -216,22 +216,29 @@ bool lbm_image_has_extensions(void) {
   return image_has_extensions;
 }
 
-uint32_t read_u32(int32_t index) {
+static uint32_t read_u32(int32_t index) {
   return *((uint32_t*)(image_address + index));
 }
 
-uint64_t read_u64(int32_t index) {
+#ifdef LBM64
+static uint64_t read_u64(int32_t index) {
   // image_addres is an u32 ptr. so addr + i is a step of i * 4 bytes
   return *((uint64_t*)(image_address + index));
 }
+#endif
 
-bool write_u32(uint32_t w, int32_t *i, bool direction) {
+// Write_u32 is only for writing within the bootable
+// area of the image. it is sometimes convenient to be able to
+// write upwards or downwards in this area selectively.
+// Direction influences if the index incs or decs.
+static bool write_u32(uint32_t w, int32_t *i, bool direction) {
   bool r = image_write(w, *i, false);
-  (*i) += direction ? -1 : 1;
+  (*i) += direction ? 1 : -1;
   return r;
 }
 
-bool write_u64(uint64_t dw, int32_t *i, bool direction) {
+#ifdef LBM64
+static bool write_u64(uint64_t dw, int32_t *i, bool direction) {
   uint32_t *words = (uint32_t*)&dw;
 
   // downwards   ... hw   lw
@@ -251,12 +258,13 @@ bool write_u64(uint64_t dw, int32_t *i, bool direction) {
   }
   return r;
 }
+#endif
 
 // fv_write function write values as big endian.
 
 uint32_t fv_buf_ix = 0;
 uint8_t  fv_buf[4] = {0};
-bool fv_write_u8(uint8_t b) {
+static bool fv_write_u8(uint8_t b) {
   bool r = true;
   if (fv_buf_ix >= 4) {
     r = write_u32(((uint32_t*)fv_buf)[0], &write_index, UPWARDS);
@@ -268,7 +276,7 @@ bool fv_write_u8(uint8_t b) {
   return r;
 }
 
-bool fv_write_flush(void) {
+static bool fv_write_flush(void) {
   if (fv_buf_ix == 0) return true;
   else {
     bool r = write_u32(((uint32_t*)fv_buf)[0], &write_index, UPWARDS);;
@@ -278,7 +286,7 @@ bool fv_write_flush(void) {
   }
 }
 
-bool fv_write_u32(uint32_t w) {
+static bool fv_write_u32(uint32_t w) {
   uint8_t * bytes = (uint8_t*)&w;
   return
     fv_write_u8(bytes[3]) &&
@@ -287,7 +295,7 @@ bool fv_write_u32(uint32_t w) {
     fv_write_u8(bytes[0]);
 }
 
-bool fv_write_u64(uint64_t dw) {
+static bool fv_write_u64(uint64_t dw) {
   uint8_t * bytes = (uint8_t*)&dw;
    return
      fv_write_u8(bytes[7]) &&
@@ -301,7 +309,7 @@ bool fv_write_u64(uint64_t dw) {
 }
 
 
-bool write_lbm_uint(lbm_uint ptr_val, int32_t *i, bool direction) {
+static bool write_lbm_uint(lbm_uint ptr_val, int32_t *i, bool direction) {
 #ifdef LBM64
   return write_u64(ptr_val, i, direction);
 #else
@@ -309,7 +317,7 @@ bool write_lbm_uint(lbm_uint ptr_val, int32_t *i, bool direction) {
 #endif
 }
 
-bool write_lbm_value(lbm_value v, int32_t *i, bool direction) {
+static bool write_lbm_value(lbm_value v, int32_t *i, bool direction) {
 #ifdef LBM64
   return write_u64(v, i, direction);
 #else
@@ -476,12 +484,12 @@ static bool image_const_heap_write(lbm_uint w, lbm_uint ix) {
 #ifdef LBM64
   int32_t i = (int32_t)(image_const_heap_start_ix + (ix * 2));
   uint32_t *words = (uint32_t*)&w;
-  bool r = image_write(words[0], i, false);
-  r = r && image_write(words[1], i + 1, false);
+  bool r = image_write(words[0], i, true);
+  r = r && image_write(words[1], i + 1, true);
   return r;
 #else
   int32_t i = (int32_t)(image_const_heap_start_ix + ix);
-  return write_u32(w, &i, false);
+  return image_write(w,i,true);
 #endif
 }
 
@@ -509,7 +517,7 @@ lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist) {
 
 // Writes size in words followed by the string
 // todo sensible error detection.
-bool write_string_upwards(const char *str, size_t len) {
+static bool write_string_upwards(const char *str, size_t len) {
   uint32_t bytes = (uint32_t)len + 1;
   uint32_t words = (bytes % 4 == 0) ? bytes / 4 : (bytes / 4) + 1;
   write_u32(words, &write_index, DOWNWARDS);
@@ -525,25 +533,33 @@ bool write_string_upwards(const char *str, size_t len) {
     if (wi == 4) wi = 0;
     buf[wi] = str[i];
     if (wi == 3) {
-      write_u32(w, &ix, UPWARDS);
+      if (!write_u32(w, &ix, UPWARDS)) return false;
+      //write_u32(w, &ix, UPWARDS);
       w = 0;
     }
     i ++;
     wi ++;
   }
-  if (wi != 0) {
-    write_u32(w, &ix, UPWARDS);
+  if (wi != 0 && wi != 4) {
+    if (!write_u32(w, &ix, UPWARDS)) return false;
+    //write_u32(w, &ix, UPWARDS);
   }
   write_index -= (int32_t)words;
   return true;
 }
 
-// return the address the string
+// return the address of the string
 char *lbm_image_add_symbol_name(const char *name, size_t len) {
-  if (len > 0) { 
+  if (len > 0) {
+    uint32_t bytes = (uint32_t)len + 1;
+    uint32_t words = (bytes % 4 == 0) ? bytes / 4 : (bytes / 4) + 1;
+    // 1 word SYMBOL_NAME_ENTRY tag + 1 word size + the string data itself.
+    if ((write_index - (int32_t)(words + 2)) <= (int32_t)image_const_heap.next) {
+      return NULL;
+    }
     bool r = write_u32(SYMBOL_NAME_ENTRY, &write_index, DOWNWARDS);
     r = r && write_string_upwards(name, len);
-    if (r) 
+    if (r)
       return (char*)(image_address + write_index + 1);
   }
   return NULL;
@@ -1081,34 +1097,27 @@ bool lbm_image_save_extensions(void) {
   bool r = true;
   lbm_uint num = lbm_get_num_extensions();
   if (num > 0) {
+    // Dynamically registered extensions can have name fields
+    // pointing to LBM_MEMORY (RAM). Move these strings to flash
+    // Before copying the entire extension table to flash.
+    for (lbm_uint i = 0; i < num; i ++) {
+      const char *name_ptr = extension_table[i].name;
+      if (name_ptr && lbm_memory_ptr_inside((lbm_uint *)name_ptr)) {
+        char *addr = lbm_image_add_symbol_name(name_ptr, strlen(name_ptr));
+        if (!addr) return false;
+        extension_table[i].name = addr;
+      }
+    }
+
     r = r && write_u32(EXTENSION_TABLE, &write_index, DOWNWARDS);
     r = r && write_u32((uint32_t)num , &write_index, DOWNWARDS);
     for (lbm_uint i = 0; i < num; i ++) {
       if (!r) return r;
 
       const char *name_ptr = extension_table[i].name;
-      lbm_uint addr;
-      // when PIC, name pointers may move around
-      // between restarts. It is also the case that
-      // the FPTRs will move around as well.
-      // This makes dynamic extensions useless on Linux.
-      // Static extensions are fine as they will be re-added after image-boot
-      // and faulty FPTRs will be replaced.
-      //#ifdef __PIC__
-      //r = store_symbol_name_flash(name_ptr, &addr);
-      //if (!r) return r;
-      //name_ptr = (const char *)addr;
-      //#else
-
-      // I dont think this code makes sense anymore given that
-      // all symbols are always in flash. So if you have a symbol name
-      // lbm_memory_ptr_inside(name) will never be true.
-      if (lbm_memory_ptr_inside((lbm_uint *)name_ptr)) {
-        addr = (lbm_uint)lbm_image_add_symbol_name(name_ptr, strlen(name_ptr));
-        if (!addr) return false;
-        name_ptr = (const char *)addr;
-      }
-      //#endif
+      // Static extensions have names that are C string literals
+      // living in the firmware binary itself. Those are assumed
+      // stable for as long as that firmware build is running.
 #ifdef LBM64
       r = r && write_u64((uint64_t)name_ptr, &write_index, DOWNWARDS);
       r = r && write_u64((uint64_t)extension_table[i].fptr, &write_index, DOWNWARDS);
@@ -1117,7 +1126,7 @@ bool lbm_image_save_extensions(void) {
       r = r && write_u32((uint32_t)extension_table[i].fptr, &write_index, DOWNWARDS);
 #endif
     }  }
-  return true;
+  return r;
 }
 
 static uint32_t last_const_heap_ix = 0;

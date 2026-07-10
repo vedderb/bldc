@@ -1533,6 +1533,44 @@ lbm_value ext_rt(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TERROR;
 }
 
+
+
+
+// ////////////////////////////////////////////////////////////
+// A dynamic extension and its non-dynamic extension "getter"
+
+lbm_value a = ENC_SYM_NIL;
+
+lbm_value ext_dynamic(lbm_value *args, lbm_uint argn) {
+  lbm_value b = a;
+  a = args[0];
+  return b;
+}
+
+lbm_value ext_register_dynamic_extension(lbm_value *args, lbm_uint argn) {
+  (void)args;
+  (void)argn;
+
+  lbm_uint id;
+  if (!lbm_lookup_extension_id("ext-d1", &id)) {
+    const char *literal = "ext-d1";
+    size_t len = strlen(literal) + 1;
+    char *name = lbm_malloc(len);
+    if (!name) return ENC_SYM_NIL;
+    memcpy(name, literal, len);
+    return lbm_add_extension(name, ext_dynamic) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  }
+  return lbm_add_extension("ext-d1", ext_dynamic) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+lbm_value ext_register_dynamic_extension2(lbm_value *args, lbm_uint argn) {
+  (void)args;
+  (void)argn;
+  // a test where the string is not in lbm_memory.
+  return lbm_add_extension("ext-d2", ext_dynamic) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+
 // ------------------------------------------------------------
 // Init
 
@@ -1623,6 +1661,9 @@ int init_exts(void) {
   lbm_add_extension("set-active-img", ext_set_active_image);
   lbm_add_extension("save-active-img", ext_save_active_image);
   lbm_add_extension("display-to-img", ext_display_to_image);
+
+  lbm_add_extension("reg-dyn-ext", ext_register_dynamic_extension);
+  lbm_add_extension("reg-dyn-ext2", ext_register_dynamic_extension2);
 
 #ifdef WITH_VESC
   load_vesc_extension_stubs();

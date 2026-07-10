@@ -15,10 +15,10 @@
 
 ;; VESC style import emulator
 (define import (macro (file sym)
-                      `(define ,(eval sym) (load-file (fopen ,file "r")))))
+                      `(define ,(eval sym) (load-file (f-open ,file "r")))))
 
 
-(define font-file (fopen "Ubuntu-Regular.ttf" "r"))
+(define font-file (f-open "Ubuntu-Regular.ttf" "r"))
 (define font (load-file font-file))
 
 

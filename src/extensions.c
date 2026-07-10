@@ -1,5 +1,5 @@
 /*
-    Copyright 2019, 2021, 2022, 2024 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2019, 2021, 2022, 2024 2026 Joel Svensson  svenssonjoel@yahoo.se
                           2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -70,7 +70,7 @@ extension_fptr lbm_get_extension(lbm_uint sym) {
   lbm_uint ext_id = sym - EXTENSION_SYMBOLS_START;
   extension_fptr res = lbm_extensions_default;
   if (ext_id < ext_max) {
-    res = extension_table[ext_id].fptr; 
+    res = extension_table[ext_id].fptr;
   }
   return res;
 }
@@ -97,6 +97,8 @@ bool lbm_lookup_extension_id(char *sym_str, lbm_uint *ix) {
   return false;
 }
 
+// Dynamically loaded (lbm) libraries use position independent code:
+// So a "ext-..." string could end up
 bool lbm_add_extension(const char *sym_str, extension_fptr ext) {
   lbm_value symbol;
 

@@ -60,7 +60,7 @@ static const char* lbm_dyn_fun[] = {
   "(defun third (x) (car (cdr (cdr x))))",
 
   "(defun abs (x) (if (< x 0) (- x) x))",
-
+#ifdef LBM_USE_DYN_DEFSTRUCT
   "(defun create-struct (name num-fields initials) { "
   "(var st (map (lambda (x) nil) (range 0 (+ 1 num-fields)))) "
   "(setix st 0 name) "
@@ -81,6 +81,7 @@ static const char* lbm_dyn_fun[] = {
   "(if (rest-args) "
   "(setix struct i (rest-args 0)) "
   "(ix struct i)))) ",
+#endif
 #endif //LBM_DYN_FUNS
 #ifdef LBM_USE_DYN_ARRAYS
   "(defun list-to-array (ls)"
@@ -109,6 +110,7 @@ static const char* lbm_dyn_macros[] = {
   "(define loopforeach (macro (it lst body) (me-loopforeach it lst body)))",
   "(define loopwhile-thd (macro (stk cnd body) `(spawn ,@(if (list? stk) stk (list stk)) (fn () (loopwhile ,cnd ,body)))))",
 #endif
+#ifdef LBM_USE_DYN_DEFSTRUCT
   "(define defstruct (macro (name list-of-fields)"
   "{"
   "(var num-fields (length list-of-fields))"
@@ -124,6 +126,7 @@ static const char* lbm_dyn_macros[] = {
   "'t"
   ")"
   "}))",
+#endif
 };
 
 static lbm_uint sym_return;
