@@ -108,7 +108,7 @@ MT6835_config_t encoder_cfg_mt6835 = {
 		/*SCK*/HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
 		/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
 		/*MISO*/HW_SPI_PORT_MISO, HW_SPI_PIN_MISO,
-		{0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0},
 #else
 		0,
 		{0},
@@ -117,7 +117,7 @@ MT6835_config_t encoder_cfg_mt6835 = {
 		0, 0,
 		0, 0,
 		0, 0,
-		{0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0},
 #endif
 };
 
