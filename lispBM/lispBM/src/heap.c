@@ -58,7 +58,7 @@ static inline bool gc_marked(lbm_value c) {
   return lbm_get_gc_mark(cell->cdr);
 }
 
-static inline void gc_clear_mark(lbm_value c) {
+__attribute__((unused)) static inline void gc_clear_mark(lbm_value c) {
   //c must be a cons cell.
   lbm_cons_t *cell = lbm_ref_cell(c);
   cell->cdr = lbm_clr_gc_mark(cell->cdr);
@@ -104,8 +104,9 @@ void lbm_gc_unlock(void) {
 }
 #endif
 
-/****************************************************/
-/* ENCODERS DECODERS                                */
+// ////////////////////////////////////////////////////////////
+// ENCODERS DECODERS
+//
 
 lbm_value lbm_enc_i32(int32_t x) {
 #ifndef LBM64
@@ -301,6 +302,16 @@ char *lbm_dec_str(lbm_value val) {
     }
   }
   return res;
+}
+
+bool lbm_dec_str_size(lbm_value val, char **data, size_t *size) {
+  lbm_array_header_t *array = lbm_dec_array_r(val);
+  if (array) {
+    *data = (char*)array->data;
+    *size = array->size;
+    return true;
+  }
+  return false;
 }
 
 lbm_array_header_t *lbm_dec_array_r(lbm_value val) {
@@ -510,8 +521,8 @@ double lbm_dec_as_double(lbm_value a) {
   return r;
 }
 
-/****************************************************/
-/* HEAP MANAGEMENT                                  */
+// ////////////////////////////////////////////////////////////
+// HEAP MANAGEMENT
 
 static bool generate_freelist(size_t num_cells) {
   size_t i = 0;
@@ -681,7 +692,10 @@ static inline void value_assign(lbm_value *a, lbm_value b) {
 }
 
 #ifdef LBM_USE_GC_PTR_REV
-/* ************************************************************
+// ////////////////////////////////////////////////////////////
+// Deutch-Schorr-Waite (DSW) pointer reversal GC
+//
+/*
    Deutch-Schorr-Waite (DSW) pointer reversal GC for 2-ptr cells
    with a hack-solution for the lisp-array case (n-ptr cells).
 
@@ -852,14 +866,19 @@ void lbm_gc_mark_env(lbm_value env) {
     c->cdr = lbm_set_gc_mark(c->cdr); // mark the environent list structure.
     lbm_cons_t *b = lbm_ref_cell(c->car);
     b->cdr = lbm_set_gc_mark(b->cdr); // mark the binding list head cell.
-    lbm_gc_mark_phase(b->cdr);        // mark the bound object.
     lbm_heap_state.gc_marked +=2;
+    if (lbm_is_ptr(b->cdr)) {
+      lbm_gc_mark_phase(b->cdr); // mark the bound object.
+    }
     curr = c->cdr;
   }
 }
 
 
-void lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
+// Marks a continuation stack which contains CONTINUATION markers.
+// Continuation markers look like pointers to the GC and would be
+// incorrectly followed unless they are filtered out.
+void lbm_gc_mark_continuation_stack(lbm_uint *aux_data, lbm_uint aux_size) {
   for (lbm_uint i = 0; i < aux_size; i ++) {
     if (lbm_is_ptr(aux_data[i])) {
       lbm_type pt_t = lbm_type_of(aux_data[i]);
@@ -875,7 +894,9 @@ void lbm_gc_mark_aux(lbm_uint *aux_data, lbm_uint aux_size) {
 
 void lbm_gc_mark_roots(lbm_uint *roots, lbm_uint num_roots) {
   for (lbm_uint i = 0; i < num_roots; i ++) {
-    lbm_gc_mark_phase(roots[i]);
+    if (lbm_is_ptr(roots[i])) {
+      lbm_gc_mark_phase(roots[i]);
+    }
   }
 }
 

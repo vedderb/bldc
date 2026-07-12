@@ -143,7 +143,6 @@ ABI_config_t encoder_cfg_ABI = {
 		HW_ENC_EXTI_PORTSRC,
 		HW_ENC_EXTI_PINSRC,
 		HW_ENC_EXTI_LINE,
-		HW_ENC_EXTI_CH,
 		{0, 0, 0, 0}, // State
 };
 

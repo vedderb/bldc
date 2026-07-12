@@ -1,5 +1,15 @@
 first_rule: all
 
+LISPBM_UTILS_SRC = $(LISPBM)/utils/buffer.c \
+                   $(LISPBM)/utils/crypto.c \
+                   $(LISPBM)/utils/ecc.c \
+                   $(LISPBM)/utils/luamatch.c
+
+LISPBM_UTILS_H = $(LISPBM)/utils/buffer.h \
+                 $(LISPBM)/utils/crypto.h \
+                 $(LISPBM)/utils/ecc.h \
+                 $(LISPBM)/utils/luamatch.h
+
 LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/fundamental.c \
              $(LISPBM)/src/heap.c \
@@ -18,13 +28,12 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/lbm_prof.c\
              $(LISPBM)/src/lbm_defrag_mem.c\
              $(LISPBM)/src/lbm_image.c\
-             $(LISPBM)/src/buffer.c \
              $(LISPBM)/src/extensions/array_extensions.c \
              $(LISPBM)/src/extensions/string_extensions.c \
              $(LISPBM)/src/extensions/math_extensions.c \
              $(LISPBM)/src/extensions/runtime_extensions.c \
              $(LISPBM)/src/extensions/random_extensions.c \
-	     $(LISPBM)/src/extensions/set_extensions.c \
+             $(LISPBM)/src/extensions/set_extensions.c \
              $(LISPBM)/src/extensions/display_extensions.c \
              $(LISPBM)/src/extensions/tjpgd.c \
              $(LISPBM)/src/extensions/mutex_extensions.c \
@@ -32,8 +41,11 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/ttf_extensions.c \
              $(LISPBM)/src/extensions/ttf_backend.c \
              $(LISPBM)/src/extensions/schrift.c \
-	     $(LISPBM)/src/extensions/dsp_extensions.c \
-             $(LISPBM)/src/extensions/crypto_extensions.c
+             $(LISPBM)/src/extensions/dsp_extensions.c \
+             $(LISPBM)/src/extensions/crypto_extensions.c \
+             $(LISPBM)/src/extensions/ecc_extensions.c \
+             $(LISPBM)/src/extensions/pattern_extensions.c \
+	     $(LISPBM_UTILS_SRC)
 
 LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/eval_cps.h \
@@ -60,7 +72,7 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/stack.h \
            $(LISPBM)/include/symrepr.h \
            $(LISPBM)/include/tokpar.h \
-           $(LISPBM)/include/buffer.h \
+           $(LISPBM)/utils/buffer.h \
            $(LISPBM)/include/extensions/array_extensions.h \
            $(LISPBM)/include/extensions/display_extensions.h \
            $(LISPBM)/include/extensions/lbm_dyn_lib.h \
@@ -69,12 +81,16 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/extensions/runtime_extensions.h \
            $(LISPBM)/include/extensions/set_extensions.h \
            $(LISPBM)/include/extensions/string_extensions.h \
-           $(LISPBM)/include/extensions/ttf_extensions.h
-
+           $(LISPBM)/include/extensions/ttf_extensions.h \
+           $(LISPBM)/include/extensions/crypto_extensions.h \
+           $(LISPBM)/include/extensions/ecc_extensions.h \
+           $(LISPBM)/include/extensions/pattern_extensions.h \
+	   $(LISPBM_UTILS_H)
 
 LISPBM_INC = -I$(LISPBM)/include \
              -I$(LISPBM)/include/extensions \
-             -I$(LISPBM)/src
+             -I$(LISPBM)/src \
+             -I$(LISPBM)/utils
 
 LISPBM_FLAGS = -lm
 LISPBM_DEPS  =

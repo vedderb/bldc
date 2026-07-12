@@ -37,13 +37,13 @@
       (bufset-f32 r-r (* i 4) (sqrt (+ (* x x) (* y y))) 'little-endian)
       })
 
-(define f1 (fopen "wave.bin" "wb"))
-(fwrite f1 data-r)
-(fclose f1)
+(define f1 (f-open "wave.bin" "wb"))
+(f-write f1 data-r)
+(f-close f1)
 
-(define f2 (fopen "fft.bin" "wb"))
-(fwrite f2 r-r)
-(fclose f2)
+(define f2 (f-open "fft.bin" "wb"))
+(f-write f2 r-r)
+(f-close f2)
 
 (gnuplot-cmd gp "set multiplot layout 1,2 title 'Signal Analysis'")
 

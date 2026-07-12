@@ -1,5 +1,5 @@
 /*
-    Copyright 2019, 2021, 2022, 2024 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2019, 2021, 2022, 2024 2026 Joel Svensson  svenssonjoel@yahoo.se
                           2022 Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <eval_cps.h>
+#include <lbm_c_interop.h>
 
 #include "extensions.h"
 #include "lbm_utils.h"
@@ -69,7 +70,7 @@ extension_fptr lbm_get_extension(lbm_uint sym) {
   lbm_uint ext_id = sym - EXTENSION_SYMBOLS_START;
   extension_fptr res = lbm_extensions_default;
   if (ext_id < ext_max) {
-    res = extension_table[ext_id].fptr; 
+    res = extension_table[ext_id].fptr;
   }
   return res;
 }
@@ -96,7 +97,9 @@ bool lbm_lookup_extension_id(char *sym_str, lbm_uint *ix) {
   return false;
 }
 
-bool lbm_add_extension(char *sym_str, extension_fptr ext) {
+// Dynamically loaded (lbm) libraries use position independent code:
+// So a "ext-..." string could end up
+bool lbm_add_extension(const char *sym_str, extension_fptr ext) {
   lbm_value symbol;
 
   // symbol_by_name loops through all symbols. It may be enough
@@ -198,4 +201,26 @@ bool strmatch(const char *str1, const char *str2) {
   }
 
   return same;
+}
+
+
+bool dec_opt_uint(lbm_value *args, lbm_uint argn, lbm_uint idx,
+                   size_t default_val, size_t *out) {
+  if (idx >= argn) { *out = default_val; return true; }
+  if (!lbm_is_number(args[idx])) return false;
+  int32_t v = lbm_dec_as_i32(args[idx]);
+  *out = (v < 0) ? 0 : (size_t)v;
+  return true;
+}
+
+/* create a lbm string from a substring from a c-string
+   (and then also from other lbm strings)
+*/
+lbm_value span_to_lbm(const char *data, size_t len) {
+  lbm_value res;
+  if (!lbm_create_array(&res, len + 1)) return ENC_SYM_MERROR;
+  lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(res);
+  memcpy(arr->data, data, len);
+  ((char*)(arr->data))[len] = '\0';
+  return res;
 }

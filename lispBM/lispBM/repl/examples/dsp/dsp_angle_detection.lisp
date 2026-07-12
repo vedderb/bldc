@@ -220,9 +220,9 @@
       (bufset-f32 angle-pairs-buf (+ (* i 8) 4) recv-ang 'little-endian)
       })
 
-(define f-pairs (fopen "angle_pairs.bin" "wb"))
-(fwrite f-pairs angle-pairs-buf)
-(fclose f-pairs)
+(define f-pairs (f-open "angle_pairs.bin" "wb"))
+(f-write f-pairs angle-pairs-buf)
+(f-close f-pairs)
 
 (define gp (gnuplot-open))
 (gnuplot-cmd gp "set terminal pdf")

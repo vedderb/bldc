@@ -20,31 +20,9 @@
 #ifndef MPU9150_H_
 #define MPU9150_H_
 
-#include "ch.h"
-#include "hal.h"
+#include "device.h"
 
-// Functions
-void mpu9150_init(stm32_gpio_t *sda_gpio, int sda_pin,
-		stm32_gpio_t *scl_gpio, int scl_pin,
-		stkalign_t *work_area, size_t work_area_size);
-void mpu9150_stop(void);
-bool mpu9150_is_mpu9250(void);
-void mpu9150_cmd_print(BaseSequentialStream *chp, int argc, char *argv[]);
-void mpu9150_cmd_sample_offsets(BaseSequentialStream *chp, int argc, char *argv[]);
-void mpu9150_get_raw_accel_gyro_mag(int16_t *gyro_accel);
-void mpu9150_get_accel(float *accel);
-void mpu9150_get_gyro(float *gyro);
-void mpu9150_get_mag(float *mag);
-void mpu9150_get_accel_gyro_mag(float *accel, float *gyro, float *mag);
-void mpu9150_set_rate_hz(int hz);
-void mpu9150_set_mag_enabled(bool enabled);
-void mpu9150_sample_gyro_offsets(uint32_t iteratons);
-void mpu9150_set_read_callback(void(*func)(float *accel, float *gyro, float *mag));
-uint32_t mpu9150_get_time_since_update(void);
-float mpu9150_get_last_sample_duration(void);
-int mpu9150_get_failed_reads(void);
-int mpu9150_get_failed_mag_reads(void);
-int mpu9150_mag_updated(void);
+imu_device_t mpu9150_device(transport_t *transport);
 
 // Magnetometer Registers
 #define MPU9150_WIA     0x00

@@ -470,12 +470,13 @@
                              " `defstruct` takes two arguments, a struct name and a list of"
                              "fields `(defstruct name list-of-fields)`."
                              ))
-                 (para (list "Structs are implemented as arrays of lisp values and offer constant time"
-                             "lookup of each of its fields. The struct itself does not occupy heap cells, but"
-                             "the values stored in the fields may."
+                 (para (list "Structs are implemented as lists of lisp values. Each field is reached by a"
+                             "fixed number of list-traversal steps that is decided when the struct type is"
+                             "defined (by defstruct), not by a runtime search over the fields."
                              ))
-                 (para (list "As structs are allocated from array memory (lbm_memory), there is a potential"
-                             "for causing memory fragmentation."
+                 (para (list "As structs are built from ordinary heap cons cells rather than an array"
+                             "allocation (lbm_memory), creating and discarding struct instances does not"
+                             "risk causing memory fragmentation the way large array allocations can."
                              ))
                  (para (list "The example below creates a structure type called my-struct with three fields"
                              "called `a`, `b` and `c`."
@@ -539,8 +540,7 @@
              (para (list "The inclusion of dynamically loadable functionality from this library is"
                          "determined when LispBM is compiled using the following flags:" ))
              (bullet '("LBM_USE_DYN_FUNS : Add a library of functions to the dynamic loader."
-                       "LBM_USE_DYN_MACROS : Add a library of macros to the dynamic loader."
-                       "LBM_USE_DYN_DEFSTRUCT : Add the defstruct mechanism, requires LBM_USE_DYN_FUNS and LBM_USE_DYN_MACROS."
+                       "LBM_USE_DYN_MACROS : Add a library of macros to the dynamic loader. Together with LBM_USE_DYN_FUNS this also brings in the defstruct mechanism."
                        "LBM_USE_DYN_LOOPS : Add loop macros, requires LBM_USE_DYN_MACROS."
 		       "LBM_USE_DYN_ARRAYS : Add functions on arrays. Requires LBM_USE_DYN_MACROS and LBM_USE_DYN_LOOPS."
                        ))
@@ -558,8 +558,8 @@
   )
 
 (defun render-manual ()
-  (let ((h (fopen "dynref.md" "w"))
-        (r (lambda (s) (fwrite-str h s))))
+  (let ((h (f-open "dynref.md" "w"))
+        (r (lambda (s) (f-write-str h s))))
     {
     (gc)
     (var t0 (systime))

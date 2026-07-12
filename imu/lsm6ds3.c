@@ -1,6 +1,7 @@
 /*
 	Copyright 2020 Mitch Lustig
 	Copyright 2026 Benjamin Vedder benjamin@vedder.se
+	Copyright 2026 Lukas Hrazky
 
 	This file is part of the VESC firmware.
 
@@ -19,70 +20,136 @@
 	*/
 
 #include "lsm6ds3.h"
-#include "terminal.h"
 #include "commands.h"
-#include "utils_math.h"
 
-#include <stdio.h>
-#include <string.h>
+/*
+ * Anti-alias low-pass cutoffs at different IMU_FILTER values:
+ * fs = output rate, based on the configured Sample Rate (the poll frequency in poll mode, or the
+ * data-ready rate in DRDY mode)
+ *
+ * This file drives two variants:
+ *
+ * LSM6DS3TR-C (most controllers)
+ *   poll:
+ *     ODR: both 6.66 kHz
+ *
+ *     filter   accel               gyro
+ *     LOW      400 Hz (analog)     351 Hz
+ *     MEDIUM   133 Hz (ODR/50)     237 Hz
+ *     HIGH     67 Hz  (ODR/100)    173 Hz
+ *
+ *   DRDY:
+ *     ODR: both fs
+ *
+ *     filter   accel               gyro (scales with ODR)
+ *     LOW      fs/2 (<=400 Hz)     245-351 Hz
+ *     MEDIUM   fs/4                195-237 Hz
+ *     HIGH     fs/9                155-173 Hz
+ *
+ * LSM6DS3 (legacy, not used on current hardware)
+ *   poll:
+ *     ODR: accel 6.66 kHz, gyro fs (<=1.66 kHz)
+ *
+ *     filter   accel                        gyro
+ *     LOW      fs/2 (<=400 Hz)              ODR default (~fs)
+ *     MEDIUM   fs/4                         ODR default (~fs)
+ *     HIGH     fs/8                         ODR default (~fs)
+ *
+ *   DRDY:
+ *     ODR: both fs (<=1.66 kHz)
+ *
+ *     filter   accel                        gyro
+ *     LOW      fs/2 (<=400 Hz)              ODR default (~fs)
+ *     MEDIUM   fs/4                         ODR default (~fs)
+ *     HIGH     fs/8                         ODR default (~fs)
+ */
 
-static thread_t *lsm6ds3_thread_ref = NULL;
-static i2c_bb_state *m_i2c_bb;
-static spi_bb_state *m_spi_bb;
-static SPIDriver *m_hwspi_dev;
-static volatile uint16_t lsm6ds3_addr;
-static int rate_hz = 1000;
-static IMU_FILTER filter;
-static const uint8_t spi_tx_0_12[12] = {0};
-
-static void terminal_read_reg(int argc, const char **argv);
-static bool read_reg(uint8_t reg, uint8_t *res);
-static bool write_reg(uint8_t reg, uint8_t value);
-static bool read_gyro_accel(uint8_t *res);
-static THD_FUNCTION(lsm6ds3_thread, arg);
-
-// Function pointers
-static void(*read_callback)(float *accel, float *gyro, float *mag) = 0;
-
-void lsm6ds3_set_rate_hz(int hz) {
-	rate_hz = hz;
+static bool read_reg(imu_device_t *dev, uint8_t reg, uint8_t *res) {
+	return transport_read_reg(dev->transport, dev->dev_addr, reg, res, 1);
 }
 
-void lsm6ds3_set_filter(IMU_FILTER f) {
-	filter = f;
+static bool write_reg(imu_device_t *dev, uint8_t reg, uint8_t value) {
+	return transport_write_reg(dev->transport, dev->dev_addr, reg, &value, 1);
 }
 
-bool lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *spi_hw,
-		stkalign_t *work_area, size_t work_area_size) {
+static bool read_gyro_accel(imu_device_t *dev, uint8_t *res) {
+	return transport_read_reg(dev->transport, dev->dev_addr, LSM6DS3_ACC_GYRO_OUTX_L_G, res, 12);
+}
 
-	read_callback = 0;
+// Output sensitivities for the configured full scales (CTRL1_XL = ±16 g, CTRL2_G = ±2000 dps).
+#define GYRO_DPS_PER_LSB	(70.0f / 1000.0f)   // 70 mdps/LSB
+#define ACCEL_G_PER_LSB		(0.488f / 1000.0f)  // 0.488 mg/LSB
 
-	m_i2c_bb = i2c_state;
-	m_spi_bb = spi_state;
-	m_hwspi_dev = spi_hw;
+// The accelerometer and gyroscope share the CTRL1_XL / CTRL2_G ODR encoding (12.5..6660 Hz).
+static const struct { uint16_t hz; uint8_t code; } odr_ladder[] = {
+	{13,   LSM6DS3_ACC_GYRO_ODR_XL_13Hz},
+	{26,   LSM6DS3_ACC_GYRO_ODR_XL_26Hz},
+	{52,   LSM6DS3_ACC_GYRO_ODR_XL_52Hz},
+	{104,  LSM6DS3_ACC_GYRO_ODR_XL_104Hz},
+	{208,  LSM6DS3_ACC_GYRO_ODR_XL_208Hz},
+	{416,  LSM6DS3_ACC_GYRO_ODR_XL_416Hz},
+	{833,  LSM6DS3_ACC_GYRO_ODR_XL_833Hz},
+	{1660, LSM6DS3_ACC_GYRO_ODR_XL_1660Hz},
+	{3330, LSM6DS3_ACC_GYRO_ODR_XL_3330Hz},
+	{6660, LSM6DS3_ACC_GYRO_ODR_XL_6660Hz},
+};
+#define ODR_LADDER_N (sizeof(odr_ladder) / sizeof(odr_ladder[0]))
+
+// Lowest ladder index whose ODR >= rate_hz, capped at max_hz.
+static uint8_t odr_index(uint16_t rate_hz, uint16_t max_hz) {
+	uint16_t target = rate_hz < max_hz ? rate_hz : max_hz;
+	uint8_t i = 0;
+	while (i < ODR_LADDER_N - 1 && odr_ladder[i].hz < target) {
+		i++;
+	}
+	return i;
+}
+
+static bool configure(imu_device_t *dev, IMU_FILTER filter, bool use_mag) {
+	(void)use_mag;
 
 	uint8_t rxb[1];
 
-	lsm6ds3_addr = LSM6DS3_ACC_GYRO_ADDR_A;
-	bool res = read_reg(LSM6DS3_ACC_GYRO_WHO_AM_I_REG, rxb);
-	if (!res || (rxb[0] != 0x69 && rxb[0] != 0x6A && rxb[0] != 0x6C)) {
+	dev->dev_addr = LSM6DS3_ACC_GYRO_ADDR_A;
+	bool ok = read_reg(dev, LSM6DS3_ACC_GYRO_WHO_AM_I_REG, rxb);
+	if (!ok || (rxb[0] != 0x69 && rxb[0] != 0x6A && rxb[0] != 0x6C)) {
 		commands_printf("LSM6DS3 Address A failed, trying B (rx: %d)", rxb[0]);
-		lsm6ds3_addr = LSM6DS3_ACC_GYRO_ADDR_B;
-		res = read_reg(LSM6DS3_ACC_GYRO_WHO_AM_I_REG, rxb);
-		if (!res || (rxb[0] != 0x69 && rxb[0] != 0x6A && rxb[0] != 0x6C)) {
+		dev->dev_addr = LSM6DS3_ACC_GYRO_ADDR_B;
+		ok = read_reg(dev, LSM6DS3_ACC_GYRO_WHO_AM_I_REG, rxb);
+		if (!ok || (rxb[0] != 0x69 && rxb[0] != 0x6A && rxb[0] != 0x6C)) {
 			commands_printf("LSM6DS3 Address B failed (rx: %d)", rxb[0]);
 			return false;
 		}
 	}
 
 	bool is_trc = false;
-	if (rxb[0] == 0x6A){
+	if (rxb[0] == 0x6A) {
 		is_trc = true;
+		dev->variant = "TR-C";
+	}
+
+	// The non-TR-C gyro tops out at 1660 Hz; the TR-C gyro reaches the accel's 6660 Hz.
+	uint16_t gyro_max = is_trc ? 6660 : 1660;
+
+	// ODR selection. In DRDY mode the gyro's data-ready drives one read per sample, so run both
+	// sensors at the (quantized) sample rate, synchronized. In poll mode the accelerometer runs
+	// at its max ODR so the poll always reads the freshest sample; the TR-C gyro does the same,
+	// while the non-TR-C gyro has no separate filter (its bandwidth follows the ODR) and so
+	// tracks the sample rate instead of oversampling.
+	uint8_t accel_odr, gyro_odr;
+	if (dev->use_drdy) {
+		uint8_t idx = odr_index(dev->sample_rate_hz, gyro_max);
+		accel_odr = gyro_odr = odr_ladder[idx].code;
+		dev->sample_rate_hz = odr_ladder[idx].hz; // the quantized ODR is the real output rate
+	} else {
+		accel_odr = gyro_odr = odr_ladder[ODR_LADDER_N - 1].code;
+		if (!is_trc) {
+			gyro_odr = odr_ladder[odr_index(dev->sample_rate_hz, gyro_max)].code;
+		}
 	}
 
 	// Accelerometer resolution and data rate
-	uint8_t regv = LSM6DS3_ACC_GYRO_FS_XL_16g;
-	regv |= LSM6DS3_ACC_GYRO_ODR_XL_6660Hz;
+	uint8_t regv = LSM6DS3_ACC_GYRO_FS_XL_16g | accel_odr;
 
 	// Accelerometer filtering
 	#define LSM6DS3TRC_BW0_XL 0x1
@@ -90,10 +157,19 @@ bool lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *s
 	if (is_trc) {
 		// Always use accelerometer analog low-pass at 400Hz
 		regv |= LSM6DS3TRC_BW0_XL;
-	} else if (rate_hz >= 208 && filter >= IMU_FILTER_MEDIUM) {
-		// Filter at ODR/4 for MEDIUM and ODR/8 for HIGH
-		// This filter also needs to be enabled in CTRL4_C
-		int scaled_rate = filter == IMU_FILTER_HIGH ? rate_hz / 2 : rate_hz;
+		// In DRDY mode the accel runs at the sample rate, so anti-alias with the digital LPF1:
+		// ODR/2 (LOW) or ODR/4 (MEDIUM). HIGH switches to LPF2 in CTRL8_XL below.
+		if (dev->use_drdy && filter == IMU_FILTER_MEDIUM) {
+			regv |= LSM6DS3TRC_LPF1_BW_SEL;
+		}
+	} else {
+		// Standard LSM6DS3: absolute analog anti-alias (BW_XL) targeting rate/2 (LOW), rate/4
+		// (MEDIUM) or rate/8 (HIGH). At the 6.66 kHz poll ODR the automatic ODR-tied bandwidth is
+		// "not used" (datasheet table 48), so the anti-alias has to be set manually (also enabled
+		// in CTRL4_C below). BW_XL is an absolute {400,200,100,50} Hz cutoff, picked as
+		// ~scaled_rate/4 and clamped at 400 Hz.
+		uint16_t scaled_rate = filter == IMU_FILTER_HIGH ? dev->sample_rate_hz / 2 :
+				filter == IMU_FILTER_MEDIUM ? dev->sample_rate_hz : dev->sample_rate_hz * 2;
 		if (scaled_rate <= 208) {
 			regv |= LSM6DS3_ACC_GYRO_BW_XL_50Hz;
 		} else if (scaled_rate <= 416) {
@@ -101,13 +177,10 @@ bool lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *s
 		} else if (scaled_rate <= 833) {
 			regv |= LSM6DS3_ACC_GYRO_BW_XL_200Hz;
 		}
+		// else: BW_XL_400Hz (register value 0x00, the widest)
 	}
 
-	res = write_reg(LSM6DS3_ACC_GYRO_CTRL1_XL, regv);
-	if (!res){
-		commands_printf("LSM6DS3 Accel Config FAILED");
-		return false;
-	}
+	ok = ok && write_reg(dev, LSM6DS3_ACC_GYRO_CTRL1_XL, regv);
 
 	// Extra accelerometer filtering for TRC variant
 	if (is_trc) {
@@ -116,56 +189,33 @@ bool lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *s
 		#define LSM6DS3TRC_HPCF_XL_ODR50 0x00
 		#define LSM6DS3TRC_HPCF_XL_ODR100 0x20
 		regv = 0;
-		if (filter == IMU_FILTER_MEDIUM) {
-			regv |= LSM6DS3TRC_LPF2_XL_EN | LSM6DS3TRC_HPCF_XL_ODR50;
-		} else if (filter == IMU_FILTER_HIGH) {
-			regv |= LSM6DS3TRC_LPF2_XL_EN | LSM6DS3TRC_HPCF_XL_ODR100;
+		if (dev->use_drdy) {
+			// Accel at the sample rate: LOW/MEDIUM use LPF1 (ODR/2, ODR/4 set above); HIGH
+			// uses LPF2 at ODR/9 for a tighter cutoff.
+			if (filter == IMU_FILTER_HIGH) {
+				regv |= LSM6DS3TRC_LPF2_XL_EN | LSM6DS3TRC_HPCF_XL_ODR9;
+			}
+		} else {
+			// Poll (accel at 6660 Hz): LPF2 anti-aliases the sub-sampled stream.
+			if (filter == IMU_FILTER_MEDIUM) {
+				regv |= LSM6DS3TRC_LPF2_XL_EN | LSM6DS3TRC_HPCF_XL_ODR50;
+			} else if (filter == IMU_FILTER_HIGH) {
+				regv |= LSM6DS3TRC_LPF2_XL_EN | LSM6DS3TRC_HPCF_XL_ODR100;
+			}
 		}
 
-		res = write_reg(LSM6DS3_ACC_GYRO_CTRL8_XL, regv);
-		if (!res) {
-			commands_printf("LSM6DS3 Accel Filter Config FAILED");
-			return false;
-		}
+		ok = ok && write_reg(dev, LSM6DS3_ACC_GYRO_CTRL8_XL, regv);
 	}
 
 	// Gyro resolution and data rate
-	regv = LSM6DS3_ACC_GYRO_FS_G_2000dps;
-
-	if (is_trc) {
-		regv |= LSM6DS3TRC_ACC_GYRO_ODR_G_6660Hz;
-	} else {
-		// On non-TRC there is no dedicated configurable gyro filter, the filtering
-		// seems to depend on the actual ODR, so we can't oversample it.
-		if (rate_hz <= 13) {
-			regv |= LSM6DS3_ACC_GYRO_ODR_G_13Hz;
-		} else if (rate_hz <= 26) {
-			regv |= LSM6DS3_ACC_GYRO_ODR_G_26Hz;
-		} else if (rate_hz <= 52) {
-			regv |= LSM6DS3_ACC_GYRO_ODR_G_52Hz;
-		} else if (rate_hz <= 104) {
-			regv |= LSM6DS3_ACC_GYRO_ODR_G_104Hz;
-		} else if (rate_hz <= 208) {
-			regv |= LSM6DS3_ACC_GYRO_ODR_G_208Hz;
-		} else if (rate_hz <= 416) {
-			regv |= LSM6DS3_ACC_GYRO_ODR_G_416Hz;
-		} else if (rate_hz <= 833) {
-			regv |= LSM6DS3_ACC_GYRO_ODR_G_833Hz;
-		} else {
-			regv |= LSM6DS3_ACC_GYRO_ODR_G_1660Hz;
-		}
-	}
-	res = write_reg(LSM6DS3_ACC_GYRO_CTRL2_G, regv);
-	if (!res){
-		commands_printf("LSM6DS3 Gyro Config FAILED");
-		return false;
-	}
+	regv = LSM6DS3_ACC_GYRO_FS_G_2000dps | gyro_odr;
+	ok = ok && write_reg(dev, LSM6DS3_ACC_GYRO_CTRL2_G, regv);
 
 	// Extra gyro filtering for TRC variant
 	if (is_trc) {
 		#define LSM6DS3TRC_FTYPE_L 0x00
 		#define LSM6DS3TRC_FTYPE_M 0x01
-		#define LSM6DS3TRC_FTYPE_H 0x10
+		#define LSM6DS3TRC_FTYPE_H 0x02
 		regv = 0;
 		if (filter == IMU_FILTER_LOW) {
 			regv |= LSM6DS3TRC_FTYPE_L;
@@ -175,11 +225,7 @@ bool lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *s
 			regv |= LSM6DS3TRC_FTYPE_H;
 		}
 
-		res = write_reg(LSM6DS3_ACC_GYRO_CTRL6_G, regv);
-		if (!res){
-			commands_printf("LSM6DS3 Gyro Filter FAILED");
-			return false;
-		}
+		ok = ok && write_reg(dev, LSM6DS3_ACC_GYRO_CTRL6_G, regv);
 	}
 
 	// Miscellaneous filtering configuration in CTRL4_C
@@ -188,226 +234,58 @@ bool lsm6ds3_init(i2c_bb_state *i2c_state, spi_bb_state *spi_state, SPIDriver *s
 	if (is_trc) {
 		// Enable gyroscope digital low-pass filter LPF1
 		regv = LSM6DS3_ACC_GYRO_LPF1_SEL_G_ENABLED;
-	} else if (rate_hz >= 208 && filter >= IMU_FILTER_MEDIUM) {
-		// Standard LSM6DS3 only: Set XL anti-aliasing filter to be manually configured
+	} else {
+		// Standard LSM6DS3: use the manually-set BW_XL anti-alias (CTRL1_XL above) instead of the
+		// ODR-tied automatic bandwidth, which is disabled at the 6.66 kHz poll ODR (table 48).
 		regv = LSM6DS3_ACC_GYRO_BW_SCAL_ODR_ENABLED;
 	}
-	res = write_reg(LSM6DS3_ACC_GYRO_CTRL4_C, regv);
-	if (!res) {
-		commands_printf("LSM6DS3 Misc Filter Config FAILED");
-		return false;
+	#define LSM6DS3_ACC_GYRO_DRDY_MASK 0x08 // CTRL4_C: hold DRDY off until the filters settle
+	if (dev->use_drdy) {
+		regv |= LSM6DS3_ACC_GYRO_DRDY_MASK;
 	}
+	ok = ok && write_reg(dev, LSM6DS3_ACC_GYRO_CTRL4_C, regv);
 
 	// Configure block update and register auto-increment
 	regv = LSM6DS3_ACC_GYRO_BDU_BLOCK_UPDATE | LSM6DS3_ACC_GYRO_IF_INC_ENABLED;
-	res = write_reg(LSM6DS3_ACC_GYRO_CTRL3_C, regv);
-	if (!res) {
-		commands_printf("LSM6DS3 BDU Config FAILED");
+	ok = ok && write_reg(dev, LSM6DS3_ACC_GYRO_CTRL3_C, regv);
+
+	if (!ok) {
+		commands_printf("LSM6DS3 config failed");
+		return false;
+	}
+	return true;
+}
+
+static bool read_sample(imu_device_t *dev, float accel[3], float gyro[3], float mag[3]) {
+	uint8_t rxb[12];
+	if (!read_gyro_accel(dev, rxb)) {
 		return false;
 	}
 
-	terminal_register_command_callback(
-			"lsm_read_reg",
-			"Read register of the LSM6DS3",
-			"[reg]",
-			terminal_read_reg);
-
-	lsm6ds3_thread_ref = chThdCreateStatic(work_area, work_area_size, NORMALPRIO, lsm6ds3_thread, NULL);
+	gyro[0] = (int16_t)(rxb[1] << 8 | rxb[0]) * GYRO_DPS_PER_LSB;
+	gyro[1] = (int16_t)(rxb[3] << 8 | rxb[2]) * GYRO_DPS_PER_LSB;
+	gyro[2] = (int16_t)(rxb[5] << 8 | rxb[4]) * GYRO_DPS_PER_LSB;
+	accel[0] = (int16_t)(rxb[7] << 8 | rxb[6]) * ACCEL_G_PER_LSB;
+	accel[1] = (int16_t)(rxb[9] << 8 | rxb[8]) * ACCEL_G_PER_LSB;
+	accel[2] = (int16_t)(rxb[11] << 8 | rxb[10]) * ACCEL_G_PER_LSB;
+	mag[0] = 0; mag[1] = 0; mag[2] = 0;
 
 	return true;
 }
 
-void lsm6ds3_stop(void) {
-	if (lsm6ds3_thread_ref != NULL){
-		chThdTerminate(lsm6ds3_thread_ref);
-		chThdWait(lsm6ds3_thread_ref);
-	}
-	lsm6ds3_thread_ref = NULL;
-	terminal_unregister_callback(terminal_read_reg);
+static void enable_drdy_output(imu_device_t *dev, bool enable) {
+	write_reg(dev, LSM6DS3_ACC_GYRO_INT1_CTRL,
+			enable ? LSM6DS3_ACC_GYRO_INT1_DRDY_G_ENABLED : 0);
 }
 
-void lsm6ds3_set_read_callback(void(*func)(float *accel, float *gyro, float *mag)) {
-	read_callback = func;
-}
+static const imu_device_interface_t lsm6ds3_interface = {
+	.name = "LSM6DS3",
+	.configure = configure,
+	.read_sample = read_sample,
+	.on_read_fail = NULL,
+	.enable_drdy_output = enable_drdy_output,
+};
 
-static bool read_reg(uint8_t reg, uint8_t *res) {
-	bool ok = false;
-
-	if (m_i2c_bb) {
-		uint8_t txb[1];
-		uint8_t rxb[1];
-		txb[0] = reg;
-		ok = i2c_bb_tx_rx(m_i2c_bb, lsm6ds3_addr, txb, 1, rxb, 1);
-
-		if (ok) {
-			*res = rxb[0];
-		} else {
-			*res = 0;
-		}
-	} else if (m_spi_bb) {
-		chMtxLock(&(m_spi_bb->mutex));
-		spi_bb_begin(m_spi_bb);
-		spi_bb_exchange_8_mode_3(m_spi_bb, reg | 0x80);
-		spi_bb_delay();
-		*res = spi_bb_exchange_8_mode_3(m_spi_bb, 0);
-		spi_bb_end(m_spi_bb);
-		chMtxUnlock(&(m_spi_bb->mutex));
-		ok = true;
-	} else if (m_hwspi_dev) {
-		// Use polled exchange here as the DMA-version seems to freeze
-		// the CAN process thread for some reason. Performance does not
-		// matter during config.
-		spiAcquireBus(m_hwspi_dev);
-		spiSelect(m_hwspi_dev);
-		spiPolledExchange(m_hwspi_dev, reg | 0x80);
-		spi_bb_delay();
-		*res = spiPolledExchange(m_hwspi_dev, 0);
-		spiUnselect(m_hwspi_dev);
-		spiReleaseBus(m_hwspi_dev);
-		ok = true;
-	}
-
-	return ok;
-}
-
-static bool write_reg(uint8_t reg, uint8_t value) {
-	bool ok = false;
-
-	if (m_i2c_bb) {
-		uint8_t txb[2];
-		uint8_t rxb[1];
-		txb[0] = reg;
-		txb[1] = value;
-		ok = i2c_bb_tx_rx(m_i2c_bb, lsm6ds3_addr, txb, 2, rxb, 1);
-	} else if (m_spi_bb) {
-		chMtxLock(&(m_spi_bb->mutex));
-		spi_bb_begin(m_spi_bb);
-		spi_bb_exchange_8_mode_3(m_spi_bb, reg & 0x7F);
-		spi_bb_delay();
-		spi_bb_exchange_8_mode_3(m_spi_bb, value);
-		spi_bb_end(m_spi_bb);
-		chMtxUnlock(&(m_spi_bb->mutex));
-		ok = true;
-	} else if (m_hwspi_dev) {
-		// Use polled exchange here as the DMA-version seems to freeze
-		// the CAN process thread for some reason. Performance does not
-		// matter during config.
-		spiAcquireBus(m_hwspi_dev);
-		spiSelect(m_hwspi_dev);
-		spiPolledExchange(m_hwspi_dev, reg & 0x7f);
-		spi_bb_delay();
-		spiPolledExchange(m_hwspi_dev, value);
-		spiUnselect(m_hwspi_dev);
-		spiReleaseBus(m_hwspi_dev);
-		ok = true;
-	}
-
-	return ok;
-}
-
-static bool read_gyro_accel(uint8_t *res) {
-	bool ok = false;
-
-	if (m_i2c_bb) {
-		uint8_t txb[1];
-		txb[0] = LSM6DS3_ACC_GYRO_OUTX_L_G;
-		ok = i2c_bb_tx_rx(m_i2c_bb, lsm6ds3_addr, txb, 1, res, 12);
-
-		if (!ok) {
-			memset(res, 0, 12);
-		}
-	} else if (m_spi_bb) {
-		chMtxLock(&(m_spi_bb->mutex));
-		spi_bb_begin(m_spi_bb);
-		spi_bb_exchange_8_mode_3(m_spi_bb, LSM6DS3_ACC_GYRO_OUTX_L_G | 0x80);
-		spi_bb_delay_short();
-
-		for (int i = 0;i < 12;i++) {
-			res[i] = spi_bb_exchange_8_mode_3(m_spi_bb, 0);
-		}
-
-		spi_bb_end(m_spi_bb);
-		chMtxUnlock(&(m_spi_bb->mutex));
-		ok = true;
-	} else if (m_hwspi_dev) {
-		uint8_t txb[1];
-		uint8_t rxb[1];
-
-		spiAcquireBus(m_hwspi_dev);
-		spiSelect(m_hwspi_dev);
-		txb[0] = LSM6DS3_ACC_GYRO_OUTX_L_G | 0x80;
-		spiExchange(m_hwspi_dev, 1, txb, rxb);
-		spi_bb_delay_short();
-		spiExchange(m_hwspi_dev, 12, spi_tx_0_12, res);
-		spiUnselect(m_hwspi_dev);
-		spiReleaseBus(m_hwspi_dev);
-		ok = true;
-	}
-
-	return ok;
-}
-
-static void terminal_read_reg(int argc, const char **argv) {
-	if (argc == 2) {
-		int reg = -1;
-		sscanf(argv[1], "%d", &reg);
-
-		if (reg >= 0) {
-			uint8_t res = 0;
-			bool ok = read_reg(reg, &res);
-
-			if (ok) {
-				char bl[9];
-				utils_byte_to_binary(res & 0xFF, bl);
-				commands_printf("Reg: %s", bl);
-			} else {
-				commands_printf("Read failed\n");
-			}
-		} else {
-			commands_printf("Invalid argument(s)\n");
-		}
-	} else {
-		commands_printf("This command requires one argument\n");
-	}
-}
-
-static THD_FUNCTION(lsm6ds3_thread, arg) {
-	(void)arg;
-	chRegSetThreadName("LSM6DS3");
-
-	// One tick less to ensure the frequency is at least the configured one or a bit higher (US2ST rounds up)
-	const systime_t interval = US2ST(1000000 / rate_hz) - 1;
-
-	while (!chThdShouldTerminateX()) {
-		systime_t start_time = chVTGetSystemTimeX();
-
-		uint8_t rxb[12];
-		bool res = read_gyro_accel(rxb);
-
-		if (res) {
-			// Parse 6 axis values
-			float gx = (float)((int16_t)((uint16_t)rxb[1] << 8) + rxb[0]) * 4.375 * (2000 / 125) / 1000;
-			float gy = (float)((int16_t)((uint16_t)rxb[3] << 8) + rxb[2]) * 4.375 * (2000 / 125) / 1000;
-			float gz = (float)((int16_t)((uint16_t)rxb[5] << 8) + rxb[4]) * 4.375 * (2000 / 125) / 1000;
-			float ax = (float)((int16_t)((uint16_t)rxb[7] << 8) + rxb[6]) * 0.061 * (16 >> 1) / 1000;
-			float ay = (float)((int16_t)((uint16_t)rxb[9] << 8) + rxb[8]) * 0.061 * (16 >> 1) / 1000;
-			float az = (float)((int16_t)((uint16_t)rxb[11] << 8) + rxb[10]) * 0.061 * (16 >> 1) / 1000;
-
-			if (res && read_callback) {
-				float tmp_accel[3] = {ax,ay,az}, tmp_gyro[3] = {gx,gy,gz}, tmp_mag[3] = {1,2,3};
-				read_callback(tmp_accel, tmp_gyro, tmp_mag);
-			}
-		} else {
-			chThdSleep(1);
-			continue;
-		}
-
-		systime_t sleep_ticks = 1;
-		systime_t remaining_sleep_time = start_time + interval - chVTGetSystemTimeX();
-		if (remaining_sleep_time > 0 && remaining_sleep_time <= interval) {
-			sleep_ticks = remaining_sleep_time;
-		}
-
-		chThdSleep(sleep_ticks);
-	}
+imu_device_t lsm6ds3_device(transport_t *transport) {
+	return (imu_device_t){ .interface = &lsm6ds3_interface, .transport = transport };
 }

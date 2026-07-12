@@ -1,0 +1,51 @@
+; test4.lbm — color, visible, enabled setters demo
+
+(def root (qt-root))
+
+; bg-color / fg-color as creation attributes
+(def styled (qt-button root "Styled at creation"
+             '(bg-color "#2255aa") '(fg-color "#ffffff")))
+
+; visible/enabled toggling
+(def hbox (qt-container root 'hbox))
+
+(def target    (qt-button hbox "Target button"))
+(def btn-hide  (qt-button hbox "Hide"))
+(def btn-show  (qt-button hbox "Show"))
+(def btn-dis   (qt-button hbox "Disable"))
+(def btn-en    (qt-button hbox "Enable"))
+
+; created hidden, then shown on demand
+(def secret    (qt-button root "Secret button (starts hidden)"
+               '(visible nil)))
+(def btn-reveal (qt-button root "Reveal secret" '(max-width 120)))
+
+; runtime color setters
+(def hbox2     (qt-container root 'hbox))
+(def btn-red   (qt-button hbox2 "Red"   '(max-width 60)))
+(def btn-green (qt-button hbox2 "Green" '(max-width 60)))
+(def btn-reset (qt-button hbox2 "Reset" '(max-width 60)))
+
+(qt-stretch root)
+
+(defun on-event ()
+  { (recv
+      ((button-pressed (? h))
+       (cond
+         ((= h btn-hide)    (qt-set-visible target nil))
+         ((= h btn-show)    (qt-set-visible target t))
+         ((= h btn-dis)     (qt-set-enabled target nil))
+         ((= h btn-en)      (qt-set-enabled target t))
+         ((= h btn-reveal)  (qt-set-visible secret t))
+         ((= h btn-red)     { (qt-set-bg-color target "#aa2222")
+                               (qt-set-fg-color target "#ffffff") })
+         ((= h btn-green)   { (qt-set-bg-color target "#22aa44")
+                               (qt-set-fg-color target "#ffffff") })
+         ((= h btn-reset)   { (qt-set-bg-color target nil)
+                               (qt-set-fg-color target nil) })
+         ((= h styled)      (print "visible:" (qt-get-visible target)
+                                   "enabled:" (qt-get-enabled target)))))
+      ((? _) (print "unhandled")))
+    (on-event) })
+
+(event-register-handler (spawn on-event))

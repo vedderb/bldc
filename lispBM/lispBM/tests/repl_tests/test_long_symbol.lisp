@@ -12,9 +12,9 @@
               res)))
 
 ;; Test long symbol from file (should trigger tokenizer error)
-(define file-handle (fopen "repl_tests/test_data/long_symbol.lisp" "r"))
+(define file-handle (f-open "repl_tests/test_data/long_symbol.lisp" "r"))
 (define long-program (load-file file-handle))
-(fclose file-handle)
+(f-close file-handle)
 (define r1 (eq 'exit-error (car (trap (time-read-eval long-program)))))
 
 (debug_test r1 1)

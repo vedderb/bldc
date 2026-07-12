@@ -13,4 +13,4 @@
       (print "FAILURE")))
 
 (image-save)
-(fwrite-image (fopen "image.lbm" "w"))
+(f-write-image (f-open "image.lbm" "w"))

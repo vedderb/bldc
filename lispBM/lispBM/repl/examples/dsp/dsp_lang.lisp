@@ -69,7 +69,7 @@
          
    ( (signal-sin (? f) (? p) (? a)) (* a (sin (+ (* f two-pi sig-t) p))))
    ( (signal-cos (? f) (? p) (? a)) (* a (cos (+ (* f two-pi sig-t) p))))
-   ( (signal-noise (? a)) (* a (/ (to-float (random)) (rand-max))))
+   ( (signal-noise (? a)) (* a (- (* 2.0 (/ (to-float (random)) (to-float (rand-max)))) 1.0)))
    ( (signal-const (? v)) v)
    ((signal-sum (? s1) (? s2)) (+ (eval-signal s1 sig-t) (eval-signal s2 sig-t)))
    ((signal-prod (? s1) (? s2)) (* (eval-signal s1 sig-t) (eval-signal s2 sig-t)))
@@ -79,18 +79,6 @@
         (eval-signal s1 sig-t)
         (eval-signal s2 (- sig-t t-switch))))
    ))
-
-
-(defun sample-signal (s sample-rate buffer ) {
-       (var num-samples (/ (length buffer) 4))
-       (var time-delta (/ 1.0 sample-rate))
-       (var sig-t 0.0)
-       (loopfor i 0 (< i num-samples) (+ i 1) {
-             (bufset-f32 buffer (* i 4) (eval-signal s sig-t) 'little-endian)
-             (setq sig-t (+ sig-t time-delta))
-             })
-       buffer
-       })
 
 (defun sample-signal-from (s sample-rate t-start buffer ) {
        (var num-samples (/ (length buffer) 4))
@@ -103,15 +91,41 @@
        buffer
        })
 
-
+(defun sample-signal (s sample-rate buffer )
+  (sample-signal-from s sample-rate 0.0f32 buffer))
 
 ;; Filehandling "bracket style" operation
 (defun with-file (filename mode operation) {
-       (var fh (fopen filename mode))
+       (var fh (f-open filename mode))
        (operation fh)
-       (fclose fh)
+       (f-close fh)
        })
 
+(defun fsample-signal-from-to (filename s sample-rate t-start t-end) {
+       (var time-delta (/ 1.0 sample-rate))
+       (var num-samples (/ (- t-end t-start) time-delta))
+       (var sig-t t-start)
+       (var buf (bufcreate 4))
+       (with-file filename "wb"
+                  (lambda (fh) 
+                    (loopfor i 0 (< i num-samples) (+ i 1) {
+                             (bufset-f32 buf 0 (eval-signal s sig-t) 'little-endian)
+                             (setq sig-t (+ sig-t time-delta))
+                             (f-write fh buf)
+                             }))
+                  )
+       })
+
+(defun octave-run-file (script-file)
+  (unsafe-call-system (str-join (list "xterm -e 'octave-cli --persist " script-file "' &"))))
+
+(defun octave-interactive (commands script-file) {
+  (with-file script-file "w"
+    (lambda (fh)
+      (loopfor i 0 (< i (length commands)) (+ i 1)
+        (f-write-str fh (str-join (list (ix commands i) "\n"))))))
+  (octave-run-file script-file)
+  })
 
 (defun plot-signal (infile outfile title)
   {
@@ -122,7 +136,7 @@
   (gnuplot-cmd gp "set xlabel 'Sample Number'")
   (gnuplot-cmd gp "set ylabel 'Amplitude'")
   (gnuplot-cmd gp "set grid")
-  (gnuplot-cmd gp (str-join `("plot '" ,infile "' binary array=1024 format='%float' with lines title 'Waveform'")))
+  (gnuplot-cmd gp (str-join `("plot '" ,infile "' binary format='%float' using 0:1 with lines title 'Waveform'")))
   (gnuplot-cmd gp "set output")
   (gnuplot-close gp)
   })
@@ -135,7 +149,7 @@
   (gnuplot-cmd gp (str-join `("set title '" ,title "'")))
   (gnuplot-cmd gp "set xlabel 'Frequency Bin'")
   (gnuplot-cmd gp "set ylabel 'Magnitude'")
-  (gnuplot-cmd gp (str-join `("plot '" ,infile "' binary array=512 format='%float' with lines title 'Frequency Domain'")))
+  (gnuplot-cmd gp (str-join `("plot '" ,infile "' binary format='%float' using 0:1 with lines title 'Frequency Domain'")))
   (gnuplot-cmd gp "set output")
   (gnuplot-close gp)
   })
@@ -152,7 +166,7 @@
   (gnuplot-cmd gp "set xlabel 'Frequency Bin'")
   (gnuplot-cmd gp "set ylabel 'Magnitude'")
   (gnuplot-cmd gp "set grid")
-  (gnuplot-cmd gp (str-join `("plot '" ,mag-file "' binary array=512 format='%float' with lines lw 2 title 'Magnitude'")))
+  (gnuplot-cmd gp (str-join `("plot '" ,mag-file "' binary format='%float' using 0:1 with lines lw 2 title 'Magnitude'")))
 
   ;; Phase plot
   (gnuplot-cmd gp "set title 'Phase Spectrum'")
@@ -160,7 +174,7 @@
   (gnuplot-cmd gp "set ylabel 'Phase (degrees)'")
   (gnuplot-cmd gp "set yrange [-200:200]")
   (gnuplot-cmd gp "set grid")
-  (gnuplot-cmd gp (str-join `("plot '" ,phase-file "' binary array=512 format='%float' with points pt 7 ps 0.5 title 'Phase'")))
+  (gnuplot-cmd gp (str-join `("plot '" ,phase-file "' binary format='%float' using 0:1 with points pt 7 ps 0.5 title 'Phase'")))
 
   (gnuplot-cmd gp "unset multiplot")
   (gnuplot-cmd gp "set output")
@@ -178,12 +192,12 @@
   (gnuplot-cmd gp (str-join `("set title '" ,t1 "'")))
   (gnuplot-cmd gp "set xlabel 'Sample'")
   (gnuplot-cmd gp "set ylabel 'Amplitude'")
-  (gnuplot-cmd gp (str-join `("plot '" ,signal-file "' binary array=1024 format='%float' with lines title 'Time Domain'")))
+  (gnuplot-cmd gp (str-join `("plot '" ,signal-file "' binary format='%float' using 0:1 with lines title 'Time Domain'")))
 
   (gnuplot-cmd gp (str-join `("set title '" ,t2 "'")))
   (gnuplot-cmd gp "set xlabel 'Frequency Bin'")
   (gnuplot-cmd gp "set ylabel 'Magnitude'")
-  (gnuplot-cmd gp (str-join `("plot '" ,mag-file "' binary array=512 format='%float' with lines title 'Frequency Domain'")))
+  (gnuplot-cmd gp (str-join `("plot '" ,mag-file "' binary format='%float' using 0:1 with lines title 'Frequency Domain'")))
 
   (gnuplot-cmd gp "unset multiplot")
   (gnuplot-close gp)
@@ -202,13 +216,13 @@
   (gnuplot-cmd gp "set xlabel 'Sample'")
   (gnuplot-cmd gp "set ylabel 'Amplitude'")
   (gnuplot-cmd gp "set grid")
-  (gnuplot-cmd gp (str-join `("plot '" ,signal1-file "' binary array=1024 format='%float' with lines title '" ,t1 "'")))
+  (gnuplot-cmd gp (str-join `("plot '" ,signal1-file "' binary format='%float' using 0:1 with lines title '" ,t1 "'")))
 
   (gnuplot-cmd gp (str-join `("set title '" ,t2 "'")))
   (gnuplot-cmd gp "set xlabel 'Sample'")
   (gnuplot-cmd gp "set ylabel 'Amplitude'")
   (gnuplot-cmd gp "set grid")
-  (gnuplot-cmd gp (str-join `("plot '" ,signal2-file "' binary array=1024 format='%float' with lines title '" ,t2 "'")))
+  (gnuplot-cmd gp (str-join `("plot '" ,signal2-file "' binary format='%float' using 0:1 with lines title '" ,t2 "'")))
 
   (gnuplot-cmd gp "unset multiplot")
   (gnuplot-cmd gp "set output")
@@ -236,7 +250,7 @@
         (setq plot-cmd (str-join `(,plot-cmd ", "))))
     (setq first-elt nil)
 
-    (setq plot-cmd (str-join (list plot-cmd "'" file "' binary array=1024 format='%float' with lines title '" legend "'")))
+    (setq plot-cmd (str-join (list plot-cmd "'" file "' binary format='%float' using 0:1 with lines title '" legend "'")))
   })
 
   (gnuplot-cmd gp plot-cmd)

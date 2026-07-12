@@ -221,8 +221,9 @@ int lbm_remove_done_ctx(lbm_cid cid, lbm_value *v);
 
 #ifdef LBM_SINGLE_THREADED
 /** step function for integration of evaluator in a single thread application.
+    The boolean result is an indication of how "busy" or not "busy" the runtime system is.
  */
-void lbm_eval_step(void);
+bool lbm_eval_step(int n);  
 #else
 /** This function executes the evaluation loop and does not return.
  *  lbm_run_eval should be started in a new thread provided by the underlying HAL or OS.

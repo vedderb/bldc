@@ -264,9 +264,7 @@
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
 #define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOD
 #define HW_ENC_EXTI_PINSRC		EXTI_PinSource14
-#define HW_ENC_EXTI_CH			EXTI15_10_IRQn
 #define HW_ENC_EXTI_LINE		EXTI_Line14
-#define HW_ENC_EXTI_ISR_VEC		EXTI15_10_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM4_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM4_IRQHandler
 
@@ -328,10 +326,12 @@
 #define HW_SPI_PIN_MISO			6
 
 // LSM6DS3
-#define LSM6DS3_SDA_GPIO		GPIOB
-#define LSM6DS3_SDA_PIN			9
-#define LSM6DS3_SCL_GPIO		GPIOB
-#define LSM6DS3_SCL_PIN			8
+#define IMU_DEV				IMU_DEV_LSM6DS3
+#define IMU_COM				IMU_COM_I2C_BB
+#define IMU_I2C_SDA_GPIO		GPIOB
+#define IMU_I2C_SDA_PIN			9
+#define IMU_I2C_SCL_GPIO		GPIOB
+#define IMU_I2C_SCL_PIN			8
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]

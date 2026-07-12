@@ -30,13 +30,24 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 36u
+#define LBM_MINOR_VERSION 37u
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0u
 
 #define LBM_VERSION_STRING STR(LBM_MAJOR_VERSION) "." STR(LBM_MINOR_VERSION) "." STR(LBM_PATCH_VERSION)
 
 /*! \page changelog Changelog
+
+Jul 2 2026: Version 0.37.0
+  - Symbol names are now stored in the top half of the image (the bootable image).
+    This fixes an issue where creating new symbols can and NOT saving the image can 
+    lead to a corrupted image state.
+  - unzip is part of the dynamic load extensions.
+  - Lots of additions in the Linux REPL (qt, mcp).
+  - Additions to text rendering in the display extensions from dovpear
+  - Code delimination comments unification (work in progress).
+  - Documenting LispBM stance in documents: SECURITY.md, CONTRIBUTING.md and TESTING.md.
+  - Being very clear of usage of third party code usage in THIRD-PARTY-NOTICES.md.
 
 Feb 8 2026: Version 0.36.0
   - Bugfix in lbm_defrag_mem that could cause unnecessary runs of compaction.

@@ -70,17 +70,14 @@ bool lbm_memory_init(lbm_uint *data, lbm_uint data_size,
   bool res = false;
   if (data && bits) {
 
-    if (((lbm_uint)data % sizeof(lbm_uint) != 0) || // Alignment requirement
-        (data_size * 2) != (bits_size * sizeof(lbm_uint) * 8) ||
-        data_size % 4 != 0 ||
-        ((lbm_uint)bits % sizeof(lbm_uint) != 0) || // Alignment requirement
-        bits_size < 1) {
-        //bits_size % 4 != 0) { // lets try without this requirement a while
-      // data is not aligned to sizeof lbm_uint
-      // size is too small
-      // or size is not a multiple of 4
-    } else {
+    // Data_size, size of the memory in words.
+    // Every word of memory needs 2x status bits.
+    // so bitmap bits_size should be 2x BITS compared to num words data.
+    // Really the number of bits needed should be less than the number of bits we have.
 
+    if ((lbm_uint)data % sizeof(lbm_uint) == 0 &&              // Alignment req data.
+        (lbm_uint)bits % sizeof(lbm_uint) == 0 &&              // Alignment req bitmap.
+        data_size *2 <= (bits_size * sizeof(lbm_uint)) * 8) {  // size requirement.
       bitmap = bits;
       bitmap_size = bits_size;
 
@@ -135,11 +132,11 @@ static inline lbm_uint *bitmap_ix_to_address(lbm_uint ix) {
 #ifndef LBM64
 #define WORD_IX_SHIFT 5
 #define WORD_MOD_MASK 0x1F
-#define BITMAP_SIZE_SHIFT 4  // 16 statuses per bitmap word
+//#define BITMAP_SIZE_SHIFT 4  // 16 statuses per bitmap word
 #else
 #define WORD_IX_SHIFT 6      // divide by 64
 #define WORD_MOD_MASK 0x3F   // mod 64
-#define BITMAP_SIZE_SHIFT 5  // times 32, 32 statuses per bitmap word
+//#define BITMAP_SIZE_SHIFT 5  // times 32, 32 statuses per bitmap word
 #endif
 
 static inline lbm_uint status(lbm_uint i) {

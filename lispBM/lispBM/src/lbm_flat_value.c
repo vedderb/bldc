@@ -1,6 +1,6 @@
 /*
-    Copyright 2023, 2024, 2025 Joel Svensson    svenssonjoel@yahoo.se
-              2023       Benjamin Vedder
+    Copyright 2023 - 2026 Joel Svensson    svenssonjoel@yahoo.se
+              2023        Benjamin Vedder
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -26,12 +26,12 @@
 #define DEBUG 0
 #endif
 
-// ------------------------------------------------------------
+// ////////////////////////////////////////////////////////////
 // Access to GC from eval_cps
 int lbm_perform_gc(void);
 
 
-// ------------------------------------------------------------
+// ////////////////////////////////////////////////////////////
 // Flatteners
 bool lbm_start_flatten(lbm_flat_value_t *v, size_t buffer_size) {
   bool res = false;
@@ -299,12 +299,13 @@ static int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, bool 
 
   switch (t) {
   case LBM_TYPE_CONS: {
-    int res = 0;
-    int s1 = flatten_value_size_internal(jb,lbm_car(v), depth + 1, image);
-    if (s1 > 0) {
+    int res = flatten_value_size_internal(jb,lbm_car(v), depth + 1, image);
+    if (res > 0) {
       int s2 = flatten_value_size_internal(jb,lbm_cdr(v), depth + 1, image);
       if (s2 > 0) {
-        res = (1 + s1 + s2);
+        res = (1 + res + s2);
+      } else {
+        res = s2;
       }
     }
     return res;
@@ -316,7 +317,12 @@ static int flatten_value_size_internal(jmp_buf jb, lbm_value v, int depth, bool 
       lbm_value *arrdata = (lbm_value*)header->data;
       lbm_uint size = header->size / sizeof(lbm_value);
       for (lbm_uint i = 0; i < size; i ++ ) {
-        sum += flatten_value_size_internal(jb, arrdata[i], depth + 1, image);
+        int r = flatten_value_size_internal(jb, arrdata[i], depth + 1, image);
+        if (r > 0) {
+          sum += r;
+        } else {
+          return r;
+        }
       }
     } else {
       flatten_error(jb, FLATTEN_VALUE_ERROR_ARRAY);
@@ -541,7 +547,7 @@ lbm_value flatten_value(lbm_value v) {
   return handle_flatten_error(required_mem);
 }
 
-// ------------------------------------------------------------
+// ////////////////////////////////////////////////////////////
 // Unflattening
 static bool extract_byte(lbm_flat_value_t *v, uint8_t *r) {
   if (v->buf_size >= v->buf_pos + 1) {
@@ -585,6 +591,7 @@ static bool extract_dword(lbm_flat_value_t *v, uint64_t *r) {
 
 static int lbm_unflatten_value_atom(lbm_flat_value_t *v, lbm_value *res) {
 
+  if (v->buf_pos >= v->buf_size) return UNFLATTEN_MALFORMED;
   uint8_t curr = v->buf[v->buf_pos++];
 
   if (v->buf_size <= v->buf_pos) return UNFLATTEN_MALFORMED;
@@ -871,6 +878,7 @@ static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, 
 #endif
   while (!done) {
     int32_t set_ix = -1;
+    if (v->buf_pos >= v->buf_size) return UNFLATTEN_MALFORMED;
     if (v->buf[v->buf_pos] == S_SHARED) {
       v->buf_pos++;
       if (st && target_map) {
@@ -898,6 +906,8 @@ static int lbm_unflatten_value_nostack(sharing_table *st, lbm_uint *target_map, 
         return UNFLATTEN_SHARING_TABLE_REQUIRED;
       }
     }
+
+    if (v->buf_pos >= v->buf_size) return UNFLATTEN_MALFORMED;
 
     bool is_leaf = true;
     lbm_value unflattened = ENC_SYM_NIL;

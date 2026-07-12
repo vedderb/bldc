@@ -39,7 +39,7 @@ typedef lbm_value (*extension_fptr)(lbm_value*,lbm_uint);
  */
 typedef struct {
   extension_fptr fptr;
-  char *name;
+  const char *name;
 } lbm_extension_t;
 
 
@@ -91,7 +91,7 @@ bool lbm_clr_extension(lbm_uint sym_id);
  * \param ext The extension function pointer.
  * \return true on success and false on failure.
  */
-bool lbm_add_extension(char *sym_str, extension_fptr ext);
+bool lbm_add_extension(const char *sym_str, extension_fptr ext);
 
 /** Check if an lbm_value is a symbol that is bound to an extension.
  * \param exp Key to look up.
@@ -156,6 +156,26 @@ extern size_t strlen_max(const char *s, size_t maxlen);
  * \return true is str1 matches the prefix of str2.
  */
 extern bool strmatch(const char *str1, const char *str2);
+
+/** Decode an optional non-negative integer argument, or a default if the
+ *  argument wasn't supplied. Negative user input is clamped to 0.
+ * \param args Extension argument array.
+ * \param argn Number of arguments actually supplied.
+ * \param idx Index of the optional argument to decode.
+ * \param default_val Value to use if argn <= idx.
+ * \param out Output: the decoded (or default) value.
+ * \return true on success, false if the argument was supplied but not a number.
+ */
+extern bool dec_opt_uint(lbm_value *args, lbm_uint argn, lbm_uint idx,
+                          size_t default_val, size_t *out);
+
+/** Build a new LBM string by copying
+ *  `len` bytes out of a raw C buffer and end with \0.
+ * \param data Pointer to the source bytes.
+ * \param len Number of bytes to copy.
+ * \return the new array value, or ENC_SYM_MERROR on allocation failure.
+ */
+extern lbm_value span_to_lbm(const char *data, size_t len);
 
 /** Create a lambda given argument list and body
  *

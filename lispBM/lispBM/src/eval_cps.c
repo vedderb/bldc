@@ -1,6 +1,6 @@
 /*
     Copyright 2018, 2020 - 2026 Joel Svensson    svenssonjoel@yahoo.se
-              2025 Rasmus Söderhielm rasmus.soderhielm@gmail.com
+              2025 - 2026 Rasmus Söderhielm rasmus.soderhielm@gmail.com
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -96,7 +96,11 @@
 //  - Optimize function for size.
 //  - Possibly move cold functions to a separate area of memory.
 //  - Act as a branch predition hint for branches leading to "cold" calls.
+#ifdef __clang__
+#define sizeopt __attribute__((cold, noinline))
+#else
 #define sizeopt __attribute__((cold, noinline, optimize("Os")))
+#endif
 
 static jmp_buf error_jmp_buf;
 static jmp_buf critical_error_jmp_buf;
@@ -223,11 +227,11 @@ static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid);
 static void apply_apply(lbm_value *args, lbm_uint nargs, eval_context_t *ctx);
 static int gc(void);
 #ifdef LBM_USE_ERROR_LINENO
-static void error_ctx(lbm_value, int line_no);
-static void error_at_ctx(lbm_value err_val, lbm_value at, int line_no);
+static noreturn void error_ctx(lbm_value, int line_no);
+static noreturn void error_at_ctx(lbm_value err_val, lbm_value at, int line_no);
 #else
-static void error_ctx(lbm_value);
-static void error_at_ctx(lbm_value err_val, lbm_value at);
+static noreturn void error_ctx(lbm_value);
+static noreturn void error_at_ctx(lbm_value err_val, lbm_value at);
 #endif
 static void mailbox_add_mail(eval_context_t *ctx, lbm_value mail);
 
@@ -345,7 +349,9 @@ void lbm_request_gc(void) {
 */
 
 #define EVAL_CPS_DEFAULT_STACK_SIZE 256
-#define EVAL_TIME_QUOTA 400 // time in used, if time quota
+// The intended unit on the QUOTA is us (microseconds) and this should
+// be ensured by the platform support libraries for a given platform.
+#define EVAL_TIME_QUOTA 400
 #define EVAL_CPS_MIN_SLEEP 200
 #define EVAL_STEPS_QUOTA   10
 
@@ -1746,7 +1752,7 @@ static void mark_context(eval_context_t *ctx, void *arg1, void *arg2) {
   lbm_gc_mark_env(ctx->curr_env);
   lbm_gc_mark_roots(roots, 4);
   lbm_gc_mark_roots(ctx->mailbox, ctx->num_mail);
-  lbm_gc_mark_aux(ctx->K.data, ctx->K.sp);
+  lbm_gc_mark_continuation_stack(ctx->K.data, ctx->K.sp);
 }
 
 static int gc(void) {
@@ -3173,13 +3179,11 @@ static void apply_kill(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     }
     lbm_mutex_lock(&qmutex);
     eval_context_t *found = NULL;
-    found = lookup_ctx_nm(&blocked, cid);
-    if (found)
+    if ((found = lookup_ctx_nm(&blocked, cid))) {
       unlink_ctx_nm(&blocked, found);
-    else
-      found = lookup_ctx_nm(&queue, cid);
-    if (found)
+    } else if ((found = lookup_ctx_nm(&queue, cid))) {
       unlink_ctx_nm(&queue, found);
+    }
 
     if (found) {
       found->K.data[found->K.sp - 1] = KILL;
@@ -4454,28 +4458,38 @@ static void cont_read_next_token(eval_context_t *ctx) {
     lbm_uint symbol_id;
     if (!lbm_get_symbol_by_name(tokpar_sym_str, &symbol_id)) {
       int r = 0;
-      if (n > 4 && // Checked for every symbol read.
+
+      // Checked for every symbol read.
+      if (n > 4 &&
           (memcmp(tokpar_sym_str, "ext-", 4) == 0)) {
-        lbm_uint ext_id;
-        lbm_uint ext_name_len = (lbm_uint)n + 1;
+
+        // "ext-" symbols shouldnt have a regular symbol-id.
+        // These symbols take a slot in the extension table
+        // and follow a specialised lookup procedure.
+        lbm_uint id;
+        if (!lbm_lookup_extension_id(tokpar_sym_str, &id)) {
+          lbm_uint ext_name_len = (lbm_uint)n + 1;
 #ifdef LBM_ALWAYS_GC
-        gc();
-#endif
-        char *ext_name = lbm_malloc(ext_name_len);
-        if (!ext_name) {
           gc();
-          ext_name = lbm_malloc(ext_name_len);
-        }
-        if (ext_name) {
-          memcpy(ext_name, tokpar_sym_str, ext_name_len);
-          r = lbm_add_extension(ext_name, lbm_extensions_default);
-          if (!lbm_lookup_extension_id(ext_name, &ext_id)) {
-            ERROR_CTX(ENC_SYM_FATAL_ERROR);
+#endif
+          char *ext_name = lbm_malloc(ext_name_len);
+          if (!ext_name) {
+            gc();
+            ext_name = lbm_malloc(ext_name_len);
           }
-          symbol_id = ext_id;
-        } else {
-          ERROR_CTX(ENC_SYM_MERROR);
+          if (ext_name) {
+            memcpy(ext_name, tokpar_sym_str, ext_name_len);
+            lbm_add_extension(ext_name, lbm_extensions_default);
+          } else {
+            ERROR_CTX(ENC_SYM_MERROR);
+          }
         }
+        // TODO: Change API so that an extra O(N) not needed?
+        if (!lbm_lookup_extension_id(tokpar_sym_str, &id)) {
+          ERROR_CTX(ENC_SYM_FATAL_ERROR);
+        }
+        symbol_id = id;
+        r = 1;
       } else {
         r = lbm_add_symbol_base(tokpar_sym_str, &symbol_id);
       }
@@ -5910,17 +5924,27 @@ void lbm_add_eval_symbols(void) {
 
 
 #ifdef LBM_SINGLE_THREADED
-void lbm_eval_step(void) {
+bool lbm_eval_step(int n) {
   if (setjmp(critical_error_jmp_buf) > 0) {
     lbm_printf_callback("GC stack overflow!\n");
     critical_error_callback();
     eval_running = false;
-    return;
+    return false; // uninteresting on a critical error.
   }
-  if (setjmp(error_jmp_buf) > 0) { return; }
+  if (setjmp(error_jmp_buf) > 0) { return false; }
+
+  bool busy = false;
 
   if (ctx_running) {
-    evaluation_step();
+    busy = true;
+    while (n > 0 && ctx_running) {
+      evaluation_step();
+      n--;
+    }
+    if (ctx_running) {
+      enqueue_ctx_nm(&queue, ctx_running);
+      ctx_running = NULL;
+    }  
   } else {
     if (gc_requested) gc();
     process_events();
@@ -5929,6 +5953,7 @@ void lbm_eval_step(void) {
     ctx_running = dequeue_ctx_nm(&queue);
     lbm_mutex_unlock(&qmutex);
   }
+  return busy;  
 }
 
 bool lbm_eval_init(void) {

@@ -14,7 +14,7 @@
 (spawn 100 event-loop win)
 
 ;; Load a font
-(define font-file (fopen "./sdl_tests/font_16_26.bin" "r"))
+(define font-file (f-open "./sdl_tests/font_16_26.bin" "r"))
 (define font (load-file font-file))
 
 ;; Connect the renderer to the display library

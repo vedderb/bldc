@@ -170,7 +170,6 @@ typedef struct {
 	uint8_t exti_portsrc;
 	uint8_t exti_pinsrc;
 	uint32_t exti_line;
-	uint32_t exti_ch;
 
 	ABI_state state;
 } ABI_config_t;
