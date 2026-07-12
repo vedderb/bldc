@@ -1140,6 +1140,8 @@ typedef enum {
 	COMM_CAN_UPDATE_BAUD_ALL				= 158,
 
 	COMM_MOTOR_ESTOP						= 159,
+
+	COMM_DISABLE							= 160,
 } COMM_PACKET_ID;
 
 // CAN commands
@@ -1464,7 +1466,10 @@ typedef struct __attribute__((packed)) {
 	uint8_t can_baud;
 	uint8_t can_id;
 
-	uint8_t dummy;
+	// Motor disable state
+	uint8_t motor_disabled;
+
+	uint8_t dummy[2];
 } backup_data;
 
 #endif /* DATATYPES_H_ */
