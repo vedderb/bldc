@@ -6,6 +6,7 @@ ENCSRC =	encoder/encoder.c \
 			encoder/enc_as504x.c \
 			encoder/enc_bissc.c \
 			encoder/enc_mt6816.c \
+			encoder/enc_mt6835.c \
 			encoder/enc_sincos.c \
 			encoder/enc_tle5012.c \
 			encoder/enc_ts5700n8501.c \

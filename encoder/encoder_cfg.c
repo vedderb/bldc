@@ -95,6 +95,32 @@ MT6816_config_t encoder_cfg_mt6816 = {
 #endif
 };
 
+MT6835_config_t encoder_cfg_mt6835 = {
+#ifdef HW_SPI_DEV
+		&HW_SPI_DEV, // spi_dev
+		{//HARDWARE SPI CONFIG
+				NULL, HW_SPI_PORT_NSS, HW_SPI_PIN_NSS, SPI_BaudRatePrescaler_8 |
+				SPI_CR1_CPOL | SPI_CR1_CPHA
+		},
+
+		HW_SPI_GPIO_AF,
+		/*NSS*/HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
+		/*SCK*/HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
+		/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
+		/*MISO*/HW_SPI_PORT_MISO, HW_SPI_PIN_MISO,
+		{0, 0, 0, 0, 0},
+#else
+		0,
+		{0},
+		0,
+		0, 0,
+		0, 0,
+		0, 0,
+		0, 0,
+		{0, 0, 0, 0, 0},
+#endif
+};
+
 TLE5012_config_t encoder_cfg_tle5012 = {
 		{
 				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, // nss

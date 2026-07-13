@@ -30,6 +30,7 @@
 #include "enc_as504x.h"
 #include "enc_bissc.h"
 #include "enc_mt6816.h"
+#include "enc_mt6835.h"
 #include "enc_sincos.h"
 #include "enc_tle5012.h"
 #include "enc_ts5700n8501.h"

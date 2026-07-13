@@ -42,7 +42,8 @@ typedef enum {
 	ENCODER_TYPE_PWM,
 	ENCODER_TYPE_PWM_ABI,
 	ENCODER_TYPE_MA782,
-	ENCODER_TYPE_AMT22
+	ENCODER_TYPE_AMT22,
+	ENCODER_TYPE_MT6835
 } encoder_type_t;
 
 typedef struct {
@@ -99,6 +100,30 @@ typedef struct {
 
 	MT6816_state state;
 } MT6816_config_t;
+
+typedef struct {
+	float spi_error_rate;
+	float last_enc_angle;
+	uint32_t spi_error_cnt;
+	uint32_t spi_val;
+	uint32_t last_update_time;
+} MT6835_state;
+
+typedef struct {
+	SPIDriver *spi_dev;
+	SPIConfig hw_spi_cfg;
+	uint8_t spi_af;
+	stm32_gpio_t *nss_gpio;
+	int nss_pin;
+	stm32_gpio_t *sck_gpio;
+	int sck_pin;
+	stm32_gpio_t *mosi_gpio;
+	int mosi_pin;
+	stm32_gpio_t *miso_gpio;
+	int miso_pin;
+
+	MT6835_state state;
+} MT6835_config_t;
 
 typedef struct {
 	float spi_error_rate;

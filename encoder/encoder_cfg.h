@@ -29,6 +29,7 @@ extern AS5x47U_config_t encoder_cfg_as5x47u;
 extern AS504x_config_t encoder_cfg_as504x;
 extern BISSC_config_t encoder_cfg_bissc;
 extern MT6816_config_t encoder_cfg_mt6816;
+extern MT6835_config_t encoder_cfg_mt6835;
 extern ENCSINCOS_config_t encoder_cfg_sincos;
 extern TLE5012_config_t encoder_cfg_tle5012;
 extern TS5700N8501_config_t encoder_cfg_TS5700N8501;
