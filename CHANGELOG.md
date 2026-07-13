@@ -1,6 +1,8 @@
 ### 7.01
 #### TBD
 * Major IMU refactor, IMU DRDY support. See https://github.com/vedderb/bldc/pull/917
+* MT6835 encoder support: https://github.com/vedderb/bldc/pull/916
+* New kill switch modes.
 
 ### 7.00
 #### 2026-05-15
