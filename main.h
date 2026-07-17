@@ -50,11 +50,21 @@ typedef enum {
 } CrashType;
 
 typedef struct {
-	uint32_t reset_flags;
+	uint32_t magic;
+	uint32_t boot_count;   // number of boots since the struct was last wiped
+	uint32_t reset_flags;  // RCC_CSR snapshot of the current boot
 	CrashType type;
+	uint32_t crash_boot;   // boot_count at the time the crash/halt was stored
 	const char *halt_reason;
 	CrashRegisters registers;
 } CrashInfo;
+
+// Marks crash_info as valid. The struct lives in noinit RAM, so its contents are
+// only meaningful if RAM actually survived the reset: after a power loss (SRAM
+// decay) or a firmware update that moves the section, the magic won't match and
+// the struct is wiped at boot. Including the size also invalidates it on a
+// firmware update that changes the layout without moving the section.
+#define CRASH_INFO_MAGIC	(0xB0070000 | sizeof(CrashInfo))
 
 extern CrashInfo crash_info;
 

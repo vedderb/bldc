@@ -294,10 +294,14 @@ static bool should_reset_config(void) {
 }
 
 int main(void) {
-	if (RCC->CSR & RCC_CSR_PORRSTF) {
-		// In case of Power On reset erase the whole struct
+	if (crash_info.magic != CRASH_INFO_MAGIC) {
+		// Erase the struct when the contents did not survive: first power-up
+		// from cold, SRAM decay after a long power loss, or a firmware update
+		// moving the section.
 		memset(&crash_info, 0, sizeof(crash_info));
+		crash_info.magic = CRASH_INFO_MAGIC;
 	}
+	crash_info.boot_count++;
 	crash_info.reset_flags = RCC->CSR;
 
 	// Clear the reset flags
@@ -481,6 +485,7 @@ static void stop_motor_and_reset(void) {
 void main_system_halt(const char *reason) {
 	crash_info.halt_reason = reason;
 	crash_info.type = CRASH_HALT;
+	crash_info.crash_boot = crash_info.boot_count;
 
 	stop_motor_and_reset();
 }
@@ -518,6 +523,7 @@ void fault_handler_c(uint32_t *hardfault_args) {
 	crash_info.registers.shcsr = SCB->SHCSR;
 
 	crash_info.type = CRASH_REGISTERS;
+	crash_info.crash_boot = crash_info.boot_count;
 
 	stop_motor_and_reset();
 }

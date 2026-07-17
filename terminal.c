@@ -71,6 +71,7 @@ static int callback_write = 0;
 static void crash_diag(void) {
 	// Reference manual (RM0090) names for the RCC_CSR reset source flags
 	uint32_t f = crash_info.reset_flags;
+	commands_printf("Boot number: %u", crash_info.boot_count);
 	commands_printf("Uptime: %u s", (uint32_t)(chVTGetSystemTimeX() / CH_CFG_ST_FREQUENCY));
 	commands_printf("Reset flags:%s%s%s%s%s%s%s",
 			(f & RCC_CSR_BORRSTF) ? " BOR" : "", (f & RCC_CSR_PADRSTF) ? " PIN" : "",
@@ -78,15 +79,34 @@ static void crash_diag(void) {
 			(f & RCC_CSR_WDGRSTF) ? " IWDG" : "", (f & RCC_CSR_WWDGRSTF) ? " WWDG" : "",
 			(f & RCC_CSR_LPWRRSTF) ? " LPWR" : "");
 
+	if (crash_info.boot_count > 1 && (crash_info.reset_flags & RCC_CSR_PORRSTF)) {
+		// A POR normally means a power loss long enough to decay SRAM and wipe the
+		// struct (resetting the boot count). Surviving contents mean the supply only
+		// dipped below the POR threshold briefly.
+		commands_printf("POR with RAM intact: brief supply dip");
+	}
+
+	if (crash_info.type == CRASH_NONE) {
+		return;
+	}
+
+	const char *crash_type = crash_info.type == CRASH_HALT ? "halt" : "crash";
+	uint32_t boots_ago = crash_info.boot_count - crash_info.crash_boot;
+	if (boots_ago == 1) {
+		commands_printf("Previous boot %sed.", crash_type);
+	} else {
+		commands_printf("Stale %s from %u boots ago.", crash_type, boots_ago);
+	}
+
 	if (crash_info.type == CRASH_HALT) {
 		// The reason points to a string literal in flash. After partial SRAM decay it
 		// can be garbage even with the crash_info magic intact, and dereferencing an
 		// unmapped address hardfaults, so only print it if it points into flash.
 		uint32_t addr = (uint32_t)crash_info.halt_reason;
 		if (addr >= FLASH_BASE && addr < FLASH_BASE + 1024 * 1024) {
-			commands_printf("OS halted, reason: %s", crash_info.halt_reason);
+			commands_printf("Reason: %s", crash_info.halt_reason);
 		} else {
-			commands_printf("OS halted, bad reason ptr %08x", addr);
+			commands_printf("Bad reason ptr: %08x", addr);
 		}
 	}
 
@@ -97,7 +117,7 @@ static void crash_diag(void) {
 				"reg_names must match CrashRegisters");
 		const uint32_t *regs = (const uint32_t *)&crash_info.registers;
 
-		commands_printf("System crashed, registers:");
+		commands_printf("Registers:");
 		for (unsigned i = 0; i < sizeof(reg_names) / sizeof(reg_names[0]); i++) {
 			commands_printf("%s: %08x", reg_names[i], regs[i]);
 		}
