@@ -79,6 +79,11 @@ static void crash_diag(void) {
 			(f & RCC_CSR_WDGRSTF) ? " IWDG" : "", (f & RCC_CSR_WWDGRSTF) ? " WWDG" : "",
 			(f & RCC_CSR_LPWRRSTF) ? " LPWR" : "");
 
+	if (crash_info.pvd_dips > 0) {
+		commands_printf("Supply dips <2.9V: %u, last at uptime %u s",
+				crash_info.pvd_dips, crash_info.pvd_last_uptime);
+	}
+
 	if (crash_info.boot_count > 1 && (crash_info.reset_flags & RCC_CSR_PORRSTF)) {
 		// A POR normally means a power loss long enough to decay SRAM and wipe the
 		// struct (resetting the boot count). Surviving contents mean the supply only

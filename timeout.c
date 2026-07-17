@@ -262,6 +262,14 @@ static THD_FUNCTION(timeout_thread, arg) {
 
 		kill_sw_active = kill_sw;
 
+		// Re-arm the PVD supply dip latch (its ISR masks the line to rate-limit a
+		// bouncing supply to one latched dip per iteration). Locked because IMR is
+		// also read-modified-written by EXTI_Init calls from other threads.
+		chSysLock();
+		EXTI->IMR |= EXTI_Line16;
+		chSysUnlock();
+
+
 		bool threads_ok = true;
 
 		// Monitored threads (foc, can, timer) must report at least one iteration,
