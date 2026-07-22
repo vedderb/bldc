@@ -1997,6 +1997,22 @@ static lbm_value ext_set_kill_sw(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_disable_motor(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return mc_interface_disable() ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
+static lbm_value ext_enable_motor(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	mc_interface_enable();
+	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_is_motor_disabled(lbm_value *args, lbm_uint argn) {
+	(void)args; (void)argn;
+	return mc_interface_is_disabled() ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
 static lbm_value ext_foc_beep(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(3);
 	timeout_reset();
@@ -6523,6 +6539,9 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("foc-openloop-phase", ext_foc_openloop_phase);
 //		lbm_add_extension("foc-set-fw-override", ext_foc_set_fw_override);
 		lbm_add_extension("set-kill-sw", ext_set_kill_sw);
+		lbm_add_extension("disable-motor", ext_disable_motor);
+		lbm_add_extension("enable-motor", ext_enable_motor);
+		lbm_add_extension("is-motor-disabled", ext_is_motor_disabled);
 
 		lbm_add_extension("foc-beep", ext_foc_beep);
 		lbm_add_extension("foc-play-tone", ext_foc_play_tone);

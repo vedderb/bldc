@@ -1158,6 +1158,17 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 		commands_printf("User Git Hash  : %s", USER_GIT_COMMIT_HASH);
 #endif
 		commands_printf(" ");
+	} else if (strcmp(argv[0], "motor_disable") == 0) {
+		if (mc_interface_disable()) {
+			commands_printf("Motor disabled.\n");
+		} else {
+			commands_printf("Could not disable motor: it is currently spinning.\n");
+		}
+	} else if (strcmp(argv[0], "motor_enable") == 0) {
+		mc_interface_enable();
+		commands_printf("Motor enabled.\n");
+	} else if (strcmp(argv[0], "motor_is_disabled") == 0) {
+		commands_printf("Motor disabled: %s\n", mc_interface_is_disabled() ? "Yes" : "No");
 	} else if (strcmp(argv[0], "rebootwdt") == 0) {
 		chSysLock();
 		for (;;) {__NOP();}
@@ -1278,6 +1289,16 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 
 		commands_printf("fw_info");
 		commands_printf("  Print detailed firmware info.");
+
+		commands_printf("motor_disable");
+		commands_printf("  Disable the motor and persist this state across reboots. Only");
+		commands_printf("  works while the motor is stationary.");
+
+		commands_printf("motor_enable");
+		commands_printf("  Re-enable the motor after motor_disable.");
+
+		commands_printf("motor_is_disabled");
+		commands_printf("  Print whether the motor is currently disabled.");
 
 		commands_printf("rebootwdt");
 		commands_printf("  Reboot using the watchdog timer.");

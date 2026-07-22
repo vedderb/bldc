@@ -1295,6 +1295,48 @@ Set kill switch state. When state is set to 1 the motor is disabled and optional
 
 ---
 
+#### disable-motor
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.01+ |
+
+```clj
+(disable-motor)
+```
+
+Disable the motor and persist this state across reboots. Only works while the motor is stationary. Returns t on success and nil if the motor is currently spinning.
+
+---
+
+#### enable-motor
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.01+ |
+
+```clj
+(enable-motor)
+```
+
+Re-enable the motor after disable-motor.
+
+---
+
+#### is-motor-disabled
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.01+ |
+
+```clj
+(is-motor-disabled)
+```
+
+Check whether the motor is currently disabled.
+
+---
+
 #### foc-beep
 
 | Platforms | Firmware |
