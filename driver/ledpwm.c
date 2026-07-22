@@ -25,6 +25,7 @@
 
 // Private variables
 static volatile int led_values[LEDPWM_LED_NUM];
+static volatile bool led_values_override[LEDPWM_LED_NUM] = {false};
 static uint8_t gamma_table[LEDPWM_CNT_TOP + 1];
 
 void ledpwm_init(void) {
@@ -47,6 +48,10 @@ void ledpwm_set_intensity(unsigned int led, float intensity) {
 		return;
 	}
 
+	if (led_values_override[led]) {
+		return;
+	}
+
 	if (intensity < 0.0) {
 		intensity = 0.0;
 	}
@@ -56,6 +61,35 @@ void ledpwm_set_intensity(unsigned int led, float intensity) {
 	}
 
 	led_values[led] = gamma_table[(int)(intensity * LEDPWM_CNT_TOP)];
+}
+
+/*
+ * Override LED intensity. Values less than -0.1 will disable the override and
+ * enable the default behavior again. Returns false if an invalid LED was selected,
+ * otherwise returns true.
+ */
+bool ledpwm_set_intensity_override(unsigned int led, float intensity) {
+	if (led >= LEDPWM_LED_NUM) {
+		return false;
+	}
+
+	led_values_override[led] = intensity > -0.1;
+
+	if (!led_values_override[led]) {
+		return true;
+	}
+
+	if (intensity < 0.0) {
+		intensity = 0.0;
+	}
+
+	if (intensity > 1.0) {
+		intensity = 1.0;
+	}
+
+	led_values[led] = gamma_table[(int)(intensity * LEDPWM_CNT_TOP)];
+
+	return true;
 }
 
 void ledpwm_led_on(int led) {
