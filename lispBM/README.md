@@ -926,6 +926,39 @@ Override speed reported to VESC Tool (and to other extensions). The argument spe
 
 ---
 
+#### override-led
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00.2+ |
+
+```clj
+(overide-led led-id intensity)
+```
+
+Override the LED brightness on hardware LEDs. Almost all hardware has a red and green LED, but some hardware also has an RGB LED button. All of these LED intensities can be overridden. The argument led-id is the id of the LED to override and intensity is the intensity to override with. If intensity is set to -1 the LED will return to the default behavior. Returns true if led-id is valid for this hardware, false otherwise.
+
+The following IDs are used on most hardwares, although it can vary. Most VESC Labs hardware has an RGB button.
+
+| led-id | Function |
+|---|---|
+| 0 | HW Green LED |
+| 1 | HW Red LED |
+| 2 | RGB Button Blue |
+| 3 | RGB Button Green |
+| 4 | RGB Button Red |
+
+Example:
+```clj
+; Set the green LED to 50% brightness
+(overide-led 0 0.5)
+
+; Stop overriding the green LED and restore its default behavior
+(overide-led 0 -1.0)
+```
+
+---
+
 ### App Override Commands
 
 Several app-inputs can be detached from the external interfaces and overridden from lisp. This is useful to take advantage of existing throttle curves and control modes from the apps while providing a custom input source.

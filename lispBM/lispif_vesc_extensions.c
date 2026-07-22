@@ -64,6 +64,7 @@
 #include "packet.h"
 #include "timer.h"
 #include "encoder_cfg.h"
+#include "ledpwm.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -6082,6 +6083,12 @@ static lbm_value ext_override_speed(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_override_led(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(2);
+	bool res = ledpwm_set_intensity_override(lbm_dec_as_i32(args[0]), lbm_dec_as_float(args[1]));
+	return res ? ENC_SYM_TRUE : ENC_SYM_NIL;
+}
+
 // Remote Messages
 
 // (canmsg-recv slot timeout)
@@ -6489,6 +6496,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("buf-resize", ext_buf_resize);
 		lbm_add_extension("shutdown-hold", ext_shutdown_hold);
 		lbm_add_extension("override-speed", ext_override_speed);
+		lbm_add_extension("override-led", ext_override_led);
 
 		// APP commands
 		lbm_add_extension("app-adc-detach", ext_app_adc_detach);
