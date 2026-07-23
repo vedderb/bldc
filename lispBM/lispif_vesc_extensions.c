@@ -6077,6 +6077,42 @@ static lbm_value ext_shutdown_hold(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_shutdown(lbm_value *args, lbm_uint argn) {
+	bool save_backup = true;
+	if (argn == 1) {
+		if (!is_symbol_true_false(args[0])) {
+			return ENC_SYM_TERROR;
+		}
+
+		save_backup = lbm_is_symbol_true(args[0]);
+	}
+
+	if (save_backup) {
+		conf_general_store_backup_data();
+	}
+
+	mc_interface_ignore_input_both(10000);
+	mc_interface_release_motor_override_both();
+
+	bool ok = do_shutdown(false);
+
+	if (ok) {
+		chThdSleepMilliseconds(10000);
+	} else {
+		mc_interface_ignore_input_both(100);
+	}
+
+	// We should not return, but if we do the shutdown failed
+	return ENC_SYM_NIL;
+}
+
+static lbm_value ext_shutdown_btn_read(lbm_value *args, lbm_uint argn) {
+	(void)args;
+	(void)argn;
+
+	return lbm_enc_i(shutdown_sample_button() ? 1 : 0);
+}
+
 static lbm_value ext_override_speed(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(2);
 	mc_interface_override_wheel_speed(lbm_dec_as_i32(args[0]), lbm_dec_as_float(args[1]));
@@ -6495,6 +6531,8 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("crc32", ext_crc32);
 		lbm_add_extension("buf-resize", ext_buf_resize);
 		lbm_add_extension("shutdown-hold", ext_shutdown_hold);
+		lbm_add_extension("shutdown", ext_shutdown);
+		lbm_add_extension("shutdown-btn-read", ext_shutdown_btn_read);
 		lbm_add_extension("override-speed", ext_override_speed);
 		lbm_add_extension("override-led", ext_override_led);
 

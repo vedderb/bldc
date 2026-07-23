@@ -890,6 +890,57 @@ Hold shutdown. When hold is true hardware shutdown will be delayed until hold is
 
 ---
 
+#### shutdown
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00.2+ |
+
+```clj
+(shutdown optSaveBackup)
+```
+
+Shutdown controller now. optSaveBackup sets whether the backup data (odometer etc.) should be save before shutting down (true by default). This function does not return on a succuessful shutdown. If it returns nil the shutdown has failed - this can happen if the hardware does not support shutdown or if the shutdown button is held pressed.
+
+---
+
+#### shutdown-btn-read
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00.2+ |
+
+```clj
+(shutdown-btn-read)
+```
+
+Read the shutdown button. Returns 0 when not pressed and 1 when pressed. Hardware without a button will always return 0. It is recommended to set the shutdown mode in the app config to always on to use the button as a general purpose button.
+
+Example:
+
+```clj
+; Turn off blue button LED
+(override-led 2 0)
+
+; Make button red when not pressed and green when pressed
+(loopwhile t {
+        (if (= (shutdown-btn-read) 1)
+            {
+                (override-led 3 1)
+                (override-led 4 0)
+            }
+            {
+                (override-led 3 0)
+                (override-led 4 1)
+            }
+        )
+
+        (sleep 0.01)
+})
+```
+
+---
+
 #### reboot
 
 | Platforms | Firmware |
