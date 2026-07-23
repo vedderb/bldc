@@ -28,6 +28,11 @@
 #endif
 
 #ifdef HW_SHUTDOWN_CUSTOM
+
+bool shutdown_sample_button(void) {
+	return false;
+}
+
 // Do nothing. All shutdown functionality is handled in the hardware file.
 #elif defined(HW_SHUTDOWN_HOLD_ON)
 
