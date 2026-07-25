@@ -86,7 +86,7 @@ static inline void transport_recover(transport_t *t) {
 }
 
 static inline void transport_deinit(transport_t *t) {
-	if (t->interface->deinit) {
+	if (t->interface && t->interface->deinit) {
 		t->interface->deinit(t);
 	}
 }

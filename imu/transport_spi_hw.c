@@ -101,13 +101,17 @@ static uint16_t max_sample_rate(transport_t *t) {
 	return 10000;
 }
 
+static void deinit(transport_t *t) {
+	spiStop(dev_of(t));
+}
+
 static const transport_interface_t spi_hw_interface = {
 	.name = "spi-hw",
 	.max_sample_rate = max_sample_rate,
 	.read_reg = read_reg,
 	.write_reg = write_reg,
 	.recover = NULL,
-	.deinit = NULL,
+	.deinit = deinit,
 };
 
 // CR1.BR field value (0-7) for the fastest prescaler whose SPI clock does not
