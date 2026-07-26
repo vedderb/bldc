@@ -1219,7 +1219,16 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 		chSysLock();
 		for (;;) {__NOP();}
 	} else if (strcmp(argv[0], "crash_diag") == 0) {
-		crash_diag();
+		if (argc == 2 && strcmp(argv[1], "clear") == 0) {
+			// Erase the data, keeping the reset_flags as they still describe the current boot
+			uint32_t reset_flags = crash_info.reset_flags;
+			memset(&crash_info, 0, sizeof(crash_info));
+			crash_info.magic = CRASH_INFO_MAGIC;
+			crash_info.boot_count = 1;
+			crash_info.reset_flags = reset_flags;
+		} else {
+			crash_diag();
+		}
 	}
 
 	// The help command
@@ -1341,8 +1350,8 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 		commands_printf("rebootwdt");
 		commands_printf("  Reboot using the watchdog timer.");
 
-		commands_printf("crash_diag");
-		commands_printf("  Print crash/reset diagnostics.");
+		commands_printf("crash_diag [clear]");
+		commands_printf("  Print (or clear) the crash/reset diagnostics.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {
