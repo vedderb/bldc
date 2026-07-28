@@ -766,7 +766,7 @@ static lbm_value ext_rtlsdr_stop_fm_playback(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
-// ------------------------------------------------------------
+// ////////////////////////////////////////////////////////////
 // General purpose reading
 
 static iq_reader_t gp_reader;
@@ -800,7 +800,7 @@ static lbm_value ext_rtlsdr_get_samples(lbm_value *args, lbm_uint argn) {
 
 
 
-// ------------------------------------------------------------
+// ////////////////////////////////////////////////////////////
 // Old radio thread
 static void radio_thd(void *arg) {
   (void)arg;

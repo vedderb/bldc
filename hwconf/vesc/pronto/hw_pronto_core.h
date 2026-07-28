@@ -92,11 +92,11 @@
 #define HW_SAMPLE_SHUTDOWN()	hw_sample_shutdown_button()
 #define HW_SHUTDOWN_NO // Normally open button
 
-// Hold shutdown pin early to wake up on short pulses
-#define HW_EARLY_INIT()			palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
+#define HW_VERY_EARLY_INIT()	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE); \
+								palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
 								HW_SHUTDOWN_HOLD_ON();
 
-#define MCPWM_FOC_CURRENT_SAMP_OFFSET				(2) // Offset from timer top for ADC samples
+#define HW_EARLY_INIT()			HW_VERY_EARLY_INIT()
 
 /*
  * ADC Vector
@@ -223,9 +223,7 @@
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
 #define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOC
 #define HW_ENC_EXTI_PINSRC		EXTI_PinSource8
-#define HW_ENC_EXTI_CH			EXTI9_5_IRQn
 #define HW_ENC_EXTI_LINE		EXTI_Line8
-#define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
@@ -242,14 +240,16 @@
 #define HW_SPI_PIN_MISO			6
 
 // IMU
-#define LSM6DS3_NSS_GPIO		GPIOA
-#define LSM6DS3_NSS_PIN			15
-#define LSM6DS3_SCK_GPIO		GPIOB
-#define LSM6DS3_SCK_PIN			3
-#define LSM6DS3_MOSI_GPIO		GPIOB
-#define LSM6DS3_MOSI_PIN		5
-#define LSM6DS3_MISO_GPIO		GPIOB
-#define LSM6DS3_MISO_PIN		4
+#define IMU_DEV				IMU_DEV_LSM6DS3
+#define IMU_COM				IMU_COM_SPI_BB
+#define IMU_SPI_NSS_GPIO		GPIOA
+#define IMU_SPI_NSS_PIN			15
+#define IMU_SPI_SCK_GPIO		GPIOB
+#define IMU_SPI_SCK_PIN			3
+#define IMU_SPI_MOSI_GPIO		GPIOB
+#define IMU_SPI_MOSI_PIN		5
+#define IMU_SPI_MISO_GPIO		GPIOB
+#define IMU_SPI_MISO_PIN		4
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
@@ -287,7 +287,7 @@
 #define MCCONF_L_IN_CURRENT_MIN			-150.0	// Input current limit in Amperes (Lower)
 #endif
 #ifndef APPCONF_SHUTDOWN_MODE
-#define APPCONF_SHUTDOWN_MODE			SHUTDOWN_MODE_ALWAYS_ON
+#define APPCONF_SHUTDOWN_MODE			SHUTDOWN_MODE_ALWAYS_OFF
 #endif
 #ifndef APPCONF_APP_TO_USE
 #define APPCONF_APP_TO_USE				APP_NONE
@@ -300,7 +300,7 @@
 #define HW_LIM_VIN				20.0, 97.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
-#define HW_LIM_DUTY_MAX			0.0, 0.99
+#define HW_LIM_DUTY_MAX			0.0, 1.0
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
 // HW-specific functions

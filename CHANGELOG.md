@@ -1,8 +1,33 @@
-### 7.00
+### 7.01
 #### TBD
+* Major IMU refactor, IMU DRDY support. See https://github.com/vedderb/bldc/pull/917
+* MT6835 encoder support: https://github.com/vedderb/bldc/pull/916
+* New kill switch modes.
+
+### 7.00
+#### 2026-05-15
 * Configurable HFI reset ERPM.
 * Removed D axis gain scaling parameters.
 * Sin/Cos encoder filter delay compensation.
+* Moved field weakening to fast loop for better stability.
+* New AB encoder sensor mode for encoders without index pulse.
+* Added MA782 encoder support. See https://github.com/vedderb/bldc/pull/886
+* Added AMT22 encoder support.
+* LispBM
+	* Performance improvements and bug fixes
+	* AS5047 encoder pin remapping support
+	* Hall sensor pin remapping support
+	* Many new extensions and configuration parameters
+* VESC Remote coasting brake support.
+* Use highest value of field weakening and MTPA current instead of summing both.
+* Add FOC option to leave voltage headroom for Vq under full modulation.
+* Added new fault codes that can be enabled or disabled:
+	* Encoder slip
+	* Overspeed
+	* Underspeed
+	* Absolute overspeed
+* Added field weakening backoff gain parameter.
+* SPI-support for LSM6DS3 IMU
 
 ### 6.06.6
 #### 2025-11-01

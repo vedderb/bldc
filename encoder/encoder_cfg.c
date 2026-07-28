@@ -38,14 +38,14 @@ static THD_WORKING_AREA(encoder_thread_wa, 256);
 
 AS504x_config_t encoder_cfg_as504x = {
 		{
-				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3,
-				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1,
+				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3,	// CS
+				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1,	// SCK
 #ifdef AS504x_MOSI_GPIO
-				AS504x_MOSI_GPIO, AS504x_MOSI_PIN,
+				AS504x_MOSI_GPIO, AS504x_MOSI_PIN,		// MOSI
 #else
 				0, 0,
 #endif
-				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,
+				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,	// MISO
 				{{NULL, NULL}, NULL, NULL}, // Mutex
 				false // Mutex init done
 		},
@@ -95,6 +95,32 @@ MT6816_config_t encoder_cfg_mt6816 = {
 #endif
 };
 
+MT6835_config_t encoder_cfg_mt6835 = {
+#ifdef HW_SPI_DEV
+		&HW_SPI_DEV, // spi_dev
+		{//HARDWARE SPI CONFIG
+				NULL, HW_SPI_PORT_NSS, HW_SPI_PIN_NSS, SPI_BaudRatePrescaler_8 |
+				SPI_CR1_CPOL | SPI_CR1_CPHA
+		},
+
+		HW_SPI_GPIO_AF,
+		/*NSS*/HW_SPI_PORT_NSS, HW_SPI_PIN_NSS,
+		/*SCK*/HW_SPI_PORT_SCK, HW_SPI_PIN_SCK,
+		/*MOSI*/HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI,
+		/*MISO*/HW_SPI_PORT_MISO, HW_SPI_PIN_MISO,
+		{0, 0, 0, 0, 0},
+#else
+		0,
+		{0},
+		0,
+		0, 0,
+		0, 0,
+		0, 0,
+		0, 0,
+		{0, 0, 0, 0, 0},
+#endif
+};
+
 TLE5012_config_t encoder_cfg_tle5012 = {
 		{
 				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3, // nss
@@ -117,7 +143,6 @@ ABI_config_t encoder_cfg_ABI = {
 		HW_ENC_EXTI_PORTSRC,
 		HW_ENC_EXTI_PINSRC,
 		HW_ENC_EXTI_LINE,
-		HW_ENC_EXTI_CH,
 		{0, 0, 0, 0}, // State
 };
 
@@ -235,4 +260,17 @@ ma782_config_t encoder_cfg_ma782 = {
 		0, 0,
 #endif
 		{0.0f, 0, 0.0f, 0, 0.0f, MA782_IDLE, 0, 0, 0, 0, 0, 0, {0}, {0}},
+};
+
+AMT22_config_t encoder_cfg_amt22 = {
+		{
+				HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3,	// CS
+				HW_HALL_ENC_GPIO1, HW_HALL_ENC_PIN1,	// SCK
+				0, 0,									// MOSI (unused)
+				HW_HALL_ENC_GPIO2, HW_HALL_ENC_PIN2,	// MISO
+				{{NULL, NULL}, NULL, NULL}, // Mutex
+				false // Mutex init done
+		},
+
+		{0} // State
 };

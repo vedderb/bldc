@@ -24,6 +24,10 @@
 	#define HW_NAME					"Maximp_150"
 #elif defined(HWMAXIMP_120)
 	#define HW_NAME					"Maximp_120"
+#elif defined(HWMAXIMP_120_PH)
+	#define HW_NAME					"Maximp_120_PH"
+#elif defined(HWMAXIMP_150_PH)
+	#define HW_NAME					"Maximp_150_PH"
 #else
 	#error "Must define hardware type"
 #endif
@@ -33,6 +37,11 @@
 #define INVERTED_SHUNT_POLARITY
 #define HW_HAS_PHASE_FILTERS
 #define HW_BOOT_VESC_CAN
+
+#if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_150_PH)
+#define IS_DRV_FAULT()			(!palReadPad(GPIOA, 4))
+#define HW_HAS_PHASE_SHUNTS
+#endif
 
 // Macros
 #define LED_GREEN_GPIO			GPIOC
@@ -70,7 +79,7 @@
 #define ADCMUX_MOS_TEMP1()		AD3_L();	AD2_H();	AD1_L();
 #define ADCMUX_MOS_TEMP2()		AD3_L();	AD2_H();	AD1_H();
 #define ADCMUX_12V_SENSE_I()	AD3_H();	AD2_L();	AD1_L();
-#define ADCMUX_5V_SENSE_V()		AD3_H();	AD2_L();	AD1_H();
+#define ADCMUX_MOS_TEMP4()		AD3_H();	AD2_L();	AD1_H();
 #define ADCMUX_MOS_TEMP3()		AD3_H();	AD2_H();	AD1_L();
 #define ADCMUX_TEMP_DCDC()		AD3_H();	AD2_H();	AD1_H();
 
@@ -89,7 +98,26 @@
 #define REG_5V_ON()				palSetPad(REG_5V_GPIO, REG_5V_PIN)
 #define REG_5V_OFF()			palClearPad(REG_5V_GPIO, REG_5V_PIN)
 
-#define MCPWM_FOC_CURRENT_SAMP_OFFSET				(2) // Offset from timer top for ADC samples
+#if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_150_PH)
+// Shutdown pin
+#define HW_SHUTDOWN_GPIO		GPIOB
+#define HW_SHUTDOWN_PIN			2
+#define HW_SHUTDOWN_HOLD_ON()	palSetPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
+#define HW_SHUTDOWN_HOLD_OFF()	palClearPad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN)
+#define HW_SAMPLE_SHUTDOWN()	hw_sample_shutdown_button()
+#define HW_SHUTDOWN_NO // Normally open button
+
+#define HW_VERY_EARLY_INIT()	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE); \
+								RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE); \
+								palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL); \
+								palSetPadMode(AUX_GPIO, AUX_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST); \
+								palSetPadMode(AUX2_GPIO, AUX2_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST); \
+								HW_SHUTDOWN_HOLD_ON(); \
+								AUX_OFF(); \
+								AUX2_OFF();
+
+#define HW_EARLY_INIT()			HW_VERY_EARLY_INIT()
+#endif
 
 /*
  * ADC Vector
@@ -110,7 +138,7 @@
 #define ADC_IND_EXT5			16
 #define ADC_IND_EXT				6
 #define ADC_IND_EXT2			7
-#define ADC_IND_SHUTDOWN		10
+#define ADC_IND_SHUTDOWN		13
 #define ADC_IND_EXT3			14
 #define ADC_IND_ADC_MUX			15
 #define ADC_IND_EXT4			12
@@ -120,7 +148,7 @@
 #define ADC_IND_TEMP_MOS		20
 #define ADC_IND_TEMP_MOS_2		21 // Caps
 #define ADC_IND_12V_SENSE_I		22
-#define ADC_IND_5V_SENSE_V		23
+#define ADC_IND_TEMP_MOS_4		23
 #define ADC_IND_TEMP_MOS_3		24
 #define ADC_IND_TEMP_DCDC		25
 
@@ -136,11 +164,20 @@
 #ifndef VIN_R2
 #define VIN_R2					3300.0
 #endif
+#if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_150_PH)
+#ifndef CURRENT_AMP_GAIN
+#define CURRENT_AMP_GAIN		41.0
+#endif
+#ifndef CURRENT_SHUNT_RES
+#define CURRENT_SHUNT_RES		(0.0001 / 4.0)
+#endif
+#else
 #ifndef CURRENT_AMP_GAIN
 #define CURRENT_AMP_GAIN		20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
 #define CURRENT_SHUNT_RES		(0.00025 / 5.0)
+#endif
 #endif
 
 #define ENCODER_SIN_VOLTS		ADC_VOLTS(ADC_IND_EXT4)
@@ -151,7 +188,7 @@
 
 // NTC Termistors
 #define NTC_RES(adc_val)		(10000.0 / ((4095.0 / (float)adc_val) - 1.0))
-#define NTC_TEMP(adc_ind)		hw100_400_get_temp()
+#define NTC_TEMP(adc_ind)		hw_get_temp_mos()
 
 #define NTC_RES_MOTOR(adc_val)	(10000.0 / ((4095.0 / (float)adc_val) - 1.0)) // Motor temp sensor on low side
 #define NTC_TEMP_MOTOR(beta)	(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 10000.0) / beta) + (1.0 / 298.15)) - 273.15)
@@ -222,9 +259,7 @@
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
 #define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOC
 #define HW_ENC_EXTI_PINSRC		EXTI_PinSource8
-#define HW_ENC_EXTI_CH			EXTI9_5_IRQn
 #define HW_ENC_EXTI_LINE		EXTI_Line8
-#define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
@@ -241,14 +276,19 @@
 #define HW_SPI_PIN_MISO			6
 
 // IMU
-#define LSM6DS3_NSS_GPIO		GPIOA
-#define LSM6DS3_NSS_PIN			15
-#define LSM6DS3_SCK_GPIO		GPIOB
-#define LSM6DS3_SCK_PIN			3
-#define LSM6DS3_MOSI_GPIO		GPIOB
-#define LSM6DS3_MOSI_PIN		5
-#define LSM6DS3_MISO_GPIO		GPIOB
-#define LSM6DS3_MISO_PIN		4
+#define IMU_DEV				IMU_DEV_LSM6DS3
+#define IMU_COM				IMU_COM_SPI_HW
+#define IMU_SPI_DEV			SPID3
+#define IMU_SPI_AF			GPIO_AF_SPI3
+#define IMU_SPI_NSS_GPIO		GPIOA
+#define IMU_SPI_NSS_PIN			15
+#define IMU_SPI_SCK_GPIO		GPIOB
+#define IMU_SPI_SCK_PIN			3
+#define IMU_SPI_MOSI_GPIO		GPIOB
+#define IMU_SPI_MOSI_PIN		5
+#define IMU_SPI_MISO_GPIO		GPIOB
+#define IMU_SPI_MISO_PIN		4
+#define IMU_ROT_270
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
@@ -267,7 +307,7 @@
 #ifndef MCCONF_L_MIN_VOLTAGE
 #define MCCONF_L_MIN_VOLTAGE			20.0		// Minimum input voltage
 #endif
-#ifdef HWMAXIMP_120
+#if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_120)
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE			112.0	// Maximum input voltage
 #endif
@@ -301,8 +341,14 @@
 #define APPCONF_APP_TO_USE				APP_NONE
 #endif
 
+#if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_150_PH)
+#ifndef MCCONF_FOC_CURRENT_SAMPLE_MODE
+#define MCCONF_FOC_CURRENT_SAMPLE_MODE	FOC_CURRENT_SAMPLE_MODE_ALL_SENSORS
+#endif
+#endif
+
 // Setting limits
-#ifdef HWMAXIMP_120
+#if defined(HWMAXIMP_120_PH) || defined(HWMAXIMP_120)
 #define HW_LIM_CURRENT			-1000.0, 1000.0
 #define HW_LIM_CURRENT_IN		-1000.0, 1000.0
 #define HW_LIM_CURRENT_ABS		0.0, 1500.0
@@ -315,11 +361,11 @@
 #endif
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
-#define HW_LIM_DUTY_MAX			0.0, 0.99
+#define HW_LIM_DUTY_MAX			0.0, 1.0
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
 // HW-specific functions
 bool hw_sample_shutdown_button(void);
-float hw100_400_get_temp(void);
+float hw_get_temp_mos(void);
 
 #endif /* HW_MAXIMP_CORE_H_ */

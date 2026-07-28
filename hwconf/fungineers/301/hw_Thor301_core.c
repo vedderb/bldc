@@ -31,11 +31,7 @@
 // Variables
 static volatile bool i2c_running = false;
 static mutex_t shutdown_mutex;
-static float bt_diff = 0.0;
-static float bt_lastval = 0.0;
-static float bt_unpressed = 0.0;
 static bool will_poweroff = false;
-static bool force_poweroff = false;
 static unsigned int bt_hold_counter = 0;
 
 // I2C configuration
@@ -44,9 +40,6 @@ static const I2CConfig i2cfg = {
 		100000,
 		STD_DUTY_CYCLE
 };
-
-#define EXT_BUZZER_ON()    	pwm_servo_set_duty(0.5); //palClearPad(HW_ICU_GPIO, HW_ICU_PIN)
-#define EXT_BUZZER_OFF()  	pwm_servo_set_duty(0.0); // palClearPad(HW_ICU_GPIO, HW_ICU_PIN)
 
 void hw_Thor_buzzer_init(void) {
 	//    //Add early latch on code here
@@ -57,21 +50,21 @@ void hw_Thor_buzzer_init(void) {
 
 	//Start the buzzer and beep it
 	pwm_servo_init((uint32_t)4000, (float)0.5f);
-	EXT_BUZZER_ON();
+	HW_BUZZER_ON();
 	chThdSleepMilliseconds(400);
-	EXT_BUZZER_OFF();
+	HW_BUZZER_OFF();
 
 	chThdSleepMilliseconds(1000);
 }
 
 static void beep_off(void)
 {
-	EXT_BUZZER_OFF();
+	HW_BUZZER_OFF();
 }
 
 static void beep_on(void)
 {
-	EXT_BUZZER_ON();
+	HW_BUZZER_ON();
 }
 
 void hw_init_gpio(void) {
@@ -152,9 +145,9 @@ void hw_init_gpio(void) {
 
 	//Start the buzzer and beep it
 	pwm_servo_init((uint32_t)4000, (float)0.5f);
-	EXT_BUZZER_ON();
+	HW_BUZZER_ON();
 	chThdSleepMilliseconds(100);
-	EXT_BUZZER_OFF();
+	HW_BUZZER_OFF();
 }
 
 void hw_setup_adc_channels(void) {

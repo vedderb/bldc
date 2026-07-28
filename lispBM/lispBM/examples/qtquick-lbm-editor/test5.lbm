@@ -1,0 +1,30 @@
+; test5.lbm — scrollable container demo
+
+(def root (qt-root))
+
+(def lbl (qt-label root "Scrollable list below:"))
+
+(def scroll (qt-container root 'vbox 'scroll-v '(min-height 300)))
+
+(def n 30)
+
+(map (fn (i)
+       (qt-button scroll (str-merge "Button " (to-str i))))
+     (range 0 n))
+
+(def hbox    (qt-container root 'hbox))
+(def btn-add (qt-button hbox "Add more"))
+(qt-stretch hbox 'horizontal)
+
+(def count n)
+
+(defun on-event ()
+  { (recv
+      ((button-pressed (? h))
+       (if (= h btn-add)
+         { (qt-button scroll (str-merge "Button " (to-str count)))
+           (def count (+ count 1)) }))
+      ((? _) (print "unhandled")))
+    (on-event) })
+
+(event-register-handler (spawn on-event))

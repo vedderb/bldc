@@ -45,10 +45,10 @@
 (lowpass rx-buffer filtered-buffer 0.1)
 
 (with-file "wave1.bin" "wb"
-           (lambda (x) (fwrite x tx-buffer)))
+           (lambda (x) (f-write x tx-buffer)))
 
 (with-file "wave2.bin" "wb"
-           (lambda (x) (fwrite x filtered-buffer)))
+           (lambda (x) (f-write x filtered-buffer)))
 
 (print "output: mixing1.pdf")
 (plot-signal-signal "wave1.bin" "wave2.bin" "mixing1.pdf"
@@ -61,10 +61,10 @@
 (lowpass tx-buffer filtered-buffer 0.01) ;; filter very strongly!
 
 (with-file "wave1.bin" "wb"
-           (lambda (x) (fwrite x tx-buffer)))
+           (lambda (x) (f-write x tx-buffer)))
 
 (with-file "wave2.bin" "wb"
-           (lambda (x) (fwrite x filtered-buffer)))
+           (lambda (x) (f-write x filtered-buffer)))
 
 (print "output: mixing2.pdf")
 (plot-signal-signal "wave1.bin" "wave2.bin" "mixing2.pdf"
@@ -98,7 +98,7 @@
       (var leg filename)
       (var leg (str-join (list "Phase shift " (cdr psh)))) ;; (to-str psh) )))
       (with-file filename "wb"
-        (lambda (x) (fwrite x filtered-buffer)))
+        (lambda (x) (f-write x filtered-buffer)))
       (setq phaseplots (cons `( ,filename . ,leg) phaseplots))
       })
 

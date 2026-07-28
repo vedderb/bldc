@@ -17,7 +17,7 @@
 (sdl-set-active-renderer rend)
 
 ;; Load a font
-(define font-file (fopen "./sdl_tests/font_16_26_aa.bin" "r"))
+(define font-file (f-open "./sdl_tests/font_16_26_aa.bin" "r"))
 (define font (load-file font-file))
 
 ;; Create indexed4 image buffer (4 colors: 0, 1, 2, 3)

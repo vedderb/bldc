@@ -1,0 +1,72 @@
+
+;; Test aes128-enc and aes128-dec against known AES-128-ECB vectors.
+;;
+;; FIPS 197 Appendix B vector verified against the standard.
+;; NIST CAVS GFSbox128 vectors: zero key, various plaintexts.
+;; All-zeros vector: well-known reference value.
+
+(defun check (got expected i)
+  (if (eq got expected)
+      t
+    (progn (print "FAIL " i ": got " got " expected " expected) nil)))
+
+;; FIPS 197 Appendix B
+;; KEY:       2b7e151628aed2a6abf7158809cf4f3c
+;; PLAINTEXT: 3243f6a8885a308d313198a2e0370734
+;; CIPHER:    3925841d02dc09fbdc118597196a0b32
+(define t1 (check (bytes-to-hex
+                   (aes128-enc [0x2b 0x7e 0x15 0x16 0x28 0xae 0xd2 0xa6
+                                0xab 0xf7 0x15 0x88 0x09 0xcf 0x4f 0x3c]
+                               [0x32 0x43 0xf6 0xa8 0x88 0x5a 0x30 0x8d
+                                0x31 0x31 0x98 0xa2 0xe0 0x37 0x07 0x34]))
+                  "3925841d02dc09fbdc118597196a0b32"
+                  1))
+
+;; FIPS 197 Appendix B - decryption
+(define t2 (check (bytes-to-hex
+                   (aes128-dec [0x2b 0x7e 0x15 0x16 0x28 0xae 0xd2 0xa6
+                                0xab 0xf7 0x15 0x88 0x09 0xcf 0x4f 0x3c]
+                               [0x39 0x25 0x84 0x1d 0x02 0xdc 0x09 0xfb
+                                0xdc 0x11 0x85 0x97 0x19 0x6a 0x0b 0x32]))
+                  "3243f6a8885a308d313198a2e0370734"
+                  2))
+
+;; All-zero key, all-zero plaintext
+;; KEY:       00000000000000000000000000000000
+;; PLAINTEXT: 00000000000000000000000000000000
+;; CIPHER:    66e94bd4ef8a2c3b884cfa59ca342b2e
+(define t3 (check (bytes-to-hex
+                   (aes128-enc [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+                                0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00]
+                               [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+                                0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00]))
+                  "66e94bd4ef8a2c3b884cfa59ca342b2e"
+                  3))
+
+;; NIST CAVS GFSbox128 COUNT=0
+;; KEY:       00000000000000000000000000000000
+;; PLAINTEXT: f34481ec3cc627bacd5dc3fb08f273e6
+;; CIPHER:    0336763e966d92595a567cc9ce537f5e
+(define t4 (check (bytes-to-hex
+                   (aes128-enc [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+                                0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00]
+                               [0xf3 0x44 0x81 0xec 0x3c 0xc6 0x27 0xba
+                                0xcd 0x5d 0xc3 0xfb 0x08 0xf2 0x73 0xe6]))
+                  "0336763e966d92595a567cc9ce537f5e"
+                  4))
+
+;; NIST CAVS GFSbox128 COUNT=1
+;; KEY:       00000000000000000000000000000000
+;; PLAINTEXT: 9798c4640bad75c7c3227db910174e72
+;; CIPHER:    a9a1631bf4996954ebc093957b234589
+(define t5 (check (bytes-to-hex
+                   (aes128-enc [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+                                0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00]
+                               [0x97 0x98 0xc4 0x64 0x0b 0xad 0x75 0xc7
+                                0xc3 0x22 0x7d 0xb9 0x10 0x17 0x4e 0x72]))
+                  "a9a1631bf4996954ebc093957b234589"
+                  5))
+
+(if (and t1 t2 t3 t4 t5)
+    (print "SUCCESS")
+    (print "FAILURE"))

@@ -19,9 +19,10 @@
 #include <string.h>
 #include <lbm_defines.h>
 
-/* ------------------------------------------------------------
-   Interface
-   ------------------------------------------------------------ */
+// ////////////////////////////////////////////////////////////
+// Interface
+//
+
 bool lbm_channel_more(lbm_char_channel_t *chan) {
   return chan->more(chan);
 }
@@ -82,9 +83,10 @@ bool lbm_channel_may_block(lbm_char_channel_t *chan) {
   return chan->may_block(chan);
 }
 
-/* ------------------------------------------------------------
-   Implementation buffered channel
-   ------------------------------------------------------------ */
+// ////////////////////////////////////////////////////////////
+// Implementation buffered channel
+//
+
 bool buffered_may_block(lbm_char_channel_t *chan) {
   (void) chan;
   return true;
@@ -253,9 +255,9 @@ void lbm_create_buffered_char_channel(lbm_buffered_channel_state_t *st,
   chan->may_block = buffered_may_block;
 }
 
-/* ------------------------------------------------------------
-   Implementation string channel
-   ------------------------------------------------------------ */
+// ////////////////////////////////////////////////////////////
+// Implementation string channel
+//
 
 bool string_may_block(lbm_char_channel_t *chan) {
   (void) chan;

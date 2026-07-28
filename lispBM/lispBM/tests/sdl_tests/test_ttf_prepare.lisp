@@ -14,7 +14,7 @@
 (spawn 100 event-loop win)
 
 ;; Load a TTF font for valid tests
-(define font-file (fopen "./sdl_tests/Ubuntu-Regular.ttf" "r"))
+(define font-file (f-open "./sdl_tests/Ubuntu-Regular.ttf" "r"))
 (define font-data (load-file font-file))
 
 ;; Connect the renderer to the display library

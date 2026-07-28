@@ -108,12 +108,12 @@
 #define V_REG				    3.30
 #endif
 
-//The voltage dividing acquisition circuit on the Makerbase VESC motherboard is 56K and 2.2K resistors.
+//The voltage dividing acquisition circuit on the Makerbase VESC motherboard is 56K and 2.118K resistors.
 #ifndef VIN_R1
 #define VIN_R1				    56000.0 
 #endif
 #ifndef VIN_R2
-#define VIN_R2				    2200.0 
+#define VIN_R2				    2118.0 
 #endif
 
 #ifndef CURRENT_AMP_GAIN
@@ -201,9 +201,7 @@
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
 #define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOC
 #define HW_ENC_EXTI_PINSRC		EXTI_PinSource8
-#define HW_ENC_EXTI_CH			EXTI9_5_IRQn
 #define HW_ENC_EXTI_LINE		EXTI_Line8
-#define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 

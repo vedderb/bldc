@@ -60,21 +60,25 @@ bool enc_abi_init(ABI_config_t *cfg) {
 	// Connect EXTI Line to pin
 	SYSCFG_EXTILineConfig(cfg->exti_portsrc, cfg->exti_pinsrc);
 
-	// Configure EXTI Line
+	// Configure and enable the EXTI Line
 	EXTI_InitStructure.EXTI_Line = cfg->exti_line;
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
-	// Enable and set EXTI Line Interrupt to the highest priority
-	nvicEnableVector(cfg->exti_ch, 0);
-
 	return true;
 }
 
 void enc_abi_deinit(ABI_config_t *cfg) {
-	nvicDisableVector(cfg->exti_ch);
+	// Disable the EXTI line (the shared EXTI vector itself stays enabled)
+	EXTI_InitTypeDef EXTI_InitStructure;
+	EXTI_InitStructure.EXTI_Line = cfg->exti_line;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising;
+	EXTI_InitStructure.EXTI_LineCmd = DISABLE;
+	EXTI_Init(&EXTI_InitStructure);
+
 	TIM_DeInit(cfg->timer);
 	palSetPadMode(cfg->A_gpio, cfg->A_pin, PAL_MODE_INPUT_PULLUP);
 	palSetPadMode(cfg->B_gpio, cfg->B_pin, PAL_MODE_INPUT_PULLUP);

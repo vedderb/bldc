@@ -12,9 +12,9 @@
               res)))
 
 ;; Test unterminated string from file (should trigger tokenizer error)
-(define file-handle (fopen "repl_tests/test_data/unterminated_string.lisp" "r"))
+(define file-handle (f-open "repl_tests/test_data/unterminated_string.lisp" "r"))
 (define unterminated-program (load-file file-handle))
-(fclose file-handle)
+(f-close file-handle)
 (define r1 (eq 'exit-error (car (trap (time-read-eval unterminated-program)))))
 
 (debug_test r1 1)

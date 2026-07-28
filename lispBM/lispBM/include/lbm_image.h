@@ -97,6 +97,13 @@ lbm_uint lbm_image_const_heap_index(void);
 lbm_uint *lbm_image_add_symbol(char *name, lbm_uint id, lbm_uint symlist);
 
 /**
+ * Add a symbol name to the image.
+ * \param name Symbol name string
+ * \return pointer to address within image where there name is stored.
+ */
+char *lbm_image_add_symbol_name(const char *name, size_t len);
+
+/**
  * Add a symbol to the image and "link" it to a C address (variable).
  * \param name Symbol name.
  * \param id Symbol id.

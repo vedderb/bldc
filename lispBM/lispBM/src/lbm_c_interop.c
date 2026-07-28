@@ -166,12 +166,15 @@ lbm_cid lbm_eval_defined_program(char *symbol) {
 int lbm_send_message(lbm_cid cid, lbm_value msg) {
   int res = 0;
 
+#ifndef LBM_SINGLE_THREADED
   if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
-
+#endif
     if (lbm_find_receiver_and_send(cid, msg)) {
       res = 1;
     }
+#ifndef LBM_SINGLE_THREADED
   }
+#endif
   return res;
 }
 
@@ -179,7 +182,9 @@ int lbm_define(char *symbol, lbm_value value) {
   int res = 0;
   if (symbol) {
     lbm_uint sym_id;
+#ifndef LBM_SINGLE_THREADED
     if (lbm_get_eval_state() == EVAL_CPS_STATE_PAUSED) {
+#endif
       if (lbm_get_symbol_by_name(symbol, &sym_id) ||
           lbm_add_symbol_const_base(symbol, &sym_id, false)) {
         lbm_uint ix_key = sym_id & GLOBAL_ENV_MASK;
@@ -192,7 +197,9 @@ int lbm_define(char *symbol, lbm_value value) {
           res = 1;
         }
       }
+#ifndef LBM_SINGLE_THREADED
     }
+#endif
   }
   return res;
 }

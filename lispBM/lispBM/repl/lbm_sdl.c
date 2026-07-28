@@ -73,8 +73,17 @@ static lbm_value ext_sdl_init(lbm_value *args, lbm_uint argn) {
 }
 
 static bool sdl_window_destructor(lbm_uint value) {
-  SDL_DestroyWindow((SDL_Window*)value);
+  if (value) SDL_DestroyWindow((SDL_Window*)value);
   return true;
+}
+
+static lbm_value ext_sdl_destroy_window(lbm_value *args, lbm_uint argn) {
+  if (argn == 1 && lbm_type_of(args[0]) == LBM_TYPE_CUSTOM) {
+    lbm_uint *m = (lbm_uint *)lbm_dec_custom(args[0]);
+    SDL_DestroyWindow((SDL_Window*)m[CUSTOM_TYPE_VALUE]);
+    m[CUSTOM_TYPE_VALUE] = 0;
+  }
+  return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_sdl_create_window(lbm_value *args, lbm_uint argn) {
@@ -104,8 +113,17 @@ static lbm_value ext_sdl_create_window(lbm_value *args, lbm_uint argn) {
 }
 
 static bool sdl_renderer_destructor(lbm_uint value) {
-  SDL_DestroyRenderer((SDL_Renderer*)value);
+  if (value) SDL_DestroyRenderer((SDL_Renderer*)value);
   return true;
+}
+
+static lbm_value ext_sdl_destroy_renderer(lbm_value *args, lbm_uint argn) {
+  if (argn == 1 && lbm_type_of(args[0]) == LBM_TYPE_CUSTOM) {
+    lbm_uint *m = (lbm_uint *)lbm_dec_custom(args[0]);
+    SDL_DestroyRenderer((SDL_Renderer*)m[CUSTOM_TYPE_VALUE]);
+    m[CUSTOM_TYPE_VALUE] = 0;
+  }
+  return ENC_SYM_TRUE;
 }
 
 static lbm_value ext_sdl_create_soft_renderer(lbm_value *args, lbm_uint argn) {
@@ -513,7 +531,9 @@ bool lbm_sdl_init(void) {
 
   lbm_add_extension("sdl-init", ext_sdl_init);
   lbm_add_extension("sdl-create-window",ext_sdl_create_window);
+  lbm_add_extension("sdl-destroy-window", ext_sdl_destroy_window);
   lbm_add_extension("sdl-create-soft-renderer", ext_sdl_create_soft_renderer);
+  lbm_add_extension("sdl-destroy-renderer", ext_sdl_destroy_renderer);
   lbm_add_extension("sdl-renderer-set-color", ext_sdl_renderer_set_color);
   lbm_add_extension("sdl-draw-point", ext_sdl_draw_point);
   lbm_add_extension("sdl-draw-line", ext_sdl_draw_line);

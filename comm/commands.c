@@ -628,6 +628,8 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			}
 #endif
 
+			commands_apply_appconf_hw_limits(appconf);
+
 			if (packet_id == COMM_SET_APPCONF) {
 				conf_general_store_app_configuration(appconf);
 			}
@@ -1935,6 +1937,10 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
     // oscillate. At the moment we leave the responsibility of setting sane values
     // to the user.
 
+#if !MCCONF_L_SLOW_ABS_OVERCURRENT
+    mcconf->l_slow_abs_current = false;
+#endif
+
 #ifdef HW_LIM_CURRENT
 	utils_truncate_number(&mcconf->l_current_max, HW_LIM_CURRENT);
 	utils_truncate_number(&mcconf->l_current_min, HW_LIM_CURRENT);
@@ -1968,6 +1974,13 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 #ifdef HW_FOC_CURRENT_FILTER_LIM
 	utils_truncate_number(&mcconf->foc_current_filter_const, HW_FOC_CURRENT_FILTER_LIM);
 #endif
+#endif
+}
+
+void commands_apply_appconf_hw_limits(app_configuration *appconf) {
+	(void)appconf;
+#ifdef HW_LIM_IMU_SAMPLE_RATE_HZ
+	utils_truncate_number_int(&appconf->imu_conf.sample_rate_hz, 0, HW_LIM_IMU_SAMPLE_RATE_HZ);
 #endif
 }
 

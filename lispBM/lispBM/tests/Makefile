@@ -35,31 +35,31 @@ SOURCES = $(wildcard *.c)
 EXECS = $(patsubst %.c, %.exe, $(SOURCES))
 
 test_lisp_code_cps_gc: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
-	$(CC) $(CCFLAGS_GC) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_gc -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+	$(CC) $(CCFLAGS_GC) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_gc $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps_cov: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
-	$(CC) $(CCFLAGS_COV_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_cov -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+	$(CC) $(CCFLAGS_COV_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_cov $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
-	$(CC) $(CCFLAGS_COV_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+	$(CC) $(CCFLAGS_COV_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps_size: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
-	$(CC) $(CCFLAGS_32) $(LBM_SIZE) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_size -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+	$(CC) $(CCFLAGS_32) $(LBM_SIZE) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_size $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps_size_aggressive: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
-	$(CC) $(CCFLAGS_32) $(LBM_SIZE_AGGRESSIVE) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_size_aggressive -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+	$(CC) $(CCFLAGS_32) $(LBM_SIZE_AGGRESSIVE) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_size_aggressive $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps_time: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
-	$(CC) $(CCFLAGS_TIME_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_time -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+	$(CC) $(CCFLAGS_TIME_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_time $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps_64: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
-	$(CC) $(CCFLAGS_COV_64) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_64 -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+	$(CC) $(CCFLAGS_COV_64) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_64 $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps_64_time: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
-	$(CC) $(CCFLAGS_TIME_64) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_64_time -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+	$(CC) $(CCFLAGS_TIME_64) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_64_time $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread -lm
 
 test_lisp_code_cps_revgc: $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_H) test_lisp_code_cps.c
-	$(CC) $(CCFLAGS_REVGC) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_revgc -I$(LISPBM)include $(PLATFORM_INCLUDE) -lpthread -lm
+	$(CC) $(CCFLAGS_REVGC) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) test_lisp_code_cps.c -o test_lisp_code_cps_revgc $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread -lm
 
 all: test_lisp_code_cps_cov test_lisp_code_cps test_lisp_code_cps_64 test_lisp_code_cps_revgc test_lisp_code_cps_gc
 

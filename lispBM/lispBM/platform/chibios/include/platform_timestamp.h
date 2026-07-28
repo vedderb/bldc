@@ -19,8 +19,15 @@
 #define PLATFORM_TIMESTAMP_H_
 
 #include <stdint.h>
+#include <ch.h>
+#include <hal.h>
+#include <chvt.h>
+#include <chtime.h>
 
 // timestamp interface
-extern uint32_t lbm_timestamp(void);
+static inline uint32_t lbm_timestamp(void) {
+  systime_t t = chVTGetSystemTime();
+  return (uint32_t) ((1000000 / CH_CFG_ST_FREQUENCY) * t);
+}
 
 #endif

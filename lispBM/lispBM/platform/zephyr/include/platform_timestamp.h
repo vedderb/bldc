@@ -22,6 +22,8 @@
 #include <stdint.h>
 
 // timestamp interface
-extern uint32_t lbm_timestamp(void);
+static inline uint32_t lbm_timestamp(void) {
+  return (uint32_t)k_cyc_to_us_floor32(k_cycle_get_32());
+}
 
 #endif

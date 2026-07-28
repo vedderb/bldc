@@ -1,0 +1,13 @@
+[
+  { "name": "Sine Wave", "file": "sine.lisp", "description": "Plots a 440 Hz sine wave using the DSP library" },
+  { "name": "FFT and Hamming Window", "file": "hamming.lisp", "description": "Shows the effect of a Hamming window on the FFT of a sum of sines, with inverse FFT reconstruction" },
+  { "name": "Antenna Angle Detection", "file": "angle_detection.lisp", "description": "2-antenna direction finding: recovers signal arrival angle from phase difference, sweeps -80 to +80 degrees" },
+  { "name": "SHA-256 CSPRNG Quality", "file": "csprng.lisp", "description": "Compares two 16-bit output methods from a SHA-256 block CSPRNG: fixed slice vs folded sum. Histograms both and computes mean, variance and chi-squared to verify uniform distribution" },
+  { "name": "Drawing to canvas", "file": "drawing.lisp", "description": "Shows how to create a canvas and draw into it. Uses the display_extensions." },
+  { "name": "Rotating Cube", "file": "drawing_cube.lisp", "description": "Animates a rotating 3D wireframe cube using the display extensions and wasm-create-canvas." },
+  { "name": "Shannon-Whittaker Reconstruction", "file": "shannon_whittaker.lisp", "description": "Samples a 990 Hz sine at 2 kHz (near Nyquist) then reconstructs it at 20 kHz using Shannon-Whittaker sinc interpolation." },
+  { "name": "RSA Encryption", "file": "rsa.lisp", "description": "Demonstrates RSA encrypt and decrypt using 2048-bit keys and the bignum extensions." },
+  { "name": "TTF Font Rendering", "file": "ttf_font.lisp", "description": "Loads Ubuntu Regular from Google Fonts and renders Hello World to a canvas using the TTF extensions." },
+  { "name": "Filesystem", "file": "filesystem.lisp", "description": "Demonstrates file I/O using the Emscripten MEMFS: writes binary and text files, reads them back, lists the filesystem, and downloads the files to disk." },
+  { "name": "Dash35b Testbench", "file": "dash35b_tb.lisp", "description": "Interactive testbench for the VESC dash35b display package. Runs the dashboard with simulated stats and buttons for Page, Mode and Light." }
+]

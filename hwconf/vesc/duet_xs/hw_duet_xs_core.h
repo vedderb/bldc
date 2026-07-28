@@ -71,6 +71,7 @@
 
 #define HW_SHUTDOWN_HOLD_ON();
 #define HW_SAMPLE_SHUTDOWN()		1
+#define HW_SAMPLE_SHUTDOWN_OVR()	smart_switch_is_pressed()
 #define HW_SHUTDOWN_HOLD_OFF()		palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
 #define HW_SHUTDOWN_NO
 
@@ -251,9 +252,7 @@
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
 #define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOD
 #define HW_ENC_EXTI_PINSRC		EXTI_PinSource14
-#define HW_ENC_EXTI_CH			EXTI15_10_IRQn
 #define HW_ENC_EXTI_LINE		EXTI_Line14
-#define HW_ENC_EXTI_ISR_VEC		EXTI15_10_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM4_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM4_IRQHandler
 
@@ -289,11 +288,25 @@
 #define MCCONF_DEFAULT_MOTOR_TYPE	MOTOR_TYPE_FOC
 #endif
 
-// LSM6DS3
-#define LSM6DS3_SDA_GPIO		GPIOB
-#define LSM6DS3_SDA_PIN			9
-#define LSM6DS3_SCL_GPIO		GPIOB
-#define LSM6DS3_SCL_PIN			8
+// LSM6DS3: SPI on current hardware, bit-bang I2C fallback on old hardware
+#define IMU_DEV				IMU_DEV_LSM6DS3
+#define IMU_COM				IMU_COM_SPI_HW
+#define IMU_SPI_DEV			SPID3
+#define IMU_SPI_AF			GPIO_AF_SPI3
+#define IMU_SPI_NSS_GPIO		GPIOB
+#define IMU_SPI_NSS_PIN			12
+#define IMU_SPI_SCK_GPIO		GPIOC
+#define IMU_SPI_SCK_PIN			10
+#define IMU_SPI_MOSI_GPIO		GPIOC
+#define IMU_SPI_MOSI_PIN		12
+#define IMU_SPI_MISO_GPIO		GPIOC
+#define IMU_SPI_MISO_PIN		11
+
+#define IMU_FALLBACK_COM		IMU_COM_I2C_BB
+#define IMU_FALLBACK_I2C_SDA_GPIO	GPIOB
+#define IMU_FALLBACK_I2C_SDA_PIN	9
+#define IMU_FALLBACK_I2C_SCL_GPIO	GPIOB
+#define IMU_FALLBACK_I2C_SCL_PIN	8
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
@@ -332,6 +345,9 @@
 #ifndef MCCONF_L_IN_CURRENT_MIN
 #define MCCONF_L_IN_CURRENT_MIN			-45.0	// Input current limit in Amperes (Lower)
 #endif
+#ifndef MCCONF_L_MIN_VOLTAGE
+#define MCCONF_L_MIN_VOLTAGE			12.0		// Minimum input voltage
+#endif
 
 #ifdef HW_XS60
 #ifndef MCCONF_L_MAX_VOLTAGE
@@ -353,7 +369,7 @@
 
 #define HW_LIM_ERPM					-200e3, 200e3
 #define HW_LIM_DUTY_MIN				0.0, 0.1
-#define HW_LIM_DUTY_MAX				0.0, 0.95
+#define HW_LIM_DUTY_MAX				0.0, 1.0
 #define HW_LIM_TEMP_FET				-40.0, 110.0
 
 // Functions

@@ -14,7 +14,7 @@
 (spawn 100 event-loop win)
 
 ;; Load and prepare a TTF font - only prepare characters we actually use
-(define font-file (fopen "./sdl_tests/Ubuntu-Regular.ttf" "r"))
+(define font-file (f-open "./sdl_tests/Ubuntu-Regular.ttf" "r"))
 (define font-data (load-file font-file))
 ;; Exact characters used in test strings:
 ;; Space, letters: HorizontalTFUpwerdVicDnAXOKBotmLeftRighMyGfSngC!@#$%^&*()aslruge

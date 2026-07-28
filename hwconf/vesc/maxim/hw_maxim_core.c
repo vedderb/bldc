@@ -24,6 +24,8 @@
 #include "mc_interface.h"
 #include "lispif.h"
 #include "lispbm.h"
+#include "terminal.h"
+#include "commands.h"
 
 // Variables
 static volatile bool i2c_running = false;
@@ -70,6 +72,23 @@ static void load_extensions(bool main_found) {
 		lbm_add_extension("hw-reg-i", ext_reg_i);
 		lbm_add_extension("hw-reg-t", ext_reg_t);
 		lbm_add_extension("hw-reg5-v", ext_reg5_v);
+	}
+}
+
+static void terminal_hw_diag(int argc, const char **argv) {
+	(void)argc;
+	(void)argv;
+
+	for (int i = 0;i < 40;i++) {
+		float t1 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
+		float t2 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_2]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
+		float t3 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_3]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
+
+		commands_printf("BT: %.2f", (double)ADC_VOLTS(ADC_IND_SHUTDOWN));
+		commands_printf("T1: %.2f", (double)t1);
+		commands_printf("T2: %.2f", (double)t2);
+		commands_printf("T3: %.2f\n", (double)t3);
+		chThdSleepMilliseconds(100);
 	}
 }
 
@@ -140,13 +159,23 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 
+#if defined(HWMAXIM_120_PH) || defined(HWMAXIM_150_PH)
+	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_PULLUP);
+#else
 	// DAC as voltage reference for shunt amps
 	palSetPadMode(GPIOA, 4, PAL_MODE_INPUT_ANALOG);
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
 	DAC->CR |= DAC_CR_EN1;
 	DAC->DHR12R1 = 2047;
+#endif
 
 	lispif_add_ext_load_callback(load_extensions);
+
+	terminal_register_command_callback(
+				"hw_diag",
+				"Print HW diagnostics",
+				0,
+				terminal_hw_diag);
 }
 
 void hw_setup_adc_channels(void) {
@@ -302,11 +331,13 @@ static THD_FUNCTION(mux_thread, arg) {
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
 
-#define T_SAMP_US		400
+#define T_SAMP_US		500
 
 	for (;;) {
 		ADCMUX_MOT_TEMP();
-		chThdSleepMicroseconds(T_SAMP_US);
+		// Wait longer on this one as some temperature sensors, e.g. the PT1000 change very little
+		// and the voltage divider gives us bad resolution for it.
+		chThdSleepMilliseconds(5);
 		ADC_Value[ADC_IND_TEMP_MOTOR] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ADCMUX_12V_SENSE_V();
@@ -354,7 +385,8 @@ static THD_FUNCTION(mux_thread, arg) {
 			palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT);
 			palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT);
 		} else if (mcconf->motor_type == MOTOR_TYPE_FOC &&
-				mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER) {
+			(mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ||
+			 mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER_AB)) {
 
 			// Prevent the uart-pins from interfering
 			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_ABI ||
@@ -375,7 +407,7 @@ static THD_FUNCTION(mux_thread, arg) {
 }
 
 bool hw_sample_shutdown_button(void) {
-	return ADC_VOLTS(ADC_IND_SHUTDOWN) > 0.4;
+	return ADC_VOLTS(ADC_IND_SHUTDOWN) > 0.8;
 }
 
 float hw100_400_get_temp(void) {

@@ -16,7 +16,7 @@
 ;; Connect the renderer to the display library
 (sdl-set-active-renderer rend)
 
-(define cat-pic-file (fopen "./sdl_tests/lispbm.jpeg" "r"))
+(define cat-pic-file (f-open "./sdl_tests/lispbm.jpeg" "r"))
 (define cat-pic-jpg (load-file cat-pic-file))
 
 (define r (disp-render-jpg cat-pic-jpg 0 0))

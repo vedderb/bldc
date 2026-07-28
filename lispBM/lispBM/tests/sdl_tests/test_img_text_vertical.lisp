@@ -17,7 +17,7 @@
 (sdl-set-active-renderer rend)
 
 ;; Load a font
-(define font-file (fopen "./sdl_tests/font_16_26.bin" "r"))
+(define font-file (f-open "./sdl_tests/font_16_26.bin" "r"))
 (define font (load-file font-file))
 
 (define img500x400 (img-buffer 'indexed4 500 400))

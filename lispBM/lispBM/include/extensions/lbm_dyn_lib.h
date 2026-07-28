@@ -18,8 +18,14 @@
 
 #ifndef LBM_DYN_LIB_H_
 #define LBM_DYN_LIB_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void lbm_dyn_lib_init(void);
 bool lbm_dyn_lib_find(const char *str, const char **code);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

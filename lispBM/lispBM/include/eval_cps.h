@@ -122,7 +122,7 @@ typedef struct {
 } lbm_event_t;
 
 /** Fundamental operation type */
-typedef lbm_value (*fundamental_fun)(lbm_value *, lbm_uint, eval_context_t*);
+typedef lbm_value (*fundamental_fun)(lbm_value *, lbm_uint);
 
 /** Table of function pointers implementing the fundamental operations */
 extern const fundamental_fun fundamental_table[];
@@ -219,10 +219,17 @@ bool lbm_event_queue_is_empty(void);
  */
 int lbm_remove_done_ctx(lbm_cid cid, lbm_value *v);
 
+#ifdef LBM_SINGLE_THREADED
+/** step function for integration of evaluator in a single thread application.
+    The boolean result is an indication of how "busy" or not "busy" the runtime system is.
+ */
+bool lbm_eval_step(int n);  
+#else
 /** This function executes the evaluation loop and does not return.
  *  lbm_run_eval should be started in a new thread provided by the underlying HAL or OS.
  */
 void lbm_run_eval(void);
+#endif
 /** Indicate that the evaluator should reset at the next opportunity.
  * You cannot assume that the evaluator has entered reset state unless you call lbm_get_eval_state and get the
  * return value EVAL_CPS_STATE_RESET.

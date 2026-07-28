@@ -98,6 +98,12 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 		}
 	}
 
+	if (strcmp(argv[0], "stop") == 0) {
+		commands_printf("Stopping all motors\n");
+		mc_interface_ignore_input_both(1000);
+		mc_interface_release_motor_override_both();
+		return;
+	}
 	if (strcmp(argv[0], "last_adc_duration") == 0) {
 		commands_printf("Latest ADC duration: %.4f ms", (double)(mcpwm_get_last_adc_isr_duration() * 1000.0));
 		commands_printf("Latest injected ADC duration: %.4f ms", (double)(mc_interface_get_last_inj_adc_isr_duration() * 1000.0));
@@ -1180,6 +1186,9 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 
 		commands_printf("faults");
 		commands_printf("  Prints all stored fault codes and conditions when they arrived");
+
+		commands_printf("stop");
+		commands_printf("  Stops all motors");
 
 		commands_printf("tim");
 		commands_printf("  Prints tim1 and tim8 settings");

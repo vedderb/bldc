@@ -221,6 +221,9 @@ upload-pi: fw
 upload-pi-remote: fw
 	$(V1) ./upload_remote_pi build/$(PROJECT).elf ted 10.42.0.199 22
 
+upload-dfu-util: fw
+	$(V1) dfu-util -a 0 -s 0x08000000:leave -D "program build/$(PROJECT).bin"
+
 debug-start:
 	$(V1) openocd -f stm32-bv_openocd.cfg
 

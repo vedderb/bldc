@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2026 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -216,15 +216,14 @@ static THD_FUNCTION(chuk_thread, arg) {
 static THD_FUNCTION(output_thread, arg) {
 	(void)arg;
 
-	chRegSetThreadName("Nunchuk output");
+	chRegSetThreadName("Remote Output");
 
 	bool was_pid = false;
 
 	for(;;) {
 		chThdSleepMilliseconds(OUTPUT_ITERATION_TIME_MS);
 
-		static float rpm_filtered = 0.0;
-		UTILS_LP_FAST(rpm_filtered, mc_interface_get_rpm(), 0.5);
+		float rpm_now = mc_interface_get_rpm();
 
 		const float dt = (float)OUTPUT_ITERATION_TIME_MS / 1000.0;
 
@@ -285,7 +284,7 @@ static THD_FUNCTION(output_thread, arg) {
 			static float pid_rpm = 0.0;
 
 			if (!was_pid) {
-				pid_rpm = rpm_filtered;
+				pid_rpm = rpm_now;
 
 				if ((is_reverse && pid_rpm > 0.0) || (!is_reverse && pid_rpm < 0.0)) {
 					// Abort if the speed is too high in the opposite direction
@@ -301,8 +300,8 @@ static THD_FUNCTION(output_thread, arg) {
 
 					pid_rpm -= (out_val * config.stick_erpm_per_s_in_cc) * ((float)OUTPUT_ITERATION_TIME_MS / 1000.0);
 
-					if (pid_rpm < (rpm_filtered - config.stick_erpm_per_s_in_cc)) {
-						pid_rpm = rpm_filtered - config.stick_erpm_per_s_in_cc;
+					if (pid_rpm < (rpm_now - config.stick_erpm_per_s_in_cc)) {
+						pid_rpm = rpm_now - config.stick_erpm_per_s_in_cc;
 					}
 				} else {
 					if (pid_rpm < 0.0) {
@@ -311,8 +310,8 @@ static THD_FUNCTION(output_thread, arg) {
 
 					pid_rpm += (out_val * config.stick_erpm_per_s_in_cc) * ((float)OUTPUT_ITERATION_TIME_MS / 1000.0);
 
-					if (pid_rpm > (rpm_filtered + config.stick_erpm_per_s_in_cc)) {
-						pid_rpm = rpm_filtered + config.stick_erpm_per_s_in_cc;
+					if (pid_rpm > (rpm_now + config.stick_erpm_per_s_in_cc)) {
+						pid_rpm = rpm_now + config.stick_erpm_per_s_in_cc;
 					}
 				}
 			}
@@ -346,20 +345,37 @@ static THD_FUNCTION(output_thread, arg) {
 		was_pid = false;
 
 		float current = 0;
+		bool coast_brake = false;
+		static bool coast_brake_prev = false;
+		float coast_brake_current = fabsf(config.coast_brake_level * mcconf->lo_current_min);
 
-		if (config.ctrl_type == CHUK_CTRL_TYPE_CURRENT_BIDIRECTIONAL) {
-			if ((out_val > 0.0 && duty_now > 0.0) || (out_val < 0.0 && duty_now < 0.0)) {
-				current = out_val * mcconf->lo_current_max;
-			} else {
-				current = out_val * fabsf(mcconf->lo_current_min);
-			}
+		if (fabsf(out_val) < 0.01 && config.coast_brake_level > 0.005 &&
+				(fabsf(prev_current) < coast_brake_current || coast_brake_prev)) {
+			current = -coast_brake_current;
+			coast_brake = true;
 		} else {
-			if (out_val >= 0.0 && ((is_reverse ? -1.0 : 1.0) * duty_now) > 0.0) {
-				current = out_val * mcconf->lo_current_max;
+			if (config.ctrl_type == CHUK_CTRL_TYPE_CURRENT_BIDIRECTIONAL) {
+				if ((out_val > 0.0 && duty_now > 0.0) || (out_val < 0.0 && duty_now < 0.0)) {
+					current = out_val * mcconf->lo_current_max;
+				} else {
+					current = out_val * fabsf(mcconf->lo_current_min);
+				}
 			} else {
-				current = out_val * fabsf(mcconf->lo_current_min);
+				if (out_val >= 0.0 && ((is_reverse ? -1.0 : 1.0) * duty_now) > 0.0) {
+					current = out_val * mcconf->lo_current_max;
+				} else {
+					current = out_val * fabsf(mcconf->lo_current_min);
+				}
 			}
 		}
+
+		// When leaving coast brake mode set the previous current
+		// to the actual current to not get a spike in bidirectional mode
+		// close to standstill.
+		if (coast_brake_prev && !coast_brake) {
+			prev_current = current_now;
+		}
+		coast_brake_prev = coast_brake;
 
 		// Find lowest RPM and highest current
 		float rpm_local = fabsf(mc_interface_get_rpm());
@@ -441,39 +457,21 @@ static THD_FUNCTION(output_thread, arg) {
 				fabsf(mcconf->l_current_min) * mcconf->l_current_min_scale;
 		float ramp_time = fabsf(current) > fabsf(prev_current) ? config.ramp_time_pos : config.ramp_time_neg;
 
+		if (coast_brake) {
+			ramp_time = config.coast_brake_ramp_time;
+		}
+
 		if (ramp_time > 0.01) {
-			const float ramp_step = ((float)OUTPUT_ITERATION_TIME_MS * current_range) / (ramp_time * 1000.0);
-
+			float ramp_step = ((float)OUTPUT_ITERATION_TIME_MS * current_range) / (ramp_time * 1000.0);
 			float current_goal = prev_current;
-			const float goal_tmp = current_goal;
 			utils_step_towards(&current_goal, current, ramp_step);
-			bool is_decreasing = current_goal < goal_tmp;
-
-			// Make sure the desired current is close to the actual current to avoid surprises
-			// when changing direction
-			float goal_tmp2 = current_goal;
-			if (is_reverse) {
-				if (fabsf(current_goal + current_highest) > max_current_diff) {
-					utils_step_towards(&goal_tmp2, -current_highest, 2.0 * ramp_step);
-				}
-			} else {
-				if (fabsf(current_goal - current_highest) > max_current_diff) {
-					utils_step_towards(&goal_tmp2, current_highest, 2.0 * ramp_step);
-				}
-			}
-
-			// Always allow negative ramping
-			bool is_decreasing2 = goal_tmp2 < current_goal;
-			if ((!is_decreasing || is_decreasing2) && fabsf(out_val) > 0.001) {
-				current_goal = goal_tmp2;
-			}
-
 			current = current_goal;
 		}
 
 		prev_current = current;
 
-		if (current < 0.0 && config.ctrl_type != CHUK_CTRL_TYPE_CURRENT_BIDIRECTIONAL) {
+		if (current < 0.0 &&
+				(config.ctrl_type != CHUK_CTRL_TYPE_CURRENT_BIDIRECTIONAL || coast_brake)) {
 			mc_interface_set_brake_current(current);
 
 			// Send brake command to all ESCs seen recently on the CAN bus

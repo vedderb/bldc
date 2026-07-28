@@ -41,6 +41,8 @@ static const char* lbm_dyn_fun[] = {
   "(defun zip (xs ys) "
   "(zipwith cons xs ys))",
 
+  "(defun unzip (xs) (cons (map car xs) (map cdr xs)))",
+
   "(defun filter (f lst)"
   "(let ((filter-rec (lambda (f lst ys)"
   "(if (eq lst nil)"
@@ -60,15 +62,15 @@ static const char* lbm_dyn_fun[] = {
   "(defun abs (x) (if (< x 0) (- x) x))",
 #ifdef LBM_USE_DYN_DEFSTRUCT
   "(defun create-struct (name num-fields initials) { "
-  "(var arr (mkarray (+ 1 num-fields))) "
-  "(setix arr 0 name) "
+  "(var st (map (lambda (x) nil) (range 0 (+ 1 num-fields)))) "
+  "(setix st 0 name) "
   "(var num_inits (length initials))"
-  "(if initials (loopfor i 0 (and (< i num-fields) (< i num_inits)) (+ i 1) (setix arr (+ i 1) (ix initials i))))"
-  "arr "
+  "(if initials (loopfor i 0 (and (< i num-fields) (< i num_inits)) (+ i 1) (setix st (+ i 1) (ix initials i))))"
+  "st "
   "})",
 
   "(defun is-struct (struct name) "
-  "(and (eq (type-of struct) type-lisparray) "
+  "(and (eq (type-of struct) type-list) "
   "(eq (ix struct 0) name)))",
 
   "(defun accessor-sym (name field) "

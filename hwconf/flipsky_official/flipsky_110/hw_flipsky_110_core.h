@@ -27,6 +27,8 @@
   #define HW_NAME					"Flipsky_110_200"
 #elif defined(HW_FLIPSKY_110_300)
   #define HW_NAME					"Flipsky_110_300"
+#elif defined(HW_FLIPSKY_110_400)
+  #define HW_NAME					"Flipsky_110_400"
 #else
   #error "Must define hardware type"
 #endif
@@ -193,9 +195,7 @@
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
 #define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOC
 #define HW_ENC_EXTI_PINSRC		EXTI_PinSource8
-#define HW_ENC_EXTI_CH			EXTI9_5_IRQn
 #define HW_ENC_EXTI_LINE		EXTI_Line8
-#define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
@@ -211,10 +211,12 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
-#define LSM6DS3_SDA_GPIO			GPIOB
-#define LSM6DS3_SDA_PIN			4
-#define LSM6DS3_SCL_GPIO			GPIOB
-#define LSM6DS3_SCL_PIN			12
+#define IMU_DEV					IMU_DEV_LSM6DS3
+#define IMU_COM					IMU_COM_I2C_BB
+#define IMU_I2C_SDA_GPIO			GPIOB
+#define IMU_I2C_SDA_PIN				4
+#define IMU_I2C_SCL_GPIO			GPIOB
+#define IMU_I2C_SCL_PIN				12
 #define IMU_FLIP
 
 // NRF SWD
@@ -247,6 +249,8 @@
   #define HW_DEAD_TIME_NSEC		1000.0
 #elif defined(HW_FLIPSKY_110_300)
   #define HW_DEAD_TIME_NSEC		1500.0
+#elif defined(HW_FLIPSKY_110_400)
+  #define HW_DEAD_TIME_NSEC		1200.0
 #else
   #define HW_DEAD_TIME_NSEC		860.0
 #endif
@@ -280,9 +284,15 @@
 #endif
 
 // Setting limits
+#ifdef  HW_FLIPSKY_110_400
+#define HW_LIM_CURRENT			-400.0, 400.0
+#define HW_LIM_CURRENT_IN		-400.0, 400.0
+#define HW_LIM_CURRENT_ABS		0.0, 550.0
+#else
 #define HW_LIM_CURRENT			-300.0, 300.0
 #define HW_LIM_CURRENT_IN		-300.0, 300.0
 #define HW_LIM_CURRENT_ABS		0.0, 420.0
+#endif  //
 #define HW_LIM_VIN				11.0, 150.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1

@@ -82,13 +82,13 @@
 ;; of a signal using multiple antennas.
 
 
-(define fmag (fopen "magnitude.bin" "wb"))
-(fwrite fmag mag-buf)
-(fclose fmag)
+(define fmag (f-open "magnitude.bin" "wb"))
+(f-write fmag mag-buf)
+(f-close fmag)
 
-(define fphase (fopen "phase.bin" "wb"))
-(fwrite fphase phase-buf)
-(fclose fphase)
+(define fphase (f-open "phase.bin" "wb"))
+(f-write fphase phase-buf)
+(f-close fphase)
 
 (print "output: magnitude_phase_spectrum.pdf")
 (plot-magnitude-phase "magnitude.bin" "phase.bin"

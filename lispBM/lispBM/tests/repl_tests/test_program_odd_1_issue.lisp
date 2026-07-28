@@ -13,9 +13,9 @@
               res)))
 
 ;; Test program_odd_1.lisp that causes strange reader behavior
-(define file_odd_1 (fopen "repl_tests/test_data/program_odd_1.lisp" "r"))
+(define file_odd_1 (f-open "repl_tests/test_data/program_odd_1.lisp" "r"))
 (define prog_odd_1 (load-file file_odd_1))
-(fclose file_odd_1)
+(f-close file_odd_1)
 
 (print "Loaded program_odd_1.lisp, size: " (length prog_odd_1))
 (print "First 50 bytes: " (bufget-u8 prog_odd_1 0) " " (bufget-u8 prog_odd_1 1) " " (bufget-u8 prog_odd_1 2) " ...")

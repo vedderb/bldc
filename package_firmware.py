@@ -100,6 +100,7 @@ package_dict["Thor300"] = [['Thor300_20s', default_name]]
 package_dict["Thor301"] = [['Thor301', default_name]]
 package_dict["Thor400"] = [['Thor400', default_name]]
 package_dict["Thor400v2"] = [['Thor400v2', default_name]]
+package_dict["Lightning400"] = [['Lightning400', default_name]]
 package_dict["JetFleetF6_20s"] = [['JetFleetF6_20s', default_name]]
 package_dict["JetFleetF6_24s"] = [['JetFleetF6_24s', default_name]]
 package_dict["JetFleetF6_32s"] = [['JetFleetF6_32s', default_name]]
@@ -223,10 +224,20 @@ package_dict["FLIPSKY_110_200"] = [['flipsky_110_200', default_name],
                     ['flipsky_110_200_no_limits', no_limits_name]] 
 package_dict["FLIPSKY_110_300"] = [['flipsky_110_300', default_name],
                     ['flipsky_110_300_no_limits', no_limits_name]]
+package_dict["FLIPSKY_110_400"] = [['flipsky_110_400', default_name],
+                    ['flipsky_110_400_no_limits', no_limits_name]]                     
 package_dict["Classic"] = [['classic', default_name],
                     ['classic_no_limits', no_limits_name]]
 package_dict["Classicp"] = [['classicp', default_name],
                     ['classicp_no_limits', no_limits_name]]
+package_dict["Maximp_120_PH"] = [['maximp_120_ph', default_name],
+                    ['maximp_120_ph_no_limits', no_limits_name]]
+package_dict["Maximp_150_PH"] = [['maximp_150_ph', default_name],
+                    ['maximp_150_ph_no_limits', no_limits_name]]
+package_dict["Maxim_120_PH"] = [['maxim_120_ph', default_name],
+                    ['maxim_120_ph_no_limits', no_limits_name]]
+package_dict["Maxim_150_PH"] = [['maxim_150_ph', default_name],
+                    ['maxim_150_ph_no_limits', no_limits_name]]
 
 # When the argument make_targets is passed print all make targets from the
 # dictianary. The output of this command can be used as arguments to make to

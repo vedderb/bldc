@@ -68,6 +68,7 @@
 
 #define HW_SHUTDOWN_HOLD_ON();
 #define HW_SAMPLE_SHUTDOWN()		1
+#define HW_SAMPLE_SHUTDOWN_OVR()	smart_switch_is_pressed()
 #define HW_SHUTDOWN_HOLD_OFF()		palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
 #define HW_SHUTDOWN_NO
 
@@ -260,9 +261,7 @@
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
 #define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOD
 #define HW_ENC_EXTI_PINSRC		EXTI_PinSource14
-#define HW_ENC_EXTI_CH			EXTI15_10_IRQn
 #define HW_ENC_EXTI_LINE		EXTI_Line14
-#define HW_ENC_EXTI_ISR_VEC		EXTI15_10_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM4_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM4_IRQHandler
 
@@ -299,10 +298,12 @@
 #endif
 
 // LSM6DS3
-#define LSM6DS3_SDA_GPIO		GPIOB
-#define LSM6DS3_SDA_PIN			9
-#define LSM6DS3_SCL_GPIO		GPIOB
-#define LSM6DS3_SCL_PIN			8
+#define IMU_DEV				IMU_DEV_LSM6DS3
+#define IMU_COM				IMU_COM_I2C_BB
+#define IMU_I2C_SDA_GPIO		GPIOB
+#define IMU_I2C_SDA_PIN			9
+#define IMU_I2C_SCL_GPIO		GPIOB
+#define IMU_I2C_SCL_PIN			8
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
@@ -332,6 +333,9 @@
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT	150.0	// The maximum absolute current above which a fault is generated
 #endif
+#ifndef MCCONF_L_MIN_VOLTAGE
+#define MCCONF_L_MIN_VOLTAGE		12.0	// Minimum input voltage
+#endif
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE		92.0	// Maximum input voltage
 #endif
@@ -342,10 +346,10 @@
 #define HW_LIM_CURRENT				-200.0, 200.0
 #define HW_LIM_CURRENT_ABS			0.0, 300.0
 #define HW_LIM_CURRENT_IN			-150.0, 150.0
-#define HW_LIM_VIN					6.0, 94.0
+#define HW_LIM_VIN					11.0, 94.0
 #define HW_LIM_ERPM					-200e3, 200e3
 #define HW_LIM_DUTY_MIN				0.0, 0.1
-#define HW_LIM_DUTY_MAX				0.0, 0.95
+#define HW_LIM_DUTY_MAX				0.0, 1.0
 #define HW_LIM_TEMP_FET				-40.0, 120.0
 
 // Functions

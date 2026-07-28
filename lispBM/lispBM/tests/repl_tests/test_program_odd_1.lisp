@@ -12,9 +12,9 @@
               res)))
 
 ;; Test program_odd_1.lisp (1268 bytes)
-(define file-handle (fopen "repl_tests/test_data/program_odd_1.lisp" "r"))
+(define file-handle (f-open "repl_tests/test_data/program_odd_1.lisp" "r"))
 (define test-program (load-file file-handle))
-(fclose file-handle)
+(f-close file-handle)
 (define r1 (eq 'exit-error (car (trap (time-read-eval test-program)))))
 
 (debug_test r1 1)

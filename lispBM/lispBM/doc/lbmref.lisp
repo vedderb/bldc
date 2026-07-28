@@ -1878,8 +1878,10 @@
 (define lists-member
   (ref-entry "member"
              (list
-              (para (list "Check if a value is included in list. The form of an `member` expression is"
-                          "`(member value-expr list-expr)`. Equality is checked structurally, in the"
+              (para (list "Check if a value is included in a list. The form of a `member` expression is"
+                          "`(member value-expr list-expr)`. If the value is found, `member` returns"
+                          "the entire list, otherwise it returns `nil`."
+                          "Equality is checked structurally, in the"
                           "same way as" (str-merge (code-entry-ref "eq") ",") "meaning if you're"
                           "checking numbers the types must match (see the following examples)."
                           ))
@@ -3291,8 +3293,8 @@
 
 
 (defun render-manual ()
-  (let ((h (fopen "lbmref.md" "w"))
-        (r (lambda (s) (fwrite-str h s))))
+  (let ((h (f-open "lbmref.md" "w"))
+        (r (lambda (s) (f-write-str h s))))
     {
     (var t0 (systime))
     (render r manual)

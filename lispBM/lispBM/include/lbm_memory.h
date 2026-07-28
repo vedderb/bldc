@@ -112,11 +112,13 @@ extern "C" {
  *  @{
  */
 #define LBM_MEMORY_SIZE_BLOCKS_TO_WORDS(X) (16*(X))
-#define LBM_MEMORY_SIZE_64BYTES_TIMES_X(X) (16*(X))
+
 #ifndef LBM64
 #define LBM_MEMORY_BITMAP_SIZE(X) (X)
 #else
-#define LBM_MEMORY_BITMAP_SIZE(X) ((X)/2)
+  // if X is odd (X/2) gives a bitmap half a word too small.
+  // Bumping it up like this makes it a half a word too large in that case instead.
+#define LBM_MEMORY_BITMAP_SIZE(X) ((X+1)/2)
 #endif
 /** @} */
 
@@ -128,6 +130,8 @@ extern "C" {
  *              for platform-independent sizing.
  *  @{
  */
+#define LBM_MEMORY_SIZE_64BYTES_TIMES_X(X) (16*(X))
+
 #define LBM_MEMORY_SIZE_512 LBM_MEMORY_SIZE_64BYTES_TIMES_X(8)
 #define LBM_MEMORY_SIZE_1K LBM_MEMORY_SIZE_64BYTES_TIMES_X(16)
 #define LBM_MEMORY_SIZE_2K LBM_MEMORY_SIZE_64BYTES_TIMES_X(32)

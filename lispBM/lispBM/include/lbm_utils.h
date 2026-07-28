@@ -47,7 +47,7 @@ extern "C" {
 
 #define CMP(a,b) (((a) > (b)) - ((a) < (b)));
 
-static inline bool str_eq(char *str1, char *str2) {
+static inline bool str_eq(const char *str1, const char *str2) {
   if (*str1 != *str2) return false;
   if (*str1 == 0) return true;
 

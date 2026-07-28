@@ -9,7 +9,7 @@
 
 ;; Example of bracket operation
 (with-file "wave.bin" "wb"
-           (lambda (x) (fwrite x (sample-signal sine-sig 20000 buffer))))
+           (lambda (x) (f-write x (sample-signal sine-sig 20000 buffer))))
 
 (print "output: sin440.pdf")
 (plot-signal "wave.bin" "sin440.pdf" "440Hz sine (20kHz sample rate)")
@@ -17,9 +17,9 @@
 ;; Example 2 plot a sum signal
 (define sum-sig (signal-sum (signal-sin 440.0) (signal-sin 2400.0)))
 
-(define f1 (fopen "wave.bin" "wb"))
-(fwrite f1 (sample-signal sum-sig 20000 buffer))
-(fclose f1)
+(define f1 (f-open "wave.bin" "wb"))
+(f-write f1 (sample-signal sum-sig 20000 buffer))
+(f-close f1)
 
 (print "output: sin440_plus_2400.pdf")
 (plot-signal "wave.bin" "sin440_plus_2400.pdf" "440Hz + 2400Hz")
@@ -40,9 +40,9 @@
       })
 
 
-(define f1 (fopen "wave.bin" "wb"))
-(fwrite f1 fft-r)
-(fclose f1)
+(define f1 (f-open "wave.bin" "wb"))
+(f-write f1 fft-r)
+(f-close f1)
 
 (print "output: fft_sin440_plus_2400.pdf")
 (plot-spectrum "wave.bin" "fft_sin440_plus_2400.pdf" "Frequency Spectrum: 440Hz + 2400Hz")
@@ -51,9 +51,9 @@
 
 (define noisy-sig (signal-sum (signal-noise 1.0) (signal-sin 2400.0 0.0 1.0)))
 
-(define f1 (fopen "wave.bin" "wb"))
-(fwrite f1 (sample-signal noisy-sig 20000 buffer))
-(fclose f1)
+(define f1 (f-open "wave.bin" "wb"))
+(f-write f1 (sample-signal noisy-sig 20000 buffer))
+(f-close f1)
 
 (print "output: noise_plus_2400.pdf")
 (plot-signal "wave.bin" "noise_plus_2400.pdf" "noise + 2400Hz")
@@ -71,9 +71,9 @@
       })
 
 
-(define f1 (fopen "wave.bin" "wb"))
-(fwrite f1 fft-r)
-(fclose f1)
+(define f1 (f-open "wave.bin" "wb"))
+(f-write f1 fft-r)
+(f-close f1)
 
 (print "output: fft_noise_plus_2400.pdf")
 (plot-spectrum "wave.bin" "fft_noise_plus_2400.pdf" "Frequency Spectrum: noise + 2400Hz")
@@ -83,9 +83,9 @@
 ;; Example 4 plot a sum signal
 (define sum-sig (signal-sum (signal-sin 2000.0) (signal-cos 2000.0)))
 
-(define f1 (fopen "wave.bin" "wb"))
-(fwrite f1 (sample-signal sum-sig 20000 buffer))
-(fclose f1)
+(define f1 (f-open "wave.bin" "wb"))
+(f-write f1 (sample-signal sum-sig 20000 buffer))
+(f-close f1)
 
 (print "output: sin2000_plus_cos2000.pdf")
 (plot-signal "wave.bin" "sin2000_plus_cos2000.pdf" "sin + cos")
@@ -105,9 +105,9 @@
       })
 
 
-(define f1 (fopen "wave.bin" "wb"))
-(fwrite f1 fft-r)
-(fclose f1)
+(define f1 (f-open "wave.bin" "wb"))
+(f-write f1 fft-r)
+(f-close f1)
 
 (print "output: fft_sin2000_plus_cos2000.pdf")
 (plot-spectrum "wave.bin" "fft_sin2000_plus_cos2000.pdf" "Frequency Spectrum: 2000Hz")
@@ -191,13 +191,13 @@
 ;; of a signal using multiple antennas.
 
 
-(define fmag (fopen "magnitude.bin" "wb"))
-(fwrite fmag mag-buf)
-(fclose fmag)
+(define fmag (f-open "magnitude.bin" "wb"))
+(f-write fmag mag-buf)
+(f-close fmag)
 
-(define fphase (fopen "phase.bin" "wb"))
-(fwrite fphase phase-buf)
-(fclose fphase)
+(define fphase (f-open "phase.bin" "wb"))
+(f-write fphase phase-buf)
+(f-close fphase)
 
 (print "output: magnitude_phase_spectrum.pdf")
 (plot-magnitude-phase "magnitude.bin" "phase.bin"
@@ -422,9 +422,9 @@
       (bufset-f32 angle-pairs-buf (+ (* i 8) 4) recv-ang 'little-endian)
       })
 
-(define f-pairs (fopen "angle_pairs.bin" "wb"))
-(fwrite f-pairs angle-pairs-buf)
-(fclose f-pairs)
+(define f-pairs (f-open "angle_pairs.bin" "wb"))
+(f-write f-pairs angle-pairs-buf)
+(f-close f-pairs)
 
 (define gp (gnuplot-open))
 (gnuplot-cmd gp "set terminal pdf")

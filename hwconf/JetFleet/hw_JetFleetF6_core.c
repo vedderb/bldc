@@ -28,21 +28,20 @@
 #include "mc_interface.h"
 
 // Variables
-static volatile bool i2c_running = false;
-static mutex_t shutdown_mutex;
-static float bt_diff = 0.0;
-static float bt_lastval = 0.0;
-static float bt_unpressed = 0.0;
-static bool will_poweroff = false;
-static bool force_poweroff = false;
-static unsigned int bt_hold_counter = 0;
+typedef enum {
+	BT_SHUTDOWN_IDLE = 0,
+	BT_SHUTDOWN_HOLDING,
+	BT_SHUTDOWN_ARMED,
+	BT_SHUTDOWN_FORCE_ARMED,
+	BT_SHUTDOWN_REQUESTED,
+} bt_shutdown_state;
 
-// I2C configuration
-static const I2CConfig i2cfg = {
-		OPMODE_I2C,
-		100000,
-		STD_DUTY_CYCLE
-};
+static bool bt_raw_pressed = false;
+static bool bt_last_raw_pressed = false;
+static bool bt_pressed = false;
+static bt_shutdown_state bt_state = BT_SHUTDOWN_IDLE;
+static unsigned int bt_hold_counter = 0;
+static unsigned int bt_debounce_counter = 0;
 
 #define EXT_BUZZER_ON()    palSetPad(HW_ICU_GPIO, HW_ICU_PIN)
 #define EXT_BUZZER_OFF()   palClearPad(HW_ICU_GPIO, HW_ICU_PIN)
@@ -71,8 +70,6 @@ static void beep_on(void)
 static void terminal_button_test(int argc, const char **argv);
 
 void hw_init_gpio(void) {
-
-	chMtxObjectInit(&shutdown_mutex);
 	
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
@@ -143,7 +140,7 @@ void hw_init_gpio(void) {
 
 	// ShutDown
 	palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_OPENDRAIN);
-	palSetPadMode(HW_SHUTDOWN_SENSE_GPIO, HW_SHUTDOWN_SENSE_PIN, PAL_MODE_INPUT_ANALOG);
+	palSetPadMode(HW_SHUTDOWN_SENSE_GPIO, HW_SHUTDOWN_SENSE_PIN, PAL_MODE_INPUT);
 
 	// ADC Pins
 	palSetPadMode(GPIOA, 0, PAL_MODE_INPUT_ANALOG);
@@ -161,7 +158,6 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 
 	terminal_register_command_callback(
 			"test_button",
@@ -207,213 +203,135 @@ void hw_setup_adc_channels(void) {
 	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
 }
 
+// Generic hardware I2C is not routed on JetFleetF6: HW_I2C_SDA shares PC5 with
+// shutdown sense, and PC5 has no valid I2C alternate function on STM32F4. The
+// IMU has its own bit-banged path via LSM6DS3_SDA_*, so these stay no-ops.
 void hw_start_i2c(void) {
-	i2cAcquireBus(&HW_I2C_DEV);
-
-	if (!i2c_running) {
-		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
-				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
-		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
-
-		i2cStart(&HW_I2C_DEV, &i2cfg);
-		i2c_running = true;
-	}
-
-	i2cReleaseBus(&HW_I2C_DEV);
 }
 
 void hw_stop_i2c(void) {
-	i2cAcquireBus(&HW_I2C_DEV);
-
-	if (i2c_running) {
-		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, PAL_MODE_INPUT);
-		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN, PAL_MODE_INPUT);
-
-		i2cStop(&HW_I2C_DEV);
-		i2c_running = false;
-
-	}
-
-	i2cReleaseBus(&HW_I2C_DEV);
 }
 
-/**
- * Try to restore the i2c bus
- */
 void hw_try_restore_i2c(void) {
-	if (i2c_running) {
-		i2cAcquireBus(&HW_I2C_DEV);
-
-		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
-
-		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
-
-		palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-		palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
-
-		chThdSleep(1);
-
-		for(int i = 0;i < 16;i++) {
-			palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-			chThdSleep(1);
-			palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-			chThdSleep(1);
-		}
-
-		// Generate start then stop condition
-		palClearPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
-		chThdSleep(1);
-		palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-		chThdSleep(1);
-		palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-		chThdSleep(1);
-		palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
-
-		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
-				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
-
-		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
-
-		HW_I2C_DEV.state = I2C_STOP;
-		i2cStart(&HW_I2C_DEV, &i2cfg);
-
-		i2cReleaseBus(&HW_I2C_DEV);
-	}
 }
 
-#define RISING_EDGE_THRESHOLD 0.09
 #define TIME_500MS 50
 #define TIME_3S 300
 #define ERPM_THRESHOLD 100
+#define BUTTON_DEBOUNCE_SAMPLES 2
+
+static bool shutdown_button_pressed(void) {
+	bt_raw_pressed = palReadPad(HW_SHUTDOWN_SENSE_GPIO, HW_SHUTDOWN_SENSE_PIN) == PAL_HIGH;
+
+	if (bt_raw_pressed == bt_last_raw_pressed) {
+		if (bt_debounce_counter < BUTTON_DEBOUNCE_SAMPLES) {
+			bt_debounce_counter++;
+		}
+	} else {
+		bt_last_raw_pressed = bt_raw_pressed;
+		bt_debounce_counter = 1;
+	}
+
+	if (bt_debounce_counter >= BUTTON_DEBOUNCE_SAMPLES) {
+		bt_pressed = bt_raw_pressed;
+	}
+
+	return bt_pressed;
+}
 
 /**
  * hw_sample_shutdown_button - return false if shutdown is requested, true otherwise
  *
- * Behavior: after determining the unpressed level, look for rising edges or values
- * that are clearly above the unpressed level (2 x Threshold higher), triggering a counter.
+ * Behavior: sample the shutdown button as a digital input. The input is expected
+ * to be low when released and high when pressed.
  *
- * Once triggered, the counter keeps incrementing as long as the level is 2 x Threshold higher
- * than the normal/unpressed value, otherwise it gets reset to zero.
- *
- * Once the counter reaches the threshold the button is considered pressed, provided that
- * the erpm is below 100. A very short (20ms) beep will go off.
- * Shutdown actually happens on the falling edge when the press is over.
+ * Once the hold counter reaches the threshold, provided that the ERPM is below
+ * 100, a very short (20ms) beep will go off. Shutdown actually happens on the
+ * release edge when the press is over.
  *
  * If the motor is spinning faster, then a 3s press is required. Buzzer will beep once the
- * time has been reached. Again, shutdown happens on the falling edge.
+ * time has been reached. Again, shutdown happens on release.
  *
  * Normal shutdown time:    0.5s
  * Emergency shutdown time: 3.0s
  */
 
 bool hw_sample_shutdown_button(void) {
-    chMtxLock(&shutdown_mutex);
-    float newval = ADC_VOLTS(ADC_IND_SHUTDOWN);
-    chMtxUnlock(&shutdown_mutex);
-    if (bt_lastval == 0) {
-        bt_lastval = newval;
-        return true;
-    }
-    bt_diff = (newval - bt_lastval);
+	bool pressed = shutdown_button_pressed();
 
-    bool is_steady = fabsf(bt_diff) < 0.02;  // filter out noise above 20mV
-    bool is_rising_edge = (bt_diff > RISING_EDGE_THRESHOLD);
+	switch (bt_state) {
+	case BT_SHUTDOWN_IDLE:
+		if (pressed) {
+			bt_hold_counter = 1;
+			bt_state = BT_SHUTDOWN_HOLDING;
+		} else {
+			bt_hold_counter = 0;
+		}
+		break;
 
-    bt_lastval = newval;
+	case BT_SHUTDOWN_HOLDING:
+		if (!pressed) {
+			bt_hold_counter = 0;
+			beep_off();
+			bt_state = BT_SHUTDOWN_IDLE;
+			break;
+		}
 
-    if (bt_unpressed == 0.0) {
-        // initializing bt_unpressed
-        if (is_steady) {
-            bt_unpressed = newval;
-        }
-        // return true regardless (this happens only after boot)
-        return true;
-    }
+		bt_hold_counter++;
 
-    if (will_poweroff) {
-        if (!force_poweroff && (fabsf(mc_interface_get_rpm()) > ERPM_THRESHOLD)) {
-            will_poweroff = false;
-            bt_hold_counter = 0;
-            beep_off();
-            return true;
-        }
+		if (bt_hold_counter > TIME_500MS) {
+			if (fabsf(mc_interface_get_rpm()) < ERPM_THRESHOLD) {
+				// Power-down is triggered by releasing the button after arming.
+				bt_hold_counter = 0;
+				bt_state = BT_SHUTDOWN_ARMED;
 
-        // Now we look for a falling edge to shut down
-        if ((bt_diff < -RISING_EDGE_THRESHOLD) || (newval < bt_unpressed + RISING_EDGE_THRESHOLD / 2)) {
-            bt_hold_counter++;
-            beep_off();
-            return false;
-        }
-        return true;
-    }
+				beep_on();
+				chThdSleepMilliseconds(20);
+				beep_off();
+			} else if (bt_hold_counter > TIME_3S) {
+				// Emergency Power-Down - beep to let the user know it's ready.
+				beep_on();
+				bt_hold_counter = 0;
+				bt_state = BT_SHUTDOWN_FORCE_ARMED;
+			}
+		}
+		break;
 
-    if (bt_hold_counter == 0) {
-        if (is_rising_edge) {
-            // trigger by edge and by level!
-            bt_hold_counter = 1;
-        }
-        else {
-            if (is_steady && (newval < bt_unpressed + RISING_EDGE_THRESHOLD / 2)) {
-                // pickup drifts due to temperature
-                bt_unpressed = bt_unpressed * 0.9 + newval * 0.1;
-            }
-        }
-    }
-    else {
-        // we've had a rising edge and are now checking for a steady hold
-        if (newval > bt_unpressed + RISING_EDGE_THRESHOLD * 1.5) {
-            bt_hold_counter++;
+	case BT_SHUTDOWN_ARMED:
+		if (fabsf(mc_interface_get_rpm()) > ERPM_THRESHOLD) {
+			bt_hold_counter = 0;
+			beep_off();
+			bt_state = BT_SHUTDOWN_IDLE;
+			break;
+		}
 
-            if (bt_hold_counter > TIME_500MS) {
-                if (fabsf(mc_interface_get_rpm()) < ERPM_THRESHOLD) {
-                    // after 150ms, power-down is triggered by the falling edge (releasing the button)
-                    will_poweroff = true;
-                    bt_hold_counter = 0;
+		if (!pressed) {
+			beep_off();
+			bt_state = BT_SHUTDOWN_REQUESTED;
+			return false;
+		}
+		break;
 
-                    // super short beep to let the user know they can let go of the button now
-                    beep_on();
-                    chThdSleepMilliseconds(20);
-                    beep_off();
-                }
-                else {
-                    if (bt_hold_counter  > TIME_3S) {
-                        // Emergency Power-Down - beep to let the user know it's ready
-                        beep_on();
-                        will_poweroff = true;
-                        force_poweroff = true;
-                        bt_hold_counter = 0;
-                        return true;
-                    }
-                }
-            }
-        }
-        else {
-            // press is too short, abort
-            bt_hold_counter = 0;
-            beep_off();
-        }
-    }
-    return true;
+	case BT_SHUTDOWN_FORCE_ARMED:
+		if (!pressed) {
+			beep_off();
+			bt_state = BT_SHUTDOWN_REQUESTED;
+			return false;
+		}
+		break;
+
+	case BT_SHUTDOWN_REQUESTED:
+		beep_off();
+		return false;
+
+	default:
+		bt_hold_counter = 0;
+		beep_off();
+		bt_state = BT_SHUTDOWN_IDLE;
+		break;
+	}
+
+	return true;
 }
 
 
@@ -435,8 +353,9 @@ static void terminal_button_test(int argc, const char **argv) {
 	(void)argv;
 
 	for (int i = 0;i < 40;i++) {
-		commands_printf("BT: %d:%d [%.2fV], %.2fV, %.2fV, OFF=%d", HW_SAMPLE_SHUTDOWN(), bt_hold_counter,
-                        (double)bt_diff, (double)bt_unpressed, (double)bt_lastval, (int)will_poweroff);
+		commands_printf("BT: %d:%d raw=%d pressed=%d state=%d RPM=%.1f",
+				HW_SAMPLE_SHUTDOWN(), bt_hold_counter, (int)bt_raw_pressed,
+				(int)bt_pressed, (int)bt_state, (double)mc_interface_get_rpm());
 		chThdSleepMilliseconds(100);
 	}
 }

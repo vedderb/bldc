@@ -4,9 +4,9 @@
                      (if (not x) (print "TEST " i " FAILED: " x))))
 
 ;; Load a program file once
-(define file-handle (fopen "repl_tests/test_data/program_1000.lisp" "r"))
+(define file-handle (f-open "repl_tests/test_data/program_1000.lisp" "r"))
 (define test-program (load-file file-handle))
-(fclose file-handle)
+(f-close file-handle)
 
 (print "Loaded program, size: " (length test-program) " bytes")
 

@@ -47,20 +47,17 @@ int test_memory_init_null_pointers() {
   return 1;
 }
 
-int test_memory_init_invalid_alignment() {
-  lbm_uint memory[256];
+int test_memory_init_incompatible_sizes() {
+  lbm_uint memory[1024];
   lbm_uint bitmap[16];
 
-  // Test invalid data size (not multiple of 4)
-  if (lbm_memory_init(memory, 255, bitmap, 16)) return 0;
-  if (lbm_memory_init(memory, 257, bitmap, 16)) return 0;
-
-  // Test invalid bitmap size (not multiple of 4)
-  if (lbm_memory_init(memory, 256, bitmap, 15)) return 0;
-  if (lbm_memory_init(memory, 256, bitmap, 17)) return 0;
-
-  // Test size relationship: (data_size * 2) != (bits_size * sizeof(lbm_uint) * 8)
-  if (lbm_memory_init(memory, 256, bitmap, 32)) return 0;
+  // bitmap[16] covers 16*sizeof(lbm_uint)*8/2 words: 256 on 32-bit, 512 on 64-bit.
+  // 513*2 = 1026 exceeds both limits, so all cases below should fail.
+  if (lbm_memory_init(memory, 513, bitmap, 16)) return 0;
+  if (lbm_memory_init(memory, 514, bitmap, 16)) return 0;
+  if (lbm_memory_init(memory, 600, bitmap, 16)) return 0;
+  if (lbm_memory_init(memory, 700, bitmap, 16)) return 0;
+  if (lbm_memory_init(memory, 1000, bitmap, 16)) return 0;
 
   return 1;
 }
@@ -960,7 +957,7 @@ int main(void) {
 
   total_tests++; if (test_memory_init_valid()) tests_passed++;
   total_tests++; if (test_memory_init_null_pointers()) tests_passed++;
-  total_tests++; if (test_memory_init_invalid_alignment()) tests_passed++;
+  total_tests++; if (test_memory_init_incompatible_sizes()) tests_passed++;
   total_tests++; if (test_memory_reserve()) tests_passed++;
   total_tests++; if (test_memory_allocate_single_word()) tests_passed++;
   total_tests++; if (test_memory_allocate_multiple_words()) tests_passed++;

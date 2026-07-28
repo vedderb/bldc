@@ -24,10 +24,18 @@
 #include <stdint.h>
 #include "datatypes.h"
 
+extern int(*utils_read_hall_fun)(bool is_second_motor, int samples);
+
 void utils_sys_lock_cnt(void);
 void utils_sys_unlock_cnt(void);
 uint8_t utils_second_motor_id(void);
-int utils_read_hall(bool is_second_motor, int samples);
+
+static inline int utils_read_hall(bool is_second_motor, int samples) {
+	return utils_read_hall_fun(is_second_motor, samples);
+}
+
+int utils_read_hall_hw(bool is_second_motor, int samples);
+
 const char* utils_hw_type_to_string(HW_TYPE hw);
 int utils_check_min_stack_left(thread_t *th);
 int utils_stack_left_now(void);

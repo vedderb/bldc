@@ -42,6 +42,8 @@ typedef enum {
 	ENCODER_TYPE_PWM,
 	ENCODER_TYPE_PWM_ABI,
 	ENCODER_TYPE_MA782,
+	ENCODER_TYPE_AMT22,
+	ENCODER_TYPE_MT6835
 } encoder_type_t;
 
 typedef struct {
@@ -101,6 +103,30 @@ typedef struct {
 
 typedef struct {
 	float spi_error_rate;
+	float last_enc_angle;
+	uint32_t spi_error_cnt;
+	uint32_t spi_val;
+	uint32_t last_update_time;
+} MT6835_state;
+
+typedef struct {
+	SPIDriver *spi_dev;
+	SPIConfig hw_spi_cfg;
+	uint8_t spi_af;
+	stm32_gpio_t *nss_gpio;
+	int nss_pin;
+	stm32_gpio_t *sck_gpio;
+	int sck_pin;
+	stm32_gpio_t *mosi_gpio;
+	int mosi_pin;
+	stm32_gpio_t *miso_gpio;
+	int miso_pin;
+
+	MT6835_state state;
+} MT6835_config_t;
+
+typedef struct {
+	float spi_error_rate;
 	float encoder_no_magnet_error_rate;
 	uint32_t encoder_no_magnet_error_cnt;
 	float last_enc_angle;
@@ -144,7 +170,6 @@ typedef struct {
 	uint8_t exti_portsrc;
 	uint8_t exti_pinsrc;
 	uint32_t exti_line;
-	uint32_t exti_ch;
 
 	ABI_state state;
 } ABI_config_t;
@@ -361,5 +386,18 @@ typedef struct {
 	int en_pin;
 	ma782_state_t state;
 } ma782_config_t;
+
+typedef struct {
+	uint16_t spi_val;
+	float last_enc_angle;
+	uint32_t spi_error_cnt;
+	float spi_error_rate;
+	uint32_t last_update_time;
+} AMT22_state;
+
+typedef struct {
+	spi_bb_state sw_spi;
+	AMT22_state state;
+} AMT22_config_t;
 
 #endif /* ENCODER_DATATYPE_H_ */

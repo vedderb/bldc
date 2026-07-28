@@ -24,6 +24,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+// Global
+int(*utils_read_hall_fun)(bool is_second_motor, int samples) = utils_read_hall_hw;
+
 // Private variables
 static volatile int sys_lock_cnt = 0;
 
@@ -86,7 +89,7 @@ uint8_t utils_second_motor_id(void) {
  * @return
  * The state of the three hall sensors.
  */
-int utils_read_hall(bool is_second_motor, int samples) {
+int utils_read_hall_hw(bool is_second_motor, int samples) {
 	samples = 1 + 2 * samples;
 
 	int h1 = 0, h2 = 0, h3 = 0;

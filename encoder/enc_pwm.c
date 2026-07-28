@@ -103,7 +103,9 @@ void enc_pwm_deinit(void) {
 
 float enc_pwm_read_deg(void) {
 	float dt = timer_seconds_elapsed_since(m_ts_last);
-	return m_icu_angle + m_speed_now * dt;
+	float angle_interpol = m_speed_now * dt;
+	utils_truncate_number(&angle_interpol, -120.0, 120.0);
+	return m_icu_angle + angle_interpol;
 }
 
 uint32_t enc_pwm_update_cnt(void) {

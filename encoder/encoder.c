@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2025 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2026 Benjamin Vedder	benjamin@vedder.se
 	Copyright 2022 Jakub Tomczak
 
 	This file is part of the VESC firmware.
@@ -70,7 +70,6 @@ bool encoder_init(volatile mc_configuration *conf) {
 		encoder_deinit();
 	}
 
-	nvicDisableVector(HW_ENC_EXTI_CH);
 	nvicDisableVector(HW_ENC_TIM_ISR_CH);
 	TIM_DeInit(HW_ENC_TIM);
 
@@ -111,6 +110,20 @@ bool encoder_init(volatile mc_configuration *conf) {
 		}
 
 		m_encoder_type_now = ENCODER_TYPE_MT6816;
+		timer_start(routine_rate_10k);
+
+		res = true;
+	} break;
+
+	case SENSOR_PORT_MODE_MT6835_SPI_HW: {
+		SENSOR_PORT_5V();
+
+		if (!enc_mt6835_init(&encoder_cfg_mt6835)) {
+			m_encoder_type_now = ENCODER_TYPE_NONE;
+			return false;
+		}
+
+		m_encoder_type_now = ENCODER_TYPE_MT6835;
 		timer_start(routine_rate_10k);
 
 		res = true;
@@ -275,6 +288,19 @@ bool encoder_init(volatile mc_configuration *conf) {
 		res = true;
 	} break;
 
+	case SENSOR_PORT_MODE_AMT22: {
+		SENSOR_PORT_5V();
+
+		if (!enc_amt22_init(&encoder_cfg_amt22)) {
+			return false;
+		}
+
+		m_encoder_type_now = ENCODER_TYPE_AMT22;
+		timer_start(routine_rate_10k);
+
+		res = true;
+	} break;
+
 	case SENSOR_PORT_MODE_CUSTOM_ENCODER:
 		m_encoder_type_now = ENCODER_TYPE_CUSTOM;
 		res = true;
@@ -317,7 +343,7 @@ bool encoder_init(volatile mc_configuration *conf) {
 
 	terminal_register_command_callback(
 			"encoder",
-			"Prints the status of the AS5047, AS5x47U, AD2S1205, TLE5012, MT6816, or TS5700N8501 encoder.",
+			"Prints the status of the AS5047, AS5x47U, AD2S1205, TLE5012, MT6816, MT6835, or TS5700N8501 encoder.",
 			0,
 			terminal_encoder);
 
@@ -369,13 +395,17 @@ void encoder_update_config(volatile mc_configuration *conf) {
 		break;
 	}
 
+	case SENSOR_PORT_MODE_AMT22: {
+		spi_bb_init(&(encoder_cfg_amt22.sw_spi));
+		break;
+	}
+
 	default:
 		break;
 	}
 }
 
 void encoder_deinit(void) {
-	nvicDisableVector(HW_ENC_EXTI_CH);
 	nvicDisableVector(HW_ENC_TIM_ISR_CH);
 	TIM_DeInit(HW_ENC_TIM);
 
@@ -383,6 +413,8 @@ void encoder_deinit(void) {
 		enc_as504x_deinit(&encoder_cfg_as504x);
 	} else if (m_encoder_type_now == ENCODER_TYPE_MT6816) {
 		enc_mt6816_deinit(&encoder_cfg_mt6816);
+	} else if (m_encoder_type_now == ENCODER_TYPE_MT6835) {
+		enc_mt6835_deinit(&encoder_cfg_mt6835);
 	} else if (m_encoder_type_now == ENCODER_TYPE_TLE5012) {
 		enc_tle5012_deinit(&encoder_cfg_tle5012);
 	} else if (m_encoder_type_now == ENCODER_TYPE_AD2S1205_SPI) {
@@ -404,6 +436,8 @@ void encoder_deinit(void) {
 		enc_abi_deinit(&encoder_cfg_ABI);
 	} else if (m_encoder_type_now == ENCODER_TYPE_MA782) {
 		enc_ma782_deinit(&encoder_cfg_ma782);
+	} else if (m_encoder_type_now == ENCODER_TYPE_AMT22) {
+		enc_amt22_deinit(&encoder_cfg_amt22);
 	}
 
 	m_encoder_type_now = ENCODER_TYPE_NONE;
@@ -450,6 +484,10 @@ float encoder_read_deg(void) {
 		res = MT6816_LAST_ANGLE(&encoder_cfg_mt6816);
 		break;
 
+	case ENCODER_TYPE_MT6835:
+		res = MT6835_LAST_ANGLE(&encoder_cfg_mt6835);
+		break;
+
 	case ENCODER_TYPE_TLE5012:
 		res = TLE5012_LAST_ANGLE(&encoder_cfg_tle5012);
 		break;
@@ -480,6 +518,10 @@ float encoder_read_deg(void) {
 
 	case ENCODER_TYPE_MA782:
 		res = MA782_LAST_ANGLE(&encoder_cfg_ma782);
+		break;
+
+	case ENCODER_TYPE_AMT22:
+		res = AMT22_LAST_ANGLE(&encoder_cfg_amt22);
 		break;
 
 	case ENCODER_TYPE_CUSTOM:
@@ -588,6 +630,9 @@ float encoder_get_error_rate(void) {
 	case ENCODER_TYPE_MT6816:
 		res = encoder_cfg_mt6816.state.encoder_no_magnet_error_rate;
 		break;
+	case ENCODER_TYPE_MT6835:
+		res = encoder_cfg_mt6835.state.spi_error_rate;
+		break;
 	case ENCODER_TYPE_TLE5012:
 		res = encoder_cfg_tle5012.state.spi_error_rate;
 		break;
@@ -618,6 +663,9 @@ float encoder_get_error_rate(void) {
 	case ENCODER_TYPE_MA782:
 		res = encoder_cfg_ma782.state.spi_error_rate;
 		break;
+	case ENCODER_TYPE_AMT22:
+		res = encoder_cfg_amt22.state.spi_error_rate;
+		break;
 	default:
 		break;
 	}
@@ -631,7 +679,8 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 	// Only generate fault code when the encoder is being used. Note that encoder faults
 	// that occur above the sensorless ERPM won't stop the motor.
 	bool is_foc_encoder = m_conf->motor_type == MOTOR_TYPE_FOC &&
-			m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER &&
+			(m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ||
+			 m_conf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER_AB) &&
 			mcpwm_foc_is_using_encoder();
 
 	if (is_foc_encoder) {
@@ -658,6 +707,12 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 		case SENSOR_PORT_MODE_MT6816_SPI_HW:
 			if (encoder_cfg_mt6816.state.encoder_no_magnet_error_rate > 0.05) {
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, is_second_motor, false);
+			}
+			break;
+
+		case SENSOR_PORT_MODE_MT6835_SPI_HW:
+			if (encoder_cfg_mt6835.state.spi_error_rate > 0.05) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, is_second_motor, false);
 			}
 			break;
 		
@@ -738,9 +793,43 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 				}
 			}
 			break;
+		case SENSOR_PORT_MODE_AMT22:
+			if (encoder_cfg_amt22.state.spi_error_rate > 0.05) {
+				mc_interface_fault_stop(FAULT_CODE_ENCODER_SPI, is_second_motor, false);
+			}
+			break;
 
 		default:
 			break;
+		}
+		// Mechanical slip detection: Compare the FOC observer phase against the physical
+		// encoder phase. If the motor is spinning fast enough for a stable observer
+		// estimate (>110% of open-loop threshold) and the phase gap exceeds 15 degrees
+		// for more than 500ms, trigger a LOOSE_MAGNET fault.
+		if (m_conf->l_additional_faults & 1) {
+			float current_rpm = mc_interface_get_rpm();
+			float ol_erpm = m_conf->foc_openloop_rpm;
+			float stable_observer_threshold = ol_erpm * 1.1f;
+			static systime_t fault_start_time = 0;
+			if (fabsf(current_rpm) > stable_observer_threshold) {
+				float obs = mcpwm_foc_get_phase_observer();
+				float enc = mcpwm_foc_get_phase_encoder();
+				float gap = fabsf(utils_angle_difference(obs, enc));
+				if (gap > 15.0f) {
+					if (fault_start_time == 0){
+						fault_start_time = chVTGetSystemTime();
+					}
+					uint32_t elapsed_ms = ST2MS(chVTTimeElapsedSinceX(fault_start_time));
+					if (elapsed_ms > 500) {
+						fault_start_time = 0;
+						mc_interface_fault_stop(FAULT_CODE_ENCODER_SLIP, is_second_motor, false);
+					}
+				} else {
+					fault_start_time = 0;
+				}
+			} else {
+				fault_start_time = 0;
+			}
 		}
 	}
 }
@@ -780,6 +869,13 @@ static void terminal_encoder(int argc, const char **argv) {
 		commands_printf("Low flux error (no magnet): errors: %d, error rate: %.3f %%",
 				encoder_cfg_mt6816.state.encoder_no_magnet_error_cnt,
 				(double)(encoder_cfg_mt6816.state.encoder_no_magnet_error_rate * 100.0));
+		break;
+
+	case SENSOR_PORT_MODE_MT6835_SPI_HW:
+		commands_printf("MT6835 - Angle raw: %d, error rate: %.3f %%, error cnt: %d",
+				encoder_cfg_mt6835.state.spi_val,
+				(double)(encoder_cfg_mt6835.state.spi_error_rate * 100.0),
+				encoder_cfg_mt6835.state.spi_error_cnt);
 		break;
 
 	case SENSOR_PORT_MODE_TLE5012_SSC_HW:
@@ -918,6 +1014,11 @@ static void terminal_encoder(int argc, const char **argv) {
 		enc_ma782_print_status(&encoder_cfg_ma782);
 		break;
 
+	case SENSOR_PORT_MODE_AMT22:
+		commands_printf("Error rate: %.2f", (double)encoder_cfg_amt22.state.spi_error_rate);
+		commands_printf("Error cnt: %d", encoder_cfg_amt22.state.spi_error_cnt);
+		break;
+
 	default:
 		commands_printf("No encoder debug info available.");
 		break;
@@ -952,6 +1053,10 @@ static THD_FUNCTION(routine_thread, arg) {
 			enc_mt6816_routine(&encoder_cfg_mt6816);
 			break;
 
+		case ENCODER_TYPE_MT6835:
+			enc_mt6835_routine(&encoder_cfg_mt6835);
+			break;
+
 		case ENCODER_TYPE_TLE5012:
 			enc_tle5012_routine(&encoder_cfg_tle5012);
 			break;
@@ -970,6 +1075,10 @@ static THD_FUNCTION(routine_thread, arg) {
 
 		case ENCODER_TYPE_MA782:
 			enc_ma782_routine(&encoder_cfg_ma782);
+			break;
+
+		case ENCODER_TYPE_AMT22:
+			enc_amt22_routine(&encoder_cfg_amt22);
 			break;
 
 		default:

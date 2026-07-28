@@ -1,11 +1,11 @@
 
 (set-pic-prefix "disp")
 
-(define font-file (fopen "font_15_18.bin" "r"))
+(define font-file (f-open "font_15_18.bin" "r"))
 (define font (load-file font-file))
 
 
-(define llama-file (fopen "images/lama2.bin" "r"))
+(define llama-file (f-open "images/lama2.bin" "r"))
 (define llama-bin (load-file llama-file))
 
 
@@ -28,7 +28,7 @@
 
 ;; VESC style import emulator
 (define import (macro (file sym)
-                      `(define ,(eval sym) (load-file (fopen ,file "r")))))
+                      `(define ,(eval sym) (load-file (f-open ,file "r")))))
 
 
 (define create_image1
@@ -226,7 +226,7 @@
                       (read-eval "(img-color 'gradient_x_pre color1 color2)")
                       ))
               (program-disp '((
-                               (define fptr (fopen "images/lama2.bin" "r"))
+                               (define fptr (f-open "images/lama2.bin" "r"))
                                (define pic (load-file fptr))
                                (fclose fptr)
                                (define c (img-color 'gradient_x color1 color2 100 0 'repeat))
@@ -235,7 +235,7 @@
                                (disp-render img 100 0 (list (img-color 'regular 0) c))
                                )))
               (program-disp '((
-                               (define fptr (fopen "images/lama2.bin" "r"))
+                               (define fptr (f-open "images/lama2.bin" "r"))
                                (define pic (load-file fptr))
                                (fclose fptr)
                                (define c (img-color 'gradient_y color1 color2 100 0 'mirrored))
@@ -325,7 +325,7 @@
                      (img-color-setpre my-color-pre 11 0x000000)
                      ))
                            (program-disp '((
-                               (define fptr (fopen "images/lama2.bin" "r"))
+                               (define fptr (f-open "images/lama2.bin" "r"))
                                (define pic (load-file fptr))
                                (fclose fptr)
                                (define c (img-color 'gradient_x_pre color1 color2 100 0 'repeat))
@@ -338,7 +338,7 @@
                                (disp-render img 100 0 (list (img-color 'regular 0) c))
                                )))
               (program-disp '((
-                               (define fptr (fopen "images/lama2.bin" "r"))
+                               (define fptr (f-open "images/lama2.bin" "r"))
                                (define pic (load-file fptr))
                                (fclose fptr)
                                (define c (img-color 'gradient_y_pre color1 color2 200 0 'repeat))
@@ -592,14 +592,14 @@
                           "as follows."
                           ))
               (program-disp '((
-                               (define pic (load-file (fopen  "images/lama2.bin" "r")))
+                               (define pic (load-file (f-open  "images/lama2.bin" "r")))
                                (define img (img-buffer 'indexed2 320 200))
                                (img-blit img pic 10 10 -1 '(rotate 128 128 45))
                                (disp-render img 100 0 '(0x000000 0xFF0000))
                                )
                               (
                                (disp-clear)
-                               (define pic (load-file (fopen  "images/lama2.bin" "r")))
+                               (define pic (load-file (f-open  "images/lama2.bin" "r")))
                                (define img128x128 (img-buffer 'indexed2 128 128))
                                (img-blit img128x128 pic 0 0 -1 '(scale 0.5) '(rotate 128 128 45))
                                (disp-render img128x128 10 10 '(0x000000 0xFF0000))
@@ -608,7 +608,7 @@
                                (disp-render img128x128 148 10 '(0x000000 0x00FF00))
                                ))
                             )
-              (program-gif '( (100 ((define pic (load-file (fopen  "images/lama2.bin" "r")))
+              (program-gif '( (100 ((define pic (load-file (f-open  "images/lama2.bin" "r")))
                                     (define img (img-buffer 'indexed2 128 128))
                                     (define m (/ 360.0 100.0))
                                     (disp-clear)
@@ -622,7 +622,7 @@
                               ))
               end)))
 
-(let ((fptr (fopen "lispbm.jpeg" "r")))
+(let ((fptr (f-open "lispbm.jpeg" "r")))
   {
   (define my-jpg (load-file fptr))
   (fclose fptr)
@@ -799,8 +799,8 @@
   )
 
 (defun render-manual ()
-  (let ((h (fopen "displayref.md" "w"))
-        (r (lambda (s) (fwrite-str h s))))
+  (let ((h (f-open "displayref.md" "w"))
+        (r (lambda (s) (f-write-str h s))))
     {
     (var t0 (systime))
     (render r manual)

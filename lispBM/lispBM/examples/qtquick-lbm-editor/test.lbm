@@ -1,0 +1,71 @@
+; test.lbm — display canvas demo
+
+(define root (qt-root))
+(define disp (qt-display root 240 240))
+(define hbox (qt-container root 'hbox))
+
+(define btn-clear  (qt-button hbox "Clear"    '(max-width 60)))
+(define btn-circle (qt-button hbox "Circles"  '(max-width 60)))
+(define btn-grid   (qt-button hbox "Grid"     '(max-width 60)))
+(define btn-diag   (qt-button hbox "Diagonal" '(max-width 60)))
+(qt-stretch hbox 'horizontal)
+(qt-stretch root)
+
+(define canvas (img-buffer 'rgb888 240 240))
+
+(defun show ()
+  { (qt-set-display disp)
+    (disp-render canvas 0 0 '()) })
+
+(defun draw-clear ()
+  { (img-clear canvas 0x000000)
+    (show) })
+
+(defun draw-rings (r cs)
+  (if (and (> r 0) cs)
+    { (img-circle canvas 120 120 r (car cs))
+      (draw-rings (- r 20) (cdr cs)) }))
+
+(defun draw-circles-all ()
+  { (img-clear canvas 0x000000)
+    (draw-rings 110 (list 0xFF2200 0xFF8800 0xFFDD00 0x44CC00 0x0077FF 0xAA00FF))
+    (show) })
+
+(defun draw-grid-h (i)
+  (if (< i 13)
+    { (img-line canvas 0 (* i 20) 239 (* i 20) 0x003366)
+      (draw-grid-h (+ i 1)) }))
+
+(defun draw-grid-v (i)
+  (if (< i 13)
+    { (img-line canvas (* i 20) 0 (* i 20) 239 0x003366)
+      (draw-grid-v (+ i 1)) }))
+
+(defun draw-grid ()
+  { (img-clear canvas 0x000011)
+    (draw-grid-h 0)
+    (draw-grid-v 0)
+    (show) })
+
+(defun draw-diag (i)
+  (if (< i 16)
+    { (img-line canvas 0 (* i 16) 239 (- 239 (* i 16)) 0x00AA44)
+      (img-line canvas (* i 16) 0 (- 239 (* i 16)) 239 0xAA4400)
+      (draw-diag (+ i 1)) }))
+
+(defun draw-diagonal ()
+  { (img-clear canvas 0x000000)
+    (draw-diag 0)
+    (show) })
+
+(draw-circles-all)
+
+(defun event-loop ()
+  { (recv ((button-pressed (? h))
+           (cond ((= h btn-clear)  (draw-clear))
+                 ((= h btn-circle) (draw-circles-all))
+                 ((= h btn-grid)   (draw-grid))
+                 ((= h btn-diag)   (draw-diagonal)))))
+    (event-loop) })
+
+(event-register-handler (spawn event-loop))

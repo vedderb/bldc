@@ -42,6 +42,7 @@
 #include "bms.h"
 #include "events.h"
 #include "timer.h"
+#include "confgenerator.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -165,16 +166,25 @@ static thread_t *fault_stop_tp;
 static THD_WORKING_AREA(stat_thread_wa, 512);
 static THD_FUNCTION(stat_thread, arg);
 
-void mc_interface_init(void) {
+void mc_interface_init(bool reset_conf) {
 	memset((void*)&m_motor_1, 0, sizeof(motor_if_state_t));
 #ifdef HW_HAS_DUAL_MOTORS
 	memset((void*)&m_motor_2, 0, sizeof(motor_if_state_t));
 #endif
 
-	conf_general_read_mc_configuration((mc_configuration*)&m_motor_1.m_conf, false);
+	if (reset_conf) {
+		confgenerator_set_defaults_mcconf((mc_configuration*)&m_motor_1.m_conf);
+		conf_general_store_mc_configuration((mc_configuration*)&m_motor_1.m_conf, false);
 #ifdef HW_HAS_DUAL_MOTORS
-	conf_general_read_mc_configuration((mc_configuration*)&m_motor_2.m_conf, true);
+		confgenerator_set_defaults_mcconf((mc_configuration*)&m_motor_2.m_conf);
+		conf_general_store_mc_configuration((mc_configuration*)&m_motor_2.m_conf, true);
 #endif
+	} else {
+		conf_general_read_mc_configuration((mc_configuration*)&m_motor_1.m_conf, false);
+#ifdef HW_HAS_DUAL_MOTORS
+		conf_general_read_mc_configuration((mc_configuration*)&m_motor_2.m_conf, true);
+#endif
+	}
 
 #ifdef HW_HAS_DUAL_MOTORS
 	m_motor_1.m_conf.motor_type = MOTOR_TYPE_FOC;
@@ -500,10 +510,14 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
     case FAULT_CODE_RESOLVER_DOS: return "FAULT_CODE_RESOLVER_DOS";
     case FAULT_CODE_RESOLVER_LOS: return "FAULT_CODE_RESOLVER_LOS";
     case FAULT_CODE_ENCODER_NO_MAGNET: return "FAULT_CODE_ENCODER_NO_MAGNET";
+	case FAULT_CODE_ENCODER_SLIP: return "FAULT_CODE_ENCODER_SLIP";
     case FAULT_CODE_ENCODER_MAGNET_TOO_STRONG: return "FAULT_CODE_ENCODER_MAGNET_TOO_STRONG";
     case FAULT_CODE_PHASE_FILTER: return "FAULT_CODE_PHASE_FILTER";
     case FAULT_CODE_ENCODER_FAULT: return "FAULT_CODE_ENCODER_FAULT";
 	case FAULT_CODE_LV_OUTPUT_FAULT: return "FAULT_CODE_LV_OUTPUT_FAULT";
+	case FAULT_CODE_OVERSPEED: return "FAULT_CODE_OVERSPEED";
+	case FAULT_CODE_UNDERSPEED: return "FAULT_CODE_UNDERSPEED";
+	case FAULT_CODE_ABS_OVERSPEED: return "FAULT_CODE_ABS_OVERSPEED";
 	}
 
 	return "Unknown fault";
@@ -2227,12 +2241,15 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 
 	const float v_in = motor->m_input_voltage_filtered;
 	float rpm_now = 0.0;
+	float rpm_slow = 0.0; // Slow ERPM for fault codes
 
 	if (motor->m_conf.motor_type == MOTOR_TYPE_FOC) {
 		// Low latency is important for avoiding oscillations
 		rpm_now = DIR_MULT * mcpwm_foc_get_rpm_fast();
+		rpm_slow = DIR_MULT * mcpwm_foc_get_rpm();
 	} else {
 		rpm_now = mc_interface_get_rpm();
+		rpm_slow = rpm_now;
 	}
 
 	float rpm_abs = fabsf(rpm_now);
@@ -2417,6 +2434,18 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		lo_min_rpm = utils_map(rpm_now, rpm_neg_cut_start, rpm_neg_cut_end, l_current_max_tmp, 0.0);
 	}
 
+	// RPM Faults
+	if ((conf->l_additional_faults & (1 << 1)) && rpm_slow > conf->l_max_erpm) {
+		mc_interface_fault_stop(FAULT_CODE_OVERSPEED, !is_motor_1, false);
+	}
+	if ((conf->l_additional_faults & (1 << 2)) && rpm_slow < conf->l_min_erpm) {
+		mc_interface_fault_stop(FAULT_CODE_UNDERSPEED, !is_motor_1, false);
+	}
+	if ((conf->l_additional_faults & (1 << 3)) &&
+			fabsf(rpm_slow) > fabsf(utils_max_abs(conf->l_min_erpm, conf->l_max_erpm))) {
+		mc_interface_fault_stop(FAULT_CODE_ABS_OVERSPEED, !is_motor_1, false);
+	}
+
 	// Start Current Decrease
 	float lo_max_curr_dec = l_current_max_tmp;
 	if (rpm_abs < conf->foc_start_curr_dec_rpm) {
@@ -2525,7 +2554,7 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 
 	float voltage_fc = powf(2.0, -(float)motor->m_conf.m_batt_filter_const * 0.25);
 	if (UTILS_AGE_S(0) < 10) {
-		// Run the filter faster in the beginning to avoid convergance latency at boot
+		// Run the filter faster in the beginning to avoid convergence latency at boot
 		voltage_fc = 0.01;
 	}
 	UTILS_LP_FAST(motor->m_input_voltage_filtered_slower, motor->m_input_voltage_filtered, voltage_fc);
@@ -2676,7 +2705,16 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 
 	// Monitor currents balance. The sum of the 3 currents should be zero
 #ifdef HW_HAS_3_SHUNTS
-	if (motor->m_conf.foc_current_sample_mode != FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT  && dc_cal_done) { // This won't work when high current sampling is used
+
+#ifdef HW_HAS_PHASE_SHUNTS
+	bool too_high_duty_for_unbalance_check = false;
+#else
+	const float duty_now_abs = fabsf(mc_interface_get_duty_cycle_now());
+	bool too_high_duty_for_unbalance_check = duty_now_abs > 0.8;
+#endif
+
+	if (motor->m_conf.foc_current_sample_mode != FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT  &&
+			dc_cal_done && !too_high_duty_for_unbalance_check) {
 		motor->m_motor_current_unbalance = mc_interface_get_abs_motor_current_unbalance();
 
 		if (fabsf(motor->m_motor_current_unbalance) > fabsf(MCCONF_MAX_CURRENT_UNBALANCE)) {

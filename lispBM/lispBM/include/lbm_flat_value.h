@@ -82,6 +82,7 @@ bool f_b(lbm_flat_value_t *v, uint8_t b);
 bool f_i32(lbm_flat_value_t *v, int32_t w);
 bool f_u32(lbm_flat_value_t *v, uint32_t w);
 bool f_float(lbm_flat_value_t *v, float f);
+bool f_double(lbm_flat_value_t *v, double d);
 bool f_i64(lbm_flat_value_t *v, int64_t w);
 bool f_u64(lbm_flat_value_t *v, uint64_t w);
 bool f_lbm_array(lbm_flat_value_t *v, uint32_t num_bytes, uint8_t *data);

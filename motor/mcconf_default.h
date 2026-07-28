@@ -48,10 +48,10 @@
 #define MCCONF_L_IN_CURRENT_MIN			-60.0	// Input current limit in Amperes (Lower)
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAP_START
-#define MCCONF_L_IN_CURRENT_MAP_START	1.0		// Input current to Q axis current limit map start
+#define MCCONF_L_IN_CURRENT_MAP_START	0.9		// Input current to Q axis current limit map start
 #endif
 #ifndef MCCONF_L_IN_CURRENT_MAP_FILTER
-#define MCCONF_L_IN_CURRENT_MAP_FILTER	0.005	// Input current filter for the mapped limit
+#define MCCONF_L_IN_CURRENT_MAP_FILTER	0.002	// Input current filter for the mapped limit
 #endif
 #ifndef MCCONF_L_MAX_ABS_CURRENT
 #define MCCONF_L_MAX_ABS_CURRENT		130.0	// The maximum absolute current above which a fault is generated
@@ -127,6 +127,9 @@
 #endif
 #ifndef MCCONF_L_DUTY_START
 #define MCCONF_L_DUTY_START				1.0 // Start limiting current at this duty cycle
+#endif
+#ifndef MCCONF_L_ADDITIONAL_FAULTS
+#define MCCONF_L_ADDITIONAL_FAULTS		0 // Additional fault codes
 #endif
 
 // Common PID-parameters
@@ -305,10 +308,10 @@
 #define MCCONF_FOC_OBSERVER_OFFSET		-1.0	// Observer offset in timer update cycles
 #endif
 #ifndef MCCONF_FOC_DUTY_DOWNRAMP_KP
-#define MCCONF_FOC_DUTY_DOWNRAMP_KP		50.0	// PI controller for duty control when decreasing the duty
+#define MCCONF_FOC_DUTY_DOWNRAMP_KP		20.0	// PI controller for duty control when decreasing the duty
 #endif
 #ifndef MCCONF_FOC_DUTY_DOWNRAMP_KI
-#define MCCONF_FOC_DUTY_DOWNRAMP_KI		1000.0	// PI controller for duty control when decreasing the duty
+#define MCCONF_FOC_DUTY_DOWNRAMP_KI		400.0	// PI controller for duty control when decreasing the duty
 #endif
 #ifndef MCCONF_FOC_START_CURR_DEC
 #define MCCONF_FOC_START_CURR_DEC		1.0	// Decrease current to this fraction at start
@@ -496,6 +499,9 @@
 #ifndef MCCONF_FOC_FW_Q_CURRENT_FACTOR
 #define MCCONF_FOC_FW_Q_CURRENT_FACTOR	0.05 // Factor of the FW-current to feed to the Q-axis to slow motor down when setting 0 current
 #endif
+#ifndef MCCONF_FOC_FW_BACKOFF
+#define MCCONF_FOC_FW_BACKOFF			2.0 // Backoff current factor during field weakening
+#endif
 #ifndef MCCONF_FOC_SPEED_SOURCE
 #define MCCONF_FOC_SPEED_SOURCE			FOC_SPEED_SRC_CORRECTED // Position source for speed trackers
 #endif
@@ -504,6 +510,9 @@
 #endif
 #ifndef MCCONF_FOC_OVERMOD_FACTOR
 #define MCCONF_FOC_OVERMOD_FACTOR 		1.0 // Overmodulation factor
+#endif
+#ifndef MCCONF_FOC_MAG_VD_MAX
+#define MCCONF_FOC_MAG_VD_MAX 			0.98 // Maximum D axis modulation
 #endif
 
 // GPD
@@ -657,5 +666,4 @@
 #ifndef MCCONF_BMS_FWD_CAN_MODE
 #define MCCONF_BMS_FWD_CAN_MODE			BMS_FWD_CAN_MODE_DISABLED
 #endif
-
 #endif /* MCCONF_DEFAULT_H_ */

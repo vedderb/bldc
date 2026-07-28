@@ -18,7 +18,7 @@
 (sample-signal test-sig 20000 data-r)
 
 (with-file "wave.bin" "wb"
-           (lambda (x) (fwrite x data-r)))
+           (lambda (x) (f-write x data-r)))
 
 (plot-signal "wave.bin" "example3_1a.pdf" "sum of 4 sines (20kHz sample rate)")
 
@@ -31,7 +31,7 @@
       })
 
 (with-file "wave.bin" "wb"
-           (lambda (x) (fwrite x data-r)))
+           (lambda (x) (f-write x data-r)))
 
 (plot-signal "wave.bin" "example3_1b.pdf" "sum of 4 sines (20kHz sample rate)")
 
@@ -47,12 +47,12 @@
   })
 
 (with-file "fft.bin" "wb"
-           (lambda (x) (fwrite x magnitudes)))
+           (lambda (x) (f-write x magnitudes)))
 
 (plot-signal-spectrum "wave.bin" "fft.bin" "example3_2.pdf" "Signal Analysis" "Input Wave" "Spectrum")
 
 (with-file "recreated.bin" "wb"
-           (lambda (x) (fwrite x (car recreated))))
+           (lambda (x) (f-write x (car recreated))))
 
 (define gp (gnuplot-open))
 

@@ -25,7 +25,7 @@
 #include "datatypes.h"
 
 // Functions
-void mc_interface_init(void);
+void mc_interface_init(bool reset_conf);
 int mc_interface_motor_now(void);
 void mc_interface_select_motor_thread(int motor);
 int mc_interface_get_motor_thread(void);

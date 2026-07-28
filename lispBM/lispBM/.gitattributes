@@ -1,1 +1,12 @@
 *.html linguist-generated=true
+
+benchmarks/bench_chibi/chconf.h   binary
+benchmarks/bench_chibi/halconf.h  binary
+benchmarks/bench_chibi/mcuconf.h  binary
+benchmarks/bench_chibi/usbcfg.h   binary
+repl/windows/SDL2/include/SDL2/SDL_config.h   binary
+repl/windows/SDL2/include/SDL2/SDL_revision.h binary
+repl/windows/readline/include/readline/readline.h binary
+repl/windows/readline/include/readline/rlstdc.h   binary
+src/extensions/tjpgd.h    binary
+src/extensions/tjpgdcnf.h binary

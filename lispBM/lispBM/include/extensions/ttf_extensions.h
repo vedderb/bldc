@@ -17,6 +17,12 @@
 #ifndef TTF_EXTENSIONS_H_
 #define TTF_EXTENSIONS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void lbm_ttf_extensions_init(void);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -15,9 +15,9 @@
 
 
 ;; Test program_1002.lisp that causes strange reader behavior
-(define file1002 (fopen "repl_tests/test_data/program_1002.lisp" "r"))
+(define file1002 (f-open "repl_tests/test_data/program_1002.lisp" "r"))
 (define prog1002 (load-file file1002))
-(fclose file1002)
+(f-close file1002)
 
 (print "Loaded program_1002.lisp, size: " (length prog1002))
 (print "First 50 bytes: " (bufget-u8 prog1002 0) " " (bufget-u8 prog1002 1) " " (bufget-u8 prog1002 2) " ...")

@@ -302,11 +302,13 @@ static THD_FUNCTION(mux_thread, arg) {
 			PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);
 
-#define T_SAMP_US		400
+#define T_SAMP_US		500
 
 	for (;;) {
 		ADCMUX_MOT_TEMP();
-		chThdSleepMicroseconds(T_SAMP_US);
+		// Wait longer on this one as some temperature sensors, e.g. the PT1000 change very little
+		// and the voltage divider gives us bad resolution for it.
+		chThdSleepMilliseconds(5);
 		ADC_Value[ADC_IND_TEMP_MOTOR] = ADC_Value[ADC_IND_ADC_MUX];
 
 		ADCMUX_12V_SENSE_V();
@@ -342,7 +344,8 @@ static THD_FUNCTION(mux_thread, arg) {
 			palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT);
 			palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT);
 		} else if (mcconf->motor_type == MOTOR_TYPE_FOC &&
-				mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER) {
+			(mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ||
+			 mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER_AB)) {
 
 			// Prevent the uart-pins from interfering
 			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_ABI ||

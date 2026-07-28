@@ -35,7 +35,7 @@
 
 ;; Plot the signal representing the symbols
 (with-file "wave1.bin" "wb"
-           (lambda (x) (fwrite x symbols-buf)))
+           (lambda (x) (f-write x symbols-buf)))
 
 (print "output: message.pdf")
 
@@ -54,7 +54,7 @@
 (sample-signal psk-modulated-carrier 500000.0 modulated-buf)
 
 (with-file "wave2.bin" "wb"
-           (lambda (x) (fwrite x modulated-buf)))
+           (lambda (x) (f-write x modulated-buf)))
 
 (print "output: psk_modulated.pdf")
 (plot-signal-signal "wave1.bin" "wave2.bin" "psk_modulated.pdf"
@@ -80,7 +80,7 @@
   })
         
 (with-file "fft.bin" "wb"
-           (lambda (x) (fwrite x magnitudes)))
+           (lambda (x) (f-write x magnitudes)))
 
 (print "psk_modulated_spectrum.pdf")
 (plot-signal-spectrum "wave2.bin" "fft.bin" "psk_modulated_spectrum.pdf" "Signal Analysis" "Input Wave" "Spectrum")

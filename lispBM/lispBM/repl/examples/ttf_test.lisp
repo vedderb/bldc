@@ -19,9 +19,9 @@
 (define img  (img-buffer 'rgb332 32 32))
 (define disp (img-buffer 'rgb332 400 200))
 
-;;(define font-file (fopen "HelveticaNeue-Bold.ttf" "r"))
-;;(define font-file (fopen "Ubuntu-Regular.ttf" "r"))
-(define font-file (fopen "Roboto-Bold.ttf" "r"))
+;;(define font-file (f-open "HelveticaNeue-Bold.ttf" "r"))
+;;(define font-file (f-open "Ubuntu-Regular.ttf" "r"))
+(define font-file (f-open "Roboto-Bold.ttf" "r"))
 (define font (load-file font-file))
 (define ttf (ttf-prepare font 16 'indexed4 "TTF Font"))
 (define aa-green '(0 17408 39168 65280))

@@ -1,0 +1,24 @@
+; test2.lbm — radio, spinbox, textfield, checkbox demo
+
+(def root (qt-root))
+
+(def grp (qt-container root 'vbox))
+(def r1 (qt-radio grp "Option A"))
+(def r2 (qt-radio grp "Option B"))
+
+(def si (qt-spinbox-i root 0 100))
+(def sf (qt-spinbox-f root -1.0 1.0 0.01))
+
+(def tf (qt-textfield root "Enter name..."))
+
+(def cb (qt-checkbox root "Enable feature"))
+
+(defun on-event ()
+  { (recv
+      ((radio-changed    (? h))       (print h))
+      ((spinbox-changed  (? h) (? v)) (print h v))
+      ((textfield-commit (? h) (? s)) (print h s))
+      ((checkbox-changed (? h) (? v)) (print h v)))
+    (on-event) })
+
+(event-register-handler (spawn on-event))

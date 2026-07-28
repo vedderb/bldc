@@ -18,7 +18,7 @@ idf_component_register(SRCS "main.c"
                             "../../../src/lbm_image.c"
                             "../../../platform/freertos/src/platform_mutex.c"
                             "../../../platform/freertos/src/platform_timestamp.c"
-                       PRIV_REQUIRES spi_flash esp_partition esp_driver_uart
+                       PRIV_REQUIRES spi_flash esp_partition driver
                        INCLUDE_DIRS "../../../include"
                                     "../../../platform/freertos/include"
                        )

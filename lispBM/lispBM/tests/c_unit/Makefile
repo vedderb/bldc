@@ -35,7 +35,7 @@ TARGETS = $(SOURCES:.c=.exe)
 all: $(TARGETS)
 
 %.exe: %.c
-	$(CC) $(CCFLAGS_COV_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) $< -o $@ -I$(LISPBM)include -I$(LISPBM)src $(PLATFORM_INCLUDE) -lpthread -lm
+	$(CC) $(CCFLAGS_COV_32) $(LISPBM_SRC) $(PLATFORM_SRC) $(LISPBM_FLAGS) $< -o $@ $(LISPBM_INC) $(PLATFORM_INCLUDE) -lpthread -lm
 
 clean:
 	rm -f $(TARGETS)

@@ -22,23 +22,39 @@ The language reference is probably the most important document to read when work
 
 Most of these are available on ESC and Express. They are loaded dynamically when used the first time.
 
-**LBM Gotchas and Caveats**
-
-[Gotchas](lispBM/doc/gotchas.md)
-
 ## VESC Express Libraries
 
 The VESC Express has some extra libraries that are documented in separate documents.
 
-**Display Driver**  
+**Display Support**  
 
-[Display Driver](lispBM/doc/displayref.md)
+The display driver allows driving many common displays using SPI, such as the ST7789, ST7735, ILI9341, ILI9488, SH8501, SH8601, SSD1306 and SSD1351. There are accelerated rendering and font extensions that can be used from LispBM.  
 
-The display driver allows driving many common displays using SPI, such as the ST7789, ST7735, ILI9341, ILI9488, SH8501, SSD1306 and SSD1351. There are accelerated rendering and font extensions that can be used from LispBM.  
+First the driver for the display to use has to be loaded. The supported drivers are documented here  
+
+[Display Drivers](https://github.com/vedderb/vesc_express/blob/main/main/display/README.md)
+
+Once the driver is loaded, the image extensions can be used to draw to the display. They are described here  
+
+[Image Extensions](lispBM/doc/displayref.md)
+
+There is also touchpanel support for many common touchpanels. The touchscreen support is described here  
+
+[Touchpanel Drivers](https://github.com/vedderb/vesc_express/blob/main/main/touch/README.md)
+
+Code examples for many of the display and touch panel drivers can be found here  
+
+[Code Examples](https://github.com/vedderb/vesc_express/blob/main/lbm_examples)
 
 **TTF Font Renderer for Display Driver**  
 
+LBM supports full TTF font rendering with kerning. The TTF driver is described here  
+
 [TTF Font Renderer](lispBM/doc/ttfref.md)
+
+Note: To get the best looking fonts it is possible to build LBM with libfreetype support on desktop. That will give excellent kerning as well as hinting, which is extra important when the font size is small. The font binaries generated on desktop can be imported in VESC Tool and uploaded to the ESP32. For building the repl on desktop with freetype support see here  
+
+[REPL Desktop](https://github.com/svenssonjoel/lispBM/tree/master/repl)
 
 **VESC Express Wifi and TCP**  
 
@@ -874,6 +890,57 @@ Hold shutdown. When hold is true hardware shutdown will be delayed until hold is
 
 ---
 
+#### shutdown
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00.2+ |
+
+```clj
+(shutdown optSaveBackup)
+```
+
+Shutdown controller now. optSaveBackup sets whether the backup data (odometer etc.) should be save before shutting down (true by default). This function does not return on a succuessful shutdown. If it returns nil the shutdown has failed - this can happen if the hardware does not support shutdown or if the shutdown button is held pressed.
+
+---
+
+#### shutdown-btn-read
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00.2+ |
+
+```clj
+(shutdown-btn-read)
+```
+
+Read the shutdown button. Returns 0 when not pressed and 1 when pressed. Hardware without a button will always return 0. It is recommended to set the shutdown mode in the app config to always on to use the button as a general purpose button.
+
+Example:
+
+```clj
+; Turn off blue button LED
+(override-led 2 0)
+
+; Make button red when not pressed and green when pressed
+(loopwhile t {
+        (if (= (shutdown-btn-read) 1)
+            {
+                (override-led 3 1)
+                (override-led 4 0)
+            }
+            {
+                (override-led 3 0)
+                (override-led 4 1)
+            }
+        )
+
+        (sleep 0.01)
+})
+```
+
+---
+
 #### reboot
 
 | Platforms | Firmware |
@@ -906,6 +973,39 @@ Override speed reported to VESC Tool (and to other extensions). The argument spe
 
 ; Do not override speed anymore
 (overide-speed 0 0)
+```
+
+---
+
+#### override-led
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00.2+ |
+
+```clj
+(overide-led led-id intensity)
+```
+
+Override the LED brightness on hardware LEDs. Almost all hardware has a red and green LED, but some hardware also has an RGB LED button. All of these LED intensities can be overridden. The argument led-id is the id of the LED to override and intensity is the intensity to override with. If intensity is set to -1 the LED will return to the default behavior. Returns true if led-id is valid for this hardware, false otherwise.
+
+The following IDs are used on most hardwares, although it can vary. Most VESC Labs hardware has an RGB button.
+
+| led-id | Function |
+|---|---|
+| 0 | HW Green LED |
+| 1 | HW Red LED |
+| 2 | RGB Button Blue |
+| 3 | RGB Button Green |
+| 4 | RGB Button Red |
+
+Example:
+```clj
+; Set the green LED to 50% brightness
+(overide-led 0 0.5)
+
+; Stop overriding the green LED and restore its default behavior
+(overide-led 0 -1.0)
 ```
 
 ---
@@ -1407,6 +1507,34 @@ Get the set FOC q-axis current. This is the raw requested current.
 
 ---
 
+#### get-id-target
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(get-id-target)
+```
+
+Get the FOC d-axis target current. This is sent to the current controller after applying all limits, MTPA, HFI and field weakening.
+
+---
+
+#### get-iq-target
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(get-iq-target)
+```
+
+Get the FOC q-axis target current. This is sent to the current controller after applying all limits, MTPA, HFI and field weakening.
+
+---
+
 #### get-vd
 
 | Platforms | Firmware |
@@ -1511,6 +1639,20 @@ Get duty cycle. Range -1.0 to 1.0.
 
 ---
 
+#### get-duty-abs
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(get-duty-abs)
+```
+
+Get filtered absolute duty cycle. This is the value used for field weakening. Range 0.0 to 1.0.
+
+---
+
 #### get-rpm
 
 | Platforms | Firmware |
@@ -1606,6 +1748,20 @@ Get MOSFET temperature. The argument optFet can be used to select senor 1 to 3. 
 ```
 
 Get motor temperature.
+
+---
+
+#### get-temp-mot-res
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(get-temp-mot-res)
+```
+
+Get the measured resistance of the motor temperature sensor.
 
 ---
 
@@ -3391,6 +3547,14 @@ Start the I2C driver on the COMM-port on the VESC. If any app is using the I2C p
 'pin-hall1
 'pin-hall2
 'pin-hall3
+'pin-hall4
+'pin-hall5
+'pin-hall6
+'pin-adc1
+'pin-adc2
+'pin-adc3
+'pin-adc4
+'pin-ppm
 
 ; Note: On express the pins are a number
 ```
@@ -3510,6 +3674,9 @@ Configure GPIO pin to mode. Example:
 'pin-hall1  ; Sensor port hall1
 'pin-hall2  ; Sensor port hall2
 'pin-hall3  ; Sensor port hall3
+'pin-hall4  ; Sensor port motor 2 hall1 (FW 7.00+)
+'pin-hall5  ; Sensor port motor 2 hall2 (FW 7.00+)
+'pin-hall6  ; Sensor port motor 2 hall3 (FW 7.00+)
 'pin-adc1   ; ADC1-pin on COMM-port
 'pin-adc2   ; ADC2-pin on COMM-port
 'pin-adc3   ; ADC3-pin on COMM-port (if available)
@@ -3769,6 +3936,82 @@ Read angle from the AS504x-encoder in degrees.
 
 ---
 
+### BME280
+
+#### bme280-start
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-start optRate optPinSda optPinScl)
+```
+
+Start BME280 pressure/humidity/temperature sensor driver over i2c. Takes the same arguments as i2c-start and shares the same i2c-pins. Also shares the i2c-mutex, so it can be used together with other I2C peripherals as long as they use the same pins. Example:
+
+```clj
+(bme280-start 'rate-100k 21 20)
+```
+
+---
+
+#### bme280-stop
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-stop)
+```
+
+Stop the BME280 driver.
+
+---
+
+#### bme280-hum
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-hum)
+```
+
+Read the relative humidity from the BME280.
+
+---
+
+#### bme280-temp
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-temp)
+```
+
+Read the temperature from the BME280 in degrees celcius.
+
+---
+
+#### bme280-pres
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.00+ |
+
+```clj
+(bme280-pres)
+```
+
+Read the pressure from the BME280 in pascal.
+
+---
+
 ### Configuration
 
 The following selection of app and motor parameters can be read and set from LispBM:
@@ -3934,8 +4177,12 @@ The following selection of app and motor parameters can be read and set from Lis
                         ; Bit 2: Auto-calibrate when undriven
 'foc-fw-current-max     ; Maximum field weakening current (Added in FW 6.05)
 'foc-fw-duty-start      ; Duty where field weakening starts (Added in FW 6.05)
+'foc-fw-ramp-time       ; Field weakening ramp time in seconds (Added in FW 7.00)
+'foc-fw-q-current-factor ; Field weakening q current factor (Added in FW 7.00)
+'foc-fw-backoff         ; Field weakening backoff (Added in FW 7.00)
 'foc-short-ls-on-zero-duty ; Short low-side FETs on 0 duty (Added in FW 6.05)
 'foc-overmod-factor     ; FOC overmodulation factor (Added in FW 6.06)
+'foc-mag-vd-max         ; FOC maximum D axis modulation (Added in FW 7.00)
 'min-speed              ; Minimum speed in meters per second (a negative value)
 'max-speed              ; Maximum speed in meters per second
 'app-to-use             ; App to use
@@ -4018,11 +4265,41 @@ The following selection of app and motor parameters can be read and set from Lis
 'adc-thr-hyst           ; Throttle deadband, range 0 to 1 (Added in FW 6.05)
 'adc-v1-start           ; Throttle 1 start voltage (Added in FW 6.05)
 'adc-v1-end             ; Throttle 1 end voltage (Added in FW 6.05)
+'adc-v1-center          ; Center position voltage for throttle (Added in FW 7.00.1)
+'adc-tc                 ; Traction control (multi-ESC only, Added in FW 7.00.2)
+'adc-tc-max-diff        ; Traction control max ERPM diff (Added in FW 7.00.2)
 'adc-v1-min             ; Throttle 1 low fault voltage (Added in FW 6.05)
 'adc-v1-max             ; Throttle 1 high fault voltage (Added in FW 6.05)
+'adc-v2-start           ; Throttle 2 start voltage (Added in FW 7.00.1)
+'adc-v2-end             ; Throttle 2 end voltage (Added in FW 7.00.1)
 'pas-current-scaling    ; PAS current scaling (Added in FW 6.05)
 
-; Express settings (Added in 6.05)
+; VESC Remote App (Added in firmware 7.00)
+'vr-ctrl-type           ; Control Type
+                        ;    0: NONE
+                        ;    1: CURRENT
+                        ;    2: CURRENT_NOREV
+                        ;    3: CURRENT_BIDIRECTIONAL
+'vr-hyst                ; Input deadband, range 0 to 1
+'vr-ramp-time-pos       ; Positive ramping time in seconds
+'vr-ramp-time-neg       ; Negative ramping time in seconds
+'vr-cc-erpm-per-s       ; Cruise control ERPM per second throttle ramp speed
+'vr-throttle-exp        ; Curve gain for the throttle. 0 means linear.
+'vr-throttle-exp-brake  ; Curve gain for the throttle when braking
+'vr-throttle-exp-mode   ; Throttle curve mode
+                        ;    0: Exponential
+                        ;    1: Natural
+                        ;    2: Polynomial
+'vr-multi-esc           ; Control multiple ESCs over CAN
+'vr-tc                  ; Traction control (multi-ESC only)
+'vr-tc-max-diff         ; Traction control max ERPM diff
+'vr-use-smart-rev       ; Use smart reverse when holding full brake
+'vr-smart-rev-max-duty  ; Maximum duty cycle for smart reverse
+'vr-smart-rev-ramp-time ; Smart reverse ramp time in seconds
+'vr-coast-brake-level   ; Brake to apply when coasting
+'vr-coast-brake-ramp-time ; Time to ramp up coasting brake in seconds
+
+; Express settings (Added in firmware 6.05)
 'controller-id          ; VESC CAN ID
 'can-baud-rate          ; CAN-bus baud rate
                         ;    0: 125K
@@ -4424,6 +4701,58 @@ Remap one or more AS504x encoder pins. All arguments are optional and nil can be
 'pin-hall1
 'pin-hall2
 'pin-hall3
+'pin-hall4
+'pin-hall5
+'pin-hall6
+'pin-adc1
+'pin-adc2
+'pin-adc3
+'pin-adc4
+'pin-ppm
+```
+
+---
+
+#### conf-remap-hall
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.00+ |
+
+```clj
+(conf-remap-hall optHall1 optHall2 optHall3 optHall1M2 optHall2M2 optHall3M2)
+```
+
+Remap one or more hall sensor pins. All arguments are optional and nil can be used to leave pins unchanged. Example:
+
+```clj
+
+; Use 'pin-swdio as hall 1 and 'pin-swclk as hall 2. Leave other pins
+; unchanged
+(conf-remap-hall 'pin-swdio 'pin-swclk)
+
+; Use 'pin-swclk as hall 2. Leave other pins unchanged
+(conf-remap-hall nil 'pin-swclk)
+
+; Restore default hall sensor mapping
+(conf-remap-hall)
+
+; Available pins
+'pin-rx
+'pin-tx
+'pin-swdio
+'pin-swclk
+'pin-hall1
+'pin-hall2
+'pin-hall3
+'pin-hall4
+'pin-hall5
+'pin-hall6
+'pin-adc1
+'pin-adc2
+'pin-adc3
+'pin-adc4
+'pin-ppm
 ```
 
 ---
@@ -7445,10 +7774,20 @@ The express can use the remote peripheral to drive addressable LEDs on any pin. 
 | Express | 6.05+ |
 
 ```clj
-(rgbled-init pin)
+(rgbled-init pin optTiming)
 ```
 
 Initialize the rgbled-driver on pin. If the driver already is initialized it will be de-initialized first.
+
+The optional argument optTiming can be used to specify the timing of the bitstream. Leaving it out is the same as setting it to 0.
+
+| Number | LED Type |
+|---|---|
+| 0 | Generic, works with most LEDs |
+| 1 | WS2812B |
+| 2 | WS2815 |
+| 3 | SK6812 |
+| 4 | SK6815 |
 
 ---
 

@@ -79,11 +79,11 @@ static inline void write_float(float *ptr, float value, bool swap) {
 
 
 static void lbm_corr(float *s1,
-                     unsigned int s1_len,
+                     lbm_uint s1_len,
                      float *s2,
-                     unsigned int s2_len,
+                     lbm_uint s2_len,
                      float *output,
-                     unsigned int output_len,
+                     lbm_uint output_len,
                      bool swap_byte_order) {
   for (int n = 0; n < (int)output_len; n++) {
     float sum = 0.0f;
@@ -103,13 +103,13 @@ static void lbm_corr(float *s1,
 
 static void lbm_complex_corr(float *s1_re,
                              float *s1_im,
-                             unsigned int s1_len,
+                             lbm_uint s1_len,
                              float *s2_re,
                              float *s2_im,
-                             unsigned int s2_len,
+                             lbm_uint s2_len,
                              float *output_re,
                              float *output_im,
-                             unsigned int output_len,
+                             lbm_uint output_len,
                              bool swap_byte_order) {
   for (int n = 0; n < (int)output_len; n++) {
     float sum_re = 0.0f;
@@ -159,8 +159,8 @@ static lbm_value ext_correlate(lbm_value *args, lbm_uint argn) {
     __infer_assume(s2_arr != NULL);
 #endif
 
-    unsigned int s1_len = s1_arr->size / 4;
-    unsigned int s2_len = s2_arr->size / 4;
+    lbm_uint s1_len = s1_arr->size / 4;
+    lbm_uint s2_len = s2_arr->size / 4;
 
     // cppcheck-suppress invalidPointerCast
     float *s1_data = (float*)s1_arr->data;
@@ -169,7 +169,7 @@ static lbm_value ext_correlate(lbm_value *args, lbm_uint argn) {
 
     lbm_value output;
 
-    unsigned int out_len = s1_len + s2_len - 1;
+    lbm_uint out_len = s1_len + s2_len - 1;
     if (lbm_heap_allocate_array(&output, out_len * sizeof(float))) {
       lbm_array_header_t *out_arr = lbm_dec_array_r(output);
       // cppcheck-suppress invalidPointerCast
@@ -223,8 +223,8 @@ static lbm_value ext_complex_correlate(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
 
-    unsigned int s1_len = s1_re_arr->size / sizeof(float);
-    unsigned int s2_len = s2_re_arr->size / sizeof(float);
+    lbm_uint s1_len = s1_re_arr->size / sizeof(float);
+    lbm_uint s2_len = s2_re_arr->size / sizeof(float);
 
     // cppcheck-suppress invalidPointerCast
     float *s1_re_data = (float*)s1_re_arr->data;
@@ -238,7 +238,7 @@ static lbm_value ext_complex_correlate(lbm_value *args, lbm_uint argn) {
     lbm_value output_re;
     lbm_value output_im;
 
-    unsigned int out_len = s1_len + s2_len - 1;
+    lbm_uint out_len = s1_len + s2_len - 1;
     lbm_value r_cons = lbm_cons(ENC_SYM_NIL, ENC_SYM_NIL);
     if (r_cons != ENC_SYM_MERROR &&
         lbm_heap_allocate_array(&output_re, out_len * sizeof(float)) &&
@@ -271,11 +271,11 @@ static lbm_value ext_complex_correlate(lbm_value *args, lbm_uint argn) {
 
 
 static void lbm_convolve(float *signal,
-                         unsigned int signal_len,
+                         lbm_uint signal_len,
                          float *filter,
-                         unsigned int filter_len,
+                         lbm_uint filter_len,
                          float *output,
-                         unsigned int output_len,
+                         lbm_uint output_len,
                          bool swap_byte_order) {
   for (int n = 0; n < (int)output_len; n++) {
     float sum = 0.0f;
@@ -351,8 +351,8 @@ static lbm_value ext_convolve(lbm_value *args, lbm_uint argn) {
     __infer_assume(fil_arr != NULL);
 #endif
 
-    unsigned int sig_len = sig_arr->size / 4;
-    unsigned int fil_len = fil_arr->size / 4;
+    lbm_uint sig_len = sig_arr->size / 4;
+    lbm_uint fil_len = fil_arr->size / 4;
 
     // cppcheck-suppress invalidPointerCast
     float *sig_data = (float*)sig_arr->data;
@@ -361,7 +361,7 @@ static lbm_value ext_convolve(lbm_value *args, lbm_uint argn) {
 
     lbm_value output;
 
-    unsigned int out_len = sig_len + fil_len - 1;
+    lbm_uint out_len = sig_len + fil_len - 1;
     if (lbm_heap_allocate_array(&output, out_len * sizeof(float))) {
       lbm_array_header_t *out_arr = lbm_dec_array_r(output);
       // cppcheck-suppress invalidPointerCast
@@ -416,8 +416,8 @@ static lbm_value ext_complex_convolve(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
 
-    unsigned int sig_len = sig_re_arr->size / sizeof(float);
-    unsigned int fil_len = fil_re_arr->size / sizeof(float);
+    lbm_uint sig_len = sig_re_arr->size / sizeof(float);
+    lbm_uint fil_len = fil_re_arr->size / sizeof(float);
 
     // cppcheck-suppress invalidPointerCast
     float *sig_re_data = (float*)sig_re_arr->data;
@@ -431,7 +431,7 @@ static lbm_value ext_complex_convolve(lbm_value *args, lbm_uint argn) {
     lbm_value output_re;
     lbm_value output_im;
 
-    unsigned int out_len = sig_len + fil_len - 1;
+    lbm_uint out_len = sig_len + fil_len - 1;
     lbm_value r_cons = lbm_cons(ENC_SYM_NIL, ENC_SYM_NIL);
     if (lbm_heap_allocate_array(&output_re, out_len * sizeof(float)) &&
         lbm_heap_allocate_array(&output_im, out_len * sizeof(float))) {
@@ -444,13 +444,13 @@ static lbm_value ext_complex_convolve(lbm_value *args, lbm_uint argn) {
 
       lbm_complex_convolve(sig_re_data,
                            sig_im_data,
-                           sig_len,
+                           (unsigned int)sig_len,
                            fil_re_data,
                            fil_im_data,
-                           fil_len,
+                           (unsigned int)fil_len,
                            out_re_data,
                            out_im_data,
-                           out_len,
+                           (unsigned int)out_len,
                            swap_byte_order);
       lbm_set_car_and_cdr(r_cons, output_re, output_im);
       r = r_cons;

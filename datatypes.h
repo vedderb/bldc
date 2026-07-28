@@ -64,7 +64,8 @@ typedef enum {
 	FOC_SENSOR_MODE_HFI_V2,
 	FOC_SENSOR_MODE_HFI_V3,
 	FOC_SENSOR_MODE_HFI_V4,
-	FOC_SENSOR_MODE_HFI_V5
+	FOC_SENSOR_MODE_HFI_V5,
+	FOC_SENSOR_MODE_ENCODER_AB
 } mc_foc_sensor_mode;
 
 typedef enum {
@@ -171,6 +172,10 @@ typedef enum {
 	FAULT_CODE_PHASE_FILTER,
 	FAULT_CODE_ENCODER_FAULT,
 	FAULT_CODE_LV_OUTPUT_FAULT,
+	FAULT_CODE_ENCODER_SLIP,
+	FAULT_CODE_OVERSPEED,
+	FAULT_CODE_UNDERSPEED,
+	FAULT_CODE_ABS_OVERSPEED
 } mc_fault_code;
 
 typedef enum {
@@ -215,6 +220,8 @@ typedef enum {
 	SENSOR_PORT_MODE_PWM,
 	SENSOR_PORT_MODE_PWM_ABI,
 	SENSOR_PORT_MODE_MA782,
+	SENSOR_PORT_MODE_AMT22,
+	SENSOR_PORT_MODE_MT6835_SPI_HW,
 } sensor_port_mode;
 
 typedef struct {
@@ -417,6 +424,7 @@ typedef struct {
 	float l_current_max_scale;
 	float l_current_min_scale;
 	float l_duty_start;
+	uint8_t l_additional_faults;
 	// Overridden limits (Computed during runtime)
 	float lo_current_max;
 	float lo_current_min;
@@ -511,9 +519,11 @@ typedef struct {
 	float foc_fw_duty_start;
 	float foc_fw_ramp_time;
 	float foc_fw_q_current_factor;
+	float foc_fw_backoff;
 	FOC_SPEED_SRC foc_speed_soure;
 	bool foc_short_ls_on_zero_duty;
 	float foc_overmod_factor;
+	float foc_mag_vd_max;
 
 	PID_RATE sp_pid_loop_rate;
 
@@ -732,6 +742,8 @@ typedef struct {
 	bool use_smart_rev;
 	float smart_rev_max_duty;
 	float smart_rev_ramp_time;
+	float coast_brake_level;
+	float coast_brake_ramp_time;
 } chuk_config;
 
 typedef struct {
@@ -865,6 +877,7 @@ typedef enum {
 	CAN_MODE_UAVCAN,
 	CAN_MODE_COMM_BRIDGE,
 	CAN_MODE_UNUSED,
+	CAN_MODE_VESC_UAVCAN
 } CAN_MODE;
 
 typedef enum {
@@ -884,7 +897,13 @@ typedef enum {
 	KILL_SW_MODE_PPM_LOW,
 	KILL_SW_MODE_PPM_HIGH,
 	KILL_SW_MODE_ADC2_LOW,
-	KILL_SW_MODE_ADC2_HIGH
+	KILL_SW_MODE_ADC2_HIGH,
+	KILL_SW_MODE_ADC3_LOW,
+	KILL_SW_MODE_ADC3_HIGH,
+	KILL_SW_MODE_SWDIO_LOW,
+	KILL_SW_MODE_SWDIO_HIGH,
+	KILL_SW_MODE_SWCLK_LOW,
+	KILL_SW_MODE_SWCLK_HIGH,
 } KILL_SW_MODE;
 
 typedef struct {

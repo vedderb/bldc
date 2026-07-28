@@ -5,6 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_partition.h"
+#include "esp32c3/rom/cache.h"
 #include "driver/uart.h"
 
 #include <lispbm.h>
@@ -55,11 +56,16 @@ static esp_partition_mmap_handle_t image_mmap_handle;
 static const esp_partition_t *lbm_image_partition;
 
 static bool image_write(uint32_t w, int32_t ix, bool const_heap) {
-  uint32_t offset = ix * 4; // byte location into partition
-  if (ESP_OK == esp_partition_write(lbm_image_partition, offset, &w, 4)) {
-    return true;
-  }
-  return false;
+  (void)const_heap;
+  if (ix < 0 || ix >= (int32_t)image_size) return false;
+  uint32_t offset = (uint32_t)ix * 4;
+  uint32_t current = 0;
+  if (esp_partition_read(lbm_image_partition, offset, &current, 4) != ESP_OK) return false;
+  if (current == w) return true;           // already correct, no write needed
+  if (current != 0xFFFFFFFF) return false; // not erased, can't write
+  if (esp_partition_write(lbm_image_partition, offset, &w, 4) != ESP_OK) return false;
+  Cache_Invalidate_Addr((uint32_t)((uint8_t*)image_addr + offset), 4);
+  return true;
 }
 
 static void eval_thread(void *arg) {
@@ -92,7 +98,8 @@ static bool startup_lbm(void) {
                  image_write);
 
   if (!lbm_image_exists()) {
-    printf("Image does not exist - creating!\n");
+    printf("Image does not exist - erasing and creating!\n");
+    esp_partition_erase_range(lbm_image_partition, 0, lbm_image_partition->size);
     lbm_image_create("v01");
   }
   if (!lbm_image_boot()) {

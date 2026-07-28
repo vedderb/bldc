@@ -39,7 +39,7 @@
 (sdl-renderer-set-color rend 255 255 255)
 (sdl-set-active-renderer rend) ;; Connect the renderer to the display library
 
-(define font-file (fopen "Ubuntu-Regular.ttf" "r"))
+(define font-file (f-open "Ubuntu-Regular.ttf" "r"))
 (define font (load-file font-file))
 (define ttf (ttf-prepare font 32 'indexed4 "abcdefghijklmnopqrstuvxyz1234567890+-*/"))
 (define aa-text '(0 8 1 1))

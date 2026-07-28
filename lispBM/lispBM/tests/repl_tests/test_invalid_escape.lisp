@@ -12,9 +12,9 @@
               res)))
 
 ;; Test invalid escape sequences from file (should trigger tokenizer error)  
-(define file-handle (fopen "repl_tests/test_data/invalid_escape.lisp" "r"))
+(define file-handle (f-open "repl_tests/test_data/invalid_escape.lisp" "r"))
 (define invalid-escape-program (load-file file-handle))
-(fclose file-handle)
+(f-close file-handle)
 (define r1 (eq 'exit-error (car (trap (time-read-eval invalid-escape-program)))))
 
 (debug_test r1 1)

@@ -74,6 +74,7 @@
 #define HW_SHUTDOWN_NO // Normally open switch
 #define HW_SHUTDOWN_HOLD_ON()
 #define HW_SAMPLE_SHUTDOWN()				1
+#define HW_SAMPLE_SHUTDOWN_OVR()			smart_switch_is_pressed()
 #define HW_SHUTDOWN_HOLD_OFF()				smart_switch_shut_down()
 #define SHUTDOWN_SET_SAMPLING_DISABLED(d)	smart_switch_set_sampling_disabled(d); \
 											shutdown_set_sampling_disabled(d)
@@ -208,14 +209,16 @@
 #define HW_ICU_PIN				6
 
 // IMU
-#define LSM6DS3_NSS_GPIO		GPIOC
-#define LSM6DS3_NSS_PIN			4
-#define LSM6DS3_SCK_GPIO		GPIOA
-#define LSM6DS3_SCK_PIN			6
-#define LSM6DS3_MOSI_GPIO		GPIOB
-#define LSM6DS3_MOSI_PIN		3
-#define LSM6DS3_MISO_GPIO		GPIOB
-#define LSM6DS3_MISO_PIN		2
+#define IMU_DEV				IMU_DEV_LSM6DS3
+#define IMU_COM				IMU_COM_SPI_BB
+#define IMU_SPI_NSS_GPIO		GPIOC
+#define IMU_SPI_NSS_PIN			4
+#define IMU_SPI_SCK_GPIO		GPIOA
+#define IMU_SPI_SCK_PIN			6
+#define IMU_SPI_MOSI_GPIO		GPIOB
+#define IMU_SPI_MOSI_PIN		3
+#define IMU_SPI_MISO_GPIO		GPIOB
+#define IMU_SPI_MISO_PIN		2
 
 // I2C Peripheral
 #define HW_I2C_DEV				I2CD2
@@ -237,9 +240,7 @@
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
 #define HW_ENC_EXTI_PORTSRC		EXTI_PortSourceGPIOC
 #define HW_ENC_EXTI_PINSRC		EXTI_PinSource8
-#define HW_ENC_EXTI_CH			EXTI9_5_IRQn
 #define HW_ENC_EXTI_LINE		EXTI_Line8
-#define HW_ENC_EXTI_ISR_VEC		EXTI9_5_IRQHandler
 #define HW_ENC_TIM_ISR_CH		TIM3_IRQn
 #define HW_ENC_TIM_ISR_VEC		TIM3_IRQHandler
 
@@ -311,13 +312,14 @@
 
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1
-#define HW_LIM_DUTY_MAX			0.0, 0.99
+#define HW_LIM_DUTY_MAX			0.0, 1.0
 #define HW_LIM_TEMP_FET			-40.0, 110.0
 
 // Functions
 void smart_switch_thread_start(void);
 void smart_switch_pin_init(void);
 bool smart_switch_is_pressed(void);
+void hw_shutdown_set_hold(bool hold);
 void smart_switch_shut_down(void);
 void smart_switch_set_sampling_disabled(bool dis);
 
