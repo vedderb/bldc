@@ -156,7 +156,7 @@ static inline void utils_norm_angle(float *angle) {
 
 	// This is much faster than fmodf
 	while (*angle < 0.0) { *angle += 360.0; }
-	while (*angle > 360.0) { *angle -= 360.0; }
+	while (*angle >= 360.0) { *angle -= 360.0; }
 }
 
 /**
