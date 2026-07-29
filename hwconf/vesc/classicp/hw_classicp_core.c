@@ -284,8 +284,7 @@ void smart_switch_shut_down(void) {
 }
 
 bool smart_switch_is_pressed(void) {
-	if (ADC_VOLTS(ADC_IND_SW_DET) > 0.9 &&
-			(mc_interface_temp_fet_filtered() < 68.0) /* why?? */) {
+	if (ADC_VOLTS(ADC_IND_SW_DET) > 0.9) {
 		return true;
 	} else {
 		return false;
