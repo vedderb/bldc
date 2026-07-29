@@ -197,6 +197,7 @@ void imu_init(imu_config *set) {
 			// same IMU to a different bus, so re-bind to the fallback transport
 			// and try once more.
 			commands_printf("IMU: no response on primary bus, trying fallback");
+			transport_deinit(&m_transport);
 			imu_fallback_transport_init();
 			com = IMU_FALLBACK_COM;
 			m_dev = imu_device_create(dev, com, &m_transport);
@@ -227,10 +228,7 @@ i2c_bb_state *imu_get_i2c(void) {
 
 void imu_stop(void) {
 	imu_thread_stop();
-
-#if IMU_COM == IMU_COM_SPI_HW
-	spiStop(&IMU_SPI_DEV);
-#endif
+	transport_deinit(&m_transport);
 }
 
 bool imu_startup_done(void) {
