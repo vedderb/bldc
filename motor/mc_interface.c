@@ -2576,14 +2576,17 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		m_motor_1.m_runtime_last = runtime;
 	}
 
+	utils_sys_lock_cnt();
 	// Decrease fault iterations
 	if (motor->m_ignore_iterations > 0) {
 		motor->m_ignore_iterations--;
-	} else {
+	}
+	if (motor->m_ignore_iterations == 0) {
 		if (!(is_motor_1 ? IS_DRV_FAULT() : IS_DRV_FAULT_2())) {
 			motor->m_fault_now = FAULT_CODE_NONE;
 		}
 	}
+	utils_sys_unlock_cnt();
 
 	if (is_motor_1 ? IS_DRV_FAULT() : IS_DRV_FAULT_2()) {
 		motor->m_drv_fault_iterations++;
