@@ -128,10 +128,18 @@ bool do_shutdown(bool resample) {
 		}
 		chMtxUnlock(&m_sample_mutex);
 	}
+
 	if (disable_gates) {
+		mc_interface_ignore_input_both(10000);
+		mc_interface_release_motor_override_both();
+		if (!mc_interface_wait_for_motor_release_both(10.0)) {
+			return false;
+		}
+
 		DISABLE_GATE();
 		HW_SHUTDOWN_HOLD_OFF();
 	}
+
 	return disable_gates;
 }
 

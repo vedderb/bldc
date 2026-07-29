@@ -6091,9 +6091,6 @@ static lbm_value ext_shutdown(lbm_value *args, lbm_uint argn) {
 		conf_general_store_backup_data();
 	}
 
-	mc_interface_ignore_input_both(10000);
-	mc_interface_release_motor_override_both();
-
 	bool ok = do_shutdown(false);
 
 	if (ok) {
