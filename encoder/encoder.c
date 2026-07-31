@@ -469,7 +469,9 @@ void encoder_set_custom_callbacks (
 
 #pragma GCC pop_options
 
-float encoder_read_deg(void) {
+// The optimize pragma above disables -falign-functions=16 for the whole file,
+// even after pop_options. Align the hot function explicitly.
+__attribute__((aligned(16))) float encoder_read_deg(void) {
 	float res = 0.0;
 
 	switch (m_encoder_type_now) {

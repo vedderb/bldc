@@ -1876,7 +1876,9 @@ void mc_interface_fault_stop(mc_fault_code fault, bool is_second_motor, bool is_
 
 #pragma GCC pop_options
 
-void mc_interface_mc_timer_isr(bool is_second_motor, float dt) {
+// The optimize pragma above disables -falign-functions=16 for the whole file,
+// even after pop_options. Align the hot functions explicitly.
+__attribute__((aligned(16))) void mc_interface_mc_timer_isr(bool is_second_motor, float dt) {
 	FOC_PROFILE_LINE_FINE()
 	ledpwm_update_pwm();
 	FOC_PROFILE_LINE_FINE()
@@ -2219,7 +2221,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor, float dt) {
 	FOC_PROFILE_LINE_FINE()
 }
 
-void mc_interface_adc_inj_int_handler(void) {
+__attribute__((aligned(16))) void mc_interface_adc_inj_int_handler(void) {
 	switch (m_motor_1.m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
