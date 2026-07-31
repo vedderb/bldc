@@ -534,3 +534,14 @@ void fault_handler_c(uint32_t *hardfault_args) {
 void __aeabi_unwind_cpp_pr0(void) {}
 void __aeabi_unwind_cpp_pr1(void) {}
 void __aeabi_unwind_cpp_pr2(void) {}
+
+// newlib's default __assert_func prints to stderr, dragging fprintf and the
+// stdio stream machinery (~2.4 kB) into the image. Halt locally instead.
+void __assert_func(const char *file, int line, const char *func, const char *expr) {
+	(void)file;
+	(void)line;
+	(void)func;
+
+	chSysHalt(expr);
+	while (true);
+}
