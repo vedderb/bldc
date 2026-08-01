@@ -897,8 +897,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	case COMM_SET_MCCONF_TEMP:
 	case COMM_SET_MCCONF_TEMP_SETUP: {
-		mc_configuration *mcconf = mempools_alloc_mcconf();
-		*mcconf = *mc_interface_get_configuration();
+		mc_configuration *mcconf = (mc_configuration*)mc_interface_get_configuration();
 
 		int32_t ind = 0;
 		bool store = data[ind++];
@@ -917,15 +916,29 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			}
 		}
 
-		mcconf->l_current_min_scale = buffer_get_float32_auto(data, &ind);
-		mcconf->l_current_max_scale = buffer_get_float32_auto(data, &ind);
+		float l_current_min_scale = buffer_get_float32_auto(data, &ind);
+		float l_current_max_scale = buffer_get_float32_auto(data, &ind);
+
+		utils_truncate_number(&l_current_min_scale, 0.0, 1.0);
+		utils_truncate_number(&l_current_max_scale, 0.0, 1.0);
+
+		mcconf->l_current_min_scale = l_current_min_scale;
+		mcconf->l_current_max_scale = l_current_max_scale;
 
 		if (packet_id == COMM_SET_MCCONF_TEMP_SETUP) {
 			const float fact = ((mcconf->si_motor_poles / 2.0) * 60.0 *
 					mcconf->si_gear_ratio) / (mcconf->si_wheel_diameter * M_PI);
 
-			mcconf->l_min_erpm = buffer_get_float32_auto(data, &ind) * fact;
-			mcconf->l_max_erpm = buffer_get_float32_auto(data, &ind) * fact;
+			float l_min_erpm = buffer_get_float32_auto(data, &ind) * fact;
+			float l_max_erpm = buffer_get_float32_auto(data, &ind) * fact;
+
+#ifdef HW_LIM_ERPM
+			utils_truncate_number(&l_min_erpm, HW_LIM_ERPM);
+			utils_truncate_number(&l_max_erpm, HW_LIM_ERPM);
+#endif
+
+			mcconf->l_min_erpm = l_min_erpm;
+			mcconf->l_max_erpm = l_max_erpm;
 
 			// Write computed RPM back and change forwarded packet id to
 			// COMM_SET_MCCONF_TEMP. This way only the master has to be
@@ -934,12 +947,30 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_float32_auto(data, mcconf->l_min_erpm, &ind);
 			buffer_append_float32_auto(data, mcconf->l_max_erpm, &ind);
 		} else {
-			mcconf->l_min_erpm = buffer_get_float32_auto(data, &ind);
-			mcconf->l_max_erpm = buffer_get_float32_auto(data, &ind);
+			float l_min_erpm = buffer_get_float32_auto(data, &ind);
+			float l_max_erpm = buffer_get_float32_auto(data, &ind);
+
+#ifdef HW_LIM_ERPM
+			utils_truncate_number(&l_min_erpm, HW_LIM_ERPM);
+			utils_truncate_number(&l_max_erpm, HW_LIM_ERPM);
+#endif
+
+			mcconf->l_min_erpm = l_min_erpm;
+			mcconf->l_max_erpm = l_max_erpm;
 		}
 
-		mcconf->l_min_duty = buffer_get_float32_auto(data, &ind);
-		mcconf->l_max_duty = buffer_get_float32_auto(data, &ind);
+		float l_min_duty = buffer_get_float32_auto(data, &ind);
+		float l_max_duty = buffer_get_float32_auto(data, &ind);
+
+#ifdef HW_LIM_DUTY_MIN
+		utils_truncate_number(&l_min_duty, HW_LIM_DUTY_MIN);
+#endif
+#ifdef HW_LIM_DUTY_MAX
+		utils_truncate_number(&l_max_duty, HW_LIM_DUTY_MAX);
+#endif
+
+		mcconf->l_min_duty = l_min_duty;
+		mcconf->l_max_duty = l_max_duty;
 		mcconf->l_watt_min = buffer_get_float32_auto(data, &ind) / controller_num;
 		mcconf->l_watt_max = buffer_get_float32_auto(data, &ind) / controller_num;
 
@@ -952,22 +983,21 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 		// Battery limits can be set optionally in a backwards-compatible way.
 		if ((int32_t)len >= (ind + 8)) {
-			mcconf->l_in_current_min = buffer_get_float32_auto(data, &ind);
-			mcconf->l_in_current_max = buffer_get_float32_auto(data, &ind);
+			float l_in_current_min = buffer_get_float32_auto(data, &ind);
+			float l_in_current_max = buffer_get_float32_auto(data, &ind);
+
+#ifdef HW_LIM_CURRENT_IN
+			utils_truncate_number(&l_in_current_min, HW_LIM_CURRENT_IN);
+			utils_truncate_number(&l_in_current_max, HW_LIM_CURRENT_IN);
+#endif
+
+			mcconf->l_in_current_min = l_in_current_min;
+			mcconf->l_in_current_max = l_in_current_max;
 		}
-
-		mcconf->lo_current_min = mcconf->l_current_min * mcconf->l_current_min_scale;
-		mcconf->lo_current_max = mcconf->l_current_max * mcconf->l_current_max_scale;
-		mcconf->lo_in_current_min = mcconf->l_in_current_min;
-		mcconf->lo_in_current_max = mcconf->l_in_current_max;
-
-		commands_apply_mcconf_hw_limits(mcconf);
 
 		if (store) {
 			conf_general_store_mc_configuration(mcconf, mc_interface_get_motor_thread() == 2);
 		}
-
-		mc_interface_set_configuration(mcconf);
 
 		if (forward_can) {
 			data[-1] = COMM_SET_MCCONF_TEMP;
@@ -990,8 +1020,6 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			send_buffer[ind++] = packet_id;
 			reply_func(send_buffer, ind);
 		}
-
-		mempools_free_mcconf(mcconf);
 	} break;
 
 	case COMM_GET_MCCONF_TEMP: {
@@ -1948,7 +1976,7 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 #endif
 #ifdef HW_LIM_CURRENT_IN
 	utils_truncate_number(&mcconf->l_in_current_max, HW_LIM_CURRENT_IN);
-	utils_truncate_number(&mcconf->l_in_current_min, HW_LIM_CURRENT);
+	utils_truncate_number(&mcconf->l_in_current_min, HW_LIM_CURRENT_IN);
 #endif
 #ifdef HW_LIM_CURRENT_ABS
 	utils_truncate_number(&mcconf->l_abs_current_max, HW_LIM_CURRENT_ABS);
