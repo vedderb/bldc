@@ -444,6 +444,13 @@
 #define MCCONF_MAX_CURRENT_UNBALANCE_RATE	0.3
 #endif
 
+#ifndef HW_LIM_DUTY_MIN
+#define HW_LIM_DUTY_MIN			0.0, 0.1
+#endif
+#ifndef HW_LIM_DUTY_MAX
+#define HW_LIM_DUTY_MAX			0.0, 1.0
+#endif
+
 // ADC Channels
 #ifndef ADC_IND_EXT2
 #define ADC_IND_EXT2 			ADC_IND_EXT
