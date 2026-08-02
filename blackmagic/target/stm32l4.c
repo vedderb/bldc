@@ -39,15 +39,15 @@
 #include "target_internal.h"
 #include "cortexm.h"
 
-static bool stm32l4_cmd_erase_mass(target *t);
-static bool stm32l4_cmd_erase_bank1(target *t);
-static bool stm32l4_cmd_erase_bank2(target *t);
+static bool stm32l4_cmd_erase_mass(target *t, int argc, const char **argv);
+static bool stm32l4_cmd_erase_bank1(target *t, int argc, const char **argv);
+static bool stm32l4_cmd_erase_bank2(target *t, int argc, const char **argv);
 static bool stm32l4_cmd_option(target *t, int argc, char *argv[]);
 
 const struct command_s stm32l4_cmd_list[] = {
-	{"erase_mass", (cmd_handler)stm32l4_cmd_erase_mass, "Erase entire flash memory"},
-	{"erase_bank1", (cmd_handler)stm32l4_cmd_erase_bank1, "Erase entire bank1 flash memory"},
-	{"erase_bank2", (cmd_handler)stm32l4_cmd_erase_bank2, "Erase entire bank2 flash memory"},
+	{"erase_mass", stm32l4_cmd_erase_mass, "Erase entire flash memory"},
+	{"erase_bank1", stm32l4_cmd_erase_bank1, "Erase entire bank1 flash memory"},
+	{"erase_bank2", stm32l4_cmd_erase_bank2, "Erase entire bank2 flash memory"},
 	{"option", (cmd_handler)stm32l4_cmd_option, "Manipulate option bytes"},
 	{NULL, NULL, NULL}
 };
@@ -494,18 +494,24 @@ static bool stm32l4_cmd_erase(target *t, uint32_t action)
 	return true;
 }
 
-static bool stm32l4_cmd_erase_mass(target *t)
+static bool stm32l4_cmd_erase_mass(target *t, int argc, const char **argv)
 {
+	(void)argc;
+	(void)argv;
 	return stm32l4_cmd_erase(t, FLASH_CR_MER1 | FLASH_CR_MER2);
 }
 
-static bool stm32l4_cmd_erase_bank1(target *t)
+static bool stm32l4_cmd_erase_bank1(target *t, int argc, const char **argv)
 {
+	(void)argc;
+	(void)argv;
 	return stm32l4_cmd_erase(t, FLASH_CR_MER1);
 }
 
-static bool stm32l4_cmd_erase_bank2(target *t)
+static bool stm32l4_cmd_erase_bank2(target *t, int argc, const char **argv)
 {
+	(void)argc;
+	(void)argv;
 	return stm32l4_cmd_erase(t, FLASH_CR_MER2);
 }
 

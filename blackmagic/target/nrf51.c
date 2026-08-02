@@ -32,27 +32,27 @@ static int nrf51_flash_erase(struct target_flash *f, target_addr addr, size_t le
 static int nrf51_flash_write(struct target_flash *f,
                              target_addr dest, const void *src, size_t len);
 
-static bool nrf51_cmd_erase_all(target *t);
-static bool nrf51_cmd_erase_uicr(target *t);
-static bool nrf51_cmd_read_hwid(target *t);
-static bool nrf51_cmd_read_fwid(target *t);
-static bool nrf51_cmd_read_deviceid(target *t);
-static bool nrf51_cmd_read_deviceaddr(target *t);
-static bool nrf51_cmd_read_help(target *t);
+static bool nrf51_cmd_erase_all(target *t, int argc, const char **argv);
+static bool nrf51_cmd_erase_uicr(target *t, int argc, const char **argv);
+static bool nrf51_cmd_read_hwid(target *t, int argc, const char **argv);
+static bool nrf51_cmd_read_fwid(target *t, int argc, const char **argv);
+static bool nrf51_cmd_read_deviceid(target *t, int argc, const char **argv);
+static bool nrf51_cmd_read_deviceaddr(target *t, int argc, const char **argv);
+static bool nrf51_cmd_read_help(target *t, int argc, const char **argv);
 static bool nrf51_cmd_read(target *t, int argc, const char *argv[]);
 
 const struct command_s nrf51_cmd_list[] = {
-	{"erase_mass", (cmd_handler)nrf51_cmd_erase_all, "Erase entire flash memory"},
-	{"erase_uicr", (cmd_handler)nrf51_cmd_erase_uicr, "Erase UICR registers"},
+	{"erase_mass", nrf51_cmd_erase_all, "Erase entire flash memory"},
+	{"erase_uicr", nrf51_cmd_erase_uicr, "Erase UICR registers"},
 	{"read", (cmd_handler)nrf51_cmd_read, "Read device parameters"},
 	{NULL, NULL, NULL}
 };
 const struct command_s nrf51_read_cmd_list[] = {
-	{"help", (cmd_handler)nrf51_cmd_read_help, "Display help for read commands"},
-	{"hwid", (cmd_handler)nrf51_cmd_read_hwid, "Read hardware identification number"},
-	{"fwid", (cmd_handler)nrf51_cmd_read_fwid, "Read pre-loaded firmware ID"},
-	{"deviceid", (cmd_handler)nrf51_cmd_read_deviceid, "Read unique device ID"},
-	{"deviceaddr", (cmd_handler)nrf51_cmd_read_deviceaddr, "Read device address"},
+	{"help", nrf51_cmd_read_help, "Display help for read commands"},
+	{"hwid", nrf51_cmd_read_hwid, "Read hardware identification number"},
+	{"fwid", nrf51_cmd_read_fwid, "Read pre-loaded firmware ID"},
+	{"deviceid", nrf51_cmd_read_deviceid, "Read unique device ID"},
+	{"deviceaddr", nrf51_cmd_read_deviceaddr, "Read device address"},
 	{NULL, NULL, NULL}
 };
 
@@ -263,8 +263,10 @@ static int nrf51_flash_write(struct target_flash *f,
 	return ret;
 }
 
-static bool nrf51_cmd_erase_all(target *t)
+static bool nrf51_cmd_erase_all(target *t, int argc, const char **argv)
 {
+	(void)argc;
+	(void)argv;
 	tc_printf(t, "erase..\n");
 
 	/* Enable erase */
@@ -286,8 +288,10 @@ static bool nrf51_cmd_erase_all(target *t)
 	return true;
 }
 
-static bool nrf51_cmd_erase_uicr(target *t)
+static bool nrf51_cmd_erase_uicr(target *t, int argc, const char **argv)
 {
+	(void)argc;
+	(void)argv;
 	tc_printf(t, "erase..\n");
 
 	/* Enable erase */
@@ -309,22 +313,28 @@ static bool nrf51_cmd_erase_uicr(target *t)
 	return true;
 }
 
-static bool nrf51_cmd_read_hwid(target *t)
+static bool nrf51_cmd_read_hwid(target *t, int argc, const char **argv)
 {
+	(void)argc;
+	(void)argv;
 	uint32_t hwid = target_mem_read32(t, NRF51_FICR_CONFIGID) & 0xFFFF;
 	tc_printf(t, "Hardware ID: 0x%04X\n", hwid);
 
 	return true;
 }
-static bool nrf51_cmd_read_fwid(target *t)
+static bool nrf51_cmd_read_fwid(target *t, int argc, const char **argv)
 {
+	(void)argc;
+	(void)argv;
 	uint32_t fwid = (target_mem_read32(t, NRF51_FICR_CONFIGID) >> 16) & 0xFFFF;
 	tc_printf(t, "Firmware ID: 0x%04X\n", fwid);
 
 	return true;
 }
-static bool nrf51_cmd_read_deviceid(target *t)
+static bool nrf51_cmd_read_deviceid(target *t, int argc, const char **argv)
 {
+	(void)argc;
+	(void)argv;
 	uint32_t deviceid_low = target_mem_read32(t, NRF51_FICR_DEVICEID_LOW);
 	uint32_t deviceid_high = target_mem_read32(t, NRF51_FICR_DEVICEID_HIGH);
 
@@ -332,8 +342,10 @@ static bool nrf51_cmd_read_deviceid(target *t)
 
 	return true;
 }
-static bool nrf51_cmd_read_deviceaddr(target *t)
+static bool nrf51_cmd_read_deviceaddr(target *t, int argc, const char **argv)
 {
+	(void)argc;
+	(void)argv;
 	uint32_t addr_type = target_mem_read32(t, NRF51_FICR_DEVICEADDRTYPE);
 	uint32_t addr_low = target_mem_read32(t, NRF51_FICR_DEVICEADDR_LOW);
 	uint32_t addr_high = target_mem_read32(t, NRF51_FICR_DEVICEADDR_HIGH) & 0xFFFF;
@@ -346,8 +358,10 @@ static bool nrf51_cmd_read_deviceaddr(target *t)
 
 	return true;
 }
-static bool nrf51_cmd_read_help(target *t)
+static bool nrf51_cmd_read_help(target *t, int argc, const char **argv)
 {
+	(void)argc;
+	(void)argv;
 	const struct command_s *c;
 
 	tc_printf(t, "Read commands:\n");
@@ -368,16 +382,16 @@ static bool nrf51_cmd_read(target *t, int argc, const char *argv[])
 			return c->handler(t, argc - 1, &argv[1]);
 	}
 
-	return nrf51_cmd_read_help(t);
+	return nrf51_cmd_read_help(t, 0, NULL);
 }
 
 #include "adiv5.h"
 #define NRF52_MDM_IDR 0x02880000
 
-static bool nrf51_mdm_cmd_erase_mass(target *t);
+static bool nrf51_mdm_cmd_erase_mass(target *t, int argc, const char **argv);
 
 const struct command_s nrf51_mdm_cmd_list[] = {
-	{"erase_mass", (cmd_handler)nrf51_mdm_cmd_erase_mass, "Erase entire flash memory"},
+	{"erase_mass", nrf51_mdm_cmd_erase_mass, "Erase entire flash memory"},
 	{NULL, NULL, NULL}
 };
 
@@ -424,8 +438,10 @@ void nrf51_mdm_probe(ADIv5_AP_t *ap)
 #define MDM_PROT_EN  ADIV5_AP_REG(0x0C)
 
 
-static bool nrf51_mdm_cmd_erase_mass(target *t)
+static bool nrf51_mdm_cmd_erase_mass(target *t, int argc, const char **argv)
 {
+	(void)argc;
+	(void)argv;
 	ADIv5_AP_t *ap = t->priv;
 
 	uint32_t status = adiv5_ap_read(ap, MDM_STATUS);
