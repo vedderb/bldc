@@ -106,7 +106,7 @@ SECTIONS
         PROVIDE(__fini_array_end = .);
     } > flash2
 
-    .text : ALIGN(16) SUBALIGN(16)
+    .text : ALIGN(16)
     {
         *(.text)
         *(.text.*)
@@ -117,7 +117,7 @@ SECTIONS
         *(.gcc*)
     } > flash2
 
-    .text2 : ALIGN(16) SUBALIGN(16)
+    .text2 : ALIGN(16)
     {
         *(.text2)
         *(.text2.*)
