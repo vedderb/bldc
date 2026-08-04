@@ -39,6 +39,23 @@ CH_IRQ_HANDLER(ADC1_2_3_IRQHandler) {
 void irq_handlers_init(void) {
 	nvicEnableVector(EXTI9_5_IRQn, 6);
 	nvicEnableVector(EXTI15_10_IRQn, 6);
+
+	// Latch supply dips below the PVD threshold into crash_info: a sag that resets
+	// nothing is otherwise invisible, and one latched right before a reset is
+	// evidence of a supply-caused reset. 2.9V is the highest available threshold,
+	// well below normal 3.3V operation and above the ~1.7V POR level.
+	PWR->CR |= PWR_CR_PLS_LEV7 | PWR_CR_PVDE; // level 7 = 2.9V
+
+	// The PVD output is wired to EXTI line 16; the rising edge is VDD crossing
+	// below the threshold.
+	EXTI_InitTypeDef exti;
+	exti.EXTI_Line = EXTI_Line16;
+	exti.EXTI_Mode = EXTI_Mode_Interrupt;
+	exti.EXTI_Trigger = EXTI_Trigger_Rising;
+	exti.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&exti);
+
+	nvicEnableVector(PVD_IRQn, 6);
 }
 
 // The STM32 multiplexes EXTI lines 5-9 and 10-15 onto one NVIC vector each. Every GPIO EXTI
@@ -95,6 +112,14 @@ CH_IRQ_HANDLER(PVD_IRQHandler) {
 		// could corrupt an ongoing flash programming
 		mc_interface_fault_stop(FAULT_CODE_MCU_UNDER_VOLTAGE, false, true);
 
+		// Latch the dip for the crash diagnostics
+		crash_info.pvd_dips++;
+		crash_info.pvd_last_uptime = chVTGetSystemTimeX() / CH_CFG_ST_FREQUENCY;
+
+		// Mask the line to bound a bouncing supply to one latched dip per
+		// timeout thread iteration (which re-arms it)
+		EXTI->IMR &= ~EXTI_Line16;
+
 		// Clear the PVD pending bit
 		EXTI_ClearITPendingBit(EXTI_Line16);
 		EXTI_ClearFlag(EXTI_Line16);
@@ -102,21 +127,21 @@ CH_IRQ_HANDLER(PVD_IRQHandler) {
 }
 
 CH_IRQ_HANDLER(NMI_Handler) {
-	main_stop_motor_and_reset();
+	main_fault_handler();
 }
 
 CH_IRQ_HANDLER(HardFault_Handler) {
-	main_stop_motor_and_reset();
+	main_fault_handler();
 }
 
 CH_IRQ_HANDLER(MemManage_Handler) {
-	main_stop_motor_and_reset();
+	main_fault_handler();
 }
 
 CH_IRQ_HANDLER(BusFault_Handler) {
-	main_stop_motor_and_reset();
+	main_fault_handler();
 }
 
 CH_IRQ_HANDLER(UsageFault_Handler) {
-	main_stop_motor_and_reset();
+	main_fault_handler();
 }

@@ -38,6 +38,7 @@
 #include "mempools.h"
 #include "crc.h"
 #include "firmware_metadata.h"
+#include "main.h"
 
 #include <string.h>
 #include <ctype.h>
@@ -66,6 +67,67 @@ static volatile fault_data fault_vec[FAULT_VEC_LEN];
 static volatile int fault_vec_write = 0;
 static terminal_callback_struct callbacks[CALLBACK_LEN];
 static int callback_write = 0;
+
+static void crash_diag(void) {
+	// Reference manual (RM0090) names for the RCC_CSR reset source flags
+	uint32_t f = crash_info.reset_flags;
+	commands_printf("Boot number: %u", crash_info.boot_count);
+	commands_printf("Uptime: %u s", (uint32_t)(chVTGetSystemTimeX() / CH_CFG_ST_FREQUENCY));
+	commands_printf("Reset flags:%s%s%s%s%s%s%s",
+			(f & RCC_CSR_BORRSTF) ? " BOR" : "", (f & RCC_CSR_PADRSTF) ? " PIN" : "",
+			(f & RCC_CSR_PORRSTF) ? " POR" : "", (f & RCC_CSR_SFTRSTF) ? " SFT" : "",
+			(f & RCC_CSR_WDGRSTF) ? " IWDG" : "", (f & RCC_CSR_WWDGRSTF) ? " WWDG" : "",
+			(f & RCC_CSR_LPWRRSTF) ? " LPWR" : "");
+
+	if (crash_info.pvd_dips > 0) {
+		commands_printf("Supply dips <2.9V: %u, last at uptime %u s",
+				crash_info.pvd_dips, crash_info.pvd_last_uptime);
+	}
+
+	if (crash_info.boot_count > 1 && (crash_info.reset_flags & RCC_CSR_PORRSTF)) {
+		// A POR normally means a power loss long enough to decay SRAM and wipe the
+		// struct (resetting the boot count). Surviving contents mean the supply only
+		// dipped below the POR threshold briefly.
+		commands_printf("POR with RAM intact: brief supply dip");
+	}
+
+	if (crash_info.type == CRASH_NONE) {
+		return;
+	}
+
+	const char *crash_type = crash_info.type == CRASH_HALT ? "halt" : "crash";
+	uint32_t boots_ago = crash_info.boot_count - crash_info.crash_boot;
+	if (boots_ago == 1) {
+		commands_printf("Previous boot %sed.", crash_type);
+	} else {
+		commands_printf("Stale %s from %u boots ago.", crash_type, boots_ago);
+	}
+
+	if (crash_info.type == CRASH_HALT) {
+		// The reason points to a string literal in flash. After partial SRAM decay it
+		// can be garbage even with the crash_info magic intact, and dereferencing an
+		// unmapped address hardfaults, so only print it if it points into flash.
+		uint32_t addr = (uint32_t)crash_info.halt_reason;
+		if (addr >= FLASH_BASE && addr < FLASH_BASE + 1024 * 1024) {
+			commands_printf("Reason: %s", crash_info.halt_reason);
+		} else {
+			commands_printf("Bad reason ptr: %08x", addr);
+		}
+	}
+
+	if (crash_info.type == CRASH_REGISTERS) {
+		static const char reg_names[14][6] = {"r0", "r1", "r2", "r3", "r12", "lr", "pc",
+				"psr", "cfsr", "hfsr", "mmfar", "bfar", "afsr", "shcsr"};
+		_Static_assert(sizeof(CrashRegisters) == sizeof(reg_names) / sizeof(reg_names[0]) * 4,
+				"reg_names must match CrashRegisters");
+		const uint32_t *regs = (const uint32_t *)&crash_info.registers;
+
+		commands_printf("Registers:");
+		for (unsigned i = 0; i < sizeof(reg_names) / sizeof(reg_names[0]); i++) {
+			commands_printf("%s: %08x", reg_names[i], regs[i]);
+		}
+	}
+}
 
 __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 	// Echo command so user can see what they previously ran
@@ -1161,6 +1223,17 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 	} else if (strcmp(argv[0], "rebootwdt") == 0) {
 		chSysLock();
 		for (;;) {__NOP();}
+	} else if (strcmp(argv[0], "crash_diag") == 0) {
+		if (argc == 2 && strcmp(argv[1], "clear") == 0) {
+			// Erase the data, keeping the reset_flags as they still describe the current boot
+			uint32_t reset_flags = crash_info.reset_flags;
+			memset(&crash_info, 0, sizeof(crash_info));
+			crash_info.magic = CRASH_INFO_MAGIC;
+			crash_info.boot_count = 1;
+			crash_info.reset_flags = reset_flags;
+		} else {
+			crash_diag();
+		}
 	}
 
 	// The help command
@@ -1281,6 +1354,9 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 
 		commands_printf("rebootwdt");
 		commands_printf("  Reboot using the watchdog timer.");
+
+		commands_printf("crash_diag [clear]");
+		commands_printf("  Print (or clear) the crash/reset diagnostics.");
 
 		for (int i = 0;i < callback_write;i++) {
 			if (callbacks[i].cbf == 0) {
