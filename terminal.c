@@ -165,13 +165,6 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 		mc_interface_ignore_input_both(1000);
 		mc_interface_release_motor_override_both();
 		return;
-	}
-	if (strcmp(argv[0], "last_adc_duration") == 0) {
-		commands_printf("Latest ADC duration: %.4f ms", (double)(mcpwm_get_last_adc_isr_duration() * 1000.0));
-		commands_printf("Latest injected ADC duration: %.4f ms", (double)(mc_interface_get_last_inj_adc_isr_duration() * 1000.0));
-		commands_printf("Latest sample ADC duration: %.4f ms\n", (double)(mc_interface_get_last_sample_adc_isr_duration() * 1000.0));
-	} else if (strcmp(argv[0], "kv") == 0) {
-		commands_printf("Calculated KV: %.2f rpm/volt\n", (double)mcpwm_get_kv_filtered());
 	} else if (strcmp(argv[0], "mem") == 0) {
 		size_t n, size;
 		n = chHeapStatus(NULL, &size);
@@ -252,37 +245,6 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 				commands_printf(" ");
 			}
 		}
-	} else if (strcmp(argv[0], "tim") == 0) {
-		chSysLock();
-		volatile int t1_cnt = TIM1->CNT;
-		volatile int t8_cnt = TIM8->CNT;
-		volatile int t1_cnt2 = TIM1->CNT;
-		volatile int t2_cnt = TIM2->CNT;
-		volatile int dir1 = !!(TIM1->CR1 & (1 << 4));
-		volatile int dir8 = !!(TIM8->CR1 & (1 << 4));
-		chSysUnlock();
-
-		int duty1 = TIM1->CCR1;
-		int duty2 = TIM1->CCR2;
-		int duty3 = TIM1->CCR3;
-		int top = TIM1->ARR;
-		int voltage_samp = TIM8->CCR1;
-		int current1_samp = TIM1->CCR4;
-		int current2_samp = TIM8->CCR2;
-
-		commands_printf("Tim1 CNT: %i", t1_cnt);
-		commands_printf("Tim8 CNT: %i", t8_cnt);
-		commands_printf("Tim2 CNT: %i", t2_cnt);
-		commands_printf("Amount off CNT: %i",top - (2*t8_cnt + t1_cnt + t1_cnt2)/2);
-		commands_printf("Duty cycle1: %u", duty1);
-		commands_printf("Duty cycle2: %u", duty2);
-		commands_printf("Duty cycle3: %u", duty3);
-		commands_printf("Top: %u", top);
-		commands_printf("Dir1: %u", dir1);
-		commands_printf("Dir8: %u", dir8);
-		commands_printf("Voltage sample: %u", voltage_samp);
-		commands_printf("Current 1 sample: %u", current1_samp);
-		commands_printf("Current 2 sample: %u\n", current2_samp);
 	} else if (strcmp(argv[0], "volt") == 0) {
 		commands_printf("Input voltage: %.2f\n", (double)mc_interface_get_input_voltage_filtered());
 #ifdef HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
@@ -1242,12 +1204,6 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 		commands_printf("help");
 		commands_printf("  Show this help");
 
-		commands_printf("last_adc_duration");
-		commands_printf("  The time the latest ADC interrupt consumed");
-
-		commands_printf("kv");
-		commands_printf("  The calculated kv of the motor (BLDC)");
-
 		commands_printf("mem");
 		commands_printf("  Show memory usage");
 
@@ -1262,9 +1218,6 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 
 		commands_printf("stop");
 		commands_printf("  Stops all motors");
-
-		commands_printf("tim");
-		commands_printf("  Prints tim1 and tim8 settings");
 
 		commands_printf("volt");
 		commands_printf("  Prints different voltages");
