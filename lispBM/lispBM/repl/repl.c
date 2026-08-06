@@ -433,7 +433,7 @@ static int printf_callback(const char *format, ...) {
   int len = vsnprintf(buffer, 2048, format, args);
   if (len == 2048) buffer[2047] = 0;
   iobuffer_write(buffer);
-  va_end(args);  
+  va_end(args);
   return len;
 }
 
@@ -691,19 +691,27 @@ struct option options[] = {
   {"mcp-doc-path", required_argument, NULL, MCP_DOC_PATH},
   {0,0,0,0}};
 
+
+typedef enum {
+  SOURCE_FILE = 0,
+  EXPRESSION
+} source_type_t;
+
 typedef struct src_list_s {
-  char *filename;
+  source_type_t type;
+  char *str;
   struct src_list_s *next;
 } src_list_t;
 
 src_list_t *sources = NULL;
 
-bool src_list_add(char *filename) {
-  if (strlen(filename) == 0) return false;
+bool src_list_add(char *str, source_type_t t) {
+  if (strlen(str) == 0) return false;
   src_list_t *entry=malloc(sizeof(src_list_t));
   if (!entry) return false;
 
-  entry->filename = filename;
+  entry->type = t;
+  entry->str = str;
   entry->next = NULL;
 
   if (!sources) {
@@ -726,33 +734,6 @@ int src_list_len(void) {
     n++;
   }
   return n;
-}
-
-typedef struct expr_list_s {
-  char *expr;
-  struct expr_list_s *next;
-} expr_list_t;
-
-expr_list_t *expressions = NULL;
-
-bool expr_list_add(char *expr) {
-  if (strlen(expr) == 0) return false;
-  expr_list_t *entry=malloc(sizeof(expr_list_t));
-  if (!entry) return false;
-
-  entry->expr = expr;
-  entry->next = NULL;
-
-  if (!expressions) {
-    expressions = entry;
-    return true;
-  }
-  expr_list_t *curr = expressions;
-  while(curr->next) {
-    curr = curr->next;
-  }
-  curr->next = entry;
-  return true;
 }
 
 void parse_opts(int argc, char **argv) {
@@ -836,9 +817,7 @@ void parse_opts(int argc, char **argv) {
              "  Multiple sourcefiles and expressions can be added with multiple uses\n" \
              "  of the --src/-s and --eval/-e flags.\n" \
              "  Sources and expressions are evaluated in sequence in the order they are\n" \
-             "  specified on the command-line, and all source files are evaluated before\n" \
-             "  expressions. Source file N will not start evaluating until after\n" \
-             "  source file (N-1) has terminated, for N larger than 1.\n");
+             "  specified on the command-line.\n");
       printf("\n");
       printf("HISTORY FILE\n" \
              "  The REPL history is saved to '~/.lbm_history' by default. If the environment\n" \
@@ -849,13 +828,13 @@ void parse_opts(int argc, char **argv) {
       terminate_repl(REPL_EXIT_SUCCESS);
       break;
     case 's':
-      if (!src_list_add((char*)optarg)) {
+      if (!src_list_add((char*)optarg, SOURCE_FILE)) {
         printf("Error adding source file to source list\n");
         terminate_repl(REPL_EXIT_INVALID_SOURCE_FILE);
       }
       break;
     case 'e':
-      if (!expr_list_add((char*)optarg)) {
+      if (!src_list_add((char*)optarg, EXPRESSION)) {
         printf("Error adding expression to eval list\n");
         terminate_repl(REPL_EXIT_INVALID_EXPRESSION);
       }
@@ -900,7 +879,7 @@ void parse_opts(int argc, char **argv) {
     case SHEBANG_MODE:
       shebang_mode = true;
       terminate_after_startup = true;
-      if (!src_list_add((char*)optarg)) {
+      if (!src_list_add((char*)optarg, SOURCE_FILE)) {
         printf("Error adding source file to source list\n");
         terminate_repl(REPL_EXIT_INVALID_SOURCE_FILE);
       }
@@ -1127,57 +1106,49 @@ int init_repl(void) {
 bool evaluate_sources(void) {
 
   src_list_t *curr = sources;
-  char *file_str = NULL;
   while (curr) {
-    if (file_str) free(file_str);
-    file_str = load_file(curr->filename);
-    if (!file_str) return false; // load file returns NULL if no file
-    lbm_create_string_char_channel(&string_tok_state,
-                                   &string_tok,
-                                   file_str);
-    lbm_pause_eval_with_gc(50);
-    while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-      sleep_callback(10);
-    }
+    char *file_str = NULL;
+    if (curr->type == SOURCE_FILE ){
 
-    startup_cid = lbm_load_and_eval_program_incremental(&string_tok, NULL);
-    if (res_output_file) {
-      store_result_cid = startup_cid;
-    }
-    lbm_continue_eval();
+      file_str = load_file(curr->str);
+      if (!file_str) return false; // load file returns NULL if no file
+      lbm_create_string_char_channel(&string_tok_state,
+                                     &string_tok,
+                                     file_str);
+      lbm_pause_eval_with_gc(50);
+      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+        sleep_callback(10);
+      }
 
+      startup_cid = lbm_load_and_eval_program_incremental(&string_tok, NULL);
+      if (res_output_file) {
+        store_result_cid = startup_cid;
+      }
+      lbm_continue_eval();
+    } else {
+      char *expr = curr->str;
+      lbm_create_string_char_channel(&string_tok_state,
+                                     &string_tok,
+                                     expr);
+      lbm_pause_eval_with_gc(50);
+      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+        sleep_callback(10);
+      }
+
+      startup_cid = lbm_load_and_eval_program_incremental(&string_tok, NULL);
+      if (res_output_file) {
+        store_result_cid = startup_cid;
+      }
+      lbm_continue_eval();
+    }
     while (startup_cid != -1) {
       sleep_callback(10);
     }
-    curr = curr->next;
-  }
-  return true;
-}
 
-bool evaluate_expressions(void) {
-  expr_list_t *curr = expressions;
-  char *expr = NULL;
-
-  while (curr) {
-    // if (expr) free(expr);
-    expr = curr->expr;
-    lbm_create_string_char_channel(&string_tok_state,
-                                   &string_tok,
-                                   expr);
-    lbm_pause_eval_with_gc(50);
-    while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-      sleep_callback(10);
+    if (curr->type == SOURCE_FILE) {
+      free(file_str);
     }
 
-    startup_cid = lbm_load_and_eval_program_incremental(&string_tok, NULL);
-    if (res_output_file) {
-      store_result_cid = startup_cid;
-    }
-    lbm_continue_eval();
-
-    while (startup_cid != -1) {
-      sleep_callback(10);
-    }
     curr = curr->next;
   }
   return true;
@@ -1336,9 +1307,9 @@ void startup_procedure(int argc, char **argv) {
       terminate_repl(REPL_EXIT_INVALID_SOURCE_FILE);
     }
   }
-  if (expressions) {
-    evaluate_expressions();
-  }
+  //if (expressions) {
+  //  evaluate_expressions();
+  //}
 
   if(terminate_after_startup) {
     shutdown_procedure();

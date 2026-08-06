@@ -39,6 +39,7 @@
 
 ;; Display the result
 (disp-render img400x200 0 0 '(0x000000 0xFFFFFF))
+(save-img img400x200 "sdl_tests/png_out/test_img_clear.png" '(0x000000 0xFFFFFF))
 
 (if (and r1 r2 (eq r3 '(exit-error type_error)) (eq r4 '(exit-error type_error)) r5)
     (print "SUCCESS")

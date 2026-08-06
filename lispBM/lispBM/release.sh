@@ -203,6 +203,20 @@ print_elapsed ../$reportdir/$release_readme
 ############################################################
 #
 
+echo "Running Persist tests"
+
+failing_persist_tests_log_file="failing_persist_tests_log_${release}.txt"
+persist_tests_log_file="persist_tests_log_${release}.txt"
+./run_persist_tests.sh ../$reportdir/$failing_persist_tests_log_file >> ../$reportdir/$persist_tests_log_file 2> /dev/null
+echo "" >> ../$reportdir/$release_readme
+echo "## PERSIST TESTS" >> ../$reportdir/$release_readme
+tail -n 4 ../$reportdir/$persist_tests_log_file >> ../$reportdir/$release_readme
+
+print_elapsed ../$reportdir/$release_readme
+
+############################################################
+#
+
 echo "Running SDL tests"
 
 failing_sdl_tests_log_file="failing_sdl_tests_log_${release}.txt"

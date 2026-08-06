@@ -1,6 +1,7 @@
 #!/usr/bin/env -S shlbm -H 32000 -M 512000 --
 
-(import "dsp_lang.lisp")
+(import "dsp_lang.lisp" 'dsp)
+(read-eval-program dsp)
 
 (define buffer (bufcreate (* 4 1024)))
 

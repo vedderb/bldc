@@ -30,6 +30,7 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <time.h>
 #ifdef __APPLE__
 #include <dispatch/dispatch.h>
 #else
@@ -43,6 +44,7 @@
 #include "extensions/runtime_extensions.h"
 #include "extensions/set_extensions.h"
 #include "extensions/display_extensions.h"
+#include "extensions/tiny3d_extensions.h"
 #include "extensions/mutex_extensions.h"
 #include "extensions/lbm_dyn_lib.h"
 #include "extensions/ttf_extensions.h"
@@ -54,6 +56,10 @@
 
 #ifdef WITH_VESC
 #include "vesc_extension_stubs.h"
+#endif
+
+#ifdef WITH_CURL
+#include <curl/curl.h>
 #endif
 
 #include "eval_cps.h"
@@ -177,6 +183,29 @@ static lbm_value ext_bits_dec_int(lbm_value *args, lbm_uint argn) {
 // TIME
 extern void sleep_callback(uint32_t us);
 
+#ifndef LBM_WIN
+static lbm_value ext_systime(lbm_value *args, lbm_uint argn) {
+  (void) args;
+  (void) argn;
+
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  uint32_t us = (uint32_t)((uint64_t)ts.tv_sec * 1000000 + (uint64_t)ts.tv_nsec / 1000);
+  return lbm_enc_u32(us);
+}
+
+static lbm_value ext_secs_since(lbm_value *args, lbm_uint argn) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  uint32_t t_now = (uint32_t)((uint64_t)ts.tv_sec * 1000000 + (uint64_t)ts.tv_nsec / 1000);
+
+  if (argn != 1 || !lbm_is_number(args[0])) return ENC_SYM_EERROR;
+
+  uint32_t t_then = lbm_dec_as_u32(args[0]);
+  uint32_t diff = t_now - t_then;
+  return lbm_enc_float((float)diff / 1000000.0f);
+}
+#else
 static lbm_value ext_systime(lbm_value *args, lbm_uint argn) {
   (void) args;
   (void) argn;
@@ -195,6 +224,7 @@ static lbm_value ext_secs_since(lbm_value *args, lbm_uint argn) {
   uint32_t diff = t_now - t_then;
   return lbm_enc_float((float)diff / 1000000.0f);
 }
+#endif
 
 
 static bool allow_print = true;
@@ -307,10 +337,10 @@ static lbm_value ext_load_file(lbm_value *args, lbm_uint argn) {
       long int  size = ftell(h->fp);
       rewind(h->fp);
 
-      if (size > 0) {
+      if (size > 0 && (size_t)size < SIZE_MAX) {
         uint8_t *data = lbm_malloc((size_t)size+1);
         if (data) {
-          memset(data, 0, (unsigned int)size+1) ;
+          memset(data, 0, (size_t)size+1) ;
 
           lbm_value val;
           if (lbm_lift_array(&val, (char*)data, (lbm_uint)size+1)) {
@@ -1338,64 +1368,125 @@ static lbm_value ext_set_active_image(lbm_value *args, lbm_uint argn) {
   return r;
 }
 
+static bool write_rgb888_png(const char *filename, uint8_t *data, uint32_t w, uint32_t h) {
+  bool res = false;
+
+  FILE *fp = fopen(filename, "w");
+  if (fp) {
+    png_structp png_ptr = NULL;
+    png_infop info_ptr = NULL;
+    png_bytep* row_pointers = NULL;
+
+    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    info_ptr = png_create_info_struct(png_ptr);
+
+    png_set_IHDR(png_ptr,
+                 info_ptr,
+                 w,
+                 h,
+                 8, // per channel
+                 PNG_COLOR_TYPE_RGB,
+                 PNG_INTERLACE_NONE,
+                 PNG_COMPRESSION_TYPE_BASE,
+                 PNG_FILTER_TYPE_BASE);
+
+    row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * h);
+
+    if (row_pointers) {
+      for (uint32_t i = 0; i < h; ++i) {
+        row_pointers[i] = data + (i * w * 3);
+      }
+
+      png_init_io(png_ptr, fp);
+      png_set_rows(png_ptr, info_ptr, row_pointers);
+      png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
+      res = true;
+    }
+
+    fclose(fp);
+
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    png_ptr = NULL;
+    info_ptr = NULL;
+    free(row_pointers);
+  }
+  return res;
+}
+
+static void blast_to_rgb888(uint8_t *dest, image_buffer_t *img, color_t *colors) {
+  switch(img->fmt) {
+  case indexed2:
+    buffer_blast_indexed2(dest, img, colors);
+    break;
+  case indexed4:
+    buffer_blast_indexed4(dest, img, colors);
+    break;
+  case indexed16:
+    buffer_blast_indexed16(dest, img, colors);
+    break;
+  case rgb332:
+    buffer_blast_rgb332(dest, img);
+    break;
+  case rgb565:
+    buffer_blast_rgb565(dest, img);
+    break;
+  case rgb888:
+    buffer_blast_rgb888(dest, img);
+    break;
+  default:
+    break;
+  }
+}
+
 static lbm_value ext_save_active_image(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
   if (argn == 1 &&
       lbm_is_array_r(args[0]) &&
       lbm_is_array_r(active_image)) {
 
-    FILE *fp = NULL;
-
     char *filename = lbm_dec_str(args[0]);
 
-    fp = fopen(filename, "w");
-    if (fp) {
-      png_structp png_ptr = NULL;
-      png_infop info_ptr = NULL;
-      png_bytep* row_pointers = NULL;
+    lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(active_image);
 
-      lbm_array_header_t *arr = (lbm_array_header_t*)lbm_car(active_image);
+    uint8_t *img_buf = (uint8_t*)arr->data;
+    uint8_t *data = image_buffer_data(img_buf);
+    uint32_t w = image_buffer_width(img_buf);
+    uint32_t h = image_buffer_height(img_buf);
 
-      uint8_t *img_buf = (uint8_t*)arr->data;
-      uint8_t *data = image_buffer_data(img_buf);
-      uint32_t w = image_buffer_width(img_buf);
-      uint32_t h = image_buffer_height(img_buf);
+    res = write_rgb888_png(filename, data, w, h) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+  }
+  return res;
+}
 
+static lbm_value ext_save_img(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_TERROR;
+  lbm_array_header_t *arr;
 
-      png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-      info_ptr = png_create_info_struct(png_ptr);
+  if ((argn == 2 || argn == 3) &&
+      (arr = get_image_buffer(args[0])) &&
+      lbm_is_array_r(args[1])) {
 
-      png_set_IHDR(png_ptr,
-                   info_ptr,
-                   w,
-                   h,
-                   8, // per channel
-                   PNG_COLOR_TYPE_RGB,
-                   PNG_INTERLACE_NONE,
-                   PNG_COMPRESSION_TYPE_BASE,
-                   PNG_FILTER_TYPE_BASE);
+    image_buffer_t img;
+    img.fmt = image_buffer_format((uint8_t*)arr->data);
+    img.width = image_buffer_width((uint8_t*)arr->data);
+    img.height = image_buffer_height((uint8_t*)arr->data);
+    img.mem_base = (uint8_t*)arr->data;
+    img.data = image_buffer_data((uint8_t*)arr->data);
 
-      row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * h);
+    char *filename = lbm_dec_str(args[1]);
 
-      if (row_pointers) {
-        for (uint32_t i = 0; i < h; ++i) {
-          row_pointers[i] = data + (i * w * 3);
-        }
+    color_t colors[16];
+    if (argn == 3 && !lbm_display_decode_color_list(args[2], colors, 16)) {
+      return ENC_SYM_TERROR;
+    } else if (argn == 2) {
+      memset(colors, 0, sizeof(color_t) * 16);
+    }
 
-        png_init_io(png_ptr, fp);
-        png_set_rows(png_ptr, info_ptr, row_pointers);
-        png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
-      }
-
-      fclose(fp);
-
-      png_destroy_write_struct(&png_ptr, &info_ptr);
-      png_ptr = NULL;
-      info_ptr = NULL;
-      free(row_pointers);
-      res = ENC_SYM_TRUE;
-    } else {
-      return ENC_SYM_NIL;
+    uint8_t *buffer = malloc((size_t)img.width * img.height * 3);
+    if (buffer) {
+      blast_to_rgb888(buffer, &img, colors);
+      res = write_rgb888_png(filename, buffer, img.width, img.height) ? ENC_SYM_TRUE : ENC_SYM_NIL;
+      free(buffer);
     }
   }
   return res;
@@ -1414,29 +1505,7 @@ static bool image_renderer_render(image_buffer_t *img, uint16_t x, uint16_t y, c
 
     uint8_t *buffer = malloc((size_t)(w * h * 3)); // RGB 888
     if (buffer) {
-      uint8_t  bpp = (uint8_t)img->fmt;
-      switch(bpp) {
-      case indexed2:
-        buffer_blast_indexed2(buffer, img, colors);
-        break;
-      case indexed4:
-        buffer_blast_indexed4(buffer, img, colors);
-        break;
-      case indexed16:
-        buffer_blast_indexed16(buffer, img, colors);
-        break;
-      case rgb332:
-        buffer_blast_rgb332(buffer, img);
-        break;
-      case rgb565:
-        buffer_blast_rgb565(buffer, img);
-        break;
-      case rgb888:
-        buffer_blast_rgb888(buffer, img);
-        break;
-      default:
-        break;
-      }
+      blast_to_rgb888(buffer, img, colors);
       uint16_t t_w = image_buffer_width(target_image);
       uint16_t t_h = image_buffer_height(target_image);
       if (t_w == w && t_h == h) {
@@ -1542,8 +1611,11 @@ lbm_value ext_rt(lbm_value *args, lbm_uint argn) {
 lbm_value a = ENC_SYM_NIL;
 
 lbm_value ext_dynamic(lbm_value *args, lbm_uint argn) {
+
   lbm_value b = a;
-  a = args[0];
+  if (argn >= 1) {
+    a = args[0];
+  }
   return b;
 }
 
@@ -1572,6 +1644,242 @@ lbm_value ext_register_dynamic_extension2(lbm_value *args, lbm_uint argn) {
 
 
 // ------------------------------------------------------------
+// import
+
+#ifdef WITH_CURL
+
+// Importing an "http://..." url sets the import_base_url
+static char *import_base_url = NULL;
+
+// Directory part of a URL, e.g. "https://host/dir/file.lisp" -> "https://host/dir/"
+// and "https://host" -> "https://host/". Result is malloc'd, caller frees.
+static char *url_dirname(const char *url) {
+  const char *scheme_end = strstr(url, "://");
+  if (!scheme_end) return NULL;
+  const char *path_start = scheme_end + 3;
+  const char *last_slash = strrchr(path_start, '/');
+  size_t len;
+  if (!last_slash) {
+    len = strlen(url);
+    char *res = malloc(len + 2);
+    if (!res) return NULL;
+    memcpy(res, url, len);
+    res[len] = '/';
+    res[len + 1] = 0;
+    return res;
+  }
+  len = (size_t)(last_slash - url) + 1;
+  char *res = malloc(len + 1);
+  if (!res) return NULL;
+  memcpy(res, url, len);
+  res[len] = 0;
+  return res;
+}
+
+static char *url_join(const char *base, const char *rel) {
+  if (strncmp(rel, "http://", 7) == 0 || strncmp(rel, "https://", 8) == 0) {
+    return strdup(rel);
+  }
+
+  if (rel[0] == '/') {
+    const char *scheme_end = strstr(base, "://");
+    if (!scheme_end) return NULL;
+    const char *path_start = strchr(scheme_end + 3, '/');
+    size_t prefix_len = path_start ? (size_t)(path_start - base) : strlen(base);
+    size_t rel_len = strlen(rel);
+    char *res = malloc(prefix_len + rel_len + 1);
+    if (!res) return NULL;
+    memcpy(res, base, prefix_len);
+    memcpy(res + prefix_len, rel, rel_len + 1);
+    return res;
+  }
+
+  char *dir = url_dirname(base);
+  if (!dir) return NULL;
+  size_t dir_len = strlen(dir);
+  size_t rel_len = strlen(rel);
+  char *res = malloc(dir_len + rel_len + 1);
+  if (!res) {
+    free(dir);
+    return NULL;
+  }
+  memcpy(res, dir, dir_len);
+  memcpy(res + dir_len, rel, rel_len + 1);
+  free(dir);
+  return res;
+}
+
+typedef struct {
+  uint8_t *data;
+  size_t size;
+  size_t cap;
+} curl_accum_t;
+
+static size_t curl_write_cb(void *ptr, size_t size, size_t nmemb, void *userdata) {
+  curl_accum_t *acc = (curl_accum_t*)userdata;
+  size_t add = size * nmemb;
+  if (acc->size + add + 1 > acc->cap) {
+    size_t newcap = acc->cap == 0 ? 4096 : acc->cap;
+    while (newcap < acc->size + add + 1) newcap *= 2;
+    uint8_t *p = realloc(acc->data, newcap);
+    if (!p) return 0;
+    acc->data = p;
+    acc->cap = newcap;
+  }
+  memcpy(acc->data + acc->size, ptr, add);
+  acc->size += add;
+  acc->data[acc->size] = 0;
+  return add;
+}
+
+static lbm_value fetch_url_to_lbm_array(const char *url) {
+  curl_accum_t acc = {0};
+  CURL *curl = curl_easy_init();
+  if (!curl) return ENC_SYM_NIL;
+
+  curl_easy_setopt(curl, CURLOPT_URL, url);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&acc);
+  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, "lispbm-repl");
+  curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+
+  CURLcode rc = curl_easy_perform(curl);
+  curl_easy_cleanup(curl);
+
+  if (rc != CURLE_OK || acc.size == 0) {
+    free(acc.data);
+    return ENC_SYM_NIL;
+  }
+
+  uint8_t *lbm_data = lbm_malloc(acc.size + 1);
+  if (!lbm_data) {
+    free(acc.data);
+    return ENC_SYM_MERROR;
+  }
+  memcpy(lbm_data, acc.data, acc.size + 1);
+  free(acc.data);
+
+  lbm_value val;
+  if (!lbm_lift_array(&val, (char*)lbm_data, (lbm_uint)(acc.size + 1))) {
+    lbm_free(lbm_data);
+    return ENC_SYM_MERROR;
+  }
+  return val;
+}
+
+#endif // WITH_CURL
+
+static lbm_value load_local_file_to_lbm_array(const char *filename) {
+  FILE *fp = fopen(filename, "r");
+  if (!fp) return ENC_SYM_NIL;
+
+  lbm_value res = ENC_SYM_EERROR;
+  if (fseek(fp, 0, SEEK_END) >= 0) {
+    res = ENC_SYM_MERROR;
+    long size = ftell(fp);
+    rewind(fp);
+
+    if (size > 0 && (size_t)size < SIZE_MAX) {
+      uint8_t *data = lbm_malloc((size_t)size + 1);
+      if (data) {
+        memset(data, 0, (size_t)size + 1);
+        lbm_value val;
+        if (lbm_lift_array(&val, (char*)data, (lbm_uint)size + 1)) {
+          size_t n = fread(data, 1, (size_t)size, fp);
+          if (n > 0) {
+            res = val;
+          } else {
+            lbm_free(data);
+            res = ENC_SYM_NIL;
+          }
+        } else {
+          lbm_free(data);
+        }
+      }
+    } else {
+      res = ENC_SYM_NIL;
+    }
+  }
+  fclose(fp);
+  return res;
+}
+
+//Like lbm_define but meant to be run inside an extension
+static bool do_define(const char *symbol, lbm_value value) {
+  lbm_uint sym_id;
+  if (!lbm_get_symbol_by_name(symbol, &sym_id) &&
+      !lbm_add_symbol_const_base(symbol, &sym_id, false)) {
+    return false;
+  }
+  lbm_uint ix_key = sym_id & GLOBAL_ENV_MASK;
+  lbm_value *glob_env = lbm_get_global_env();
+  lbm_value new_env = lbm_env_set(glob_env[ix_key], lbm_enc_sym(sym_id), value);
+  if (lbm_is_symbol(new_env)) return false;
+  glob_env[ix_key] = new_env;
+  return true;
+}
+
+// (import filename sym)
+// Supports importing URLs using libcurl.
+// pkg@ imports are detected and return [0].
+static lbm_value ext_import(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_array_r(args[0]) || !lbm_is_symbol(args[1])) return ENC_SYM_TERROR;
+  char *filename = lbm_dec_str(args[0]);
+  if (!filename) return ENC_SYM_TERROR;
+  const char *symname = lbm_get_name_by_symbol(lbm_dec_sym(args[1]));
+  if (!symname) return ENC_SYM_TERROR;
+
+  if (strncmp(filename, "pkg@://", 7) == 0) {
+    lbm_printf_callback("import: skipping pkg@:// package \"%s\" (not supported)\n", filename);
+    lbm_value empty;
+    if (!lbm_create_array(&empty, 1)) return ENC_SYM_MERROR;
+    ((uint8_t*)((lbm_array_header_t*)lbm_car(empty))->data)[0] = 0;
+    do_define(symname, empty);
+    return empty;
+  }
+
+#ifdef WITH_CURL
+  const char *resolved_url = NULL;
+  char *joined = NULL;
+  if (strncmp(filename, "http://", 7) == 0 || strncmp(filename, "https://", 8) == 0) {
+    free(import_base_url);
+    import_base_url = strdup(filename);
+    resolved_url = filename;
+  } else if (import_base_url) {
+    joined = url_join(import_base_url, filename);
+    if (joined) {
+      free(import_base_url);
+      import_base_url = strdup(joined);
+      resolved_url = joined;
+    }
+  }
+
+  if (resolved_url) {
+    lbm_value bytes = fetch_url_to_lbm_array(resolved_url);
+    if (lbm_is_array_r(bytes)) {
+      do_define(symname, bytes);
+      free(joined);
+      return bytes;
+    }
+    lbm_printf_callback("import: failed to fetch \"%s\", trying local file\n", resolved_url);
+    free(joined);
+  }
+#endif
+
+  lbm_value bytes = load_local_file_to_lbm_array(filename);
+  if (lbm_is_array_r(bytes)) {
+    do_define(symname, bytes);
+    return bytes;
+  }
+  lbm_printf_callback("import: failed to open \"%s\"\n", filename);
+  return ENC_SYM_NIL;
+}
+
+// ------------------------------------------------------------
 // Init
 
 int init_exts(void) {
@@ -1582,6 +1890,7 @@ int init_exts(void) {
   lbm_runtime_extensions_init();
   lbm_set_extensions_init();
   lbm_display_extensions_init();
+  lbm_tiny3d_extensions_init();
   lbm_mutex_extensions_init();
   lbm_dyn_lib_init();
   lbm_ttf_extensions_init();
@@ -1660,10 +1969,13 @@ int init_exts(void) {
   //displaying to active image
   lbm_add_extension("set-active-img", ext_set_active_image);
   lbm_add_extension("save-active-img", ext_save_active_image);
+  lbm_add_extension("save-img", ext_save_img);
   lbm_add_extension("display-to-img", ext_display_to_image);
 
   lbm_add_extension("reg-dyn-ext", ext_register_dynamic_extension);
   lbm_add_extension("reg-dyn-ext2", ext_register_dynamic_extension2);
+
+  lbm_add_extension("import", ext_import);
 
 #ifdef WITH_VESC
   load_vesc_extension_stubs();
@@ -1679,19 +1991,5 @@ int init_exts(void) {
 // Dynamic loader
 
 bool dynamic_loader(const char *str, const char **code) {
-
-  const char *import_code =
-    "(defun import (filename)"
-    " (let ((fh (fopen filename \"r\"))) {"
-    " (read-eval-program (load-file fh))"
-    " (fclose fh)"
-    " })) ";
-
-  // strmatch matches until the first space in its second arg
-  if (strmatch(str, "import ")) {
-    *code = import_code;
-    return true;
-  }
-
   return lbm_dyn_lib_find(str, code);
 }

@@ -23,12 +23,17 @@ These should be added as a -D... flag to the C compiler for the LispBM compilati
 <li>LBM_USE_DYN_MACROS - Add a library of macros to the dynamic loader. Together with LBM_USE_DYN_FUNS this also brings in the defstruct mechanism.</li>
 <li>LBM_USE_DYN_LOOPS - Add loop macros, requires LBM_USE_DYN_MACROS.</li>
 <li>LBM_USE_DYN_ARRAYS - Add additional array manipulation functions. Requires LBM_USE_DYN_MACROS and LBM_USE_DYN_LOOPS</li>
-<li>LBM_USE_DYN_TTF - Load the lisp part of the TTF font library dynamically.</li>
+<li>LBM_USE_DYN_DEFSTRUCT - Enable the defstruct mechanism in the dynamic loader.</li>
 <li>LBM_USE_TIME_QUOTA - Use scheduler with time-based quotas instead of evaluator steps.</li>
 <li>LBM_USE_EXT_MAILBOX_GET - loads the mailbox-get extension that allows introspection into mailboxes.</li>
 <li>LBM_USE_ERROR_LINENO - Reports the line in eval_cps.c where the error was triggered. For debug use.</li>
 <li>LBM_USE_MACRO_REST_ARGS - allow macros to access a rest-args list just like lambda defined functions.</li>
 <li>LBM_USE_SHEBANG_COMMENTS - if #! starts the first row and column of text, that row is considered a comment.</li>
+<li>LBM_SINGLE_THREADED - Build for a single-threaded host, removing checks around message send/define that assume a paused evaluator thread. Used by the WASM build.</li>
+<li>LBM_USE_TTF_FREETYPE - Use FreeType as the TTF rendering backend instead of the built-in schrift renderer. (LBM_TTF_USE_FREETYPE is also accepted, for backwards compatibility.)</li>
+<li>LBM_WASM - Flag for building the WASM target of LispBM.</li>
+<li>CLEAN_UP_CLOSURES - Enables extra bookkeeping in eval_cps.c to clean up closure environments.</li>
+<li>DEBUG - Enables extra debug printouts, for example in the flat value code.</li>
 </ul>
 
 The following preprocessor flags control code size optimizions on a per subsystem basis.
@@ -53,6 +58,26 @@ The following preprocessor flags control code size optimizions on a per subsyste
 <li>LBM_OPT_STRING_EXTENSIONS_SIZE_AGGRESSIVE</li>
 <li>LBM_OPT_TTF_EXTENSIONS_SIZE</li>
 <li>LBM_OPT_TTF_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_CRYPTO_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_CRYPTO_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_ECC_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_ECC_EXTENSIONS_SIZE_AGGRESSIVE</li>
+<li>LBM_OPT_DSP_EXTENSIONS_SIZE</li>
+<li>LBM_OPT_DSP_EXTENSIONS_SIZE_AGGRESSIVE</li>
+</ul>
+
+The following flags select which built-in bitmap fonts (utils/tinygfx_fonts.h) are compiled
+in for use with img-text. More than one may be defined at the same time.
+<ul>
+<li>USE_TINYGFX_FONT_0 - Tom Thumb, 4x6.</li>
+<li>USE_TINYGFX_FONT_1 - retro, 5x7.</li>
+<li>USE_TINYGFX_FONT_2 - IBM VGA, 8x8.</li>
+<li>USE_TINYGFX_FONT_3 - luizbills, 4x6.</li>
+<li>USE_TINYGFX_FONT_ALL - shorthand for enabling all four of the above.</li>
+<li>TINYGFX_DEFAULT_FONT_ID - which font id img-text uses when called without an
+explicit font argument. Defaults to 1 (retro 5x7); override with e.g.
+-DTINYGFX_DEFAULT_FONT_ID=2. Its USE_TINYGFX_FONT_N must also be enabled.</li>
+</ul>
 
 <h2>Build on Linux</h2>
 

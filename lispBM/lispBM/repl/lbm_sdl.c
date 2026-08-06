@@ -72,15 +72,47 @@ static lbm_value ext_sdl_init(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+// active_rend is defined below, but both window-destruction paths need to
+// invalidate it when it belongs to the window being destroyed: SDL leaves a
+// renderer's backing window destruction silent (no auto-null anywhere), and
+// disp-render only checks active_rend for non-NULL, not validity -- without
+// this, a renderer surviving its window is a dangling pointer that
+// eventually segfaults deep inside SDL on the next render call.
+extern SDL_Renderer *active_rend;
+
+// SDL_RenderGetWindow requires SDL >= 2.0.22. On older SDL there's no way
+// to ask which window a renderer belongs to, so conservatively invalidate
+// active_rend on any window destruction rather than risk leaving it
+// dangling (over-cautious with multiple windows, but this codebase's
+// examples only ever use one).
+static inline bool sdl_renderer_owns_window(SDL_Renderer *rend, SDL_Window *win) {
+#if SDL_VERSION_ATLEAST(2, 0, 22)
+  return rend && SDL_RenderGetWindow(rend) == win;
+#else
+  (void)rend; (void)win;
+  return true;
+#endif
+}
+
 static bool sdl_window_destructor(lbm_uint value) {
-  if (value) SDL_DestroyWindow((SDL_Window*)value);
+  if (value) {
+    SDL_Window *win = (SDL_Window*)value;
+    if (active_rend && sdl_renderer_owns_window(active_rend, win)) {
+      active_rend = NULL;
+    }
+    SDL_DestroyWindow(win);
+  }
   return true;
 }
 
 static lbm_value ext_sdl_destroy_window(lbm_value *args, lbm_uint argn) {
   if (argn == 1 && lbm_type_of(args[0]) == LBM_TYPE_CUSTOM) {
     lbm_uint *m = (lbm_uint *)lbm_dec_custom(args[0]);
-    SDL_DestroyWindow((SDL_Window*)m[CUSTOM_TYPE_VALUE]);
+    SDL_Window *win = (SDL_Window*)m[CUSTOM_TYPE_VALUE];
+    if (active_rend && sdl_renderer_owns_window(active_rend, win)) {
+      active_rend = NULL;
+    }
+    SDL_DestroyWindow(win);
     m[CUSTOM_TYPE_VALUE] = 0;
   }
   return ENC_SYM_TRUE;
@@ -112,15 +144,22 @@ static lbm_value ext_sdl_create_window(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+SDL_Renderer *active_rend = NULL;
+
 static bool sdl_renderer_destructor(lbm_uint value) {
-  if (value) SDL_DestroyRenderer((SDL_Renderer*)value);
+  if (value) {
+    if ((SDL_Renderer*)value == active_rend) active_rend = NULL;
+    SDL_DestroyRenderer((SDL_Renderer*)value);
+  }
   return true;
 }
 
 static lbm_value ext_sdl_destroy_renderer(lbm_value *args, lbm_uint argn) {
   if (argn == 1 && lbm_type_of(args[0]) == LBM_TYPE_CUSTOM) {
     lbm_uint *m = (lbm_uint *)lbm_dec_custom(args[0]);
-    SDL_DestroyRenderer((SDL_Renderer*)m[CUSTOM_TYPE_VALUE]);
+    SDL_Renderer *rend = (SDL_Renderer*)m[CUSTOM_TYPE_VALUE];
+    if (rend == active_rend) active_rend = NULL;
+    SDL_DestroyRenderer(rend);
     m[CUSTOM_TYPE_VALUE] = 0;
   }
   return ENC_SYM_TRUE;
@@ -283,7 +322,7 @@ static lbm_value ext_sdl_load_texture(lbm_value *args, lbm_uint argn) {
       SDL_Texture *texture = IMG_LoadTexture(rend, filename);
       if (texture &&
           !lbm_custom_type_create((lbm_uint)texture, sdl_texture_destructor, "SDLTexture", &res))
-        SDL_DestroyRenderer(rend);
+        SDL_DestroyTexture(texture);
     }
   }
   return res;
@@ -318,9 +357,6 @@ static lbm_value ext_sdl_blit(lbm_value *args, lbm_uint argn) {
 }
 
 // Display interface
-
-
-SDL_Renderer *active_rend = NULL;
 
 static lbm_value ext_sdl_set_active_renderer(lbm_value *args, lbm_uint argn) {
   lbm_value res = lbm_enc_sym(SYM_NIL);
