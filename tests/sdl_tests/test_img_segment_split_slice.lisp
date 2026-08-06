@@ -170,6 +170,10 @@
                                0xFFFF00 0xFF00FF 0x00FFFF 0xFFFFFF
                                0x800000 0x008000 0x000080 0x808000
                                0x800080 0x008080 0x808080 0xC0C0C0))
+(save-img img600x400 "sdl_tests/png_out/test_img_segment_split_slice.png" '(0x000000 0xFF0000 0x00FF00 0x0000FF 
+                               0xFFFF00 0xFF00FF 0x00FFFF 0xFFFFFF
+                               0x800000 0x008000 0x000080 0x808000
+                               0x800080 0x008080 0x808080 0xC0C0C0))
 
 ;; Check test results
 ;; Most drawing operations should succeed (return t)

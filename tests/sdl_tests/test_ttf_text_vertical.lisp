@@ -85,6 +85,7 @@
 
 ;; Display the result
 (disp-render img400x200 0 0 aa-colors)
+(save-img img400x200 "sdl_tests/png_out/test_ttf_text_vertical.png" aa-colors)
 
 (if (and r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20 r21 r33 r34
          is_buffer (eq dims '(400 200)))

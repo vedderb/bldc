@@ -92,6 +92,7 @@
 
 ;; Display final result (last test with pixel tiling in small area)
 (disp-render dst_img 0 0 '(0x000000 0xFF0000 0x00FF00 0x0000FF))
+(save-img dst_img "sdl_tests/png_out/test_img_blit_tile.png" '(0x000000 0xFF0000 0x00FF00 0x0000FF))
 
 ;; Test buffer properties
 (define dims (img-dims dst_img))

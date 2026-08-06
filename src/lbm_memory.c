@@ -388,7 +388,8 @@ void lbm_free(void *ptr) {
   lbm_memory_free(ptr);
 }
 
-int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
+
+bool lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
   if (!lbm_memory_ptr_inside(ptr) || n == 0) return 0;
 
   lbm_uint ix = address_to_bitmap_ix(ptr);
@@ -396,25 +397,26 @@ int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
   lbm_mutex_lock(&lbm_mem_mutex);
   if (status(ix) == START_END) {
     lbm_mutex_unlock(&lbm_mem_mutex);
-    return 1; // A one word arrays always succeeds at remaining at 1 word
+    return true; // A one word arrays always succeeds at remaining at 1 word
   }
   if (status(ix) != START) {
     lbm_mutex_unlock(&lbm_mem_mutex);
-    return 0; // ptr does not point to the start of an allocated range.
+    return false; // ptr does not point to the start of an allocated range.
   }
 
   bool done = false;
   unsigned int i = 0;
 
   for (i = 0; i < (memory_size - ix); i ++) {
-    if (status(ix+i) == END && i < n) {
+    if (status(ix+i) == END && i < (n - 1)) {
       lbm_mutex_unlock(&lbm_mem_mutex);
-      return 0; // cannot shrink allocation to a larger size
+      return false; // cannot shrink allocation to a larger size
     }
 
     if (i == (n-1)) {
       if (status(ix+i) == END ||
           status(ix+i) == START_END) {
+        // Shrink to current size case.
         done = true;
       }
       if (i == 0) {
@@ -442,7 +444,7 @@ int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n) {
 
   memory_num_free += count;
   lbm_mutex_unlock(&lbm_mem_mutex);
-  return 1;
+  return true;
 }
 
 int lbm_memory_ptr_inside(lbm_uint *ptr) {

@@ -20,6 +20,7 @@
 (define img400x200 (img-buffer 'indexed2 400 200))
 
 (define r1 (disp-render img400x200 0 0 '(0x000000 0xFFFFFF)))
+(save-img img400x200 "sdl_tests/png_out/test_disp_render.png" '(0x000000 0xFFFFFF))
 
 (if r1
     (print "SUCCESS")

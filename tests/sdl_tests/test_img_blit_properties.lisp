@@ -30,6 +30,9 @@
 (img-line src_rect 0 10 40 10 2)
 (img-circle src_rect 20 10 6 3)
 
+;; Test tile property - drawn first as a background, since it fills the whole destination
+(define r14 (img-blit dst_img src_small 10 200 -1 '(tile)))
+
 ;; Test basic blit (no properties)
 (define r1 (img-blit dst_img src_small 10 10 -1))
 
@@ -52,9 +55,6 @@
 ;; Test very small and large scales
 (define r12 (img-blit dst_img src_small 350 120 -1 '(scale 0.25)))     ; very small
 (define r13 (img-blit dst_img src_small 400 120 -1 '(scale 3.0)))      ; very large
-
-;; Test tile property - should repeat the source to fill destination
-(define r14 (img-blit dst_img src_small 10 200 -1 '(tile)))
 
 ;; Test clip property - clip output in destination coordinates
 (define r15 (img-blit dst_img src_rect 200 200 -1 '(clip 210 205 25 15))) ; clip to small area
@@ -95,6 +95,7 @@
 
 ;; Display the result with 4-color palette
 (disp-render dst_img 0 0 '(0x000000 0xFF0000 0x00FF00 0x0000FF))
+(save-img dst_img "sdl_tests/png_out/test_img_blit_properties.png" '(0x000000 0xFF0000 0x00FF00 0x0000FF))
 
 (if (and r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20 r21 r22 r30
          is_buffer (eq dims '(500 400)))

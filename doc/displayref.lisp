@@ -26,11 +26,6 @@
 (defun code-png-str (img c xs) (code-png img c (map (lambda (x) (list 'read-eval x)) xs)))
 
 
-;; VESC style import emulator
-(define import (macro (file sym)
-                      `(define ,(eval sym) (load-file (f-open ,file "r")))))
-
-
 (define create_image1
   (ref-entry "img-buffer"
              (list
@@ -215,12 +210,12 @@
              (list
               (para (list "img-color is used to create more complex color objects for"
                           "use together with disp-render.")
-                    )            
+                    )
               (bullet (list "**gradient_x**: vertical gradients from color1 to color2."
                             "**gradient_y**: horizontal gradients from color1 to color2."
                             "**gradient_x_pre**: precomputes gradient."
                             "**gradient_y_pre**: precomputes gradient."))
-  
+
               (code '((read-eval "(img-color 'regular 0xAABB11)")
                       (read-eval "(img-color 'gradient_x color1 color2 10 0 'repeat)")
                       (read-eval "(img-color 'gradient_x_pre color1 color2)")
@@ -228,7 +223,7 @@
               (program-disp '((
                                (define fptr (f-open "images/lama2.bin" "r"))
                                (define pic (load-file fptr))
-                               (fclose fptr)
+                               (f-close fptr)
                                (define c (img-color 'gradient_x color1 color2 100 0 'repeat))
                                (define img (img-buffer 'indexed2 320 200))
                                (img-blit img pic 10 10 -1 '(rotate 128 128 45))
@@ -237,7 +232,7 @@
               (program-disp '((
                                (define fptr (f-open "images/lama2.bin" "r"))
                                (define pic (load-file fptr))
-                               (fclose fptr)
+                               (f-close fptr)
                                (define c (img-color 'gradient_y color1 color2 100 0 'mirrored))
                                (define img (img-buffer 'indexed2 320 200))
                                (img-blit img pic 10 10 -1 '(rotate 128 128 45))
@@ -327,7 +322,7 @@
                            (program-disp '((
                                (define fptr (f-open "images/lama2.bin" "r"))
                                (define pic (load-file fptr))
-                               (fclose fptr)
+                               (f-close fptr)
                                (define c (img-color 'gradient_x_pre color1 color2 100 0 'repeat))
                                (loopfor i 0 (< i 512) (+ i 2) {
                                         (img-color-setpre c i 0xFFFFFF)
@@ -340,7 +335,7 @@
               (program-disp '((
                                (define fptr (f-open "images/lama2.bin" "r"))
                                (define pic (load-file fptr))
-                               (fclose fptr)
+                               (f-close fptr)
                                (define c (img-color 'gradient_y_pre color1 color2 200 0 'repeat))
                                (loopfor i 0 (< i 200) (+ i 10) {
                                         (var band-color (if (= (mod (/ i 10) 2) 0) color1 color2))
@@ -529,7 +524,10 @@
                           "`'(rotate x y deg)` | Rotate `deg` degrees around `x` `y`\n"
                           "`'(scale s)` | Scale by `s`\n"
                           "`'(tile)` | Tile to fill `dest`\n"
-                          "`'(clip x y w h)`  | Clip output in destination coords"))
+                          "`'(clip x y w h)`  | Clip output in destination coords\n"
+                          "`'(palette (v0 v1 ...))` | Remap indexed `src` values. Required for indexed `src` into a differently formatted `dest`. List length must equal `src`'s color count (2/4/16); entries are dest indices or rgb888 colors.\n"
+                          "`'(alpha n)` | Opacity 0-255. Only applies when `dest` is rgb.\n"
+                          "`'(alpha-buffer img-buf)` | Per-pixel opacity, same size as `src`. indexed2/4/16 or rgb332. Only applies when `dest` is rgb."))
               (code-png 'my-img '(0x00 0xffffff)
                         '((img-blit my-img llama-bin 10 10 -1)
                           (img-blit my-img llama-bin 10 10 -1 
@@ -541,8 +539,29 @@
                             '(scale 0.2))
                           (read-eval "(img-blit my-img llama-bin 10 10 -1\n    '(tile)\n    '(scale 0.2)\n    '(rotate 10 10 45))")
                           (read-eval "(img-blit my-img llama-bin 10 10 -1\n    '(tile)\n    '(scale 0.2)\n    '(rotate 10 10 45)\n    '(clip 50 50 250 150))")
-                          
+
                         ))
+              (para (list "Blitting between indexed formats, or from indexed into rgb, needs a"
+                          "`palette` remapping `src`'s index values. Here a 4-color `src` is"
+                          "quantized down into a 2-color `dest`, mapping index 0 and 1 to 0,"
+                          "and 2 and 3 to 1:"
+                          ))
+              (program-disp '((
+                               (define src4 (img-buffer 'indexed4 40 40))
+                               (img-clear src4 0)
+                               (img-circle src4 20 20 18 3 '(filled))
+                               (define dst2 (img-buffer 'indexed2 40 40))
+                               (img-blit dst2 src4 0 0 -1 '(palette (0 0 1 1)))
+                               (disp-render dst2 0 0 '(0x000000 0xFFFFFF))
+                               )))
+              (para (list "A palette works for same-format blits too, not just conversions."
+                          "`'(1 0)` swaps index 0 and 1, inverting an indexed2 image:"
+                          ))
+              (program-disp '((
+                               (define inverted (img-buffer 'indexed2 320 200))
+                               (img-blit inverted llama-bin 0 0 -1 '(palette (1 0)))
+                               (disp-render inverted 0 0 '(0x000000 0xFFFFFF))
+                               )))
               end)))
 
 (define sierpinski
@@ -622,10 +641,43 @@
                               ))
               end)))
 
+(define alpha-blitting
+  (ref-entry "Example: alpha blitting"
+             (list
+              (program-disp '((
+                               (img-clear img-rgb888 0x101018)
+                               (img-blit img-rgb888 llama-bin 10 10 -1
+                                         '(palette (0x101018 0xE0A030))
+                                         '(alpha 160))
+                               (disp-render img-rgb888 0 0)
+                               )))
+              (para (list "`llama-bin` is indexed2, so blitting it onto the rgb `img-rgb888` needs a"
+                          "`palette` mapping its two index values to colors. `alpha` then applies"
+                          "to the whole blit."
+                          ))
+              (program-disp '((
+                               (define sprite (img-buffer 'rgb888 64 64))
+                               (img-clear sprite 0x123456)
+                               (img-circle sprite 32 32 28 0xE0A030 '(filled))
+                               (define fade (img-buffer 'indexed4 64 64))
+                               (loopfor px 0 (< px 64) (+ px 1)
+                                 (loopfor py 0 (< py 64) (+ py 1)
+                                   (img-setpix fade px py (/ px 16))))
+                               (img-clear img-rgb888 0x101018)
+                               (img-blit img-rgb888 sprite 40 40 0x123456
+                                         (list 'alpha-buffer fade))
+                               (disp-render img-rgb888 0 0)
+                               )))
+              (para (list "`fade` is an indexed4 buffer the same size as `sprite`, holding a"
+                          "left-to-right 4-level opacity ramp. `alpha-buffer` reads it and applies"
+                          "one opacity value per source pixel instead of one for the whole blit."
+                          ))
+              end)))
+
 (let ((fptr (f-open "lispbm.jpeg" "r")))
   {
   (define my-jpg (load-file fptr))
-  (fclose fptr)
+  (f-close fptr)
   })
                   
 
@@ -793,7 +845,8 @@
                          ))
              
              sierpinski
-             rotated-llama))
+             rotated-llama
+             alpha-blitting))
    info
    )
   )

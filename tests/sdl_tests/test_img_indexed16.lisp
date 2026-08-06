@@ -44,6 +44,10 @@
                                0xFFFF00 0xFF00FF 0x00FFFF 0xFFFFFF
                                0x800000 0x008000 0x000080 0x808000
                                0x800080 0x008080 0x808080 0xC0C0C0))
+(save-img img400x200 "sdl_tests/png_out/test_img_indexed16.png" '(0x000000 0xFF0000 0x00FF00 0x0000FF 
+                               0xFFFF00 0xFF00FF 0x00FFFF 0xFFFFFF
+                               0x800000 0x008000 0x000080 0x808000
+                               0x800080 0x008080 0x808080 0xC0C0C0))
 
 (if (and r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 is_buffer
          (eq dims '(400 200)))

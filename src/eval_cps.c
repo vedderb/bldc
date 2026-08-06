@@ -2779,7 +2779,10 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
       if (incremental) {
         ctx->flags |= EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
         lbm_value  *rptr1 = stack_reserve(ctx,2);
-        rptr1[0] = ctx->curr_env;
+        // Evaluating the program in the curr_env can lead to
+        // values on curr_env to be captured in closures created in
+        // the program.
+        rptr1[0] = ENC_SYM_NIL; // ctx->curr_env;
         rptr1[1] = READ_EVAL_CONTINUE;
       } else {
         ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
