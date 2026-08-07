@@ -13,6 +13,9 @@ ifeq ($(USE_OPT),)
   USE_OPT += -DLBM_USE_ERROR_LINENO -DLBM_USE_MACRO_REST_ARGS
 #  USE_OPT += -DUSE_GC_PTR_REV
   USE_OPT += -fsingle-precision-constant -Wdouble-promotion -specs=nosys.specs
+  # The default "stc" block reordering scatters hot code paths, causing costly
+  # flash fetches, measurably slowing down the FOC interrupt.
+  USE_OPT += -freorder-blocks-algorithm=simple
 endif
 
 # C specific options here (added to USE_OPT).
