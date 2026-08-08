@@ -2196,11 +2196,24 @@ bool mcpwm_foc_play_tone(int channel, float freq, float voltage) {
 
 	motor->m_audio.table_freq[channel] = freq;
 	motor->m_audio.table_voltage[channel] = voltage;
-	motor->m_audio.mode = MC_AUDIO_TABLE;
 
 	if (voltage < 0.01) {
+		bool any_active = false;
+		for (int i = 0; i < MC_AUDIO_CHANNELS; i++) {
+			if (motor->m_audio.table_voltage[i] >= 0.01) {
+				any_active = true;
+				break;
+			}
+		}
+
+		if (!any_active && motor->m_audio.mode == MC_AUDIO_TABLE) {
+			motor->m_audio.mode = MC_AUDIO_OFF;
+		}
+
 		return true;
 	}
+
+	motor->m_audio.mode = MC_AUDIO_TABLE;
 
 	mcpwm_foc_set_current_off_delay(1.0);
 
