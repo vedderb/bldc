@@ -130,7 +130,8 @@ static void configure_biquads(float rate_hz) {
 
 void imu_init(imu_config *set) {
 	bool imu_changed = set->sample_rate_hz != m_settings.sample_rate_hz ||
-			set->type != m_settings.type || set->filter != m_settings.filter;
+		set->type != m_settings.type || set->filter != m_settings.filter ||
+		set->use_magnetometer != m_settings.use_magnetometer;
 
 	m_settings = *set;
 
