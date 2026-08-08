@@ -2780,7 +2780,7 @@ static void update_stats(volatile motor_if_state_t *motor) {
 	}
 
 	if (fabs(speed) > (double)motor->m_stats.max_speed) {
-		motor->m_stats.max_speed = fabsf(speed);
+		motor->m_stats.max_speed = fabs(speed);
 	}
 
 	if (temp_mos > (double)motor->m_stats.max_temp_mos) {

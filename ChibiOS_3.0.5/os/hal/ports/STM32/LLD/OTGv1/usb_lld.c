@@ -212,7 +212,7 @@ static uint8_t *otg_do_push(volatile uint32_t *fifop, uint8_t *buf, size_t n) {
   while (n > 0) {
     /* Note, this line relies on the Cortex-M3/M4 ability to perform
        unaligned word accesses and on the LSB-first memory organization.*/
-    *fifop = *((PACKED_VAR uint32_t *)buf);
+    *fifop = *((uint32_t *)buf);
     buf += 4;
     n--;
   }
@@ -310,7 +310,7 @@ static uint8_t *otg_do_pop(volatile uint32_t *fifop, uint8_t *buf, size_t n) {
     uint32_t w = *fifop;
     /* Note, this line relies on the Cortex-M3/M4 ability to perform
        unaligned word accesses and on the LSB-first memory organization.*/
-    *((PACKED_VAR uint32_t *)buf) = w;
+    *((uint32_t *)buf) = w;
     buf += 4;
     n--;
   }
@@ -339,7 +339,7 @@ static void otg_fifo_read_to_buffer(volatile uint32_t *fifop,
     if (max) {
       /* Note, this line relies on the Cortex-M3/M4 ability to perform
          unaligned word accesses and on the LSB-first memory organization.*/
-      *((PACKED_VAR uint32_t *)buf) = w;
+      *((uint32_t *)buf) = w;
       buf += 4;
       max--;
     }
