@@ -507,7 +507,12 @@ void foc_run_pid_control_speed(bool index_found, float dt, motor_all_state_t *mo
 		if (!index_found) {
 			utils_truncate_number_abs(&motor->m_speed_pid_set_rpm, conf_now->foc_openloop_rpm);
 		}
-		utils_truncate_number(&motor->m_speed_pid_set_rpm, conf_now->l_min_erpm, conf_now->l_max_erpm);
+
+		if (motor->m_conf->m_invert_direction) {
+			utils_truncate_number(&motor->m_speed_pid_set_rpm, -conf_now->l_max_erpm, -conf_now->l_min_erpm);
+		} else {
+			utils_truncate_number(&motor->m_speed_pid_set_rpm, conf_now->l_min_erpm, conf_now->l_max_erpm);
+		}
 	}
 
 	float rpm = 0.0;
