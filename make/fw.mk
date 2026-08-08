@@ -35,7 +35,7 @@ endif
 
 # Linker extra options here.
 ifeq ($(USE_LDOPT),)
-  USE_LDOPT = --print-memory-usage,--no-warn-rwx-segments
+  USE_LDOPT = --print-memory-usage
 endif
 
 # Enable this if you want link time optimizations (LTO)
