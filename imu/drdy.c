@@ -24,9 +24,11 @@
 
 #include "hal.h"
 #include "stm32f4xx_conf.h"
+#include "timer.h"
 
 static binary_semaphore_t m_sem;
 static volatile bool m_sem_ready = false;
+static volatile uint32_t m_timestamp;
 static volatile uint32_t m_int_count;
 static volatile uint32_t m_timeout_count;
 
@@ -81,12 +83,17 @@ void drdy_signal(void) {
 }
 
 void drdy_signal_isr(void) {
+	m_timestamp = timer_time_now();
 	m_int_count++;
 	chSysLockFromISR();
 	if (m_sem_ready) {
 		chBSemSignalI(&m_sem);
 	}
 	chSysUnlockFromISR();
+}
+
+uint32_t drdy_timestamp(void) {
+	return m_timestamp;
 }
 
 uint32_t drdy_interrupt_count(void) {
@@ -118,6 +125,10 @@ void drdy_signal(void) {
 }
 
 void drdy_signal_isr(void) {
+}
+
+uint32_t drdy_timestamp(void) {
+	return 0;
 }
 
 uint32_t drdy_interrupt_count(void) {

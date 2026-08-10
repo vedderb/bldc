@@ -22,6 +22,7 @@
 #include "ch.h"
 #include "terminal.h"
 #include "commands.h"
+#include "timer.h"
 #include "utils_math.h"
 
 #include <stdio.h>
@@ -38,7 +39,7 @@ static thread_t *m_thd = NULL;
 static imu_device_t *m_dev;
 static volatile uint32_t m_read_fails;
 static bool m_drdy_active = false;
-static void (*m_cb)(float *accel, float *gyro, float *mag);
+static void (*m_cb)(float *accel, float *gyro, float *mag, float dt);
 static bool m_cmds_registered = false;
 
 static void terminal_read_reg(int argc, const char **argv) {
@@ -126,7 +127,7 @@ void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz) {
 	}
 }
 
-void imu_thread_start(void (*cb)(float *accel, float *gyro, float *mag)) {
+void imu_thread_start(void (*cb)(float *accel, float *gyro, float *mag, float dt)) {
 	m_cb = cb;
 
 	m_drdy_active = m_dev->use_drdy;
@@ -163,15 +164,20 @@ static THD_FUNCTION(thread_func, arg) {
 	// One tick less so the actual rate is at least the configured one (US2ST rounds up).
 	const systime_t interval = period - 1;
 
+	uint32_t last_ts = timer_time_now();
+
 	while (!chThdShouldTerminateX()) {
 		systime_t start_time = chVTGetSystemTimeX();
 
+		bool drdy = false;
 		if (m_drdy_active) {
-			drdy_wait(DRDY_TIMEOUT_PERIODS * period);
+			drdy = drdy_wait(DRDY_TIMEOUT_PERIODS * period);
 			if (chThdShouldTerminateX()) {
 				break;
 			}
 		}
+
+		uint32_t ts = drdy ? drdy_timestamp() : timer_time_now();
 
 		float accel[3], gyro[3], mag[3];
 		if (!m_dev->interface->read_sample(m_dev, accel, gyro, mag)) {
@@ -184,9 +190,16 @@ static THD_FUNCTION(thread_func, arg) {
 			continue;
 		}
 
-		if (m_cb) {
-			m_cb(accel, gyro, mag);
+		// An edge stamp can be older than the previous iteration's timeout-fallback stamp
+		// (edge fired right after the timeout expired), keep dt from wrapping to negative.
+		if ((int32_t)(ts - last_ts) <= 0) {
+			ts = timer_time_now();
 		}
+
+		if (m_cb) {
+			m_cb(accel, gyro, mag, timer_calc_diff(last_ts, ts));
+		}
+		last_ts = ts;
 
 		// In DRDY mode the next edge wakes the loop, we only sleep in timed mode
 		if (!m_drdy_active) {
