@@ -91,6 +91,10 @@ static void crash_diag(void) {
 		commands_printf("POR with RAM intact: brief supply dip");
 	}
 
+	if (crash_info.crash_streak > 0) {
+		commands_printf("Consecutive crashed boots: %u", crash_info.crash_streak);
+	}
+
 	if (crash_info.type == CRASH_NONE) {
 		return;
 	}

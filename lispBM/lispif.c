@@ -23,10 +23,9 @@
 #include "lispif.h"
 #include "lbm_image.h"
 #include "commands.h"
-#include "terminal.h"
 #include "flash_helper.h"
 #include "buffer.h"
-#include "timeout.h"
+#include "main.h"
 #include "lispbm.h"
 #include "mempools.h"
 #include "stm32f4xx_conf.h"
@@ -51,6 +50,9 @@
 #define PRINT_STACK_SIZE			128
 #define EXT_LOAD_CALLBACK_LEN		20
 #define PROF_DATA_NUM				30
+
+// Consecutive crashed boots after which lisp is no longer autostarted
+#define CRASH_STREAK_LIMIT			3
 
 __attribute__((section(".ram4"))) static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 static uint32_t memory_array[LISP_MEM_SIZE];
@@ -88,10 +90,10 @@ void(*ext_load_callbacks[EXT_LOAD_CALLBACK_LEN])(bool) = {0};
 extern lbm_const_heap_t *lbm_const_heap_state;
 
 void lispif_init(void) {
-	// Do not attempt to start lisp after a watchdog reset, in case lisp
-	// was the cause of it.
-	// TODO: Anything else to check?
-	if (!timeout_had_IWDG_reset() && terminal_get_first_fault() != FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET) {
+	// Do not autostart lisp after several consecutive crashed boots, in case
+	// lisp is the cause. This avoids a broken package crash loop which would
+	// make the device unconnectable.
+	if (crash_info.crash_streak < CRASH_STREAK_LIMIT) {
 		lispif_restart(false, true);
 	}
 

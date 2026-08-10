@@ -53,6 +53,7 @@ typedef struct {
 	uint32_t magic;
 	uint32_t boot_count;   // number of boots since the struct was last wiped
 	uint32_t reset_flags;  // RCC_CSR snapshot of the current boot
+	uint32_t crash_streak; // consecutive preceding boots that ended in a crash, halt or watchdog reset
 	CrashType type;
 	uint32_t crash_boot;      // boot_count at the time the crash/halt was stored
 	uint32_t pvd_dips;        // number of supply dips below the PVD threshold (2.9V)

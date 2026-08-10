@@ -307,6 +307,13 @@ int main(void) {
 	// Clear the reset flags
 	RCC->CSR |= RCC_CSR_RMVF;
 
+	if ((crash_info.type != CRASH_NONE && crash_info.crash_boot + 1 == crash_info.boot_count) ||
+			(crash_info.reset_flags & (RCC_CSR_WDGRSTF | RCC_CSR_WWDGRSTF))) {
+		crash_info.crash_streak++;
+	} else {
+		crash_info.crash_streak = 0;
+	}
+
 	halInit();
 	chSysInit();
 
