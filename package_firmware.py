@@ -72,9 +72,12 @@ package_dict["LUNA_M600_V2_Rev5_60V"] = [['luna_m600_Rev5_60V', default_name]]
 package_dict["UNITY"] = [['unity', default_name],
                     ['unity_no_limits', no_limits_name]]
 package_dict["Cheap_FOCer_2"] = [['Cheap_FOCer_2', default_name],
-                    ['Cheap_FOCer_2_no_limits', no_limits_name]]
+					['Cheap_FOCer_2_no_limits', no_limits_name]]
 package_dict["Cheap_FOCer_2_V09"] = [['Cheap_FOCer_2_V09', default_name],
-                    ['Cheap_FOCer_2_V09_no_limits', no_limits_name]]
+					['Cheap_FOCer_2_V09_no_limits', no_limits_name]]
+package_dict["FOCSTrot V2.0"] = [['FOCSTrot_V2', default_name]]
+package_dict["FOCSTrot V3.0"] = [['FOCSTrot_V3', default_name]]
+package_dict["FOCSTrot V4.0"] = [['FOCSTrot_V4', default_name]]
 package_dict["STORMCORE_60D"] = [['stormcore_60d', default_name],
                     ['stormcore_60d_no_limits', no_limits_name]]
 package_dict["STORMCORE_60Dxs"] = [['stormcore_60dxs', default_name],
