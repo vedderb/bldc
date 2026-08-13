@@ -48,6 +48,10 @@ void drdy_signal(void);
 // Release a waiter from the EXTI ISR.
 void drdy_signal_isr(void);
 
+// TIM5 timestamp of the latest data-ready edge, captured in the ISR. Only meaningful after
+// drdy_wait() returned true. Returns 0 when absent.
+uint32_t drdy_timestamp(void);
+
 uint32_t drdy_interrupt_count(void);
 uint32_t drdy_timeout_count(void);
 
