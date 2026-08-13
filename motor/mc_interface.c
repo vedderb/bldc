@@ -262,6 +262,13 @@ void mc_interface_init(bool reset_conf) {
 	}
 
 	bms_init((bms_config*)&m_motor_1.m_conf.bms);
+
+	if (mc_interface_is_disabled()) {
+		m_motor_1.m_lock_enabled = true;
+#ifdef HW_HAS_DUAL_MOTORS
+		m_motor_2.m_lock_enabled = true;
+#endif
+	}
 }
 
 int mc_interface_motor_now(void) {
@@ -1731,6 +1738,56 @@ uint64_t mc_interface_get_odometer(void) {
 void mc_interface_ignore_input(int time_ms) {
 	volatile motor_if_state_t *motor = motor_now();
 	motor->m_ignore_iterations = time_ms;
+}
+
+/**
+ * Disable the motor and persist the disabled state across reboots. The
+ * motor can only be disabled while it is stationary.
+ *
+ * @return
+ * true if the motor was disabled, false if the request was refused because
+ * the motor is currently spinning.
+ */
+bool mc_interface_disable(void) {
+	if (fabsf(mc_interface_get_rpm()) > 100) {
+		return false;
+	}
+
+	mc_interface_ignore_input_both(5000);
+	mc_interface_release_motor_override_both();
+
+	m_motor_1.m_lock_enabled = true;
+#ifdef HW_HAS_DUAL_MOTORS
+	m_motor_2.m_lock_enabled = true;
+#endif
+
+	g_backup.motor_disabled = 1;
+	conf_general_store_backup_data();
+
+	return true;
+}
+
+/**
+ * Re-enable the motor after mc_interface_disable() and clear the persisted
+ * disabled state.
+ */
+void mc_interface_enable(void) {
+	m_motor_1.m_lock_enabled = false;
+#ifdef HW_HAS_DUAL_MOTORS
+	m_motor_2.m_lock_enabled = false;
+#endif
+
+	g_backup.motor_disabled = 0;
+	conf_general_store_backup_data();
+}
+
+/**
+ * @return
+ * true if the motor has been disabled with mc_interface_disable() (persists
+ * across reboots).
+ */
+bool mc_interface_is_disabled(void) {
+	return g_backup.motor_disabled != 0;
 }
 
 /**
