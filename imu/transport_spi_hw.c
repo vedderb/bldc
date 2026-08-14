@@ -107,6 +107,7 @@ static void deinit(transport_t *t) {
 
 static const transport_interface_t spi_hw_interface = {
 	.name = "spi-hw",
+	.cpu_bound = false,
 	.max_sample_rate = max_sample_rate,
 	.read_reg = read_reg,
 	.write_reg = write_reg,

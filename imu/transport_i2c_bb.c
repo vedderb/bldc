@@ -50,6 +50,7 @@ static uint16_t max_sample_rate(transport_t *t) {
 
 static const transport_interface_t i2c_bb_interface = {
 	.name = "i2c-bb",
+	.cpu_bound = true,
 	.max_sample_rate = max_sample_rate,
 	.read_reg = read_reg,
 	.write_reg = write_reg,

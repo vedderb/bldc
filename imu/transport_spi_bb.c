@@ -68,6 +68,7 @@ static uint16_t max_sample_rate(transport_t *t) {
 
 static const transport_interface_t spi_bb_interface = {
 	.name = "spi-bb",
+	.cpu_bound = true,
 	.max_sample_rate = max_sample_rate,
 	.read_reg = read_reg,
 	.write_reg = write_reg,
