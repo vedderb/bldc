@@ -21,6 +21,7 @@
 #define COMMANDS_H_
 
 #include "datatypes.h"
+#define MAX_CAN_AGE						0.1
 
 // Functions
 void commands_init(void);
