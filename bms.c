@@ -242,6 +242,12 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 					unsigned int ofs = data8[ind++];
 					unsigned int num = data8[ind++];
 
+					// Don't trust the count from the wire, it is used as a
+					// bound in (get/set-bms-val 'bms-v-cell)
+					if (num > sizeof(m_values.v_cell) / sizeof(float)) {
+						num = sizeof(m_values.v_cell) / sizeof(float);
+					}
+
 					if (ofs == 0) {
 						m_vcell_filled = 0;
 					}
@@ -299,6 +305,12 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 					m_values.update_time = chVTGetSystemTimeX();
 					unsigned int ofs = data8[ind++];
 					unsigned int num = data8[ind++];
+
+					// Don't trust the count from the wire, it is used as a
+					// bound in (get/set-bms-val 'bms-temps-adc)
+					if (num > sizeof(m_values.temps_adc) / sizeof(float)) {
+						num = sizeof(m_values.temps_adc) / sizeof(float);
+					}
 
 					if (ofs == 0) {
 						m_temps_filled = 0;
