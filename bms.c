@@ -50,6 +50,12 @@ static volatile bms_soc_soh_temp_stat m_stat_soc_max;
 static volatile bms_soc_soh_temp_stat m_stat_vcell_min;
 static volatile bms_soc_soh_temp_stat m_stat_vcell_max;
 
+// Contiguously received value count of the multi-frame V_CELL and TEMPS
+// sequences. The counts in m_values are only published once a whole sequence
+// is received.
+static unsigned int m_vcell_filled;
+static unsigned int m_temps_filled;
+
 void bms_init(bms_config *conf) {
 	m_conf = *conf;
 	memset((void*)&m_values, 0, sizeof(m_values));
@@ -60,6 +66,8 @@ void bms_init(bms_config *conf) {
 	memset((void*)&m_stat_vcell_max, 0, sizeof(m_stat_vcell_max));
 
 	m_values.can_id = -1;
+	m_vcell_filled = 0;
+	m_temps_filled = 0;
 	m_stat_temp_max.id = -1;
 	m_stat_soc_min.id = -1;
 	m_stat_soc_max.id = -1;
@@ -232,7 +240,18 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 					m_values.can_id = id;
 					m_values.update_time = chVTGetSystemTimeX();
 					unsigned int ofs = data8[ind++];
-					m_values.cell_num = data8[ind++];
+					unsigned int num = data8[ind++];
+
+					// Don't trust the count from the wire, it is used as a
+					// bound in (get/set-bms-val 'bms-v-cell)
+					if (num > sizeof(m_values.v_cell) / sizeof(float)) {
+						num = sizeof(m_values.v_cell) / sizeof(float);
+					}
+
+					if (ofs == 0) {
+						m_vcell_filled = 0;
+					}
+					bool contiguous = ofs == m_vcell_filled;
 
 					while(ind < len) {
 						if (ofs >= (sizeof(m_values.v_cell) / sizeof(float))) {
@@ -241,6 +260,16 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 						}
 
 						m_values.v_cell[ofs++] = buffer_get_float16(data8, 1e3, &ind);
+					}
+
+					// Only publish the count once the whole sequence is
+					// received, so that consumers can't enumerate cells whose
+					// values haven't been received yet
+					if (contiguous) {
+						m_vcell_filled = ofs;
+						if (m_vcell_filled >= num) {
+							m_values.cell_num = num;
+						}
 					}
 				}
 			} break;
@@ -275,7 +304,18 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 					m_values.can_id = id;
 					m_values.update_time = chVTGetSystemTimeX();
 					unsigned int ofs = data8[ind++];
-					m_values.temp_adc_num = data8[ind++];
+					unsigned int num = data8[ind++];
+
+					// Don't trust the count from the wire, it is used as a
+					// bound in (get/set-bms-val 'bms-temps-adc)
+					if (num > sizeof(m_values.temps_adc) / sizeof(float)) {
+						num = sizeof(m_values.temps_adc) / sizeof(float);
+					}
+
+					if (ofs == 0) {
+						m_temps_filled = 0;
+					}
+					bool contiguous = ofs == m_temps_filled;
 
 					while(ind < len) {
 						if (ofs >= (sizeof(m_values.temps_adc) / sizeof(float))) {
@@ -284,6 +324,16 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 						}
 
 						m_values.temps_adc[ofs++] = buffer_get_float16(data8, 1e2, &ind);
+					}
+
+					// Only publish the count once the whole sequence is
+					// received, so that consumers can't enumerate temps whose
+					// values haven't been received yet
+					if (contiguous) {
+						m_temps_filled = ofs;
+						if (m_temps_filled >= num) {
+							m_values.temp_adc_num = num;
+						}
 					}
 				}
 			} break;
