@@ -25,20 +25,14 @@ stdenv.mkDerivation rec {
   pname = "bldc-fw";
   version = src.shortRev or src.dirtyShortRev or "unknown";
 
+  BLDC_FW_SHORT_SHA = src.shortRev or "unknown";
+
   inherit src;
 
   dontPatch = true;
   dontFixup = true;
 
   buildPhase = ''
-    # Initialize dummy git repo to make package_firmware.py happy.
-    # It doesn't actually use the hash for anything but just queries it for
-    # whatever reason so it doesn't matter if it's not correct. (:
-    git init .
-    git config user.email "nixbld@localhost"
-    git config user.name "nixbld"
-    git commit --allow-empty -m "dummy"
-
     ${
       if builtins.length fwTargets != 0 then
         "make -j $NIX_BUILD_CORES ${builtins.concatStringsSep " " fwTargets}"
