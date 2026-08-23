@@ -4116,6 +4116,10 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    12: SENSOR_PORT_MODE_CUSTOM_ENCODER
                         ;    13: SENSOR_PORT_MODE_PWM
                         ;    14: SENSOR_PORT_MODE_PWM_ABI
+                        ;    15: SENSOR_PORT_MODE_MA782,
+                        ;    16: SENSOR_PORT_MODE_AMT22,
+                        ;    17: SENSOR_PORT_MODE_MT6835_SPI_HW,
+                        ;    18: SENSOR_PORT_MODE_PWM_ABI_INVERTED,
 'm-fault-stop-time-ms   ; Milliseconds to stop the motor for after fauls (FW6.06.5)
 'si-motor-poles         ; Number of motor poles, must be multiple of 2
 'si-gear-ratio          ; Gear ratio (Added in FW 6.05)

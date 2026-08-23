@@ -351,6 +351,7 @@ static THD_FUNCTION(mux_thread, arg) {
 			if (mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_ABI ||
 					mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_AS5047_SPI ||
 					mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ABI ||
+					mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ABI_INVERTED ||
 					mcconf->m_sensor_port_mode == SENSOR_PORT_MODE_SINCOS) {
 				palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT);
 				palSetPadMode(HW_UART_RX_PORT, HW_UART_RX_PIN, PAL_MODE_INPUT);
