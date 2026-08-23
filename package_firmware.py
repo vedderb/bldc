@@ -3,16 +3,9 @@ import os
 import subprocess
 import sys
 
-# https://stackoverflow.com/questions/14989858/get-the-current-git-hash-in-a-python-script
-def get_git_revision_short_hash() -> str:
-    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
-
 # Get the origin and destination directories
 build_dir = os.path.dirname(os.path.abspath(__file__)) + '/build'
 package_dir = os.path.dirname(os.path.abspath(__file__)) + '/package'
-
-# Get the short git hash
-git_hash = get_git_revision_short_hash()
 
 # Define default destination filenames
 no_limits_name = "VESC_default_no_hw_limits.bin"

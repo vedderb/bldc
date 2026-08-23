@@ -70,6 +70,18 @@ Open up a terminal
 3.  `make` <-- Pick out the name of your target device from the supported boards list. For instance, I have a Trampa **VESC 100/250**, so my target is `100_250`
 4.   `make 100_250` <-- This will build the **VESC 100/250** firmware and place it into the `bldc/builds/100_250/` directory
 
+## Building with Nix
+
+Nix is a build tool which manages all dependencies. With [Nix flakes](https://nixos.wiki/wiki/Flakes)
+enabled, build the general-purpose firmware package from the repository root.
+
+```bash
+nix build .#bldc-fw
+```
+
+The packaged firmware and `res_fw.qrc` are available under `result/`.
+All boards are built by default. `make *_flash` helpers are not supported with nix.
+
 ## Other tools
 
 **Linux Optional - Add udev rules to use the stlink v2 programmer without being root**
