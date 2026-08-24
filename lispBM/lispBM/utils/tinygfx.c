@@ -98,15 +98,15 @@ uint32_t image_dims_to_size_bytes(color_format_t fmt, uint16_t width, uint16_t h
   uint32_t num_pix = (uint32_t)width * (uint32_t)height;
   switch(fmt) {
   case indexed2:
-    if (num_pix % 8 != 0) return (num_pix / 8) + 1;
+    if (num_pix & 7) return (num_pix / 8) + 1;
     else return (num_pix / 8);
     break;
   case indexed4:
-    if (num_pix % 4 != 0) return (num_pix / 4) + 1;
+    if (num_pix & 3) return (num_pix / 4) + 1;
     else return (num_pix / 4);
     break;
   case indexed16: // Two pixels per byte
-    if (num_pix % 2 != 0) return (num_pix / 2) + 1;
+    if (num_pix & 1) return (num_pix / 2) + 1;
     else return (num_pix / 2);
   case rgb332:
     return num_pix;
@@ -1666,72 +1666,84 @@ static inline void tile_wrap(int *src_x, int *src_y, int src_w, int src_h) {
   if (*src_y < 0) *src_y += src_h;
 }
 
+static inline uint32_t safe_load_norm_u32(const uint8_t *data, int32_t byte_offset, int32_t total_bytes) {
+  int32_t avail = total_bytes - byte_offset;
+  uint32_t w = 0;
+  if (avail >= 4) {
+    memcpy(&w, data + byte_offset, 4);
+  } else if (avail > 0) {
+    memcpy(&w, data + byte_offset, (size_t)avail);
+  }
+  return __builtin_bswap32(w);
+}
+
+static inline void safe_store_norm_u32(uint8_t *data, int32_t byte_offset, int32_t total_bytes, uint32_t val) {
+  int32_t avail = total_bytes - byte_offset;
+  uint32_t w = __builtin_bswap32(val);
+  memcpy(data + byte_offset, (uint8_t*)&w, (size_t)(avail >= 4 ? 4 : (avail > 0 ? avail : 0)));
+}
 
 
-// Copy an image onto another using a number of memcpys.
-// This function is applicable only in some specific cases:
-//   dest and source images must have same format.
-//   dest and source images must both have a number of pixels in width
-//        resulting in a whole number of bytes per row. 
-//   src_x, dest_x must be byte aligned! (not guaranteed for indexed formats).
-//   length of a row copied in pixels must be a whole number of bytes (not guaranteed for indexed)
+// Copy a row of bits from one buffer to another.
 //
-// The above properties are all TRUE if the src and dest are both rgb images.
-// An intermediate buffer can be used to resolve 1 of src/dest being misaligned.
-//  (Future work).
-static bool bulk_copy_same_format(image_buffer_t *img_dest, image_buffer_t *img_src,
-                                   int dest_offset_x, int dest_offset_y,
-                                   int dest_x_start, int dest_y_start,
-                                   int dest_x_end, int dest_y_end) {
-  if (img_src->fmt != img_dest->fmt) return false;
+// dest_total_bytes: total size of dest image in bytes (for bounds check)
+// src_total_bytes: total size of src image in bytes (for bounds check)
+//
+// this function copies a range of bits, as a number of word aligned 4 byte
+// copy operations.
+//
+static void word_blast_bits(uint8_t *dest_data, int32_t dest_bit_start, int32_t dest_total_bytes,
+                            const uint8_t *src_data, int32_t src_bit_start, int32_t src_total_bytes,
+                            int32_t copy_bits) {
+  int32_t dest_cursor = dest_bit_start;
+  int32_t src_cursor = src_bit_start;
+  int32_t bits_left = copy_bits;
 
-  int copy_w = dest_x_end - dest_x_start;
-  int copy_h = dest_y_end - dest_y_start;
-  if (copy_w <= 0 || copy_h <= 0) return true;
+  while (bits_left > 0) {
+    int32_t dwb = (dest_cursor >> 3) & ~(int32_t)3; // Word aligned address to write to. 
+    int doff = (int)(dest_cursor - dwb * 8); // Bit position where target bits are written
+    int32_t swb = (src_cursor >> 3) & ~(int32_t)3; // Word aligned address to read from.
+    int soff = (int)(src_cursor - swb * 8); // Where in the first word does actual data begin.
 
-  int src_x0 = dest_x_start - dest_offset_x;
-  int src_y0 = dest_y_start - dest_offset_y;
+    // Load a word-aligned chunk,
+    uint32_t s0 = safe_load_norm_u32(src_data, swb, src_total_bytes);
+    int avail_from_s0 = 32 - soff; // Not all bits are part of the row to copy.
 
-  int bpp = 0, ppb = 0;
-  switch (img_src->fmt) {
-  case rgb332:    bpp = 1; break;
-  case rgb565:    bpp = 2; break;
-  case rgb888:    bpp = 3; break;
-  case indexed2:  ppb = 8; break;
-  case indexed4:  ppb = 4; break;
-  case indexed16: ppb = 2; break;
-  default: return false;
-  }
+    // How many bits can we write into the dest word?
+    // Depends on doff, and how many bits there are left to copy.
+    int take = (32 - doff < bits_left) ? (32 - doff) : (int)bits_left;
 
-  if (bpp) {
-    size_t src_stride = (size_t)img_src->width * (size_t)bpp;
-    size_t dst_stride = (size_t)img_dest->width * (size_t)bpp;
-    const uint8_t *src_p = img_src->data + (size_t)src_y0 * src_stride + (size_t)src_x0 * (size_t)bpp;
-    uint8_t *dst_p = img_dest->data + (size_t)dest_y_start * dst_stride + (size_t)dest_x_start * (size_t)bpp;
-    size_t row_bytes = (size_t)copy_w * (size_t)bpp;
-    for (int y = 0; y < copy_h; y++) {
-      memcpy(dst_p, src_p, row_bytes);
-      dst_p += dst_stride;
-      src_p += src_stride;
+    // Now we have a number of valid bits in the source word, and
+    // a number of valid bit positions to write to.
+
+    uint32_t merged = s0 << soff; 
+    if (take > avail_from_s0) { // We can get more bits.
+      // A bit wasteful here that the s1 load is only partially used,
+      // and in the next iteration the same word is loaded again.
+      // should keep s1 and use as s0 in next iteration. avail_from_s1 = (32 - soff + doff) bits carry over
+      // The (+ doff bits) are very sneaky (see aligned = merged >> doff)! 
+      uint32_t s1 = safe_load_norm_u32(src_data, swb + 4, src_total_bytes);
+      merged |= (s1 >> (32 - soff));
     }
-    return true;
-  }
 
-  if (dest_offset_x % ppb != 0 || img_src->width % ppb != 0 ||
-      img_dest->width % ppb != 0 || copy_w % ppb != 0) {
-    return false;
+    // Align the source data with the writeoffset.
+    uint32_t aligned = merged >> doff;
+
+    uint32_t result = aligned;
+    // If this is not a full-word-write, we need to combine the
+    // word to be written with the data already at the dest.
+    if (take < 32) {
+      uint32_t mask = (((1u << take) - 1u) << (32 - doff - take));
+      uint32_t old = safe_load_norm_u32(dest_data, dwb, dest_total_bytes);
+      result = (old & ~mask) | (aligned & mask);
+    }
+    
+    safe_store_norm_u32(dest_data, dwb, dest_total_bytes, result);
+
+    dest_cursor += take;
+    src_cursor += take;
+    bits_left -= take;
   }
-  size_t src_stride = (size_t)img_src->width / (size_t)ppb;
-  size_t dst_stride = (size_t)img_dest->width / (size_t)ppb;
-  const uint8_t *src_p = img_src->data + (size_t)src_y0 * src_stride + (size_t)(src_x0 / ppb);
-  uint8_t *dst_p = img_dest->data + (size_t)dest_y_start * dst_stride + (size_t)(dest_x_start / ppb);
-  size_t row_bytes = (size_t)copy_w / (size_t)ppb;
-  for (int y = 0; y < copy_h; y++) {
-    memcpy(dst_p, src_p, row_bytes);
-    dst_p += dst_stride;
-    src_p += src_stride;
-  }
-  return true;
 }
 
 // Blit.. I imagined it would be a simple and efficient function.
@@ -1759,13 +1771,48 @@ void tinygfx_blit(
   if (dest_y_end > img_dest->height) dest_y_end = img_dest->height;
 
   bool no_compose = !compose || (!compose->palette && compose->alpha == 255 && !compose->alpha_buf);
+  // Special case for same-format-no-compose
   if (transparent_color < 0 && no_compose &&
-      bulk_copy_same_format(img_dest, img_src, dest_offset_x, dest_offset_y,
-                            dest_x_start, dest_y_start, dest_x_end, dest_y_end)) {
-    // bulk_copy_same_format is superfast when it can be applied :)
+      img_src->fmt == img_dest->fmt && img_src->fmt != format_not_supported) {
+    int copy_w = dest_x_end - dest_x_start;
+    int copy_h = dest_y_end - dest_y_start;
+    if (copy_w > 0 && copy_h > 0) {
+      int bits_per_pixel = (int)img_src->fmt; // color_format_t values are bits per pixel.
+      int src_x0 = dest_x_start - dest_offset_x;
+      int src_y0 = dest_y_start - dest_offset_y;
+      int32_t src_total_bytes = (int32_t)image_dims_to_size_bytes(img_src->fmt,
+                                                                  img_src->width,
+                                                                  img_src->height);
+      int32_t dst_total_bytes = (int32_t)image_dims_to_size_bytes(img_dest->fmt,
+                                                                  img_dest->width,
+                                                                  img_dest->height);
+      int32_t dest_stride_bits = (int32_t)img_dest->width * bits_per_pixel;
+      int32_t src_stride_bits = (int32_t)img_src->width * bits_per_pixel;
+      int32_t dest_bit_x0 = dest_x_start * bits_per_pixel;
+      int32_t src_bit_x0 = src_x0 * bits_per_pixel;
+      int32_t copy_w_bits = copy_w * bits_per_pixel;
+
+      for (int32_t y = 0; y < copy_h; y++) {
+        int32_t dest_bit_start = (dest_y_start + y) * dest_stride_bits + dest_bit_x0;
+        int32_t src_bit_start = (src_y0 + y) * src_stride_bits + src_bit_x0;
+        if ((dest_bit_start & 7) == 0 &&
+            (src_bit_start & 7) == 0 &&
+            (copy_w_bits & 7) == 0) {
+          memcpy(img_dest->data + (dest_bit_start >> 3),
+                 img_src->data + (src_bit_start >> 3),
+                 (size_t)(copy_w_bits >> 3));
+        } else {
+          word_blast_bits(img_dest->data, dest_bit_start, dst_total_bytes,
+                          img_src->data, src_bit_start, src_total_bytes,
+                          copy_w_bits);
+        }
+      }
+    }
     return;
   }
 
+  // If formats differ or there is any composition or alpha
+  // use the getpixel->putpixel flow.
   if (compose) {
     if (transparent_color >= 0) {
       for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
@@ -1862,21 +1909,19 @@ void tinygfx_blit_transform(
     rot_x *= scale;
     rot_y *= scale;
 
-    const int fp_scale = 1000;
-
     int rot_x_x = (int)rot_x;
     int rot_y_i = (int)rot_y;
-    int scale_i = (int)(scale * (float) fp_scale);
+    int scale_i = (int)(scale * (float)(1 << 12));
     if (scale_i == 0) return;
 
     if (compose) {
       for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
         for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-          int src_x = (dest_x - dest_offset_x - rot_x_x) * fp_scale;
-          int src_y = (dest_y - dest_offset_y - rot_y_i) * fp_scale;
+          int src_x = (dest_x - dest_offset_x - rot_x_x) * (1 << 12);
+          int src_y = (dest_y - dest_offset_y - rot_y_i) * (1 << 12);
 
-          src_x += rot_x_x * fp_scale;
-          src_y += rot_y_i * fp_scale;
+          src_x += rot_x_x * (1 << 12);
+          src_y += rot_y_i * (1 << 12);
 
           src_x /= scale_i;
           src_y /= scale_i;
@@ -1887,11 +1932,11 @@ void tinygfx_blit_transform(
     } else {
       for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
         for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-          int src_x = (dest_x - dest_offset_x - rot_x_x) * fp_scale;
-          int src_y = (dest_y - dest_offset_y - rot_y_i) * fp_scale;
+          int src_x = (dest_x - dest_offset_x - rot_x_x) * (1 << 12);
+          int src_y = (dest_y - dest_offset_y - rot_y_i) * (1 << 12);
 
-          src_x += rot_x_x * fp_scale;
-          src_y += rot_y_i * fp_scale;
+          src_x += rot_x_x * (1 << 12);
+          src_y += rot_y_i * (1 << 12);
 
           src_x /= scale_i;
           src_y /= scale_i;
@@ -1907,13 +1952,11 @@ void tinygfx_blit_transform(
     rot_x *= scale;
     rot_y *= scale;
 
-    const int fp_scale = 1000;
-
-    int sin_rot_angle_i = (int)(sin_rot_angle * (float)fp_scale);
-    int cos_rot_angle_i = (int)(cos_rot_angle * (float)fp_scale);
+    int sin_rot_angle_i = (int)(sin_rot_angle * (float)(1 << 12));
+    int cos_rot_angle_i = (int)(cos_rot_angle * (float)(1 << 12));
     int rot_x_i = (int)rot_x;
     int rot_y_i = (int)rot_y;
-    int scale_i = (int)(scale * (float) fp_scale);
+    int scale_i = (int)(scale * (float)(1 << 12));
     if (scale_i == 0) return;
 
     if (compose) {
@@ -1922,8 +1965,8 @@ void tinygfx_blit_transform(
           int src_x =  (dest_x - dest_offset_x - rot_x_i) * cos_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * sin_rot_angle_i;
           int src_y = -(dest_x - dest_offset_x - rot_x_i) * sin_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * cos_rot_angle_i;
 
-          src_x += rot_x_i * fp_scale;
-          src_y += rot_y_i * fp_scale;
+          src_x += rot_x_i * (1 << 12);
+          src_y += rot_y_i * (1 << 12);
 
           src_x /= scale_i;
           src_y /= scale_i;
@@ -1937,8 +1980,8 @@ void tinygfx_blit_transform(
           int src_x =  (dest_x - dest_offset_x - rot_x_i) * cos_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * sin_rot_angle_i;
           int src_y = -(dest_x - dest_offset_x - rot_x_i) * sin_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * cos_rot_angle_i;
 
-          src_x += rot_x_i * fp_scale;
-          src_y += rot_y_i * fp_scale;
+          src_x += rot_x_i * (1 << 12);
+          src_y += rot_y_i * (1 << 12);
 
           src_x /= scale_i;
           src_y /= scale_i;

@@ -223,16 +223,17 @@ lbm_value lbm_defrag_mem_alloc_internal(lbm_uint *defrag_mem, lbm_uint bytes, lb
 }
 
 lbm_value lbm_defrag_mem_alloc(lbm_uint *defrag_mem, lbm_uint bytes) {
-
+  lbm_uint flag_in = DEFRAG_MEM_FLAGS(defrag_mem);
   lbm_value res = lbm_defrag_mem_alloc_internal(defrag_mem, bytes, ENC_SYM_DEFRAG_ARRAY_TYPE); // Try to allocate
   if (lbm_is_symbol_merror(res)) {
-    if (DEFRAG_MEM_FLAGS(defrag_mem)) { //if we already performed GC, then also defrag
+    if (flag_in) { //if we already performed GC, then also defrag
       lbm_defrag_mem_defrag(defrag_mem, bytes);
       res = lbm_defrag_mem_alloc_internal(defrag_mem, bytes, ENC_SYM_DEFRAG_ARRAY_TYPE); // then try again
       DEFRAG_MEM_FLAGS(defrag_mem) = 0;
     }
   }
   if (!lbm_is_symbol_merror(res)) {
+    DEFRAG_MEM_FLAGS(defrag_mem) = 0;
     res = lbm_set_ptr_type(res, LBM_TYPE_ARRAY);
   }
   return res;

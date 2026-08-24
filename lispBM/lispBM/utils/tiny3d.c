@@ -17,7 +17,7 @@
 
 /*
   Tiny3D is a small 3d graphics library for embedded platforms
-  based very loosely on "Black art of 3D Game Programming" by André Lamothe.
+  based loosely on "Black art of 3D Game Programming"-era 3d graphics techiques.
 
   Target platforms are small resource constrained embedded system
   that may not even have an FPU. So the situation may not be
@@ -71,6 +71,7 @@
 #include "tiny3d.h"
 #include "cos_table.h"
 #include <math.h>
+#include <stdlib.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -112,8 +113,8 @@ static matrix3x4_t identity3x4(void) {
 }
 
 static matrix3x4_t rotation_x3x4(uint16_t ang_q9_7) {
-  int32_t c = q1_15_to_q16_16(cos_q1_15(ang_q9_7));
-  int32_t s = q1_15_to_q16_16(sin_q1_15(ang_q9_7));
+  int32_t c = q1_15_to_q16_16(cos_lerp_q1_15(ang_q9_7));
+  int32_t s = q1_15_to_q16_16(sin_lerp_q1_15(ang_q9_7));
   matrix3x4_t r = identity3x4();
   r.m[5] =  c; r.m[6]  = -s;
   r.m[9] =  s; r.m[10] =  c;
@@ -121,8 +122,8 @@ static matrix3x4_t rotation_x3x4(uint16_t ang_q9_7) {
 }
 
 static matrix3x4_t rotation_y3x4(uint16_t ang_q9_7) {
-  int32_t c = q1_15_to_q16_16(cos_q1_15(ang_q9_7));
-  int32_t s = q1_15_to_q16_16(sin_q1_15(ang_q9_7));
+  int32_t c = q1_15_to_q16_16(cos_lerp_q1_15(ang_q9_7));
+  int32_t s = q1_15_to_q16_16(sin_lerp_q1_15(ang_q9_7));
   matrix3x4_t r = identity3x4();
   r.m[0] =  c; r.m[2]  = s;
   r.m[8] = -s; r.m[10] = c;
@@ -130,8 +131,8 @@ static matrix3x4_t rotation_y3x4(uint16_t ang_q9_7) {
 }
 
 static matrix3x4_t rotation_z3x4(uint16_t ang_q9_7) {
-  int32_t c = q1_15_to_q16_16(cos_q1_15(ang_q9_7));
-  int32_t s = q1_15_to_q16_16(sin_q1_15(ang_q9_7));
+  int32_t c = q1_15_to_q16_16(cos_lerp_q1_15(ang_q9_7));
+  int32_t s = q1_15_to_q16_16(sin_lerp_q1_15(ang_q9_7));
   matrix3x4_t r = identity3x4();
   r.m[0] = c; r.m[1] = -s;
   r.m[4] = s; r.m[5] =  c;
@@ -236,12 +237,17 @@ static matrix3x4_t local_to_camera3x4(tiny3d_pos_t local_pos,
   return compose3x4(world_to_camera, l2w);
 }
 
-static tiny3d_vec_t mat_apply3x4(matrix3x4_t m, tiny3d_vec_t v) {
+static tiny3d_vec_t mat_rotate3x4(matrix3x4_t m, tiny3d_vec_t v) {
   return (tiny3d_vec_t){
-    q16_16_mul(m.m[0], v.x) + q16_16_mul(m.m[1], v.y) + q16_16_mul(m.m[2],  v.z) + m.m[3],
-    q16_16_mul(m.m[4], v.x) + q16_16_mul(m.m[5], v.y) + q16_16_mul(m.m[6],  v.z) + m.m[7],
-    q16_16_mul(m.m[8], v.x) + q16_16_mul(m.m[9], v.y) + q16_16_mul(m.m[10], v.z) + m.m[11]
+    q16_16_mul(m.m[0], v.x) + q16_16_mul(m.m[1], v.y) + q16_16_mul(m.m[2],  v.z),
+    q16_16_mul(m.m[4], v.x) + q16_16_mul(m.m[5], v.y) + q16_16_mul(m.m[6],  v.z),
+    q16_16_mul(m.m[8], v.x) + q16_16_mul(m.m[9], v.y) + q16_16_mul(m.m[10], v.z)
   };
+}
+
+static tiny3d_vec_t mat_apply3x4(matrix3x4_t m, tiny3d_vec_t v) {
+  tiny3d_vec_t r = mat_rotate3x4(m, v);
+  return (tiny3d_vec_t){ r.x + m.m[3], r.y + m.m[7], r.z + m.m[11] };
 }
 
 // //////////////////////////////////////////////////
@@ -267,7 +273,9 @@ bool tiny3d_init(tiny3d_state_t *state,
                  float fov_degrees,
                  int32_t cull_margin,
                  bool wireframe,
-                 bool cull_backfaces) {
+                 bool cull_backfaces,
+                 const tiny3d_vec_t *light_source,
+                 int32_t ambient) {
   if (!state || !img || !tri_buffer) return false;
   if (tri_buffer_size_bytes < sizeof(tiny3d_camera_tri_t)) return false;
   if (near <= 0 || far <= near) return false;
@@ -288,6 +296,22 @@ bool tiny3d_init(tiny3d_state_t *state,
   float focal_x = focal_y * (float)img->height / (float)img->width;
   state->focal_length_y = (int32_t)lround(focal_y * 65536.0);
   state->focal_length_x = (int32_t)lround(focal_x * 65536.0);
+
+  // light_source
+  state->light_source = light_source; // Either null or a light_source
+
+  if (ambient < 0) ambient = 0;
+  if (ambient > TINY3D_SCALE_ONE) ambient = TINY3D_SCALE_ONE;
+  state->ambient = ambient;
+
+  switch (img->fmt) {
+  case indexed4:  state->shade_mode = TINY3D_SHADE_INDEX; state->index_max = 3;  break;
+  case indexed16: state->shade_mode = TINY3D_SHADE_INDEX; state->index_max = 15; break;
+  case rgb332:
+  case rgb565:
+  case rgb888:    state->shade_mode = TINY3D_SHADE_RGB;   state->index_max = 0;  break;
+  default:        state->shade_mode = TINY3D_SHADE_NONE;  state->index_max = 0;  break;
+  }
 
   // Camera-space view frustum
   state->planes[0] = (tiny3d_plane_t){ .normal = {0, 0,  (1 << 16)}, .d = near };
@@ -357,6 +381,29 @@ static int32_t vec_dot(tiny3d_vec_t a, tiny3d_vec_t b) {
   return q16_16_mul(a.x, b.x) + q16_16_mul(a.y, b.y) + q16_16_mul(a.z, b.z);
 }
 
+static int32_t inv_scale_squared(int32_t scale) {
+  int32_t scale_sq = q16_16_mul(scale, scale);
+  if (scale_sq == 0) return 0;
+  return q16_16_div(TINY3D_SCALE_ONE, scale_sq);
+}
+
+static uint32_t shade_rgb888(uint32_t color, int32_t intensity) {
+  int32_t r = (int32_t)((color >> 16) & 0xFF);
+  int32_t g = (int32_t)((color >> 8)  & 0xFF);
+  int32_t b = (int32_t)(color         & 0xFF);
+  r = (int32_t)(((int64_t)r * intensity) >> 16);
+  g = (int32_t)(((int64_t)g * intensity) >> 16);
+  b = (int32_t)(((int64_t)b * intensity) >> 16);
+  return ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+}
+
+static uint32_t shade_index(int32_t intensity, int32_t index_max) {
+  int32_t idx = (int32_t)((((int64_t)intensity * index_max) + (1 << 15)) >> 16);
+  if (idx < 0) idx = 0;
+  if (idx > index_max) idx = index_max;
+  return (uint32_t)idx;
+}
+
 // Back faces are culled by a triangle winding order convention.
 // The winding order comes into the computation of the triangle's
 // normal. If this computed normal is pointing away from the
@@ -423,13 +470,25 @@ static int clip_near(tiny3d_camera_tri_t tri, int32_t near, tiny3d_camera_tri_t 
 // //////////////////////////////////////////////////
 // Pipeline
 
+static int cmp_tri_depth_desc(const void *a, const void *b) {
+  const tiny3d_camera_tri_t *ta = (const tiny3d_camera_tri_t*)a;
+  const tiny3d_camera_tri_t *tb = (const tiny3d_camera_tri_t*)b;
+  int32_t za = ta->v0.z + ta->v1.z + ta->v2.z;
+  int32_t zb = tb->v0.z + tb->v1.z + tb->v2.z;
+  if (za < zb) return 1;
+  if (za > zb) return -1;
+  return 0;
+}
+
 static void render_instance(tiny3d_state_t *state, const tiny3d_instance_t *inst,
-                             matrix3x4_t world_to_camera,
+                             matrix3x4_t world_to_camera, tiny3d_vec_t light_cam,
                              tiny3d_get_mesh_fn get_mesh, void *mesh_ctx) {
   tiny3d_mesh_t mesh = get_mesh(inst->mesh_index, mesh_ctx);
   if (mesh.triangle_count == 0) return;
 
   matrix3x4_t l2c = local_to_camera3x4(inst->pos, inst->orient, inst->scale, world_to_camera);
+  int32_t inv_scale_sq = inv_scale_squared(inst->scale);
+  bool lit = state->light_source && state->shade_mode != TINY3D_SHADE_NONE;
 
   int32_t effective_radius = q16_16_mul(mesh.bounding_radius, inst->scale);
   if (cull_instance(state, l2c, effective_radius)) return;
@@ -443,9 +502,27 @@ static void render_instance(tiny3d_state_t *state, const tiny3d_instance_t *inst
 
     if (state->cull_backfaces && is_backface(v0, v1, v2)) continue;
 
-    state->tri_buffer[out_count] = (tiny3d_camera_tri_t){ v0, v1, v2, t->color };
+    uint32_t color = t->color;
+    if (lit) {
+      tiny3d_vec_t n = vec_cross(vec_sub(v1, v0), vec_sub(v2, v0));
+      int32_t diffuse = q16_16_mul(q16_16_mul(vec_dot(n, light_cam), t->one_over_abs_n), inv_scale_sq);
+      if (diffuse < 0) diffuse = 0;
+      if (diffuse > TINY3D_SCALE_ONE) diffuse = TINY3D_SCALE_ONE;
+      int32_t intensity = state->ambient + q16_16_mul(TINY3D_SCALE_ONE - state->ambient, diffuse);
+      if (intensity > TINY3D_SCALE_ONE) intensity = TINY3D_SCALE_ONE;
+      color = (state->shade_mode == TINY3D_SHADE_RGB)
+        ? shade_rgb888(t->color, intensity)
+        : shade_index(intensity, state->index_max);
+    }
+
+    state->tri_buffer[out_count] = (tiny3d_camera_tri_t){ v0, v1, v2, color };
     out_count++;
   }
+
+  // The idea is to sort objects/meshes "roughly" after doing an local -> camera space
+  // transformation. When a mesh is rendered, its triangles are culled and the remaining
+  // ones are in a temporary buffer, that is sorted by distance here.
+  qsort(state->tri_buffer, out_count, sizeof(tiny3d_camera_tri_t), cmp_tri_depth_desc);
 
   for (uint16_t i = 0; i < out_count; i++) {
     tiny3d_camera_tri_t clipped[2];
@@ -466,14 +543,18 @@ static void render_instance(tiny3d_state_t *state, const tiny3d_instance_t *inst
 }
 
 void tiny3d_render(tiny3d_state_t *state,
-                    tiny3d_get_mesh_fn get_mesh, void *mesh_ctx,
-                    tiny3d_next_instance_fn next_instance, void *instance_ctx,
-                    tiny3d_pos_t cam_pos, tiny3d_orient_t cam_orient) {
+                   tiny3d_get_mesh_fn get_mesh, void *mesh_ctx,
+                   tiny3d_next_instance_fn next_instance, void *instance_ctx,
+                   tiny3d_pos_t cam_pos, tiny3d_orient_t cam_orient) {
   matrix3x4_t world_to_camera = world_to_camera3x4(cam_pos, cam_orient);
+  tiny3d_vec_t light_cam = {0};
+  if (state->light_source) {
+    light_cam = mat_rotate3x4(world_to_camera, *state->light_source);
+  }
 
   tiny3d_instance_t inst;
   while (next_instance(instance_ctx, &inst)) {
-    render_instance(state, &inst, world_to_camera, get_mesh, mesh_ctx);
+    render_instance(state, &inst, world_to_camera, light_cam, get_mesh, mesh_ctx);
   }
 }
 

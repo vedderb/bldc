@@ -50,6 +50,7 @@ typedef struct {
   uint16_t i0, i1, i2;
   uint16_t _pad;
   uint32_t color;
+  int32_t  one_over_abs_n; // used in lighting calculations
 } tiny3d_triangle_t;
 
 typedef struct {
@@ -93,6 +94,12 @@ typedef struct {
   int32_t d;
 } tiny3d_plane_t;
 
+typedef enum {
+  TINY3D_SHADE_NONE,  // indexed2, or format_not_supported - color passes through unchanged
+  TINY3D_SHADE_RGB,   // rgb332/rgb565/rgb888 - color is RGB888, scaled per-channel
+  TINY3D_SHADE_INDEX, // indexed4/indexed16 - color becomes an index into a grayscale ramp
+} tiny3d_shade_mode_t;
+
 typedef struct {
   image_buffer_t       *img;
   tiny3d_camera_tri_t  *tri_buffer;
@@ -105,16 +112,24 @@ typedef struct {
   int32_t               cull_margin;
   bool                  wireframe;
   bool                  cull_backfaces;
+  const tiny3d_vec_t   *light_source; // NULL: unlit. Otherwise a unit
+                                       // direction vector, owned by the
+                                       // caller (same lifetime contract as img).
+  tiny3d_shade_mode_t    shade_mode;  // derived once from img->fmt at init
+  int32_t                index_max;   // TINY3D_SHADE_INDEX only: 3 or 15
+  int32_t                ambient;     // Q16.16, clamped [0, TINY3D_SCALE_ONE]
 } tiny3d_state_t;
 
 bool tiny3d_init(tiny3d_state_t *state,
-                  image_buffer_t *img,
-                  tiny3d_camera_tri_t *tri_buffer, uint32_t tri_buffer_size_bytes,
-                  int32_t near, int32_t far,
-                  float fov_degrees,
-                  int32_t cull_margin,
-                  bool wireframe,
-                  bool cull_backfaces);
+                 image_buffer_t *img,
+                 tiny3d_camera_tri_t *tri_buffer, uint32_t tri_buffer_size_bytes,
+                 int32_t near, int32_t far,
+                 float fov_degrees,
+                 int32_t cull_margin,
+                 bool wireframe,
+                 bool cull_backfaces,
+                 const tiny3d_vec_t *light_source,
+                 int32_t ambient);
 
 bool tiny3d_transform_cull(const tiny3d_state_t *state,
                             tiny3d_instance_t instance,

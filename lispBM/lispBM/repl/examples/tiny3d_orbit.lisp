@@ -22,7 +22,11 @@
 
 ; near, far, vertical-fov-degrees, cull-margin (world units), max
 ; triangles per object (36 is plenty for these 12-triangle cubes).
-(def state (tiny3d-state-create img 64 0.5 100.0 60.0 0.5 '(filled)))
+; light direction is overwritten every frame below via
+; tiny3d-set-light-vec, which only works on a state already created in
+; light mode - the direction given here is just a placeholder.
+(def state (tiny3d-state-create img 64 0.5 100.0 60.0 0.5 '(filled)
+             (list 'light-source 0.0 0.0 1.0) '(ambient 0.25)))
 
 ; Cube, side 2, centered at local origin: 8 shared vertices, 12 triangles
 ; referencing them by index (rather than each triangle carrying its own
@@ -84,6 +88,7 @@
 (def orbit-radius 7.0)
 
 (def theta 0.0)
+(def light-theta 0.0)
 (def fps 0)
 ; dt-driven, not fixed-per-frame: theta advances by angular-velocity*dt
 ; using the *previous* frame's measured duration, so the orbit speed
@@ -100,19 +105,23 @@
 
         (img-clear img 0x101018)
 
-        ; Camera position traces a circle around center in the XZ plane
-        ; (orbiting the Y/up-down axis); yaw = theta keeps it facing
-        ; center - see tiny3d.c's rotation_y3x4 for why this angle is
-        ; exactly the one that makes local +z point back at the center.
-        ; cam_pos = center - R*(sin theta, 0, cos theta): both components
-        ; subtracted.
-        (atomic
-         (setq theta (+ theta (* angular-velocity dt))))
+        ; Camera orbit disabled for now (theta stays fixed at its
+        ; initial 0.0) so the light's own motion is easy to see on its
+        ; own - re-enable by uncommenting the atomic/setq below.
+        ; (atomic
+        ;  (setq theta (+ theta (* angular-velocity dt))))
         (var cam-x (- center-x (* orbit-radius (sin theta))))
         (var cam-z (- center-z (* orbit-radius (cos theta))))
         (var cam-pos (list cam-x center-y cam-z))
         (var yaw-deg (/ (* theta 180.0) 3.14159265))
         (var cam-orient (list 0.0 yaw-deg 0.0))
+
+        ; Light still orbits independently of the (now frozen) camera,
+        ; same horizontal plane (y=0) as the camera's own orbit.
+        (atomic
+         (setq light-theta (+ light-theta (* angular-velocity dt))))
+        (tiny3d-set-light-vec state
+          (list (- (sin light-theta)) 0.0 (cos light-theta)))
 
         (render-sorted objects cam-pos cam-orient)
 
