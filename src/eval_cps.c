@@ -6125,6 +6125,7 @@ bool lbm_eval_init(void) {
   lbm_mutex_lock(&qmutex);
   lbm_mutex_lock(&lbm_events_mutex);
 
+  is_atomic = false;
   blocked.first = NULL;
   blocked.last = NULL;
   queue.first = NULL;

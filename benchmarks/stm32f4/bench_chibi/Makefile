@@ -91,7 +91,7 @@ endif
 PROJECT = lisp_test
 
 # Imported source files and paths
-CHIBIOS  := ../../../ChibiOS_19.1.4
+CHIBIOS  := ../../../../ChibiOS_19.1.4
 BUILDDIR := ./build
 DEPDIR   := ./.dep
 
@@ -122,25 +122,25 @@ LDSCRIPT= $(STARTUPLD)/STM32F407xG.ld
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 
-LBMSRC = ../../src/env.c \
-         ../../src/eval_cps.c \
-         ../../src/extensions.c \
-         ../../src/fundamental.c \
-         ../../src/heap.c \
-         ../../src/lbm_memory.c \
-         ../../src/print.c \
-         ../../src/stack.c \
-         ../../src/symrepr.c \
-         ../../src/tokpar.c \
-         ../../src/lispbm.c \
-         ../../src/lbm_c_interop.c \
-         ../../src/lbm_custom_type.c \
-         ../../src/lbm_channel.c \
-         ../../src/lbm_flat_value.c \
-         ../../src/lbm_defrag_mem.c \
-         ../../src/lbm_image.c \
-         ../../platform/chibios/src/platform_mutex.c \
-         ../../platform/chibios/src/platform_timestamp.c
+LBMSRC = ../../../src/env.c \
+         ../../../src/eval_cps.c \
+         ../../../src/extensions.c \
+         ../../../src/fundamental.c \
+         ../../../src/heap.c \
+         ../../../src/lbm_memory.c \
+         ../../../src/print.c \
+         ../../../src/stack.c \
+         ../../../src/symrepr.c \
+         ../../../src/tokpar.c \
+         ../../../src/lispbm.c \
+         ../../../src/lbm_c_interop.c \
+         ../../../src/lbm_custom_type.c \
+         ../../../src/lbm_channel.c \
+         ../../../src/lbm_flat_value.c \
+         ../../../src/lbm_defrag_mem.c \
+         ../../../src/lbm_image.c \
+         ../../../platform/chibios/src/platform_mutex.c \
+         ../../../platform/chibios/src/platform_timestamp.c
 
 CSRC = $(ALLCSRC) \
        $(TESTSRC) \
@@ -194,7 +194,7 @@ UDEFS = -D_32_BIT_ -D_PRELUDE
 UADEFS =
 
 # List all user directories here
-UINCDIR = ../../include ../../platform/chibios/include
+UINCDIR = ../../../include ../../../platform/chibios/include
 
 # List the user directory to look for the libraries here
 ULIBDIR =

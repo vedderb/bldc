@@ -29,6 +29,8 @@
 // Symbols
 static lbm_uint symbol_filled = 0;
 static lbm_uint symbol_no_backface_cull = 0;
+static lbm_uint symbol_light_source = 0;
+static lbm_uint symbol_ambient = 0;
 
 typedef struct {
   uint32_t magic;
@@ -111,8 +113,8 @@ static bool validate_index_triangle_list(lbm_value tris_list, lbm_uint vertex_co
 // (tiny3d-mesh vertices triangles)
 // vertices: list of (x y z), one entry per unique vertex.
 // triangles: list of (i0 i1 i2 color) - indices into vertices, so
-// vertices shared between triangles (e.g. a cube's 8 corners across its
-// 12 triangles) are stored once rather than duplicated per triangle.
+// vertices are shared between triangles.
+// Precomputes the one_over_abs_n value per triangle.
 static lbm_value ext_tiny3d_mesh(lbm_value *args, lbm_uint argn) {
   if (argn != 2 || !lbm_is_list(args[0]) || !lbm_is_list(args[1])) return ENC_SYM_TERROR;
 
@@ -136,8 +138,8 @@ static lbm_value ext_tiny3d_mesh(lbm_value *args, lbm_uint argn) {
   tiny3d_triangle_t *tris = (tiny3d_triangle_t*)
     (buf + sizeof(tiny3d_mesh_header_t) + vert_count * sizeof(tiny3d_vec_t));
 
-  // One-time construction, not a hot-path function - libm (sqrtf, for the
-  // bounding radius) is fine here, same policy as tiny3d_init.
+  // Populate the vertices and keep track of the  distance to the point
+  // furthest away from 0,0,0 local coord which is used as mesh bounding sphere radius. 
   float max_r = 0.0f;
   lbm_uint vi = 0;
   lbm_value curr = args[0];
@@ -155,6 +157,8 @@ static lbm_value ext_tiny3d_mesh(lbm_value *args, lbm_uint argn) {
     curr = lbm_cdr(curr);
   }
 
+  // Populate the triangles and compute the (1/|N|) where N is
+  // is the triangles normal length. 
   lbm_uint ti = 0;
   curr = args[1];
   while (lbm_is_cons(curr)) {
@@ -163,7 +167,42 @@ static lbm_value ext_tiny3d_mesh(lbm_value *args, lbm_uint argn) {
     uint16_t i1 = (uint16_t)lbm_dec_as_u32(lbm_cadr(tri));
     uint16_t i2 = (uint16_t)lbm_dec_as_u32(lbm_car(lbm_cddr(tri)));
     uint32_t color = lbm_dec_as_u32(lbm_car(lbm_cdr(lbm_cddr(tri))));
-    tris[ti] = (tiny3d_triangle_t){ .i0 = i0, .i1 = i1, .i2 = i2, ._pad = 0, .color = color };
+
+    // compute triangle normal length.
+    float x0 = (float)verts[i0].x / 65536.0f; // re-float it
+    float y0 = (float)verts[i0].y / 65536.0f;
+    float z0 = (float)verts[i0].z / 65536.0f;
+
+    float x1 = (float)verts[i1].x / 65536.0f;
+    float y1 = (float)verts[i1].y / 65536.0f;
+    float z1 = (float)verts[i1].z / 65536.0f;
+
+    float x2 = (float)verts[i2].x / 65536.0f;
+    float y2 = (float)verts[i2].y / 65536.0f;
+    float z2 = (float)verts[i2].z / 65536.0f;
+
+    float e0x = x1 - x0;
+    float e0y = y1 - y0;
+    float e0z = z1 - z0;
+
+    float e1x = x2 - x0;
+    float e1y = y2 - y0;
+    float e1z = z2 - z0;
+
+    float nx = e0y * e1z - e0z * e1y;
+    float ny = e0z * e1x - e0x * e1z;
+    float nz = e0x * e1y - e0y * e1x;
+
+    float len = sqrtf(nx*nx + ny*ny + nz*nz);
+    float inv_len = 1.0f / len;
+    if (inv_len > 30000.0f) inv_len = 30000.0f;
+    
+    tris[ti].i0 = i0;
+    tris[ti].i1 = i1;
+    tris[ti].i2 = i2;
+    tris[ti]._pad = 0;
+    tris[ti].color = color;
+    tris[ti].one_over_abs_n = (int32_t)llroundf(inv_len * 65536.0f); // Q16.16
     ti++;
     curr = lbm_cdr(curr);
   }
@@ -220,6 +259,7 @@ static tiny3d_instance_blob_t *resolve_instance(lbm_value v) {
 
 static bool decode_vec3(lbm_value v, tiny3d_vec_t *out);
 static bool decode_orient(lbm_value v, tiny3d_orient_t *out);
+static bool decode_light_direction(lbm_value v, tiny3d_vec_t *out);
 static lbm_value encode_vec3(tiny3d_vec_t v);
 static lbm_value encode_orient(tiny3d_orient_t o);
 
@@ -347,6 +387,7 @@ typedef struct {
   uint32_t magic;
   image_buffer_t img;
   tiny3d_state_t state;
+  tiny3d_vec_t light_source_storage;
   tiny3d_camera_tri_t tri_buffer_data[];
 } tiny3d_state_blob_t;
 
@@ -371,8 +412,16 @@ static tiny3d_state_blob_t *resolve_state(lbm_value v) {
 
 // (tiny3d-state-create img max-tris-per-object near far fov-degrees cull-margin opt-attrs...)
 // opt-attrs:
-//   '(filled)            - solid triangles instead of the default wireframe
-//   '(no-backface-cull)  - keep back-facing triangles (culled by default)
+//   '(filled)              - solid triangles instead of the default wireframe
+//   '(no-backface-cull)    - keep back-facing triangles (culled by default)
+//   '(light-source x y z)  - enable flat directional lighting; x y z need not
+//                            be pre-normalized. Implies backface culling
+//                            regardless of '(no-backface-cull) appearing
+//                            anywhere in the attribute list.
+//   '(ambient a)           - base brightness floor in [0,1], blended with the
+//                            directional term (0: fully off, unlit faces are
+//                            black; 1: fully lit regardless of angle).
+//                            Requires '(light-source ...) also be given.
 // Returns (state . img)
 static lbm_value ext_tiny3d_state_create(lbm_value *args, lbm_uint argn) {
   if (argn < 6) return ENC_SYM_TERROR;
@@ -382,16 +431,34 @@ static lbm_value ext_tiny3d_state_create(lbm_value *args, lbm_uint argn) {
   }
   bool filled = false;
   bool cull_backfaces = true;
+  bool has_light = false;
+  bool has_ambient = false;
+  tiny3d_vec_t light_source_vec = {0};
+  float ambient_val = 0.0f;
   for (lbm_uint i = 6; i < argn; i++) {
-    if (!lbm_is_cons(args[i]) || lbm_list_length(args[i]) != 1 ||
-        !lbm_is_symbol(lbm_car(args[i]))) {
+    if (!lbm_is_cons(args[i]) || !lbm_is_symbol(lbm_car(args[i]))) {
       return ENC_SYM_TERROR;
     }
     lbm_uint s = lbm_dec_sym(lbm_car(args[i]));
-    if (s == symbol_filled) filled = true;
-    else if (s == symbol_no_backface_cull) cull_backfaces = false;
-    else return ENC_SYM_TERROR;
+    if (s == symbol_filled) {
+      if (lbm_list_length(args[i]) != 1) return ENC_SYM_TERROR;
+      filled = true;
+    } else if (s == symbol_no_backface_cull) {
+      if (lbm_list_length(args[i]) != 1) return ENC_SYM_TERROR;
+      cull_backfaces = false;
+    } else if (s == symbol_light_source) {
+      if (!decode_light_direction(lbm_cdr(args[i]), &light_source_vec)) return ENC_SYM_TERROR;
+      has_light = true;
+    } else if (s == symbol_ambient) {
+      if (lbm_list_length(args[i]) != 2 || !lbm_is_number(lbm_cadr(args[i]))) return ENC_SYM_TERROR;
+      ambient_val = lbm_dec_as_float(lbm_cadr(args[i]));
+      has_ambient = true;
+    } else {
+      return ENC_SYM_TERROR;
+    }
   }
+  if (has_ambient && !has_light) return ENC_SYM_TERROR;
+  if (has_light) cull_backfaces = true;
 
   image_buffer_t img;
   if (!decode_image_buffer(args[0], &img)) return ENC_SYM_TERROR;
@@ -412,10 +479,13 @@ static lbm_value ext_tiny3d_state_create(lbm_value *args, lbm_uint argn) {
   tiny3d_state_blob_t *blob = (tiny3d_state_blob_t*)buf;
   blob->magic = TINY3D_STATE_MAGIC;
   blob->img = img;
+  blob->light_source_storage = light_source_vec;
 
+  int32_t ambient_q = (int32_t)llround((double)ambient_val * 65536.0);
   bool ok = tiny3d_init(&blob->state, &blob->img,
                          blob->tri_buffer_data, max_tris * (uint32_t)sizeof(tiny3d_camera_tri_t),
-                         near, far, fov_degrees, cull_margin, wireframe, cull_backfaces);
+                         near, far, fov_degrees, cull_margin, wireframe, cull_backfaces,
+                         has_light ? &blob->light_source_storage : NULL, ambient_q);
   if (!ok) {
     lbm_free(buf);
     return ENC_SYM_TERROR;
@@ -427,6 +497,27 @@ static lbm_value ext_tiny3d_state_create(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_MERROR;
   }
   return lbm_cons(state_val, args[0]);
+}
+
+static lbm_value ext_tiny3d_set_light_vec(lbm_value *args, lbm_uint argn) {
+  if (argn != 2) return ENC_SYM_TERROR;
+  tiny3d_state_blob_t *blob = resolve_state(args[0]);
+  if (!blob) return ENC_SYM_TERROR;
+  if (!blob->state.light_source) return ENC_SYM_NIL;
+  if (!decode_light_direction(args[1], &blob->light_source_storage)) return ENC_SYM_TERROR;
+  return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_tiny3d_set_ambiance(lbm_value *args, lbm_uint argn) {
+  if (argn != 2 || !lbm_is_number(args[1])) return ENC_SYM_TERROR;
+  tiny3d_state_blob_t *blob = resolve_state(args[0]);
+  if (!blob) return ENC_SYM_TERROR;
+  if (!blob->state.light_source) return ENC_SYM_NIL;
+  int32_t ambient = (int32_t)llround((double)lbm_dec_as_float(args[1]) * 65536.0);
+  if (ambient < 0) ambient = 0;
+  if (ambient > TINY3D_SCALE_ONE) ambient = TINY3D_SCALE_ONE;
+  blob->state.ambient = ambient;
+  return ENC_SYM_TRUE;
 }
 
 // //////////////////////////////////////////////////
@@ -452,6 +543,26 @@ static bool decode_orient(lbm_value v, tiny3d_orient_t *out) {
   out->ang_x = degrees_to_phase((double)lbm_dec_as_float(lbm_car(v)));
   out->ang_y = degrees_to_phase((double)lbm_dec_as_float(lbm_cadr(v)));
   out->ang_z = degrees_to_phase((double)lbm_dec_as_float(lbm_car(lbm_cddr(v))));
+  return true;
+}
+
+// A light direction is stored as a unit vector - the caller may pass any
+// non-zero vector, e.g. '(light-source 1.0 1.0 0.0), and it gets
+// normalized here (float, one-time setup, not the per-frame hot path)
+// so the lighting dot product downstream is a proper cosine term
+// regardless of what magnitude was typed in. A zero/degenerate vector
+// is rejected rather than silently producing a NaN/garbage direction.
+static bool decode_light_direction(lbm_value v, tiny3d_vec_t *out) {
+  if (lbm_list_length(v) != 3) return false;
+  float x = lbm_dec_as_float(lbm_car(v));
+  float y = lbm_dec_as_float(lbm_cadr(v));
+  float z = lbm_dec_as_float(lbm_car(lbm_cddr(v)));
+  float len = sqrtf(x * x + y * y + z * z);
+  if (len < 0.000001f) return false;
+  x /= len; y /= len; z /= len;
+  out->x = (int32_t)llroundf(x * 65536.0f);
+  out->y = (int32_t)llroundf(y * 65536.0f);
+  out->z = (int32_t)llroundf(z * 65536.0f);
   return true;
 }
 
@@ -560,6 +671,8 @@ static lbm_value ext_tiny3d_cull(lbm_value *args, lbm_uint argn) {
 void lbm_tiny3d_extensions_init(void) {
   lbm_add_symbol_const("filled", &symbol_filled);
   lbm_add_symbol_const("no-backface-cull", &symbol_no_backface_cull);
+  lbm_add_symbol_const("light-source", &symbol_light_source);
+  lbm_add_symbol_const("ambient", &symbol_ambient);
 
   lbm_add_extension("tiny3d-mesh", ext_tiny3d_mesh);
   lbm_add_extension("tiny3d-mesh?", ext_tiny3d_is_mesh);
@@ -576,6 +689,8 @@ void lbm_tiny3d_extensions_init(void) {
   lbm_add_extension("tiny3d-mesh-triangle-count", ext_tiny3d_mesh_triangle_count);
   lbm_add_extension("tiny3d-mesh-bounding-radius", ext_tiny3d_mesh_bounding_radius);
   lbm_add_extension("tiny3d-state-create", ext_tiny3d_state_create);
+  lbm_add_extension("tiny3d-set-light-vec", ext_tiny3d_set_light_vec);
+  lbm_add_extension("tiny3d-set-ambiance", ext_tiny3d_set_ambiance);
   lbm_add_extension("tiny3d-render", ext_tiny3d_render);
   lbm_add_extension("tiny3d-cull", ext_tiny3d_cull);
 }
