@@ -30,6 +30,7 @@
 #include "transport_i2c_bb.h"
 #include "transport_spi_bb.h"
 #include "transport_spi_hw.h"
+#include "drdy.h"
 #include "imu_thread.h"
 #include "utils_math.h"
 #include "Fusion.h"
@@ -43,6 +44,9 @@ static ATTITUDE_INFO m_att;
 static FusionAhrs m_fusionAhrs;
 static float m_accel[3], m_gyro[3], m_mag[3];
 static transport_t m_transport;
+#ifdef IMU_DRDY_GPIO
+static drdy_t m_drdy;
+#endif
 static imu_device_t m_dev;
 static imu_config m_settings;
 static systime_t init_time;
@@ -147,11 +151,17 @@ void imu_init(imu_config *set) {
 	// compile-time board macros, an external IMU from the runtime type.
 	uint8_t dev = IMU_DEV_NONE;
 	uint8_t com = IMU_COM_NONE;
+	drdy_t *drdy = NULL;
 
 	if (set->type == IMU_TYPE_INTERNAL) {
 #if IMU_DEV != IMU_DEV_NONE
 		dev = IMU_DEV;
 		com = IMU_COM;
+
+#ifdef IMU_DRDY_GPIO
+		drdy_bind(&m_drdy, IMU_DRDY_GPIO, IMU_DRDY_PIN);
+		drdy = &m_drdy;
+#endif
 
 #if IMU_COM == IMU_COM_I2C_BB
 		transport_i2c_bb_init(&m_transport, IMU_I2C_SDA_GPIO, IMU_I2C_SDA_PIN,
@@ -188,7 +198,7 @@ void imu_init(imu_config *set) {
 	if (dev != IMU_DEV_NONE) {
 		m_dev = imu_device_create(dev, com, &m_transport);
 		uint16_t rate_hz = MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport));
-		imu_thread_set_device(&m_dev, rate_hz);
+		imu_thread_set_device(&m_dev, rate_hz, drdy);
 		bool configured = m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer);
 
 #ifdef IMU_FALLBACK_COM
@@ -202,7 +212,7 @@ void imu_init(imu_config *set) {
 			com = IMU_FALLBACK_COM;
 			m_dev = imu_device_create(dev, com, &m_transport);
 			rate_hz = MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport));
-			imu_thread_set_device(&m_dev, rate_hz);
+			imu_thread_set_device(&m_dev, rate_hz, drdy);
 			configured = m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer);
 		}
 #endif

@@ -18,125 +18,111 @@
 	*/
 
 #include "drdy.h"
-#include "conf_general.h"
-
-#ifdef IMU_DRDY_GPIO
-
-#include "hal.h"
-#include "stm32f4xx_conf.h"
 #include "timer.h"
+#include "stm32f4xx_conf.h"
 
-static binary_semaphore_t m_sem;
-static volatile bool m_sem_ready = false;
-static volatile uint32_t m_timestamp;
-static volatile uint32_t m_int_count;
-static volatile uint32_t m_timeout_count;
+// Concurrently armed instances the ISR dispatch scans. An instance that doesn't get a slot is
+// never signalled and its waiter always times out into the timed fallback.
+#define DRDY_SLOTS 2
 
-bool drdy_present(void) {
-	return true;
+static drdy_t *volatile m_armed[DRDY_SLOTS];
+// OR of the armed instances' EXTI lines for a cheap early-out in the ISR dispatch.
+static volatile uint32_t m_lines_mask;
+
+void drdy_bind(drdy_t *drdy, stm32_gpio_t *gpio, uint32_t pin) {
+	chBSemObjectInit(&drdy->sem, true); // start taken
+	drdy->gpio = gpio;
+	drdy->pin = pin;
+	drdy->exti_line = 1 << pin;
+	drdy->timestamp = 0;
+	drdy->int_count = 0;
+	drdy->timeout_count = 0;
 }
 
-void drdy_init(void) {
-	chBSemObjectInit(&m_sem, true); // start taken
-	m_int_count = 0;
-	m_timeout_count = 0;
-	m_sem_ready = true;
+void drdy_init(drdy_t *drdy) {
+	// Register before unmasking the line so the dispatch can't miss the first edge
+	chSysLock();
+	for (int i = 0; i < DRDY_SLOTS; i++) {
+		if (!m_armed[i]) {
+			m_armed[i] = drdy;
+			m_lines_mask |= drdy->exti_line;
+			break;
+		}
+	}
+	chSysUnlock();
 
-	palSetPadMode(IMU_DRDY_GPIO, IMU_DRDY_PIN, PAL_MODE_INPUT_PULLDOWN);
+	palSetPadMode(drdy->gpio, drdy->pin, PAL_MODE_INPUT_PULLDOWN);
 
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-	SYSCFG_EXTILineConfig(IMU_DRDY_EXTI_PORTSRC, IMU_DRDY_EXTI_PINSRC);
+	// GPIO ports are 0x400 apart starting from GPIOA, making the EXTI port source their index
+	SYSCFG_EXTILineConfig(((uint32_t)drdy->gpio - GPIOA_BASE) / 0x400, drdy->pin);
 
 	// Enable only the data-ready line, the shared EXTI vector is enabled at boot
 	EXTI_InitTypeDef exti;
-	exti.EXTI_Line = IMU_DRDY_EXTI_LINE;
+	exti.EXTI_Line = drdy->exti_line;
 	exti.EXTI_Mode = EXTI_Mode_Interrupt;
 	exti.EXTI_Trigger = EXTI_Trigger_Rising;
 	exti.EXTI_LineCmd = ENABLE;
 	EXTI_Init(&exti);
 }
 
-void drdy_deinit(void) {
-	m_sem_ready = false;
-
+void drdy_deinit(drdy_t *drdy) {
 	// Disable only the line, the shared EXTI vector stays enabled
 	EXTI_InitTypeDef exti;
-	exti.EXTI_Line = IMU_DRDY_EXTI_LINE;
+	exti.EXTI_Line = drdy->exti_line;
 	exti.EXTI_Mode = EXTI_Mode_Interrupt;
 	exti.EXTI_Trigger = EXTI_Trigger_Rising;
 	exti.EXTI_LineCmd = DISABLE;
 	EXTI_Init(&exti);
+
+	chSysLock();
+	for (int i = 0; i < DRDY_SLOTS; i++) {
+		if (m_armed[i] == drdy) {
+			m_armed[i] = NULL;
+		}
+	}
+	m_lines_mask &= ~drdy->exti_line;
+	chSysUnlock();
 }
 
-bool drdy_wait(systime_t timeout) {
-	if (chBSemWaitTimeout(&m_sem, timeout) == MSG_TIMEOUT) {
-		m_timeout_count++;
+bool drdy_wait(drdy_t *drdy, systime_t timeout) {
+	if (chBSemWaitTimeout(&drdy->sem, timeout) == MSG_TIMEOUT) {
+		drdy->timeout_count++;
 		return false;
 	}
 	return true;
 }
 
-void drdy_signal(void) {
-	if (m_sem_ready) {
-		chBSemSignal(&m_sem);
+void drdy_signal(drdy_t *drdy) {
+	chBSemSignal(&drdy->sem);
+}
+
+void drdy_exti_dispatch(void) {
+	if (!(EXTI->PR & m_lines_mask)) {
+		return;
+	}
+
+	for (int i = 0; i < DRDY_SLOTS; i++) {
+		drdy_t *drdy = m_armed[i];
+		if (drdy && EXTI_GetITStatus(drdy->exti_line) != RESET) {
+			EXTI_ClearITPendingBit(drdy->exti_line);
+			drdy->timestamp = timer_time_now();
+			drdy->int_count++;
+			chSysLockFromISR();
+			chBSemSignalI(&drdy->sem);
+			chSysUnlockFromISR();
+		}
 	}
 }
 
-void drdy_signal_isr(void) {
-	m_timestamp = timer_time_now();
-	m_int_count++;
-	chSysLockFromISR();
-	if (m_sem_ready) {
-		chBSemSignalI(&m_sem);
-	}
-	chSysUnlockFromISR();
+uint32_t drdy_timestamp(const drdy_t *drdy) {
+	return drdy->timestamp;
 }
 
-uint32_t drdy_timestamp(void) {
-	return m_timestamp;
+uint32_t drdy_interrupt_count(const drdy_t *drdy) {
+	return drdy->int_count;
 }
 
-uint32_t drdy_interrupt_count(void) {
-	return m_int_count;
+uint32_t drdy_timeout_count(const drdy_t *drdy) {
+	return drdy->timeout_count;
 }
-
-uint32_t drdy_timeout_count(void) {
-	return m_timeout_count;
-}
-
-#else // no DRDY pin wired on this board
-
-bool drdy_present(void) {
-	return false;
-}
-
-void drdy_init(void) {
-}
-
-void drdy_deinit(void) {
-}
-
-bool drdy_wait(systime_t timeout) {
-	(void)timeout;
-	return false;
-}
-
-void drdy_signal(void) {
-}
-
-void drdy_signal_isr(void) {
-}
-
-uint32_t drdy_timestamp(void) {
-	return 0;
-}
-
-uint32_t drdy_interrupt_count(void) {
-	return 0;
-}
-
-uint32_t drdy_timeout_count(void) {
-	return 0;
-}
-
-#endif

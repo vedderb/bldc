@@ -21,38 +21,53 @@
 #define IMU_DRDY_H_
 
 #include "ch.h"
+#include "hal.h"
 
 #include <stdint.h>
 #include <stdbool.h>
 
-// Generic data-ready (DRDY) EXTI source. A board opts in by defining IMU_DRDY_GPIO and the rest
-// of the IMU_DRDY_* macros (pin, EXTI line/port-src/pin-src). With none defined every function
-// below is an inert stub and drdy_present() is false, so the IMU thread stays in its timed loop.
+// A data-ready (DRDY) EXTI source: an instance binds one GPIO pin whose rising edge signals a
+// waiting thread. Instances are independent, so each IMU can have its own DRDY pin, within two
+// constraints of the STM32 EXTI block: instances must use distinct pin numbers (the pin number
+// selects the EXTI line regardless of port) and only pins 5-15 are supported (lines 0-4 have
+// dedicated vectors which are not dispatched, see irq_handlers.c).
+typedef struct {
+	binary_semaphore_t sem;
+	stm32_gpio_t *gpio;
+	uint32_t pin;
+	uint32_t exti_line;
+	volatile uint32_t timestamp;
+	volatile uint32_t int_count;
+	volatile uint32_t timeout_count;
+} drdy_t;
 
-// True iff this board wires a DRDY pin (compile-time constant).
-bool drdy_present(void);
+// Bind the instance to a pin and reset its state. Touches no hardware; must not be called
+// while the instance is armed.
+void drdy_bind(drdy_t *drdy, stm32_gpio_t *gpio, uint32_t pin);
 
-// Arm the DRDY pin's EXTI line (the shared vector is enabled centrally). No-op when absent.
-void drdy_init(void);
+// Arm the pin's EXTI line and register the instance with the ISR dispatch (the shared EXTI
+// vectors are enabled centrally at boot).
+void drdy_init(drdy_t *drdy);
 
-// Mask the DRDY line again, leaving the shared vector enabled. No-op when absent.
-void drdy_deinit(void);
+// Mask the EXTI line again and unregister the instance, leaving the shared vector enabled.
+void drdy_deinit(drdy_t *drdy);
 
 // Block until the next data-ready edge or until timeout elapses. Returns true if an edge was
-// signalled, false on timeout (counted). Returns false immediately when absent.
-bool drdy_wait(systime_t timeout);
+// signalled, false on timeout (counted).
+bool drdy_wait(drdy_t *drdy, systime_t timeout);
 
 // Release a waiter from thread context (e.g. to unblock the loop for shutdown).
-void drdy_signal(void);
+void drdy_signal(drdy_t *drdy);
 
-// Release a waiter from the EXTI ISR.
-void drdy_signal_isr(void);
+// Service pending EXTI lines of all armed instances. Called from the shared EXTI vectors in
+// irq_handlers.c.
+void drdy_exti_dispatch(void);
 
 // TIM5 timestamp of the latest data-ready edge, captured in the ISR. Only meaningful after
-// drdy_wait() returned true. Returns 0 when absent.
-uint32_t drdy_timestamp(void);
+// drdy_wait() returned true.
+uint32_t drdy_timestamp(const drdy_t *drdy);
 
-uint32_t drdy_interrupt_count(void);
-uint32_t drdy_timeout_count(void);
+uint32_t drdy_interrupt_count(const drdy_t *drdy);
+uint32_t drdy_timeout_count(const drdy_t *drdy);
 
 #endif /* IMU_DRDY_H_ */

@@ -37,6 +37,7 @@ static THD_FUNCTION(thread_func, arg);
 static stkalign_t m_wa[THD_WORKING_AREA_SIZE(1024) / sizeof(stkalign_t)];
 static thread_t *m_thd = NULL;
 static imu_device_t *m_dev;
+static drdy_t *m_drdy;
 static volatile uint32_t m_read_fails;
 static bool m_drdy_active = false;
 static void (*m_cb)(float *accel, float *gyro, float *mag, float dt);
@@ -97,20 +98,22 @@ static void terminal_status(int argc, const char **argv) {
 		commands_printf(
 				"DRDY ints     : %u\n"
 				"DRDY timeouts : %u\n",
-				drdy_interrupt_count(),
-				drdy_timeout_count());
+				drdy_interrupt_count(m_drdy),
+				drdy_timeout_count(m_drdy));
 	}
 }
 
-void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz) {
+void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz, drdy_t *drdy) {
 	m_dev = dev;
+	m_drdy = drdy;
 	m_dev->sample_rate_hz = rate_hz;
 	m_read_fails = 0;
 
-	// Interrupt mode only when both the board wires a DRDY pin and the device can route its
-	// data-ready to it; otherwise the timed loop runs and the hook is never called. Resolved
-	// here (before configure()) so the device's configure() can adapt its ODR/filter setup.
-	dev->use_drdy = drdy_present() && dev->interface->enable_drdy_output != NULL;
+	// Interrupt mode only when both a DRDY pin is wired to this device and the device can
+	// route its data-ready to it; otherwise the timed loop runs and the pin stays unused.
+	// Resolved here (before configure()) so the device's configure() can adapt its
+	// ODR/filter setup.
+	dev->use_drdy = drdy != NULL && dev->interface->enable_drdy_output != NULL;
 
 	if (!m_cmds_registered) {
 		terminal_register_command_callback(
@@ -132,7 +135,7 @@ void imu_thread_start(void (*cb)(float *accel, float *gyro, float *mag, float dt
 
 	m_drdy_active = m_dev->use_drdy;
 	if (m_drdy_active) {
-		drdy_init();
+		drdy_init(m_drdy);
 		m_dev->interface->enable_drdy_output(m_dev, true);
 	}
 
@@ -145,17 +148,20 @@ void imu_thread_start(void (*cb)(float *accel, float *gyro, float *mag, float dt
 void imu_thread_stop(void) {
 	if (m_thd) {
 		chThdTerminate(m_thd);
-		drdy_signal(); // unblock a DRDY wait so the thread sees the terminate flag
+		if (m_drdy_active) {
+			drdy_signal(m_drdy); // unblock a DRDY wait so the thread sees the terminate flag
+		}
 		chThdWait(m_thd);
 		m_thd = NULL;
 	}
 
 	if (m_dev && m_drdy_active) {
 		m_dev->interface->enable_drdy_output(m_dev, false);
-		drdy_deinit();
+		drdy_deinit(m_drdy);
 	}
 
 	m_dev = NULL;
+	m_drdy = NULL;
 	m_drdy_active = false;
 }
 
@@ -174,13 +180,13 @@ static THD_FUNCTION(thread_func, arg) {
 
 		bool drdy = false;
 		if (m_drdy_active) {
-			drdy = drdy_wait(DRDY_TIMEOUT_PERIODS * period);
+			drdy = drdy_wait(m_drdy, DRDY_TIMEOUT_PERIODS * period);
 			if (chThdShouldTerminateX()) {
 				break;
 			}
 		}
 
-		uint32_t ts = drdy ? drdy_timestamp() : timer_time_now();
+		uint32_t ts = drdy ? drdy_timestamp(m_drdy) : timer_time_now();
 
 		float accel[3], gyro[3], mag[3];
 		if (!m_dev->interface->read_sample(m_dev, accel, gyro, mag)) {
