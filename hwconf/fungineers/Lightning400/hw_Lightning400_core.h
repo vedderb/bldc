@@ -188,6 +188,8 @@
 #define LSM6DS3_MISO_GPIO		GPIOB
 #define LSM6DS3_MISO_PIN		4
 
+#define IMU_ROT_90
+
 // UART Peripheral
 #define HW_UART_DEV		        SD4
 #define HW_UART_GPIO_AF		    GPIO_AF_UART4
