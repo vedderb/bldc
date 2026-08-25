@@ -44,7 +44,7 @@ static ATTITUDE_INFO m_att;
 static FusionAhrs m_fusionAhrs;
 static float m_accel[3], m_gyro[3], m_mag[3];
 static transport_t m_transport;
-#ifdef IMU_DRDY_GPIO
+#if defined(IMU_DRDY_GPIO) || defined(IMU_EXT_DRDY_GPIO)
 static drdy_t m_drdy;
 #endif
 static imu_device_t m_dev;
@@ -106,6 +106,26 @@ static void imu_fallback_transport_init(void) {
 			IMU_FALLBACK_I2C_SCL_GPIO, IMU_FALLBACK_I2C_SCL_PIN, IMU_FALLBACK_BUS_SPEED_HZ);
 #else
 #error "IMU_FALLBACK_COM currently supports only IMU_COM_I2C_BB"
+#endif
+}
+#endif
+
+#ifdef IMU_EXT_COM
+// Bind m_transport to the board's dedicated external IMU bus. A board declares IMU_EXT_COM
+// plus the matching IMU_EXT_* pins when external IMUs attach there instead of the I2C COMM
+// header (see imu/imu_config.h).
+static void imu_ext_transport_init(void) {
+#if IMU_EXT_COM == IMU_COM_SPI_HW
+	transport_spi_hw_init(&m_transport, &IMU_EXT_SPI_DEV, IMU_EXT_SPI_AF,
+			IMU_EXT_SPI_NSS_GPIO, IMU_EXT_SPI_NSS_PIN, IMU_EXT_SPI_SCK_GPIO, IMU_EXT_SPI_SCK_PIN,
+			IMU_EXT_SPI_MOSI_GPIO, IMU_EXT_SPI_MOSI_PIN, IMU_EXT_SPI_MISO_GPIO, IMU_EXT_SPI_MISO_PIN,
+			IMU_EXT_BUS_SPEED_HZ);
+#elif IMU_EXT_COM == IMU_COM_SPI_BB
+	transport_spi_bb_init(&m_transport, IMU_EXT_SPI_NSS_GPIO, IMU_EXT_SPI_NSS_PIN,
+			IMU_EXT_SPI_SCK_GPIO, IMU_EXT_SPI_SCK_PIN, IMU_EXT_SPI_MOSI_GPIO, IMU_EXT_SPI_MOSI_PIN,
+			IMU_EXT_SPI_MISO_GPIO, IMU_EXT_SPI_MISO_PIN);
+#else
+#error "IMU_EXT_COM currently supports only IMU_COM_SPI_HW and IMU_COM_SPI_BB"
 #endif
 }
 #endif
@@ -191,9 +211,19 @@ void imu_init(imu_config *set) {
 	} else {
 		dev = imu_dev_for_external(set->type);
 		if (dev != IMU_DEV_NONE) {
+#ifdef IMU_EXT_COM
+			com = IMU_EXT_COM;
+			imu_ext_transport_init();
+
+#ifdef IMU_EXT_DRDY_GPIO
+			drdy_bind(&m_drdy, IMU_EXT_DRDY_GPIO, IMU_EXT_DRDY_PIN);
+			drdy = &m_drdy;
+#endif
+#else
 			com = IMU_COM_I2C_BB;
 			transport_i2c_bb_init(&m_transport, HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 					HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, 0);
+#endif
 		}
 	}
 
