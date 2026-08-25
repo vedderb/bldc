@@ -87,6 +87,8 @@ static uint8_t imu_dev_for_external(IMU_TYPE type) {
 		return IMU_DEV_BMI160;
 	case IMU_TYPE_EXTERNAL_LSM6DS3:
 		return IMU_DEV_LSM6DS3;
+	case IMU_TYPE_EXTERNAL_LSM6DSV32X:
+		return IMU_DEV_LSM6DSV32X;
 	case IMU_TYPE_OFF:
 	case IMU_TYPE_INTERNAL:
 		break;
