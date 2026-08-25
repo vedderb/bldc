@@ -136,7 +136,10 @@ void imu_thread_start(void (*cb)(float *accel, float *gyro, float *mag, float dt
 		m_dev->interface->enable_drdy_output(m_dev, true);
 	}
 
-	m_thd = chThdCreateStatic(m_wa, sizeof(m_wa), NORMALPRIO, thread_func, NULL);
+	// Run above NORMALPRIO threads and the CAN read thread (NORMALPRIO + 1) when the
+	// transport allows it (is not CPU-heavy).
+	tprio_t prio = m_dev->transport->interface->cpu_bound ? NORMALPRIO : NORMALPRIO + 2;
+	m_thd = chThdCreateStatic(m_wa, sizeof(m_wa), prio, thread_func, NULL);
 }
 
 void imu_thread_stop(void) {
