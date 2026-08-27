@@ -189,6 +189,7 @@ package_dict["RSR_DD_V1"] = [['RSR_DD_V1', default_name],
 package_dict["RSR_DD_V2"] = [['RSR_DD_V2', default_name]]
 package_dict["RSR_DD_V2.1"] = [['RSR_DD_V2.1', default_name]]
 package_dict["ITR_X1"] = [['itr_x1', default_name]]
+package_dict["Maxim_100"] = [['maxim_100', default_name]]
 package_dict["Maxim_120"] = [['maxim_120', default_name],
                     ['maxim_120_no_limits', no_limits_name]]
 package_dict["Maximp_120"] = [['maximp_120', default_name],
