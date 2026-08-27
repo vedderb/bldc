@@ -36,6 +36,8 @@ package_dict["60_MK5"] = [['60_mk5', default_name],
 package_dict["60_MK6"] = [['60_mk6', default_name],
                     ['60_mk6_no_limits', no_limits_name]]
 package_dict["60_MK6_MAX"] = [['60_mk6_max', default_name]]
+package_dict["BM60"] = [['BM60', default_name]]
+package_dict["BM75"] = [['BM75', default_name]]
 package_dict["75_300"] = [['75_300', default_name],
                     ['75_300_no_limits', no_limits_name]]
 package_dict["75_300_R2"] = [['75_300_r2', default_name],
@@ -101,6 +103,7 @@ package_dict["Thor301"] = [['Thor301', default_name]]
 package_dict["Thor400"] = [['Thor400', default_name]]
 package_dict["Thor400v2"] = [['Thor400v2', default_name]]
 package_dict["Lightning400"] = [['Lightning400', default_name]]
+package_dict["Z500"] = [['Z500', default_name]]
 package_dict["JetFleetF6_20s"] = [['JetFleetF6_20s', default_name]]
 package_dict["JetFleetF6_24s"] = [['JetFleetF6_24s', default_name]]
 package_dict["JetFleetF6_32s"] = [['JetFleetF6_32s', default_name]]
