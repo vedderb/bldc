@@ -143,6 +143,16 @@ void app_uartcomm_start(UART_PORT port_number) {
 		return;
 	}
 
+	// External IMUs attach on the COMM header (its I2C pins, or a dedicated
+	// bus that boards route to its pins), so the header's UART can't run
+	// alongside one. IMU Type doesn't default to an external one, but the app
+	// defaults to UART. Only init the UART if IMU is not external.
+	IMU_TYPE imu_type = app_get_configuration()->imu_conf.type;
+	if (port_number == UART_PORT_COMM_HEADER &&
+			imu_type != IMU_TYPE_OFF && imu_type != IMU_TYPE_INTERNAL) {
+		return;
+	}
+
 	packet_init(write_functions[port_number], process_functions[port_number], &packet_state[port_number]);
 
 	if (!thread_is_running) {
