@@ -154,10 +154,13 @@ int test_lbm_event_define_basic() {
   
   bool flatten_success = lbm_start_flatten(&fv, 1000);
   if (!flatten_success) return 0;
-  
+
+  flatten_success = f_i(&fv, 42);
+  if (!flatten_success) return 0;
+
   flatten_success = lbm_finish_flatten(&fv);
   if (!flatten_success) return 0;
-  
+
   // Test event define with proper handler
   lbm_uint sym_id;
   lbm_add_symbol("test-key", &sym_id);
@@ -198,7 +201,10 @@ int test_lbm_event_define_different_keys() {
   lbm_flat_value_t fv;
   bool flatten_success = lbm_start_flatten(&fv, 100);
   if (!flatten_success) return 0;
-  
+
+  flatten_success = f_i(&fv, 42);
+  if (!flatten_success) return 0;
+
   flatten_success = lbm_finish_flatten(&fv);
   if (!flatten_success) return 0;
   

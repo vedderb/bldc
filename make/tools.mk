@@ -11,22 +11,30 @@
 ####################
 # ARM (Cortex) SDK #
 ####################
-ARM_SDK_DIR := $(TOOLS_DIR)/gcc-arm-none-eabi-7-2018-q2-update
+ARM_SDK_VER := 14.3.rel1
 
-.PHONY: arm_sdk_install
+# The tar archives extract into a directory named after them; the Windows zip
+# has no top-level directory and is extracted into ARM_SDK_DIR explicitly.
 ifdef LINUX
-  arm_sdk_install: ARM_SDK_URL  := https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2
+  ARM_SDK_NAME := arm-gnu-toolchain-$(ARM_SDK_VER)-x86_64-arm-none-eabi
+  ARM_SDK_EXT  := tar.xz
 endif
 
 ifdef MACOS
-  arm_sdk_install: ARM_SDK_URL  := https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-mac.tar.bz2
+  ARM_SDK_NAME := arm-gnu-toolchain-$(ARM_SDK_VER)-darwin-arm64-arm-none-eabi
+  ARM_SDK_EXT  := tar.xz
 endif
 
 ifdef WINDOWS
-  arm_sdk_install: ARM_SDK_URL  := https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-win32.zip
+  ARM_SDK_NAME := arm-gnu-toolchain-$(ARM_SDK_VER)-mingw-w64-i686-arm-none-eabi
+  ARM_SDK_EXT  := zip
 endif
 
-arm_sdk_install: ARM_SDK_FILE := $(notdir $(ARM_SDK_URL))
+ARM_SDK_DIR := $(TOOLS_DIR)/$(ARM_SDK_NAME)
+
+.PHONY: arm_sdk_install
+arm_sdk_install: ARM_SDK_URL  := https://developer.arm.com/-/media/Files/downloads/gnu/$(ARM_SDK_VER)/binrel/$(ARM_SDK_NAME).$(ARM_SDK_EXT)
+arm_sdk_install: ARM_SDK_FILE := $(ARM_SDK_NAME).$(ARM_SDK_EXT)
 # order-only prereq on directory existance:
 arm_sdk_install: | $(DL_DIR) $(TOOLS_DIR)
 arm_sdk_install: arm_sdk_clean
@@ -35,7 +43,7 @@ ifneq ($(OSFAMILY), windows)
 	$(V1) wget --no-check-certificate -N -P "$(DL_DIR)" "$(ARM_SDK_URL)"
 
 	# binary only release so just extract it
-	$(V1) tar -C $(TOOLS_DIR) -xjf "$(DL_DIR)/$(ARM_SDK_FILE)"
+	$(V1) tar -C $(TOOLS_DIR) -xf "$(DL_DIR)/$(ARM_SDK_FILE)"
 else
 	$(V1) curl -C - --location --insecure --output "$(DL_DIR)/$(ARM_SDK_FILE)" "$(ARM_SDK_URL)"
 	$(V1) powershell -noprofile -command Expand-Archive -DestinationPath $(ARM_SDK_DIR) -LiteralPath "$(DL_DIR)/$(ARM_SDK_FILE)"

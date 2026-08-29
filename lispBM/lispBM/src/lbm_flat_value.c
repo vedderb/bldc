@@ -47,6 +47,7 @@ bool lbm_start_flatten(lbm_flat_value_t *v, size_t buffer_size) {
 
 bool lbm_finish_flatten(lbm_flat_value_t *v) {
   lbm_uint size_words;
+  if (v->buf_pos == 0) return false; // We do not allow creation of empty flat values.
   if (v->buf_pos % sizeof(lbm_uint) == 0) {
     size_words = v->buf_pos / sizeof(lbm_uint);
   } else {
@@ -54,7 +55,7 @@ bool lbm_finish_flatten(lbm_flat_value_t *v) {
   }
   if (v->buf_size  <= size_words * sizeof(lbm_uint)) return true;
   v->buf_size = size_words * sizeof(lbm_uint);
-  return (lbm_memory_shrink((lbm_uint*)v->buf, size_words) >= 0);
+  return (lbm_memory_shrink((lbm_uint*)v->buf, size_words));
 }
 
 static bool write_byte(lbm_flat_value_t *v, uint8_t b) {

@@ -274,16 +274,18 @@ void smart_switch_keep_on(void) {
 }
 
 void smart_switch_shut_down(void) {
-	mc_interface_set_current(0);
-	mc_interface_lock();
+	mc_interface_ignore_input_both(10000);
+	mc_interface_release_motor_override_both();
+
 	switch_state = SWITCH_SHUTTING_DOWN;
-	palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
-	return;
+
+	if (mc_interface_wait_for_motor_release_both(9.0)) {
+		palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
+	}
 }
 
 bool smart_switch_is_pressed(void) {
-	if (ADC_VOLTS(ADC_IND_SW_DET) > 0.9 &&
-			(mc_interface_temp_fet_filtered() < 68.0) /* why?? */) {
+	if (ADC_VOLTS(ADC_IND_SW_DET) > 0.9) {
 		return true;
 	} else {
 		return false;

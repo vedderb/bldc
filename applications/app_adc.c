@@ -353,6 +353,14 @@ static THD_FUNCTION(adc_thread, arg) {
 			break;
 
 		case ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC:
+			// If configured, braking over 5% will force the throttle to 0
+			if ((config.buttons & (1 << 3)) && brake > 0.05) {
+				pwr = 0.0;
+			}
+
+			pwr -= brake;
+			break;
+
 		case ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC:
 			pwr -= brake;
 			break;

@@ -486,7 +486,7 @@
 }
 
 #ifndef __ASSEMBLER__
-void main_stop_motor_and_reset(void);
+void main_system_halt(const char *reason);
 #endif
 
 /**
@@ -495,7 +495,7 @@ void main_stop_motor_and_reset(void);
  *          the system is halted.
  */
 #define CH_CFG_SYSTEM_HALT_HOOK(reason) {                                   \
-  main_stop_motor_and_reset();                                              \
+  main_system_halt(reason);                                                 \
 }
 
 /** @} */

@@ -93,6 +93,8 @@
 foc_profile g_foc_profile;
 #endif
 
+__attribute__((section(".noinit"))) CrashInfo crash_info;
+
 // Private variables
 static THD_WORKING_AREA(periodic_thread_wa, 256);
 static THD_WORKING_AREA(led_thread_wa, 256);
@@ -107,7 +109,7 @@ static THD_FUNCTION(flash_integrity_check_thread, arg) {
 
 	for(;;) {
 		if (flash_helper_verify_flash_memory_chunk() == FAULT_CODE_FLASH_CORRUPTION) {
-			NVIC_SystemReset();
+			chSysHalt("Flash corruption detected.");
 		}
 
 		chThdSleepMilliseconds(6);
@@ -292,6 +294,26 @@ static bool should_reset_config(void) {
 }
 
 int main(void) {
+	if (crash_info.magic != CRASH_INFO_MAGIC) {
+		// Erase the struct when the contents did not survive: first power-up
+		// from cold, SRAM decay after a long power loss, or a firmware update
+		// moving the section.
+		memset(&crash_info, 0, sizeof(crash_info));
+		crash_info.magic = CRASH_INFO_MAGIC;
+	}
+	crash_info.boot_count++;
+	crash_info.reset_flags = RCC->CSR;
+
+	// Clear the reset flags
+	RCC->CSR |= RCC_CSR_RMVF;
+
+	if ((crash_info.type != CRASH_NONE && crash_info.crash_boot + 1 == crash_info.boot_count) ||
+			(crash_info.reset_flags & (RCC_CSR_WDGRSTF | RCC_CSR_WWDGRSTF))) {
+		crash_info.crash_streak++;
+	} else {
+		crash_info.crash_streak = 0;
+	}
+
 	halInit();
 	chSysInit();
 
@@ -425,7 +447,7 @@ int main(void) {
 	}
 }
 
-void main_stop_motor_and_reset(void) {
+static void stop_motor_and_reset(void) {
 	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_ForcedAction_InActive);
 	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
 	TIM_CCxNCmd(TIM1, TIM_Channel_1, TIM_CCxN_Disable);
@@ -465,4 +487,68 @@ void main_stop_motor_and_reset(void) {
 #endif
 
 	NVIC_SystemReset();
+}
+
+void main_system_halt(const char *reason) {
+	crash_info.halt_reason = reason;
+	crash_info.type = CRASH_HALT;
+	crash_info.crash_boot = crash_info.boot_count;
+
+	stop_motor_and_reset();
+}
+
+void main_fault_handler(void) __attribute__((naked));
+void main_fault_handler(void) {
+	// Store the currently-in-use stack pointer to the first function argument
+	// and call fault_handler_c
+	__asm volatile (
+		"TST LR, #4\n"
+		"ITE EQ\n"
+		"MRSEQ R0, MSP\n"
+		"MRSNE R0, PSP\n"
+		"B fault_handler_c\n"
+	);
+}
+
+void fault_handler_c(uint32_t *hardfault_args) {
+	// Store the registers dumped on the stack after a crash
+	crash_info.registers.r0 = hardfault_args[0];
+	crash_info.registers.r1 = hardfault_args[1];
+	crash_info.registers.r2 = hardfault_args[2];
+	crash_info.registers.r3 = hardfault_args[3];
+	crash_info.registers.r12 = hardfault_args[4];
+	crash_info.registers.lr = hardfault_args[5];
+	crash_info.registers.pc = hardfault_args[6];
+	crash_info.registers.psr = hardfault_args[7];
+
+	// Store the crash information registers
+	crash_info.registers.cfsr = SCB->CFSR;
+	crash_info.registers.hfsr = SCB->HFSR;
+	crash_info.registers.mmfar = SCB->MMFAR;
+	crash_info.registers.bfar = SCB->BFAR;
+	crash_info.registers.afsr = SCB->AFSR;
+	crash_info.registers.shcsr = SCB->SHCSR;
+
+	crash_info.type = CRASH_REGISTERS;
+	crash_info.crash_boot = crash_info.boot_count;
+
+	stop_motor_and_reset();
+}
+
+// newlib's setjmp carries EHABI unwind annotations whose personality routine
+// references pull the ~4 kB libgcc unwinder into the image. Nothing here ever
+// unwinds, satisfy the references locally.
+void __aeabi_unwind_cpp_pr0(void) {}
+void __aeabi_unwind_cpp_pr1(void) {}
+void __aeabi_unwind_cpp_pr2(void) {}
+
+// newlib's default __assert_func prints to stderr, dragging fprintf and the
+// stdio stream machinery (~2.4 kB) into the image. Halt locally instead.
+void __assert_func(const char *file, int line, const char *func, const char *expr) {
+	(void)file;
+	(void)line;
+	(void)func;
+
+	chSysHalt(expr);
+	while (true);
 }

@@ -106,7 +106,7 @@ SECTIONS
         PROVIDE(__fini_array_end = .);
     } > flash2
 
-    .text : ALIGN(16) SUBALIGN(16)
+    .text : ALIGN(16)
     {
         *(.text)
         *(.text.*)
@@ -117,7 +117,7 @@ SECTIONS
         *(.gcc*)
     } > flash2
 
-    .text2 : ALIGN(16) SUBALIGN(16)
+    .text2 : ALIGN(16)
     {
         *(.text2)
         *(.text2.*)
@@ -200,7 +200,17 @@ SECTIONS
         . = ALIGN(4);
         PROVIDE(_bss_end = .);
         PROVIDE(end = .);
-    } > BSS_RAM    
+    } > BSS_RAM
+
+    /* Outside the ranges initialized at boot (data copy and bss zeroing), so
+       contents survive a reset. Used for crash diagnostics (crash_info). */
+    .noinit (NOLOAD) : ALIGN(4)
+    {
+        . = ALIGN(4);
+        *(.noinit)
+        *(.noinit.*)
+        . = ALIGN(4);
+    } > BSS_RAM
 
     .ram0 (NOLOAD) : ALIGN(4)
     {

@@ -3,12 +3,21 @@ first_rule: all
 LISPBM_UTILS_SRC = $(LISPBM)/utils/buffer.c \
                    $(LISPBM)/utils/crypto.c \
                    $(LISPBM)/utils/ecc.c \
-                   $(LISPBM)/utils/luamatch.c
+                   $(LISPBM)/utils/luamatch.c \
+                   $(LISPBM)/utils/tinygfx.c \
+                   $(LISPBM)/utils/tjpgd.c \
+                   $(LISPBM)/utils/tiny3d.c
 
 LISPBM_UTILS_H = $(LISPBM)/utils/buffer.h \
                  $(LISPBM)/utils/crypto.h \
                  $(LISPBM)/utils/ecc.h \
-                 $(LISPBM)/utils/luamatch.h
+                 $(LISPBM)/utils/luamatch.h \
+                 $(LISPBM)/utils/tinygfx.h \
+                 $(LISPBM)/utils/tinygfx_fonts.h \
+                 $(LISPBM)/utils/tjpgd.h \
+                 $(LISPBM)/utils/tjpgdcnf.h \
+                 $(LISPBM)/utils/cos_table.h \
+                 $(LISPBM)/utils/tiny3d.h
 
 LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/fundamental.c \
@@ -35,7 +44,7 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/random_extensions.c \
              $(LISPBM)/src/extensions/set_extensions.c \
              $(LISPBM)/src/extensions/display_extensions.c \
-             $(LISPBM)/src/extensions/tjpgd.c \
+             $(LISPBM)/src/extensions/tiny3d_extensions.c \
              $(LISPBM)/src/extensions/mutex_extensions.c \
              $(LISPBM)/src/extensions/lbm_dyn_lib.c \
              $(LISPBM)/src/extensions/ttf_extensions.c \
@@ -52,7 +61,6 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/extensions.h \
            $(LISPBM)/include/fundamental.h \
            $(LISPBM)/include/heap.h \
-           $(LISPBM)/include/heap_vis.h \
            $(LISPBM)/include/lbm_channel.h \
            $(LISPBM)/include/lbm_c_interop.h \
            $(LISPBM)/include/lbm_constants.h \
@@ -75,6 +83,7 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/utils/buffer.h \
            $(LISPBM)/include/extensions/array_extensions.h \
            $(LISPBM)/include/extensions/display_extensions.h \
+           $(LISPBM)/include/extensions/tiny3d_extensions.h \
            $(LISPBM)/include/extensions/lbm_dyn_lib.h \
            $(LISPBM)/include/extensions/math_extensions.h \
            $(LISPBM)/include/extensions/random_extensions.h \

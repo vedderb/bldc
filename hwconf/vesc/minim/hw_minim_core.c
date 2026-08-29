@@ -638,13 +638,16 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 
 			shutdown_save_and_hold();
 			comm_can_shutdown(255);
-			mc_interface_set_current(0);
-			mc_interface_lock();
-			hw_shutdown_set_hold(false);
-			chThdSleepMilliseconds(10000);
+
+			mc_interface_ignore_input_both(20000);
+			mc_interface_release_motor_override_both();
+
+			if (mc_interface_wait_for_motor_release_both(9.0)) {
+				hw_shutdown_set_hold(false);
+				chThdSleepMilliseconds(10000);
+			}
 
 			// Shutdown never happened
-			mc_interface_unlock();
 			hw_shutdown_set_hold(true);
 			switch_state = SWITCH_TURN_ON_DELAY_ACTIVE;
 			break;

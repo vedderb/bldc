@@ -20,7 +20,7 @@
 #ifndef HW_Lightning400_H_
 #define HW_Lightning400_H_
 
-#define HW_NAME					"Lightning400"
+#define HW_NAME					"Z400"
 
 #include "hw_Lightning400_core.h"
 

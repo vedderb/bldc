@@ -31,7 +31,9 @@
 
 ;; Display the result
 (disp-render img1 0 0 '(0x000000 0xFFFFFF))
+(save-img img1 "sdl_tests/png_out/test_img_dm_1.png" '(0x000000 0xFFFFFF))
 (disp-render img2 50 50 '(0x000000 0xFFFFFF))
+(save-img img2 "sdl_tests/png_out/test_img_dm_2.png" '(0x000000 0xFFFFFF))
 
 (if (and r1 r2 r3)
     (print "SUCCESS")

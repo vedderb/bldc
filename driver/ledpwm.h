@@ -48,6 +48,7 @@
 // Functions
 void ledpwm_init(void);
 void ledpwm_set_intensity(unsigned int led, float intensity);
+bool ledpwm_set_intensity_override(unsigned int led, float intensity);
 void ledpwm_led_on(int led);
 void ledpwm_led_off(int led);
 void ledpwm_update_pwm(void);

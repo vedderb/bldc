@@ -64,6 +64,7 @@
 #include "packet.h"
 #include "timer.h"
 #include "encoder_cfg.h"
+#include "ledpwm.h"
 
 #include <math.h>
 #include <ctype.h>
@@ -5759,9 +5760,76 @@ static lbm_value ext_gnss_age(lbm_value *args, lbm_uint argn) {
 	return lbm_enc_float(UTILS_AGE_S(mc_interface_gnss()->last_update));
 }
 
-static lbm_value ext_empty(lbm_value *args, lbm_uint argn) {
-	(void)args;(void)argn;
-	return ENC_SYM_TRUE;
+// (import "path" 'sym): the path is only used by VESC Tool at upload time
+// to bundle the file into the (name, offset, len) table appended after the
+// program's own source in the CODE_IND_LISP flash region. Looks sym up in
+// that table and shares the matching flash range as a const array.
+static lbm_value ext_import(lbm_value *args, lbm_uint argn) {
+	if (argn != 2 || !lbm_is_array_r(args[0]) || !lbm_is_symbol(args[1])) {
+		return ENC_SYM_TERROR;
+	}
+
+	lbm_uint sym_id = lbm_dec_sym(args[1]);
+	const char *sym_name = lbm_get_name_by_symbol(sym_id);
+	if (!sym_name) {
+		return ENC_SYM_EERROR;
+	}
+
+	const char *code_data = (char*)flash_helper_code_data(CODE_IND_LISP);
+	int32_t code_len = flash_helper_code_size(CODE_IND_LISP);
+
+	if (!code_data || code_len <= 8) {
+		return ENC_SYM_EERROR;
+	}
+
+	int32_t code_chars = (int32_t)strnlen(code_data, (size_t)code_len);
+	if (code_len <= code_chars + 3) {
+		return ENC_SYM_EERROR;
+	}
+
+	int32_t ind = code_chars + 1;
+	uint16_t num_imports = buffer_get_uint16((uint8_t*)code_data, &ind);
+	if (num_imports == 0 || num_imports >= 500) {
+		return ENC_SYM_EERROR;
+	}
+
+	for (int i = 0; i < num_imports; i++) {
+		const char *name = code_data + ind;
+		ind += (int32_t)strnlen(name, (size_t)(code_len - ind)) + 1;
+		int32_t offset = buffer_get_int32((uint8_t*)code_data, &ind);
+		int32_t len = buffer_get_int32((uint8_t*)code_data, &ind);
+
+		if (strcmp(name, sym_name) != 0) {
+			continue;
+		}
+
+		if (offset < 0 || len < 0 || (int64_t)offset + len > (int64_t)code_len) {
+			return ENC_SYM_EERROR;
+		}
+
+		lbm_value val;
+		if (!lbm_share_array_const(&val, (char*)(code_data + offset), (lbm_uint)len)) {
+			return ENC_SYM_MERROR;
+		}
+
+		lbm_uint ix_key = sym_id & GLOBAL_ENV_MASK;
+		lbm_value *global_env = lbm_get_global_env();
+		lbm_value new_env_entry = lbm_env_set(global_env[ix_key], args[1], val);
+
+		if (lbm_is_symbol_merror(new_env_entry)) {
+			return ENC_SYM_MERROR;
+		}
+
+		if (lbm_is_symbol(new_env_entry)) {
+			return ENC_SYM_EERROR;
+		}
+
+		global_env[ix_key] = new_env_entry;
+		return ENC_SYM_TRUE;
+	}
+
+	lbm_set_error_reason("Symbol not found among bundled imports");
+	return ENC_SYM_EERROR;
 }
 
 // Declare native lib extension
@@ -6076,10 +6144,49 @@ static lbm_value ext_shutdown_hold(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_shutdown(lbm_value *args, lbm_uint argn) {
+	bool save_backup = true;
+	if (argn == 1) {
+		if (!is_symbol_true_false(args[0])) {
+			return ENC_SYM_TERROR;
+		}
+
+		save_backup = lbm_is_symbol_true(args[0]);
+	}
+
+	if (save_backup) {
+		conf_general_store_backup_data();
+	}
+
+	bool ok = do_shutdown(false);
+
+	if (ok) {
+		chThdSleepMilliseconds(10000);
+	} else {
+		mc_interface_ignore_input_both(100);
+	}
+
+	// We should not return, but if we do the shutdown failed
+	return ENC_SYM_NIL;
+}
+
+static lbm_value ext_shutdown_btn_read(lbm_value *args, lbm_uint argn) {
+	(void)args;
+	(void)argn;
+
+	return lbm_enc_i(shutdown_sample_button() ? 1 : 0);
+}
+
 static lbm_value ext_override_speed(lbm_value *args, lbm_uint argn) {
 	LBM_CHECK_ARGN_NUMBER(2);
 	mc_interface_override_wheel_speed(lbm_dec_as_i32(args[0]), lbm_dec_as_float(args[1]));
 	return ENC_SYM_TRUE;
+}
+
+static lbm_value ext_override_led(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(2);
+	bool res = ledpwm_set_intensity_override(lbm_dec_as_i32(args[0]), lbm_dec_as_float(args[1]));
+	return res ? ENC_SYM_TRUE : ENC_SYM_NIL;
 }
 
 // Remote Messages
@@ -6480,7 +6587,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("set-odometer", ext_set_odometer);
 		lbm_add_extension("stats", ext_stats);
 		lbm_add_extension("stats-reset", ext_stats_reset);
-		lbm_add_extension("import", ext_empty);
+		lbm_add_extension("import", ext_import);
 		lbm_add_extension("icu-start", ext_icu_start);
 		lbm_add_extension("icu-width", ext_icu_width);
 		lbm_add_extension("icu-period", ext_icu_period);
@@ -6488,7 +6595,10 @@ void lispif_load_vesc_extensions(bool main_found) {
 		lbm_add_extension("crc32", ext_crc32);
 		lbm_add_extension("buf-resize", ext_buf_resize);
 		lbm_add_extension("shutdown-hold", ext_shutdown_hold);
+		lbm_add_extension("shutdown", ext_shutdown);
+		lbm_add_extension("shutdown-btn-read", ext_shutdown_btn_read);
 		lbm_add_extension("override-speed", ext_override_speed);
+		lbm_add_extension("override-led", ext_override_led);
 
 		// APP commands
 		lbm_add_extension("app-adc-detach", ext_app_adc_detach);

@@ -68,6 +68,7 @@
 
 ;; Display the result with 4-color palette
 (disp-render img400x300 0 0 '(0x000000 0xFF0000 0x00FF00 0x0000FF))
+(save-img img400x300 "sdl_tests/png_out/test_img_line_properties.png" '(0x000000 0xFF0000 0x00FF00 0x0000FF))
 
 (if (and r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 
          r18 r19 r20 r21 r22 r23 r24 is_buffer (eq dims '(400 300)))

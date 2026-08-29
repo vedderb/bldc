@@ -813,7 +813,7 @@ void comm_can_conf_battery_cut(uint8_t controller_id,
 
 void comm_can_shutdown(uint8_t controller_id) {
 	int32_t send_index = 0;
-	uint8_t buffer[8];
+	uint8_t buffer[8] = {0};
 	comm_can_transmit_eid_replace(controller_id |
 			((uint32_t)(CAN_PACKET_SHUTDOWN) << 8), buffer, send_index, true, 0);
 }

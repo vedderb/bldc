@@ -891,8 +891,8 @@ static void handle_param_getset(CanardInstance* ins, CanardRxTransfer* transfer)
 			case AP_PARAM_INT8:
 				pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
 				pkt.default_value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
-				pkt.min_value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
-				pkt.max_value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
+				pkt.min_value.union_tag = UAVCAN_PROTOCOL_PARAM_NUMERICVALUE_INTEGER_VALUE;
+				pkt.max_value.union_tag = UAVCAN_PROTOCOL_PARAM_NUMERICVALUE_INTEGER_VALUE;
 				pkt.value.integer_value = (int8_t)p->val;
 				pkt.default_value.integer_value = (int8_t)p->defval;
 				pkt.min_value.integer_value = (int8_t)p->min;
@@ -902,8 +902,8 @@ static void handle_param_getset(CanardInstance* ins, CanardRxTransfer* transfer)
 			case AP_PARAM_INT16:
 				pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
 				pkt.default_value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
-				pkt.min_value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
-				pkt.max_value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
+				pkt.min_value.union_tag = UAVCAN_PROTOCOL_PARAM_NUMERICVALUE_INTEGER_VALUE;
+				pkt.max_value.union_tag = UAVCAN_PROTOCOL_PARAM_NUMERICVALUE_INTEGER_VALUE;
 				pkt.value.integer_value = (int16_t)p->val;
 				pkt.default_value.integer_value = (int16_t)p->defval;
 				pkt.min_value.integer_value = (int16_t)p->min;
@@ -913,8 +913,8 @@ static void handle_param_getset(CanardInstance* ins, CanardRxTransfer* transfer)
 			case AP_PARAM_INT32:
 				pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
 				pkt.default_value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
-				pkt.min_value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
-				pkt.max_value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_INTEGER_VALUE;
+				pkt.min_value.union_tag = UAVCAN_PROTOCOL_PARAM_NUMERICVALUE_INTEGER_VALUE;
+				pkt.max_value.union_tag = UAVCAN_PROTOCOL_PARAM_NUMERICVALUE_INTEGER_VALUE;
 				pkt.value.integer_value = (int32_t)p->val;
 				pkt.default_value.integer_value = (int32_t)p->defval;
 				pkt.min_value.integer_value = (int32_t)p->min;
@@ -924,8 +924,8 @@ static void handle_param_getset(CanardInstance* ins, CanardRxTransfer* transfer)
 			case AP_PARAM_FLOAT:
 				pkt.value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_REAL_VALUE;
 				pkt.default_value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_REAL_VALUE;
-				pkt.min_value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_REAL_VALUE;
-				pkt.max_value.union_tag = UAVCAN_PROTOCOL_PARAM_VALUE_REAL_VALUE;
+				pkt.min_value.union_tag = UAVCAN_PROTOCOL_PARAM_NUMERICVALUE_REAL_VALUE;
+				pkt.max_value.union_tag = UAVCAN_PROTOCOL_PARAM_NUMERICVALUE_REAL_VALUE;
 				pkt.value.real_value = (float)p->val;
 				pkt.default_value.real_value = (float)p->defval;
 				pkt.min_value.real_value = (float)p->min;

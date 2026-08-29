@@ -93,12 +93,6 @@ OBJECTS = $(patsubst $(LISPBM)/src/%.c, $(BUILD_DIR)/%.o, $(SOURCES))
 PLATSRCS = $(wildcard $(PLATFORMSRC)/*.c)
 PLATOBJS = $(patsubst $(PLATFORMSRC)/%.c, $(BUILD_DIR)/%.o, $(PLATSRCS))
 
-ifdef HEAP_VIS
-	OBJECTS += $(BUILD_DIR)/heap_vis.o
-	CCFLAGS += -DVISUALIZE_HEAP
-endif
-
-
 LIB = $(BUILD_DIR)/liblispbm.a
 
 all: $(OBJECTS) $(LIB)
@@ -111,9 +105,6 @@ $(LIB): $(OBJECTS)
 
 $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c
 	$(CC) $(LISPBM_INC) -I$(PLATFORMINC) $(CCFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/heap_vis.o: $(SOURCE_DIR)/visual/heap_vis.c
-	$(CC) $(LISPBM_INC) -I$(PLAFORMINC) $(CCFLAGS) -c $< -o $@
 
 test:
 	cd tests && ./run_tests.sh

@@ -22,7 +22,6 @@
 #include "imu_config.h"
 #include "mpu9150.h"
 #include "ahrs.h"
-#include "timer.h"
 #include "commands.h"
 #include "icm20948.h"
 #include "bmi160_wrapper.h"
@@ -51,7 +50,7 @@ static bool imu_ready;
 static Biquad acc_x_biquad, acc_y_biquad, acc_z_biquad, gyro_x_biquad, gyro_y_biquad, gyro_z_biquad;
 
 // Private functions
-static void imu_read_callback(float *accel, float *gyro, float *mag);
+static void imu_read_callback(float *accel, float *gyro, float *mag, float dt);
 
 // Function pointers
 static void (*m_read_callback)(float *acc, float *gyro, float *mag, float dt) = NULL;
@@ -130,7 +129,8 @@ static void configure_biquads(float rate_hz) {
 
 void imu_init(imu_config *set) {
 	bool imu_changed = set->sample_rate_hz != m_settings.sample_rate_hz ||
-			set->type != m_settings.type || set->filter != m_settings.filter;
+		set->type != m_settings.type || set->filter != m_settings.filter ||
+		set->use_magnetometer != m_settings.use_magnetometer;
 
 	m_settings = *set;
 
@@ -197,6 +197,7 @@ void imu_init(imu_config *set) {
 			// same IMU to a different bus, so re-bind to the fallback transport
 			// and try once more.
 			commands_printf("IMU: no response on primary bus, trying fallback");
+			transport_deinit(&m_transport);
 			imu_fallback_transport_init();
 			com = IMU_FALLBACK_COM;
 			m_dev = imu_device_create(dev, com, &m_transport);
@@ -227,10 +228,7 @@ i2c_bb_state *imu_get_i2c(void) {
 
 void imu_stop(void) {
 	imu_thread_stop();
-
-#if IMU_COM == IMU_COM_SPI_HW
-	spiStop(&IMU_SPI_DEV);
-#endif
+	transport_deinit(&m_transport);
 }
 
 bool imu_startup_done(void) {
@@ -447,14 +445,7 @@ void imu_set_read_callback(void (*func)(float *acc, float *gyro, float *mag, flo
 	m_read_callback = func;
 }
 
-static void imu_read_callback(float *accel, float *gyro, float *mag) {
-	static uint32_t last_time = 0;
-
-	chSysLock();
-	float dt = timer_seconds_elapsed_since(last_time);
-	last_time = timer_time_now();
-	chSysUnlock();
-
+static void imu_read_callback(float *accel, float *gyro, float *mag, float dt) {
 	if (!imu_ready && ST2MS(chVTGetSystemTimeX() - init_time) > 1000) {
 		ahrs_update_all_parameters(
 				&m_att,

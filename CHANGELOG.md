@@ -3,6 +3,11 @@
 * Major IMU refactor, IMU DRDY support. See https://github.com/vedderb/bldc/pull/917
 * MT6835 encoder support: https://github.com/vedderb/bldc/pull/916
 * New kill switch modes.
+* Added crash_diag terminal command: https://github.com/vedderb/bldc/pull/877
+* LispBM:
+	* Improve stability when not using the image system
+	* Many new extensions and access to more configuration parameters.
+* Added PWM + ABI Inverted encoder mode.
 
 ### 7.00
 #### 2026-05-15

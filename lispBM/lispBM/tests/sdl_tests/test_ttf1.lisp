@@ -54,6 +54,7 @@
 
 ;; Display the result
 (disp-render img400x200 0 0 '(0x000000 0xFFFFFF))
+(save-img img400x200 "sdl_tests/png_out/test_ttf1.png" '(0x000000 0xFFFFFF))
 
 (if (and r1 r2 r3 r4 r5 r6 r10
          (eq r7 '(exit-error type_error))

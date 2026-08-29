@@ -20,7 +20,7 @@
 #include <buffer.h>
 #include "ttf_backend.h"
 
-#ifdef LBM_TTF_USE_FREETYPE
+#if defined(LBM_USE_TTF_FREETYPE) || defined(LBM_TTF_USE_FREETYPE)
   #include "ttf_backend_freetype.h"
 #else
   #include "schrift.h"
@@ -101,7 +101,7 @@ static int num_kern_pairs_row(SFT *sft, uint32_t utf32, uint32_t *codes, uint32_
       return -1;
     }
 
-#ifndef LBM_TTF_USE_FREETYPE
+#if !defined(LBM_USE_TTF_FREETYPE) && !defined(LBM_TTF_USE_FREETYPE)
     if (sft->font->pairAdjustOffset) {
       sft_gpos_kerning(sft, lgid, rgid, &kern);
     }
@@ -223,7 +223,7 @@ static bool buffer_append_kerning_table(uint8_t *buffer, SFT *sft, uint32_t *cod
             return false;
           }
 
-#ifndef LBM_TTF_USE_FREETYPE
+#if !defined(LBM_USE_TTF_FREETYPE) && !defined(LBM_TTF_USE_FREETYPE)
           // Schrift has separate GPOS and kern table handling
           if (sft->font->pairAdjustOffset) {
             sft_gpos_kerning(sft, lgid, rgid, &kern);
@@ -231,7 +231,7 @@ static bool buffer_append_kerning_table(uint8_t *buffer, SFT *sft, uint32_t *cod
           if (kern.xShift == 0.0 && kern.yShift == 0.0) {
 #endif
             sft_kerning(sft, lgid, rgid, &kern);
-#ifndef LBM_TTF_USE_FREETYPE
+#if !defined(LBM_USE_TTF_FREETYPE) && !defined(LBM_TTF_USE_FREETYPE)
           }
 #endif
           if (kern.xShift != 0.0 || kern.yShift != 0.0) {

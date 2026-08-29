@@ -74,6 +74,7 @@
 #define HW_SHUTDOWN_NO // Normally open switch
 #define HW_SHUTDOWN_HOLD_ON()
 #define HW_SAMPLE_SHUTDOWN()				1
+#define HW_SAMPLE_SHUTDOWN_OVR()			smart_switch_is_pressed()
 #define HW_SHUTDOWN_HOLD_OFF()				smart_switch_shut_down()
 #define SHUTDOWN_SET_SAMPLING_DISABLED(d)	smart_switch_set_sampling_disabled(d); \
 											shutdown_set_sampling_disabled(d)

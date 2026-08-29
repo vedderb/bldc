@@ -1,6 +1,7 @@
 #!/usr/bin/env -S shlbm -M 512000 --
 
-(import "dsp_lang.lisp")
+(import "dsp_lang.lisp" 'dsp)
+(read-eval-program dsp)
 
 ;; in radio mixing is multiplication.
 ;; This example shows DSB-SC (Double-Sideband Suppressed Carrier)  modulation

@@ -44,6 +44,10 @@ typedef struct transport transport_t;
 typedef struct {
 	// Human-readable transport name for diagnostics, e.g. "i2c-bb".
 	const char *name;
+	// True when a transfer occupies the CPU for its whole duration (bit-banged
+	// buses) and takes long to complete. Decides whether the IMU thread can
+	// run above NORMALPRIO.
+	bool cpu_bound;
 	// Highest sample rate (Hz) this bus may be driven at. Setting too high
 	// sample rate has caused rare unexplained MCU resets, probably due to CPU
 	// saturation. Each bus should set a safe maximum.
@@ -86,7 +90,7 @@ static inline void transport_recover(transport_t *t) {
 }
 
 static inline void transport_deinit(transport_t *t) {
-	if (t->interface->deinit) {
+	if (t->interface && t->interface->deinit) {
 		t->interface->deinit(t);
 	}
 }

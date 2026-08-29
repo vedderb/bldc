@@ -3,7 +3,7 @@
   Copyright 2023 - 2026 Joel Svensson              svenssonjoel@yahoo.se
   Copyright 2023        Rasmus Söderhielm          rasmus.soderhielm@gmail.com
   Copyright 2025        Joakim Lundborg            joakim.lundborg@gmail.com
-  
+
   This file is part of LispBM. (Originally a part of the vesc_express FW)
 
   LispBM is free software: you can redistribute it and/or modify
@@ -20,15 +20,12 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "tjpgd.h"
-
 #include <math.h>
 #include <string.h>
 
 #include <extensions/display_extensions.h>
 #include <lbm_utils.h>
 #include <lbm_defrag_mem.h>
-#include <lbm_cos_table.h>
 
 #ifdef LBM_OPT_DISPLAY_EXTENSIONS_SIZE
 #pragma GCC optimize ("-Os")
@@ -39,46 +36,6 @@
 
 #define MAX_WIDTH 32000
 #define MAX_HEIGHT 32000
-
-uint32_t lbm_display_rgb888_from_color(color_t color, int x, int y) {
-  switch (color.type) {
-  case COLOR_REGULAR:
-    return (uint32_t)color.color1;
-
-  case COLOR_GRADIENT_X:
-  case COLOR_GRADIENT_Y: {
-    uint32_t res;
-    uint32_t r1 = (uint32_t)color.color1 >> 16;
-    uint32_t g1 = (uint32_t)color.color1 >> 8 & 0xFF;
-    uint32_t b1 = (uint32_t)color.color1 & 0xff;
-
-    uint32_t r2 = (uint32_t)color.color2 >> 16;
-    uint32_t g2 = (uint32_t)color.color2 >> 8 & 0xFF;
-    uint32_t b2 = (uint32_t)color.color2 & 0xff;
-
-    int used_len = color.mirrored ? 256 : 128;
-
-    int pos = color.type == COLOR_GRADIENT_X ? x : y;
-    // int tab_pos = ((pos * 256) / color.param1 + color.param2) % 256;
-    int tab_pos = (((pos - color.param2) * 256) / color.param1 / 2) % used_len;
-    if (tab_pos < 0) {
-      tab_pos += used_len;
-    }
-
-    uint32_t tab_val = (uint32_t)lbm_cos_tab_128[tab_pos <= 127 ? tab_pos : 128 - (tab_pos - 127)];
-
-    uint32_t r = (r1 * tab_val + r2 * (255 - tab_val)) / 255;
-    uint32_t g = (g1 * tab_val + g2 * (255 - tab_val)) / 255;
-    uint32_t b = (b1 * tab_val + b2 * (255 - tab_val)) / 255;
-
-    res = r << 16 | g << 8 | b;
-    return res;
-  }
-
-  default:
-    return 0;
-  }
-}
 
 static lbm_uint symbol_indexed2 = 0;
 static lbm_uint symbol_indexed4 = 0;
@@ -96,6 +53,8 @@ static lbm_uint symbol_rotate = 0;
 static lbm_uint symbol_resolution = 0;
 static lbm_uint symbol_tile = 0;
 static lbm_uint symbol_clip = 0;
+static lbm_uint symbol_palette = 0;
+static lbm_uint symbol_alpha_buffer = 0;
 
 
 static lbm_uint symbol_regular = 0;
@@ -111,6 +70,7 @@ static lbm_uint symbol_color_1 = 0;
 static lbm_uint symbol_width = 0;
 static lbm_uint symbol_offset = 0;
 static lbm_uint symbol_repeat_type = 0;
+static lbm_uint symbol_alpha = 0;
 
 static lbm_uint symbol_down = 0;
 static lbm_uint symbol_up = 0;
@@ -148,32 +108,9 @@ color_format_t sym_to_color_format(lbm_value v) {
   return format_not_supported;
 }
 
-uint32_t image_dims_to_size_bytes(color_format_t fmt, uint16_t width, uint16_t height) {
-  uint32_t num_pix = (uint32_t)width * (uint32_t)height;
-  switch(fmt) {
-  case indexed2:
-    if (num_pix % 8 != 0) return (num_pix / 8) + 1;
-    else return (num_pix / 8);
-    break;
-  case indexed4:
-    if (num_pix % 4 != 0) return (num_pix / 4) + 1;
-    else return (num_pix / 4);
-    break;
-  case indexed16: // Two pixels per byte
-    if (num_pix % 2 != 0) return (num_pix / 2) + 1;
-    else return (num_pix / 2);
-  case rgb332:
-    return num_pix;
-    break;
-  case rgb565:
-    return num_pix * 2;
-    break;
-  case rgb888:
-    return num_pix * 3;
-  default:
-    return 0;
-  }
-}
+#define COLOR_MAGIC (uint32_t)0x4C4F4300
+
+#define COLOR_PRECALC_LEN	512
 
 static lbm_value image_buffer_lift(uint8_t *buf, color_format_t fmt, uint16_t width, uint16_t height) {
   lbm_value res = ENC_SYM_MERROR;
@@ -203,7 +140,7 @@ static inline bool is_color(uint8_t *data, lbm_uint size) {
 }
 
 
-static lbm_value color_allocate(COLOR_TYPE type, int32_t color1, int32_t color2, uint16_t param1, uint16_t param2, bool mirrored) {
+static lbm_value color_allocate(COLOR_TYPE type, int32_t color1, int32_t color2, uint16_t param1, uint16_t param2, bool mirrored, uint8_t alpha) {
   color_t *color = lbm_malloc(sizeof(color_t));
   if (!color) {
     return ENC_SYM_MERROR;
@@ -228,6 +165,7 @@ static lbm_value color_allocate(COLOR_TYPE type, int32_t color1, int32_t color2,
     color->param1 = param1;
     color->param2 = param2;
     color->mirrored = mirrored;
+    color->alpha = alpha;
     color->precalc = pre;
 
     if (pre) {
@@ -328,6 +266,8 @@ static bool register_symbols(void) {
   res = res && lbm_add_symbol_const("resolution", &symbol_resolution);
   res = res && lbm_add_symbol_const("tile", &symbol_tile);
   res = res && lbm_add_symbol_const("clip", &symbol_clip);
+  res = res && lbm_add_symbol_const("palette", &symbol_palette);
+  res = res && lbm_add_symbol_const("alpha-buffer", &symbol_alpha_buffer);
 
   res = res && lbm_add_symbol_const("regular", &symbol_regular);
   res = res && lbm_add_symbol_const("gradient_x", &symbol_gradient_x);
@@ -342,6 +282,7 @@ static bool register_symbols(void) {
   res = res && lbm_add_symbol_const("width", &symbol_width);
   res = res && lbm_add_symbol_const("offset", &symbol_offset);
   res = res && lbm_add_symbol_const("repeat-type", &symbol_repeat_type);
+  res = res && lbm_add_symbol_const("alpha", &symbol_alpha);
 
   res = res && lbm_add_symbol_const("down", &symbol_down);
   res = res && lbm_add_symbol_const("up", &symbol_up);
@@ -355,280 +296,18 @@ static bool register_symbols(void) {
   return res;
 }
 
-// Internal functions
-
-static int sign(int v) {
-  if (v > 0) {
-    return 1;
-  } else if (v < 0) {
-    return -1;
-  } else {
-    return 0;
-  }
-}
-
-// Geometry utility functions
-
-// Checks if a point is past a line formed by the given end and start points.
-// The returned value is 1 if it is past, -1 if it's on the other side of the
-// line, or 0 if it's exactly on the line.
-// Don't ask me what is considered the "positive" side of the line ;)
-//
-// It would probably be more logical if the sign of the result was flipped...
-static int point_past_line(int x, int y, int line_start_x, int line_start_y, int line_end_x, int line_end_y) {
-  // source: https://stackoverflow.com/a/11908158/15507414
-
-  // this is not really a cross product, but whatever...
-  int cross_prod = (x - line_start_x) * (line_end_y - line_start_y)
-    - (y - line_start_y) * (line_end_x - line_start_x);
-
-  if (cross_prod > 0) {
-    return 1;
-  } else if (cross_prod < 0) {
-    return -1;
-  } else {
-    return 0;
-  }
-}
-
-static bool points_same_quadrant(int x0, int y0, int x1, int y1) {
-  return (sign(x0) == sign(x1) || sign(x0) == 0 || sign(x1) == 0)
-    && (sign(y0) == sign(y1) || sign(y0) == 0 || sign(y1) == 0);
-}
-
-static inline void norm_angle(float *angle) {
-  while (*angle < -M_PI) { *angle += 2.0f * (float)M_PI; }
-  while (*angle >=  M_PI) { *angle -= 2.0f * (float)M_PI; }
-}
-
-static inline void norm_angle_0_2pi(float *angle) {
-  while (*angle < 0) { *angle += 2.0f * (float)M_PI; }
-  while (*angle >= 2.0 * M_PI) { *angle -= 2.0f * (float)M_PI; }
-}
-
-static uint8_t rgb888to332(uint32_t rgb) {
-  uint8_t r = (uint8_t)(rgb >> (16 + 5));
-  uint8_t g = (uint8_t)(rgb >> (8 + 5));
-  uint8_t b = (uint8_t)(rgb >> 6);
-  r = (uint8_t)((r & 0x7) << 5);
-  g = (uint8_t)((g & 0x7) << 2);
-  b = (b & 0x3);
-  uint8_t res_rgb332 = r | g | b;
-  return res_rgb332;
-}
-
-static uint16_t rgb888to565(uint32_t rgb) {
-  uint16_t r = (uint16_t)(rgb >> (16 + 3));
-  uint16_t g = (uint16_t)(rgb >> (8 + 2));
-  uint16_t b = (uint16_t)(rgb >> 3);
-  r = (uint16_t)(r << 11);
-  g = (uint16_t)((g & 0x3F) << 5);
-  b = (b & 0x1F);
-  uint16_t res_rgb565 = r | g | b;
-  return res_rgb565;
-}
-
-// One problem with rgb332 is that
-// if you take 3 most significant bits of 255 you get 7.
-// There is no whole number that you can multiply 7 with to get 255.
-// This is fundamental for any conversion from RGB888 that just uses the
-// N < 8 most significant bits. And it means that conversion to this format
-// and then back to rgb888 will not (without tricks) map highest intensity
-// back to highest intensity.
-//
-// Another issue is that 2 bits (the blue channel) yields steps of 85 (255 / 3)
-// while 3 bits yields steps of 36.4 (255 / 7)
-//
-// 36.4 72.8 109.3 145.7 182.1 218.6 254.99
-//         85          170               255
-//
-// The multiples of 85 never coincide with the multiples of 36.4 except
-// for at 0 and 255
-static uint32_t rgb332to888(uint8_t rgb) {
-  uint32_t r = (uint32_t)((rgb>>5) & 0x7);
-  uint32_t g = (uint32_t)((rgb>>2) & 0x7);
-
-  // turn 2 bits into 3 having value 0 3 5 or 7
-  // so that 4 points match up when doing greyscale.
-  uint32_t b = (uint32_t)(rgb & 0x3);
-
-  b = (b > 0) ? (2 * b) + 1 : 0;
-  r = (r == 7) ? 255 : 36 * r; // 36 is an approximation (36.4)
-  g = (g == 7) ? 255 : 36 * g;
-  b = (b == 7) ? 255 : 36 * b;
-  uint32_t res_rgb888 = r << 16 | g << 8 | b;
-  return res_rgb888;
-}
-
-// RGB 565
-// 2^5 = 32
-// 2^6 = 64
-// 255 / 31 = 8.226
-// 255 / 63 = 4.18
-//         0   1     2     3     4     5     6     7     8       ...  31   63
-// 5 bits  0   8.226 16.45 24.67 32.9  41.13 49.35 57.58 65.81   ...  254.9
-// 6 bits  0   4.047 8.09  12.14 16.19 20.24 24.29 28.33 32.38      ...    254.9
-//
-// For RGB 565 the 6 and 5 bit channels match up very nicely such
-// index i in the 5 bit channel is equal to index (2 * i) in the 6 bit channel.
-// RGB 565 will have nice grayscales.
-
-static uint32_t  rgb565to888(uint16_t rgb) {
-  uint32_t r = (uint32_t)(rgb >> 11);
-  uint32_t g = (uint32_t)((rgb >> 5) & 0x3F);
-  uint32_t b = (uint32_t)(rgb & 0x1F);
-  uint32_t res_rgb888 = r << (16 + 3) | g << (8 + 2) | b << 3;
-  return res_rgb888;
-}
-
-void image_buffer_clear(image_buffer_t *img, uint32_t cc) {
-  color_format_t fmt = img->fmt;
-  uint32_t w = img->width;
-  uint32_t h = img->height;
-  uint32_t img_size = w * h;
-  uint8_t *data = img->data;
-  switch (fmt) {
-  case indexed2: {
-    uint32_t bytes = (img_size / 8) + (img_size % 8 ? 1 : 0);
-    uint8_t c8 = (uint8_t)((cc & 1) ? 0xFF : 0x0);
-    memset(data, c8, bytes);
-  }
-    break;
-  case indexed4: {
-    static const uint8_t index4_table[4] = {0x00, 0x55, 0xAA, 0xFF};
-    uint32_t bytes = (img_size / 4) + (img_size % 4 ? 1 : 0);
-    uint8_t ix = (uint8_t)(cc & 0x3);
-    memset(data, index4_table[ix], bytes);
-  }
-    break;
-  case indexed16: {
-    uint32_t bytes = (img_size / 2) + (img_size % 2 ? 1 : 0);
-    uint8_t ix = (uint8_t)(cc & 0xF);
-    uint8_t color = (uint8_t)(ix | ix << 4);  // create a color based on duplication of index
-    memset(data, color, bytes);
-  }
-    break;
-  case rgb332: {
-    memset(data, rgb888to332(cc), img_size);
-  }
-    break;
-  case rgb565: {
-    uint16_t c = rgb888to565(cc);
-    uint8_t *dp = (uint8_t*)data;
-    for (unsigned int i = 0; i < img_size * 2; i +=2) {
-      dp[i] = (uint8_t)(c >> 8);
-      dp[i+1] = (uint8_t)c;
-    }
-  }
-    break;
-  case rgb888: {
-    uint8_t *dp = (uint8_t*)data;
-    for (unsigned int i = 0; i < img_size * 3; i+= 3) {
-      dp[i]   = (uint8_t)(cc >> 16);
-      dp[i+1] = (uint8_t)(cc >> 8);
-      dp[i+2] = (uint8_t)cc;
-    }
-  }
-    break;
-  default:
-    break;
-  }
-}
-
-static const uint8_t indexed4_mask[4] = {0x03, 0x0C, 0x30, 0xC0};
-static const uint8_t indexed4_shift[4] = {0, 2, 4, 6};
-static const uint8_t indexed16_mask[4] = {0x0F, 0xF0};
-static const uint8_t indexed16_shift[4] = {0, 4};
-
-
-void putpixel(image_buffer_t* img, int x_i, int y_i, uint32_t c) {
-  uint16_t w = img->width;
-  uint16_t h = img->height;
-  uint16_t x = (uint16_t)x_i; // negative numbers become really large.
-  uint16_t y = (uint16_t)y_i;
-
-  if (x < w && y < h) {
-    color_format_t fmt = img->fmt;
-    uint8_t *data = img->data;
-    switch(fmt) {
-    case indexed2: {
-      uint32_t pos = (uint32_t)y * (uint32_t)w + (uint32_t)x;
-      uint32_t byte = pos >> 3;
-      uint32_t bit  = 7 - (pos & 0x7);
-      if (c) {
-        data[byte] |= (uint8_t)(1 << bit);
-      } else {
-        data[byte] &= (uint8_t)~(1 << bit);
-      }
-      break;
-    }
-    case indexed4: {
-      uint32_t pos = (uint32_t)y*w + x;
-      uint32_t byte = pos >> 2;
-      uint32_t ix  = 3 - (pos & 0x3);
-      data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed4_mask[ix]) | (uint8_t)(c << indexed4_shift[ix]));
-      break;
-    }
-    case indexed16: {
-      uint32_t pos = (uint32_t)y*w + x;
-      uint32_t byte = pos >> 1;
-      uint32_t ix  = 1 - (pos & 0x1);
-      data[byte] = (uint8_t)((uint8_t)(data[byte] & ~indexed16_mask[ix]) | (uint8_t)(c << indexed16_shift[ix]));
-      break;
-    }
-    case rgb332: {
-      int pos = y*w + x;
-      data[pos] = rgb888to332(c);
-      break;
-    }
-    case rgb565: {
-      int pos = y*(w<<1) + (x<<1) ;
-      uint16_t color = rgb888to565(c);
-      data[pos] = (uint8_t)(color >> 8);
-      data[pos+1] = (uint8_t)color;
-      break;
-    }
-    case rgb888: {
-      int pos = y*(w*3) + (x*3);
-      data[pos] = (uint8_t)(c>>16);
-      data[pos+1] = (uint8_t)(c>>8);
-      data[pos+2] = (uint8_t)c;
-      break;
-    }
-    default:
-      break;
-    }
-  }
-}
-
-static const uint8_t retro5x7[] = {
-    5, 7, 91, 1, 0, 0, 0, 0, 0, 132, 16, 2, 8, 0, 74, 1, 0, 0, 0, 74,
-    125, 245, 149, 2, 196, 23, 71, 31, 1, 115, 33, 34, 116, 6, 38, 21, 83, 147, 5, 132,
-    0, 0, 0, 0, 136, 8, 33, 8, 2, 130, 32, 132, 136, 0, 64, 145, 79, 20, 0, 128,
-    144, 79, 8, 0, 0, 0, 192, 136, 0, 0, 128, 15, 0, 0, 0, 0, 0, 140, 1, 16,
-    33, 34, 68, 0, 46, 230, 58, 163, 3, 196, 16, 66, 136, 3, 46, 66, 38, 194, 7, 46,
-    66, 7, 163, 3, 76, 165, 244, 17, 2, 63, 60, 8, 163, 3, 46, 132, 23, 163, 3, 31,
-    34, 34, 132, 0, 46, 70, 23, 163, 3, 46, 70, 15, 161, 3, 192, 24, 96, 12, 0, 192,
-    24, 96, 68, 0, 136, 136, 32, 8, 2, 0, 124, 240, 1, 0, 130, 32, 136, 136, 0, 46,
-    66, 68, 0, 1, 46, 246, 218, 130, 3, 68, 197, 248, 99, 4, 47, 198, 23, 227, 3, 46,
-    134, 16, 162, 3, 47, 198, 24, 227, 3, 63, 132, 23, 194, 7, 63, 132, 23, 66, 0, 46,
-    134, 30, 163, 7, 49, 198, 31, 99, 4, 142, 16, 66, 136, 3, 28, 33, 132, 146, 1, 49,
-    149, 81, 82, 4, 33, 132, 16, 194, 7, 113, 215, 24, 99, 4, 113, 214, 28, 99, 4, 46,
-    198, 24, 163, 3, 47, 198, 23, 66, 0, 46, 198, 88, 179, 3, 47, 198, 87, 82, 4, 46,
-    6, 7, 163, 3, 159, 16, 66, 8, 1, 49, 198, 24, 163, 3, 49, 198, 168, 20, 1, 49,
-    198, 90, 119, 4, 49, 42, 162, 98, 4, 49, 42, 66, 8, 1, 31, 34, 34, 194, 7, 78,
-    8, 33, 132, 3, 33, 8, 130, 32, 4, 14, 33, 132, 144, 3, 68, 69, 0, 0, 0, 0,
-    0, 0, 192, 7, 134, 32, 0, 0, 0, 0, 56, 232, 163, 7, 33, 188, 24, 227, 3, 0,
-    184, 16, 162, 3, 16, 250, 24, 163, 7, 0, 184, 248, 131, 3, 76, 136, 39, 132, 0, 192,
-    199, 232, 161, 3, 33, 188, 24, 99, 4, 4, 24, 66, 136, 3, 16, 64, 8, 163, 3, 33,
-    149, 81, 82, 4, 134, 16, 66, 136, 3, 0, 172, 90, 99, 4, 0, 188, 24, 99, 4, 0,
-    184, 24, 163, 3, 224, 197, 248, 66, 0, 192, 199, 232, 33, 4, 0, 188, 24, 66, 0, 0,
-    248, 224, 224, 3, 66, 60, 33, 36, 3, 0, 196, 24, 163, 7, 0, 196, 24, 21, 1, 0,
-    196, 88, 171, 2, 0, 68, 69, 84, 4, 0, 196, 232, 161, 3, 0, 124, 68, 196, 7
-  };
+#include "tinygfx_fonts.h"
 
 // returns: 1 parsed, 0 not an attr list, -1 malformed/invalid
 static int parse_text_attr(lbm_value v, float *mag, int *spacing, int *align, int *rotation_deg) {
+  if (lbm_is_cons(v) && lbm_car(v) == ENC_SYM_QUOTE) {
+    lbm_value quoted = lbm_cdr(v);
+    if (!lbm_is_cons(quoted) || lbm_cdr(quoted) != ENC_SYM_NIL) {
+      return -1;
+    }
+    v = lbm_car(quoted);
+  }
+
   if (!lbm_is_cons(v)) {
     return 0;
   }
@@ -693,1288 +372,6 @@ static int parse_text_attr(lbm_value v, float *mag, int *spacing, int *align, in
   return 0;
 }
 
-uint32_t getpixel(image_buffer_t* img, int x_i, int y_i) {
-  uint16_t w = img->width;
-  uint16_t h = img->height;
-  uint16_t x = (uint16_t)x_i;
-  uint16_t y = (uint16_t)y_i;
-
-  if (x < w && y < h) {
-    color_format_t fmt = img->fmt;
-    uint8_t *data = img->data;
-    switch(fmt) {
-    case indexed2: {
-      uint32_t pos = (uint32_t)y * w + x;
-      uint32_t byte = pos >> 3;
-      uint32_t bit  = 7 - (pos & 0x7);
-      return (uint32_t)(data[byte] >> bit) & 0x1;
-    }
-    case indexed4: {
-      uint32_t pos = (uint32_t)y*w + x;
-      uint32_t byte = pos >> 2;
-      uint32_t ix  = 3 - (pos & 0x3);
-      return (uint32_t)((data[byte] & indexed4_mask[ix]) >> indexed4_shift[ix]);
-    }
-    case indexed16: {
-      uint32_t pos = (uint32_t)y*w + x;
-      uint32_t byte = pos >> 1;
-      uint32_t ix  = 1 - (pos & 0x1);
-      return (uint32_t)((data[byte] & indexed16_mask[ix]) >> indexed16_shift[ix]);
-    }
-    case rgb332: {
-      int pos = y*w + x;
-      return rgb332to888(data[pos]);
-    }
-    case rgb565: {
-      int pos = y*(w<<1) + (x<<1);
-      uint16_t c = (uint16_t)(((uint16_t)data[pos] << 8) | (uint16_t)data[pos+1]);
-      return rgb565to888(c);
-    }
-    case rgb888: {
-      int pos = y*(w*3) + (x*3);
-      uint32_t r = data[pos];
-      uint32_t g = data[pos+1];
-      uint32_t b = data[pos+2];
-      return (r << 16 | g << 8 | b);
-    }
-    default:
-      break;
-    }
-  }
-  return 0;
-}
-
-static void h_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
-  for (int i = 0; i < len; i ++) {
-    putpixel(img, x+i, y, c);
-  }
-}
-
-static void v_line(image_buffer_t* img, int x, int y, int len, uint32_t c) {
-  for (int i = 0; i < len; i ++) {
-    putpixel(img, x, y+i, c);
-  }
-}
-
-static void fill_circle(image_buffer_t *img, int x, int y, int radius, uint32_t color) {
-  switch (radius) {
-  case 0:
-    break;
-
-  case 1:
-    putpixel(img, x - 1, y - 1, color);
-    putpixel(img, x, y - 1, color);
-    putpixel(img, x - 1, y, color);
-    putpixel(img, x, y, color);
-    break;
-
-  case 2:
-    h_line(img, x - 1, y - 2, 2, color);
-    h_line(img, x - 2, y - 1, 4, color);
-    h_line(img, x - 2, y, 4, color);
-    h_line(img, x - 1, y + 1, 2, color);
-    break;
-
-  case 3:
-    h_line(img, x - 2, y - 3, 4, color);
-    h_line(img, x - 3, y - 2, 6, color);
-    h_line(img, x - 3, y - 1, 6, color);
-    h_line(img, x - 3, y, 6, color);
-    h_line(img, x - 3, y + 1, 6, color);
-    h_line(img, x - 2, y + 2, 4, color);
-    break;
-
-  case 4:
-    h_line(img, x - 2, y - 4, 4, color);
-    h_line(img, x - 3, y - 3, 6, color);
-    h_line(img, x - 4, y - 2, 8, color);
-    h_line(img, x - 4, y - 1, 8, color);
-    h_line(img, x - 4, y, 8, color);
-    h_line(img, x - 4, y + 1, 8, color);
-    h_line(img, x - 3, y + 2, 6, color);
-    h_line(img, x - 2, y + 3, 4, color);
-    break;
-
-  default: {
-    int r_sq = radius * radius;
-    for (int y1 = -radius; y1 <= radius; y1++) {
-      for (int x1 = -radius; x1 <= radius; x1++) {
-        if (x1 * x1 + y1 * y1 <= r_sq) {
-          // Compute the start and end position for x axis
-          int x_left = x1;
-          while ((x1 + 1) <= radius && ((x1 + 1) * (x1 + 1) + y1 * y1) <= r_sq) {
-            x1++;
-          }
-          int x_right = x1;
-
-          // Draw line at this level y
-          int length = x_right - x_left + 1;
-          h_line(img, x + x_left, y + y1, length, color);
-
-          // Break out of innter loop for this level y
-          break;
-        }
-      }
-    }
-  } break;
-  }
-}
-
-// Circle helper function, to draw a circle with an inner and outer radius.
-// Draws the slice at the given outer radius point.
-static void handle_circle_slice(int outer_x, int outer_y, image_buffer_t *img, int c_x, int c_y, int radius_inner, uint32_t color, int radius_inner_dbl_sq) {
-  int width;
-
-  bool slice_filled;
-  if (outer_y < 0) {
-    slice_filled = -outer_y > radius_inner;
-  } else {
-    slice_filled = outer_y >= radius_inner;
-  }
-
-  if (slice_filled) {
-    if (outer_x < 0) {
-      width = -outer_x;
-    } else {
-      width = outer_x + 1;
-      outer_x = 0;
-    }
-  } else {
-    int cur_x = outer_x;
-    int delta = outer_x > 0 ? -1 : 1;
-
-    // TODO: this could probably be binary searched
-    int y_dbl_off = outer_y * 2 + 1;
-    int y_dbl_off_sq = y_dbl_off * y_dbl_off;
-    while (true) {
-      cur_x += delta;
-      int x_dbl_off = cur_x * 2 + 1;
-      if (x_dbl_off * x_dbl_off + y_dbl_off_sq <= radius_inner_dbl_sq
-          || abs(cur_x) > 2000) { // failsafe
-        break;
-      }
-    }
-    width = abs(cur_x - outer_x);
-    if (outer_x > 0) {
-      outer_x = cur_x + 1;
-    }
-  }
-
-  h_line(img, outer_x + c_x, outer_y + c_y, width, color);
-}
-
-// thickness extends inwards from the given radius circle
-static void circle(image_buffer_t *img, int x, int y, int radius, int thickness, uint32_t color) {
-  if (thickness <= 0) {
-    int x0 = 0;
-    int y0 = radius;
-    int d = 5 - 4*radius;
-    int da = 12;
-    int db = 20 - 8*radius;
-
-    while (x0 < y0) {
-      putpixel(img, x + x0, y + y0, color);
-      putpixel(img, x + x0, y - y0, color);
-      putpixel(img, x - x0, y + y0, color);
-      putpixel(img, x - x0, y - y0, color);
-      putpixel(img, x + y0, y + x0, color);
-      putpixel(img, x + y0, y - x0, color);
-      putpixel(img, x - y0, y + x0, color);
-      putpixel(img, x - y0, y - x0, color);
-      if (d < 0) { d = d + da; db = db+8; }
-      else  { y0 = y0 - 1; d = d+db; db = db + 16; }
-      x0 = x0+1;
-      da = da + 8;
-    }
-  } else {
-    int radius_inner = radius - thickness;
-
-    int radius_outer_dbl_sq = radius * radius * 4;
-    int radius_inner_dbl_sq = radius_inner * radius_inner * 4;
-
-    for (int y0 = 0; y0 < radius; y0++) {
-      int y_dbl_offs = 2 * y0 + 1;
-      int y_dbl_offs_sq = y_dbl_offs * y_dbl_offs;
-
-      for (int x0 = -radius; x0 <= 0; x0++) {
-        int x_dbl_offs = 2 * x0 + 1;
-        if (x_dbl_offs * x_dbl_offs + y_dbl_offs_sq <= radius_outer_dbl_sq) {
-          // This is horrible...
-          handle_circle_slice(x0, y0,
-                              img, x, y, radius_inner, color, radius_inner_dbl_sq);
-          handle_circle_slice(-x0 - 1, y0,
-                              img, x, y, radius_inner, color, radius_inner_dbl_sq);
-          handle_circle_slice(x0, -y0 - 1,
-                              img, x, y, radius_inner, color, radius_inner_dbl_sq);
-          handle_circle_slice(-x0 - 1, -y0 - 1,
-                              img, x, y, radius_inner, color, radius_inner_dbl_sq);
-          break;
-        }
-      }
-    }
-  }
-}
-
-// Thickness extends outwards and inwards from the given line equally, resulting
-// in double the total thickness.
-// TODO: This should be more efficient
-// http://homepages.enterprise.net/murphy/thickline/index.html
-// https://github.com/ArminJo/STMF3-Discovery-Demos/blob/master/lib/BlueDisplay/LocalGUI/ThickLine.hpp
-static void line(image_buffer_t *img, int x0, int y0, int x1, int y1, int thickness, int dot1, int dot2, uint32_t c) {
-  int dx = abs(x1 - x0);
-  int sx = x0 < x1 ? 1 : -1;
-  int dy = -abs(y1 - y0);
-  int sy = y0 < y1 ? 1 : -1;
-  int error = dx + dy;
-
-  if (dot1 > 0) {
-    // These are used to deal with consecutive calls with
-    // possibly overlapping pixels.
-    static int dotcnt = 0;
-    static int x_last = 0;
-    static int y_last = 0;
-
-    while (true) {
-      if (dotcnt <= dot1) {
-        if (thickness > 1) {
-          fill_circle(img, x0, y0, thickness, c);
-        } else {
-          putpixel(img, x0, y0, c);
-        }
-      }
-
-      if (x0 != x_last || y0 != y_last) {
-        dotcnt++;
-      }
-
-      x_last = x0;
-      y_last = y0;
-
-      if (dotcnt >= (dot1 + dot2)) {
-        dotcnt = 0;
-      }
-
-      if (x0 == x1 && y0 == y1) {
-        break;
-      }
-      if ((error * 2) >= dy) {
-        if (x0 == x1) {
-          break;
-        }
-        error += dy;
-        x0 += sx;
-      }
-      if ((error * 2) <= dx) {
-        if (y0 == y1) {
-          break;
-        }
-        error += dx;
-        y0 += sy;
-      }
-    }
-  } else {
-    while (true) {
-      if (thickness > 1) {
-        fill_circle(img, x0, y0, thickness, c);
-      } else {
-        putpixel(img, x0, y0, c);
-      }
-
-      if (x0 == x1 && y0 == y1) {
-        break;
-      }
-      if ((error * 2) >= dy) {
-        if (x0 == x1) {
-          break;
-        }
-        error += dy;
-        x0 += sx;
-      }
-      if ((error * 2) <= dx) {
-        if (y0 == y1) {
-          break;
-        }
-        error += dx;
-        y0 += sy;
-      }
-    }
-  }
-}
-
-// thickness extends inwards from the given rectangle edge.
-static void rectangle(image_buffer_t *img, int x, int y, int width, int height,
-                      bool fill, int thickness, int dot1, int dot2, uint32_t color) {
-  thickness /= 2;
-
-  if (fill) {
-    for (int i = y; i < (y + height);i++) {
-      h_line(img, x, i, width, color);
-    }
-  } else {
-    if (thickness <= 0 && dot1 == 0) {
-      h_line(img, x, y, width, color);
-      h_line(img, x, y + height, width, color);
-      v_line(img, x, y, height, color);
-      v_line(img, x + width, y, height, color);
-    } else {
-      x += thickness;
-      y += thickness;
-      width -= thickness * 2;
-      height -= thickness * 2;
-      // top
-      line(img, x, y, x + width, y, thickness, dot1, dot2, color);
-      // bottom
-      line(img, x, y + height, x + width, y + height, thickness, dot1, dot2, color);
-      // left
-      line(img, x, y, x, y + height, thickness, dot1, dot2, color);
-      // right
-      line(img, x + width, y, x + width, y + height, thickness, dot1, dot2, color);
-    }
-  }
-}
-
-#define NMIN(a, b) ((a) < (b) ? (a) : (b))
-#define NMAX(a, b) ((a) > (b) ? (a) : (b))
-
-static void fill_triangle(image_buffer_t *img, int x0, int y0,
-                          int x1, int y1, int x2, int y2, uint32_t color) {
-  int x_min = NMIN(x0, NMIN(x1, x2));
-  int x_max = NMAX(x0, NMAX(x1, x2));
-  int y_min = NMIN(y0, NMIN(y1, y2));
-  int y_max = NMAX(y0, NMAX(y1, y2));
-
-  for (int y = y_min;y <= y_max;y++) {
-    for (int x = x_min;x <= x_max;x++) {
-      int w0 = point_past_line(x, y, x1, y1, x2, y2);
-      int w1 = point_past_line(x, y, x2, y2, x0, y0);
-      int w2 = point_past_line(x, y, x0, y0, x1, y1);
-
-      if ((w0 >= 0 && w1 >= 0 && w2 >= 0)
-          || (w0 <= 0 && w1 <= 0 && w2 <= 0)) {
-        putpixel(img, x, y, color);
-      }
-    }
-  }
-}
-
-static void generic_arc(image_buffer_t *img, int x, int y, int rad, float ang_start, float ang_end,
-                        int thickness, int dot1, int dot2, int res, bool sector, bool segment, uint32_t color) {
-  ang_start *= (float)M_PI / 180.0f;
-  ang_end *= (float)M_PI / 180.0f;
-
-  norm_angle(&ang_start);
-  norm_angle(&ang_end);
-
-  float ang_range = ang_end - ang_start;
-
-  if (ang_range < 0.0) {
-    ang_range += 2.0f * (float)M_PI;
-  }
-
-  if (res <= 0) {
-    res = 80;
-  }
-
-  float steps = ceilf((float)res * ang_range * (0.5f / (float)M_PI));
-
-  float ang_step = ang_range / steps;
-  float sa = sinf(ang_step);
-  float ca = cosf(ang_step);
-
-  float px_start = cosf(ang_start) * (float)rad;
-  float py_start = sinf(ang_start) * (float)rad;
-
-
-  float px = px_start;
-  float py = py_start;
-
-  for (int i = 0;i < (int)steps;i++) {
-    float px_before = px;
-    float py_before = py;
-
-    px = px * ca - py * sa;
-    py = py * ca + px_before * sa;
-
-    line(img, x + (int)px_before, y + (int)py_before,
-         x + (int)px, y + (int)py, thickness, dot1, dot2, color);
-  }
-
-  if (sector) {
-    line(img, x + (int)px, y + (int)py,
-         x, y,
-         thickness, dot1, dot2, color);
-    line(img, x, y,
-         x + (int)px_start, y + (int)py_start,
-         thickness, dot1, dot2, color);
-  }
-
-  if (segment) {
-    line(img, x + (int)px, y + (int)py,
-         x + (int)px_start, y + (int)py_start,
-         thickness, dot1, dot2, color);
-  }
-}
-
-// thin arc helper function
-// handles a single pixel in the complete circle, checking if the pixel is part
-// of the arc.
-static void handle_thin_arc_pixel(image_buffer_t *img, int x, int y,
-                                  int c_x, int c_y, int cap0_x, int cap0_y, int cap1_x, int cap1_y, int min_y, int max_y, bool angle_is_closed, uint32_t color) {
-  if (y > max_y || y < min_y) {
-    return;
-  }
-
-  int line_is_past_0 = point_past_line(x, y, 0, 0, cap0_x, cap0_y);
-  int line_is_past_1 = -point_past_line(x, y, 0, 0, cap1_x, cap1_y);
-
-  bool in_cap0_quadrant = points_same_quadrant(
-                                               x, y, cap0_x, cap0_y);
-  bool in_cap1_quadrant = points_same_quadrant(
-                                               x, y, cap1_x, cap1_y);
-
-  if (angle_is_closed) {
-    if (line_is_past_0 == 1 && line_is_past_1 == 1) {
-      return;
-    }
-  } else {
-    if (line_is_past_0 == 1 || line_is_past_1 == 1
-        || (line_is_past_0 == 0 && !in_cap0_quadrant)
-        || (line_is_past_1 == 0 && !in_cap1_quadrant)) {
-      return;
-    }
-  }
-
-  putpixel(img, c_x + x, c_y + y, color);
-}
-
-// single pixel wide arc
-static void thin_arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1, bool sector, bool segment, uint32_t color) {
-  if (radius == 0) {
-    return;
-  }
-
-  angle0 *= (float)M_PI / 180.0f;
-  angle1 *= (float)M_PI / 180.0f;
-  norm_angle_0_2pi(&angle0);
-  norm_angle_0_2pi(&angle1);
-
-  if (angle0 == angle1) {
-    return;
-  }
-
-  bool angle_is_closed;
-  // if the angle of the filled in part of the arc is greater than 180°
-  // honestly unsure if it'd be better if this was called angle_is_open
-  if (angle1 - angle0 > 0.0) {
-    angle_is_closed = fabsf(angle1 - angle0) > M_PI;
-  } else {
-    angle_is_closed = fabsf(angle1 - angle0) < M_PI;
-  }
-
-  int cap0_x = (int)(cosf(angle0) * (float)(radius));
-  int cap0_y = (int)(sinf(angle0) * (float)(radius));
-
-  int cap1_x = (int)(cosf(angle1) * (float)(radius));
-  int cap1_y = (int)(sinf(angle1) * (float)(radius));
-
-  // Highest and lowest (y coord wise) drawn line of the base arc (excluding
-  // the circular end caps). This range is *inclusive*!
-  // Note that these might be slightly off due to inconsistent rounding between
-  // my circle drawing algorithm and point rotation.
-  int min_y = MIN(cap0_y, cap1_y);
-  int max_y = MAX(cap0_y, cap1_y);
-  if (angle0 < angle1) {
-    if (angle0 < M_PI_2 && angle1 >= M_3PI_2) {
-      min_y = -radius;
-      max_y = radius;
-    } else if (angle0 < M_3PI_2 && angle1 > M_3PI_2) {
-      min_y = -radius;
-    } else if (angle0 < M_PI_2 && angle1 > M_PI_2) {
-      max_y = radius;
-    }
-  } else {
-    if ((angle0 < M_3PI_2 && angle1 >= M_PI_2)
-        || (angle0 < M_PI_2)
-        || (angle1 > M_3PI_2)) {
-      min_y = -radius;
-      max_y = radius;
-    } else if (angle0 < M_3PI_2 && angle1 < M_PI_2) {
-      min_y = -radius;
-    } else if (angle0 > M_PI_2 && angle1 > M_PI_2) {
-      max_y = radius;
-    }
-  }
-
-  int radius_dbl_sq = radius * radius * 4;
-
-  int last_x = 0;
-  for (int y = radius - 1; y >= 0; y--) {
-    int y_dbl_offs = 2 * y + 1;
-    int y_dbl_offs_sq = y_dbl_offs * y_dbl_offs;
-
-    for (int x = -radius; x <= 0; x++) {
-      int x_dbl_offs = 2 * x + 1;
-      if (x_dbl_offs * x_dbl_offs + y_dbl_offs_sq <= radius_dbl_sq) {
-        if (last_x - x < 2) {
-          // This is horrible...
-          handle_thin_arc_pixel(img, x, y,
-                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-          handle_thin_arc_pixel(img, -x - 1, y,
-                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-
-          handle_thin_arc_pixel(img, x, -y - 1,
-                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-          handle_thin_arc_pixel(img, -x - 1, -y - 1,
-                                c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-        } else {
-          for (int x0 = x; x0 < last_x; x0++) {
-            handle_thin_arc_pixel(img, x0, y,
-                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-            handle_thin_arc_pixel(img, -x0 - 1, y,
-                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-
-            handle_thin_arc_pixel(img, x0, -y - 1,
-                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-            handle_thin_arc_pixel(img, -x0 - 1, -y - 1,
-                                  c_x, c_y, cap0_x, cap0_y, cap1_x, cap1_y, min_y, max_y, angle_is_closed, color);
-          }
-        }
-
-        last_x = x;
-        break;
-      }
-    }
-  }
-
-  if (sector) {
-    line(img, c_x, c_y, c_x + cap0_x, c_y + cap0_y, 1, 0, 0, color);
-    line(img, c_x, c_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, color);
-  }
-
-  if (segment) {
-    line(img, c_x + cap0_x, c_y + cap0_y, c_x + cap1_x, c_y + cap1_y, 1, 0, 0, color);
-  }
-}
-
-// arc helper function
-// handles a horizontal slice at the given outer arc point
-static void handle_arc_slice(image_buffer_t *img, int outer_x, int outer_y, int c_x, int c_y, uint32_t color,
-                             int outer_x0, int outer_y0, int outer_x1, int outer_y1,
-                             int cap0_min_y, int cap0_max_y, int cap1_min_y, int cap1_max_y,
-                             int radius_outer, int radius_inner,
-                             int min_y, int max_y,
-                             float angle0, float angle1, bool angle_is_closed,
-                             bool filled, bool segment,
-                             int radius_inner_dbl_sq) {
-  (void) radius_outer;
-  if (outer_y > max_y || outer_y < min_y) {
-    return;
-  }
-
-  int line_is_past_0, line_is_past_1;
-  line_is_past_0 = point_past_line(outer_x, outer_y, 0, 0, outer_x0, outer_y0);
-  line_is_past_1 = -point_past_line(outer_x, outer_y, 0, 0, outer_x1, outer_y1);
-
-  int outer_x_sign = sign(outer_x);
-  int outer_y_sign = sign(outer_y);
-
-  int outer_x0_sign = sign(outer_x0);
-  int outer_y0_sign = sign(outer_y0);
-
-  int outer_x1_sign = sign(outer_x1);
-  int outer_y1_sign = sign(outer_y1);
-
-  bool in_cap0, in_cap1, in_both_caps;
-  if (segment && filled) {
-    in_cap0 = outer_y <= MAX(outer_y0, outer_y1)
-      && outer_y >= MIN(outer_y0, outer_y1);
-    in_cap1 = false;
-  }
-  else if (filled) {
-    in_cap0 = outer_y <= cap0_max_y
-      && outer_x0_sign == outer_x_sign
-      && outer_y0_sign == outer_y_sign;
-    in_cap1 = outer_y <= cap1_max_y
-      && outer_x1_sign == outer_x_sign
-      && outer_y1_sign == outer_y_sign;
-  } else {
-    in_cap0 = outer_y >= cap0_min_y
-      && outer_y <= cap0_max_y
-      && outer_x_sign == outer_x0_sign;
-    in_cap1 = outer_y >= cap1_min_y
-      && outer_y <= cap1_max_y
-      && outer_x_sign == outer_x1_sign;
-  }
-  in_both_caps = in_cap0 && in_cap1;
-
-  bool in_cap0_quadrant = points_same_quadrant(outer_x, outer_y, outer_x0, outer_y0);
-  bool in_cap1_quadrant = points_same_quadrant(outer_x, outer_y, outer_x1, outer_y1);
-
-  bool caps_in_same_quadrant = points_same_quadrant(outer_x0, outer_y0, outer_x1, outer_y1);
-
-  // Check if slice is outside caps and drawn sections of the arc.
-  if (!in_cap0 && !in_cap1) {
-    if (angle_is_closed) {
-      if (line_is_past_0 == 1 && line_is_past_1 == 1
-          // Failsafe for closed angles with a very small difference.
-          // Otherwise a tiny section at the opposite side of the arc
-          // might get skipped.
-          && (!caps_in_same_quadrant || (in_cap0_quadrant && in_cap1_quadrant))) {
-        return;
-      }
-    } else {
-      if (line_is_past_0 == 1 || line_is_past_1 == 1
-          || (line_is_past_0 == 0 && !in_cap0_quadrant)
-          || (line_is_past_1 == 0 && !in_cap1_quadrant)) {
-        return;
-      }
-    }
-  }
-
-  // Find slice width if arc spanned the complete circle.
-  int x, x1;
-  int width = 0;
-  int width1 = 0;
-  bool slice_is_split = false;
-
-  bool slice_filled;
-  if (filled) {
-    slice_filled = true;
-  } else {
-    if (outer_y < 0) {
-      slice_filled = -outer_y > radius_inner;
-    } else {
-      slice_filled = outer_y >= radius_inner;
-    }
-  }
-
-  if (slice_filled) {
-    if (outer_x < 0) {
-      x = outer_x;
-      width = -x;
-    } else {
-      x = 0;
-      width = outer_x + 1;
-    }
-  } else {
-    x = outer_x;
-    int cur_x = outer_x;
-    int delta = outer_x > 0 ? -1 : 1;
-
-    // TODO: this could probably be binary searched
-    int y_dbl_off = outer_y * 2 + 1;
-    int y_dbl_off_sq = y_dbl_off * y_dbl_off;
-    while (true) {
-      cur_x += delta;
-      int x_dbl_off = cur_x * 2 + 1;
-      if (x_dbl_off * x_dbl_off + y_dbl_off_sq <= radius_inner_dbl_sq
-          || abs(x) > 2000) { // failsafe
-        break;
-      }
-    }
-    width = abs(cur_x - x);
-    if (outer_x > 0) {
-      x = cur_x + 1;
-    }
-  }
-
-  // Check which cap lines intersects this slice
-  if ((in_cap0 || in_cap1) && !(segment && filled)) {
-    // the range from x_start to x_end is *inclusive*
-    int x_start = x;
-    int x_end = x_start + width - 1;
-
-    // when a point is "past" a line, it is on the wrong cleared side of it
-    int start_is_past0 = point_past_line(x_start, outer_y,
-                                         0, 0,
-                                         outer_x0, outer_y0);
-    int end_is_past0 = point_past_line(x_end, outer_y,
-                                       0, 0,
-                                       outer_x0, outer_y0);
-
-    int start_is_past1 = -point_past_line(x_start, outer_y,
-                                          0, 0,
-                                          outer_x1, outer_y1);
-    int end_is_past1 = -point_past_line(x_end, outer_y,
-                                        0, 0,
-                                        outer_x1, outer_y1);
-
-    bool slice_overlaps0 = start_is_past0 != end_is_past0
-      && (start_is_past0 != 0 || end_is_past0 != 0);
-    bool slice_overlaps1 = start_is_past1 != end_is_past1
-      && (start_is_past1 != 0 || end_is_past1 != 0);
-
-    if ((in_cap0 && !in_cap1 && start_is_past0 == 1 && end_is_past0 == 1)
-        || (!in_cap0 && in_cap1 && start_is_past1 == 1 && end_is_past1 == 1)
-        || (in_both_caps && !angle_is_closed && (
-                                                 (start_is_past0 == 1 && end_is_past0 == 1)
-                                                 || (start_is_past1 == 1 && end_is_past1 == 1)
-                                                 ))
-        || (in_both_caps && angle_is_closed && (
-                                                (start_is_past0 == 1 && end_is_past0 == 1)
-                                                && (start_is_past1 == 1 && end_is_past1 == 1)				
-                                                ))) {
-      return;
-    }
-
-    // The repetition in all these cases could probably be reduced...
-    if ((in_both_caps && slice_overlaps0 && !slice_overlaps1)
-        || (in_cap0 && !in_cap1 && slice_overlaps0)) {
-      // intersect with cap line 0
-      if (start_is_past0 != -1 && end_is_past0 != 1) {
-        while (start_is_past0 == 1) {
-          x_start += 1;
-          start_is_past0 = point_past_line(x_start, outer_y,
-                                           0, 0,
-                                           outer_x0, outer_y0);
-        }
-      } else {
-        while (end_is_past0 == 1) {
-          x_end -= 1;
-          end_is_past0 = point_past_line(x_end, outer_y,
-                                         0, 0,
-                                         outer_x0, outer_y0);
-        }
-      }
-    } else if ((in_both_caps && !slice_overlaps0 && slice_overlaps1)
-               || (!in_cap0 && in_cap1 && slice_overlaps1)) {
-      // intersect with cap line 1
-      if (start_is_past1 != -1 && end_is_past1 != 1) {
-        while (start_is_past1 == 1) {
-          x_start += 1;
-          start_is_past1 = -point_past_line(x_start, outer_y,
-                                            0, 0,
-                                            outer_x1, outer_y1);
-        }
-      } else {
-        while (end_is_past1 == 1) {
-          x_end -= 1;
-          end_is_past1 = -point_past_line(x_end, outer_y,
-                                          0, 0,
-                                          outer_x1, outer_y1);
-        }
-      }
-    } else if (in_both_caps && slice_overlaps0 && slice_overlaps1) {
-      // intersect with both cap lines
-      if (angle0 < angle1) {
-        if (angle0 < M_PI) {
-          while (start_is_past1 == 1) {
-            x_start += 1;
-            start_is_past1 = -point_past_line(x_start, outer_y,
-                                              0, 0,
-                                              outer_x1, outer_y1);
-          }
-          while (end_is_past0 == 1) {
-            x_end -= 1;
-            end_is_past0 = point_past_line(x_end, outer_y,
-                                           0, 0,
-                                           outer_x0, outer_y0);
-          }
-        } else {
-          while (start_is_past0 == 1) {
-            x_start += 1;
-            start_is_past0 = point_past_line(x_start, outer_y,
-                                             0, 0,
-                                             outer_x0, outer_y0);
-          }
-          while (end_is_past1 == 1) {
-            x_end -= 1;
-            end_is_past1 = -point_past_line(x_end, outer_y,
-                                            0, 0,
-                                            outer_x1, outer_y1);
-          }
-        }
-      } else {
-        // split the slice into two
-
-        slice_is_split = true;
-
-        int x_start1 = x_start;
-        int x_end1 = x_end;
-
-        if (angle0 < M_PI) {
-          while (end_is_past0 == 1) {
-            x_end -= 1;
-            end_is_past0 = point_past_line(x_end, outer_y,
-                                           0, 0,
-                                           outer_x0, outer_y0);
-          }
-          while (start_is_past1 == 1) {
-            x_start1 += 1;
-            start_is_past1 = -point_past_line(x_start1, outer_y,
-                                              0, 0,
-                                              outer_x1, outer_y1);
-          }
-        } else {
-          while (end_is_past1 == 1) {
-            x_end1 -= 1;
-            end_is_past1 = -point_past_line(x_end1, outer_y,
-                                            0, 0,
-                                            outer_x1, outer_y1);
-          }
-          while (start_is_past0 == 1) {
-            x_start += 1;
-            start_is_past0 = point_past_line(x_start, outer_y,
-                                             0, 0,
-                                             outer_x0, outer_y0);
-          }
-        }
-
-        x1 = x_start1;
-        width1 = x_end1 + 1 - x_start1 ;
-      }
-    }
-    x = x_start;
-    width = x_end + 1 - x_start;
-  } else if (in_cap0 && segment && filled) {
-    // the range from x_start to x_end is *inclusive*
-    int x_start = x;
-    int x_end = x_start + width - 1;
-
-    // when a point is "past" a line, it is on the wrong cleared side of it
-    int start_is_past = -point_past_line(x_start, outer_y,
-                                         outer_x0, outer_y0, outer_x1, outer_y1);
-    int end_is_past = -point_past_line(x_end, outer_y,
-                                       outer_x0, outer_y0, outer_x1, outer_y1);
-
-    bool slice_overlaps = start_is_past != end_is_past
-      && (start_is_past != 0 || end_is_past != 0);
-
-    if (start_is_past == 1 && end_is_past == 1) {
-      return;
-    }
-
-    if (slice_overlaps) {
-      if (start_is_past != -1 && end_is_past != 1) {
-        while (start_is_past == 1) {
-          x_start += 1;
-          start_is_past = -point_past_line(x_start, outer_y,
-                                           outer_x0, outer_y0, outer_x1, outer_y1);
-        }
-      } else {
-        while (end_is_past == 1) {
-          x_end -= 1;
-          end_is_past = -point_past_line(x_end, outer_y,
-                                         outer_x0, outer_y0, outer_x1, outer_y1);
-        }
-      }
-    }
-
-    x = x_start;
-    width = x_end + 1 - x_start;
-  }
-
-  h_line(img, c_x + x, c_y + outer_y, width, color);
-  if (slice_is_split) {
-    h_line(img, c_x + x1, c_y + outer_y, width1, color);
-  }
-}
-
-// TODO: Fix unwanted slice with angles 130 to 115 (I think, angles might be
-// slightly off).
-// TODO: Look into buggy rendering with angles around 180°-270°. This seems to
-// affect arcs, sectors, and segments likewise.
-static void arc(image_buffer_t *img, int c_x, int c_y, int radius, float angle0, float angle1,
-                int thickness, bool rounded, bool filled, bool sector, bool segment, int dot1, int dot2, int resolution, uint32_t color) {
-  if (dot1 > 0 && !filled) {
-    thickness /= 2;
-
-    radius -= thickness;
-
-    if (thickness == 0) {
-      thickness = 1;
-    }
-
-    generic_arc(img, c_x, c_y, radius, angle0, angle1, thickness, dot1, dot2, resolution, sector, segment, color);
-
-    return;
-  }
-
-  if (thickness <= 1 && !filled) {
-    thin_arc(img, c_x, c_y, radius, angle0, angle1, sector, segment, color);
-
-    return;
-  }
-
-  if (radius == 0) {
-    return;
-  }
-
-  angle0 *= (float)M_PI / 180.0f;
-  angle1 *= (float)M_PI / 180.0f;
-  norm_angle_0_2pi(&angle0); // theses are probably unecessary?
-  norm_angle_0_2pi(&angle1); // but who knows with floating point imprecision...
-
-  if (angle0 == angle1) {
-    return;
-  }
-
-  bool angle_is_closed;
-  // if the angle of the filled in part of the arc is greater than 180°
-  if (angle1 - angle0 > 0.0) {
-    angle_is_closed = fabsf(angle1 - angle0) > M_PI;
-  } else {
-    angle_is_closed = fabsf(angle1 - angle0) < M_PI;
-  }
-
-  // angles smaller than 1 degree seem to cause issues (with a radius of 62)
-  // this is kinda ugly though, and it will probably still break at larger
-  // radii or something...
-  if (!angle_is_closed && fabsf(angle1 - angle0) < 0.0174532925) { // one degree in radians
-    if (rounded) {
-      float rad_f = (float)radius - ((float)thickness / 2.0f);
-
-      float angle = (angle0 + angle1) / 2.0f;
-
-      int cap_center_x = (int)floorf(cosf(angle) * rad_f);
-      int cap_center_y = (int)floorf(sinf(angle) * rad_f);
-
-      fill_circle(img, c_x + cap_center_x, c_y + cap_center_y, thickness / 2, color);
-    }
-    return;
-  }
-
-  if (thickness >= radius) {
-    filled = true;
-  }
-
-  int radius_outer, radius_inner;
-  if (filled) {
-    radius_outer = radius;
-    radius_inner = 0;
-  } else {
-    radius_outer = radius;
-    radius_inner = radius - thickness;
-  }
-  int radius_outer_dbl_sq = radius_outer * radius_outer * 4;
-  int radius_inner_dbl_sq = radius_inner * radius_inner * 4;
-
-  float angle0_cos = cosf(angle0);
-  float angle0_sin = sinf(angle0);
-  float angle1_cos = cosf(angle1);
-  float angle1_sin = sinf(angle1);
-
-  int outer_x0 = (int)(angle0_cos * (float)radius_outer);
-  int outer_y0 = (int)(angle0_sin * (float)radius_outer);
-
-  int outer_x1 = (int)(angle1_cos * (float)radius_outer);
-  int outer_y1 = (int)(angle1_sin * (float)radius_outer);
-
-  int inner_y0;
-  int inner_y1;
-
-  if (filled) {
-    inner_y0 = 0;
-
-    inner_y1 = 0;
-  } else {
-    inner_y0 = (int)(angle0_sin * (float)radius_inner);
-
-    inner_y1 = (int)(angle1_sin * (float)radius_inner);
-  }
-
-  int cap0_min_y = MIN(inner_y0, outer_y0);
-  int cap0_max_y = MAX(inner_y0, outer_y0);
-
-  int cap1_min_y = MIN(inner_y1, outer_y1);
-  int cap1_max_y = MAX(inner_y1, outer_y1);
-
-  // Highest and lowest (y coord wise) drawn line of the base arc (excluding
-  // the circular end caps). This range is *inclusive*!
-  // Note that these might be slightly off due to inconsistent rounding between
-  // Bresenhamn's algorithm and point rotation. (I don't think the point about
-  // Bresenhamn is relevant as we don't use it anymore. Still wouldn't trust
-  // them completely though...)
-  int min_y = MIN(outer_y0, MIN(outer_y1, MIN(inner_y0, inner_y1)));
-  int max_y = MAX(outer_y0, MAX(outer_y1, MAX(inner_y0, inner_y1)));
-  if (angle0 < angle1) {
-    if (angle0 < M_PI_2 && angle1 >= M_3PI_2) {
-      min_y = -radius_outer;
-      max_y = radius_outer;
-    } else if (angle0 < M_3PI_2 && angle1 > M_3PI_2) {
-      min_y = -radius_outer;
-    } else if (angle0 < M_PI_2 && angle1 > M_PI_2) {
-      max_y = radius_outer;
-    }
-  } else {
-    if ((angle0 < M_3PI_2 && angle1 >= M_PI_2)
-        || (angle0 < M_PI_2)
-        || (angle1 > M_3PI_2)) {
-      min_y = -radius_outer;
-      max_y = radius_outer;
-    } else if (angle0 < M_3PI_2 && angle1 < M_PI_2) {
-      min_y = -radius_outer;
-    } else if (angle0 > M_PI_2 && angle1 > M_PI_2) {
-      max_y = radius_outer;
-    }
-  }
-
-  for (int y = 0; y < radius_outer; y++) {
-    int y_dbl_offs = 2 * (y + 1);
-    int y_dbl_offs_sq = y_dbl_offs * y_dbl_offs;
-
-    for (int x = -radius_outer; x <= 0; x++) {
-      int x_dbl_offs = 2 * (x + 1);
-      if (x_dbl_offs * x_dbl_offs + y_dbl_offs_sq <= radius_outer_dbl_sq) {
-        // This is horrible...
-        handle_arc_slice(img, x, y,
-                         c_x, c_y, color, outer_x0, outer_y0, outer_x1, outer_y1,
-                         cap0_min_y, cap0_max_y, cap1_min_y, cap1_max_y, radius_outer, radius_inner, min_y, max_y,
-                         angle0, angle1, angle_is_closed, filled, segment, radius_inner_dbl_sq);
-        handle_arc_slice(img, -x - 1, y,
-                         c_x, c_y, color, outer_x0, outer_y0, outer_x1, outer_y1,
-                         cap0_min_y, cap0_max_y, cap1_min_y, cap1_max_y, radius_outer, radius_inner, min_y, max_y,
-                         angle0, angle1, angle_is_closed, filled, segment, radius_inner_dbl_sq);
-
-        handle_arc_slice(img, x, -y - 1,
-                         c_x, c_y, color, outer_x0, outer_y0, outer_x1, outer_y1,
-                         cap0_min_y, cap0_max_y, cap1_min_y, cap1_max_y, radius_outer, radius_inner, min_y, max_y,
-                         angle0, angle1, angle_is_closed, filled, segment, radius_inner_dbl_sq);
-        handle_arc_slice(img, -x - 1, -y - 1,
-                         c_x, c_y, color, outer_x0, outer_y0, outer_x1, outer_y1,
-                         cap0_min_y, cap0_max_y, cap1_min_y, cap1_max_y, radius_outer, radius_inner, min_y, max_y,
-                         angle0, angle1, angle_is_closed, filled, segment, radius_inner_dbl_sq);
-
-        break;
-      }
-    }
-  }
-
-  // draw rounded line corners
-  if (rounded && !filled && !sector && !segment) {
-    float rad_f = (float)radius - ((float)thickness / 2.0f);
-
-    int cap0_center_x = (int)floorf(angle0_cos * rad_f);
-    int cap0_center_y = (int)floorf(angle0_sin * rad_f);
-
-    int cap1_center_x = (int)floorf(angle1_cos * rad_f);
-    int cap1_center_y = (int)floorf(angle1_sin * rad_f);
-
-    thickness /= 2;
-
-    fill_circle(img, c_x + cap0_center_x, c_y + cap0_center_y, thickness, color);
-    fill_circle(img, c_x + cap1_center_x, c_y + cap1_center_y, thickness, color);
-  }
-
-  // draw sector arc cap to center lines
-  // (sectors are always rounded)
-  if (sector && !filled) {
-    float rad_f = (float)radius - ((float)thickness / 2.0f);
-
-    int cap0_center_x = (int)floorf(angle0_cos * rad_f);
-    int cap0_center_y = (int)floorf(angle0_sin * rad_f);
-
-    int cap1_center_x = (int)floorf(angle1_cos * rad_f);
-    int cap1_center_y = (int)floorf(angle1_sin * rad_f);
-
-    thickness /= 2;
-
-    line(img, c_x + cap0_center_x, c_y + cap0_center_y,
-         c_x, c_y, thickness, 0, 0, color);
-    line(img, c_x + cap1_center_x, c_y + cap1_center_y,
-         c_x, c_y, thickness, 0, 0, color);
-  }
-
-  if (segment && !filled) {
-    float rad_f = (float)radius - ((float)thickness / 2.0f);
-
-    int cap0_center_x = (int)floorf(angle0_cos * rad_f);
-    int cap0_center_y = (int)floorf(angle0_sin * rad_f);
-
-    int cap1_center_x = (int)floorf(angle1_cos * rad_f);
-    int cap1_center_y = (int)floorf(angle1_sin * rad_f);
-
-    thickness /= 2;
-
-    line(img, c_x + cap0_center_x, c_y + cap0_center_y,
-         c_x + cap1_center_x, c_y + cap1_center_y, thickness, 0, 0, color);
-  }
-}
-
-// orient: 0=normal, 1=up(90°CCW), 2=180°, 3=down(90°CW)
-static void img_putc(image_buffer_t *img, int x, int y, uint32_t *colors, int num_colors,
-                     uint8_t *font_data, uint8_t ch, int orient, float mag) {
-  uint8_t w = font_data[0];
-  uint8_t h = font_data[1];
-  uint8_t char_num = font_data[2];
-  uint8_t bits_per_pixel = font_data[3];
-
-  int pixels_per_byte = (int)(8 / bits_per_pixel);
-  int bytes_per_char = (int)((w * h) / pixels_per_byte);
-  if ((w * h) % pixels_per_byte != 0) {
-    bytes_per_char += 1;
-  }
-
-  if (char_num == 10) {
-    ch = (uint8_t)(ch - '0');
-  } else {
-    ch = (uint8_t)(ch - ' ');
-  }
-
-  if (ch >= char_num) {
-    return;
-  }
-
-  for (int i = 0; i < w * h; i++) {
-    int x0 = i % w;
-    int y0 = i / w;
-
-    int sx0 = (int)floorf((float)x0 * mag);
-    int sx1 = (int)floorf((float)(x0 + 1) * mag) - 1;
-    int sy0 = (int)floorf((float)y0 * mag);
-    int sy1 = (int)floorf((float)(y0 + 1) * mag) - 1;
-
-    if (sx1 < sx0) sx1 = sx0;
-    if (sy1 < sy0) sy1 = sy0;
-
-    uint32_t color;
-    if (bits_per_pixel == 2) {
-      if (num_colors < 4) return;
-      uint8_t byte = font_data[4 + bytes_per_char * ch + (i / 4)];
-      uint8_t bit_pos = (uint8_t)(i % pixels_per_byte);
-      uint8_t pixel_value = (byte >> (bit_pos * 2)) & 0x03;
-      color = colors[pixel_value];
-    } else {
-      if (num_colors < 1) return;
-      int32_t fg = (int32_t)colors[0];
-      int32_t bg = (num_colors > 1) ? (int32_t)colors[1] : -1;
-      uint8_t byte = font_data[4 + bytes_per_char * ch + (i / 8)];
-      uint8_t bit_pos = (uint8_t)(i % 8);
-      uint8_t bit = (uint8_t)(byte & (1 << bit_pos));
-      if (!bit && bg < 0) {
-        continue;
-      }
-      color = bit ? (uint32_t)fg : (uint32_t)bg;
-    }
-
-    for (int py = sy0; py <= sy1; py++) {
-      for (int px = sx0; px <= sx1; px++) {
-        switch (orient) {
-          case 1:  putpixel(img, x + py, y - px, color); break;
-          case 2:  putpixel(img, x - px, y - py, color); break;
-          case 3:  putpixel(img, x - py, y + px, color); break;
-          default: putpixel(img, x + px, y + py, color); break;
-        }
-      }
-    }
-  }
-}
-
-static inline void copy_pixel(
-	image_buffer_t *img_dest, 
-    image_buffer_t *img_src, 
-    int dest_x, int dest_y, 
-    int src_x, int src_y, 
-    int src_w, int src_h,
-    int transparent_color,
-    bool tile
-) {
-    if (tile) {
-        src_x = src_x % src_w;
-        if (src_x < 0) src_x = src_x + src_w;
-        src_y = src_y % src_h;
-        if (src_y < 0) src_y = src_y + src_h;
-    }
-    
-    if (src_x >= 0 && src_x < src_w && src_y >= 0 && src_y < src_h) {
-        uint32_t p = getpixel(img_src, src_x, src_y);
-        if (transparent_color == -1 || p != (uint32_t)transparent_color) {
-            putpixel(img_dest, dest_x, dest_y, p);
-        }
-    }
-}
-
-// Copy pixels from source to destination with transformations
-void blit(
-    image_buffer_t *img_dest,  // Destination image buffer
-    image_buffer_t *img_src,   // Source image buffer
-    int dest_offset_x, int dest_offset_y,              // Where on dest to start writing pixels
-    float rot_x, float rot_y,  // Coordinate in src to rotate around
-    float rot_angle,           // Rotation angle in degrees
-    float scale,               // Scale factor
-    int32_t transparent_color, // Color that will not be drawn -1 to disable
-    bool tile,                 // Tile src to fill dest
-    int clip_x, int clip_y,    // Clip start in dest
-    int clip_w, int clip_h     // Clip width and height
-) {
-  if (scale == 0.0) return;
-  int src_w = img_src->width;
-  int src_h = img_src->height;
-
-  int dest_x_start = clip_x;
-  int dest_y_start = clip_y;
-  int dest_x_end = clip_w;
-  int dest_y_end = clip_h;
-
-  if (rot_angle == 0.0 && scale == 1.0) {
-    if (dest_offset_x > 0) dest_x_start += dest_offset_x;
-    if (dest_offset_y > 0) dest_y_start += dest_offset_y;
-    if (!tile) {
-        if ((dest_x_end - dest_offset_x) > src_w) dest_x_end = src_w + dest_offset_x;
-        if ((dest_y_end - dest_offset_y) > src_h) dest_y_end = src_h + dest_offset_y;
-    }
-
-    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
-      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-        int src_x = dest_x - dest_offset_x;
-        int src_y = dest_y - dest_offset_y;
-        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, tile);
-      }
-    }
-  } else if (rot_angle == 0.0) {
-    rot_x *= scale;
-    rot_y *= scale;
-
-    const int fp_scale = 1000;
-
-    int rot_x_x = (int)rot_x;
-    int rot_y_i = (int)rot_y;
-    int scale_i = (int)(scale * (float) fp_scale);
-
-    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
-      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-        int src_x = (dest_x - dest_offset_x - rot_x_x) * fp_scale;
-        int src_y = (dest_y - dest_offset_y - rot_y_i) * fp_scale;
-
-        src_x += rot_x_x * fp_scale;
-        src_y += rot_y_i * fp_scale;
-
-        src_x /= scale_i;
-        src_y /= scale_i;
-        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x, src_y, src_w, src_h, transparent_color, tile);
-      }
-    }
-  } else {
-    float sin_rot_angle = sinf(-rot_angle * (float)M_PI / 180.0f);
-    float cos_rot_angle = cosf(-rot_angle * (float)M_PI / 180.0f);
-
-    rot_x *= scale;
-    rot_y *= scale;
-
-    const int fp_scale = 1000;
-
-    int sin_rot_angle_i = (int)(sin_rot_angle * (float)fp_scale);
-    int cos_rot_angle_i = (int)(cos_rot_angle * (float)fp_scale);
-    int rot_x_i = (int)rot_x;
-    int rot_y_i = (int)rot_y;
-    int scale_i = (int)(scale * (float) fp_scale);
-
-    for (int dest_y = dest_y_start; dest_y < dest_y_end; dest_y++) {
-      for (int dest_x = dest_x_start; dest_x < dest_x_end; dest_x++) {
-        int src_x =  (dest_x - dest_offset_x - rot_x_i) * cos_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * sin_rot_angle_i;
-        int src_y = -(dest_x - dest_offset_x - rot_x_i) * sin_rot_angle_i + (dest_y - dest_offset_y - rot_y_i) * cos_rot_angle_i;
-
-        src_x += rot_x_i * fp_scale;
-        src_y += rot_y_i * fp_scale;
-
-        src_x /= scale_i;
-        src_y /= scale_i;
-        copy_pixel(img_dest, img_src, dest_x, dest_y, src_x,  src_y, src_w, src_h, transparent_color, tile);
-      }
-    }
-  }
-}
-
 // Extensions
 
 #define ATTR_MAX_ARGS	4
@@ -1999,6 +396,10 @@ typedef struct {
   attr_t attr_resolution;
   attr_t attr_tile;
   attr_t attr_clip;
+  attr_t attr_palette;
+  attr_t attr_alpha;
+  attr_t attr_alpha_buffer;
+  bool transform_attr_present;
 } img_args_t;
 
 static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) {
@@ -2019,6 +420,14 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
     int num_dec = 0;
     for (unsigned int i = 1;i < argn;i++) {
       if (!lbm_is_number(args[i]) && !lbm_is_cons(args[i])) {
+        color_t *clr = get_color(args[i]);
+        if (clr && clr->type == COLOR_REGULAR &&
+            num_dec == num_expected - 1) {
+          res.args[num_dec] = lbm_enc_u32((uint32_t)clr->color1);
+          num_dec++;
+          if (num_dec >= ARG_MAX_NUM) return res;
+          continue;
+        }
         return res;
       }
 
@@ -2056,24 +465,45 @@ static img_args_t decode_args(lbm_value *args, lbm_uint argn, int num_expected) 
             } else if (lbm_dec_sym(arg) == symbol_scale) {
               attr_now = &res.attr_scale;
               attr_now->arg_num = 1;
+              res.transform_attr_present = true;
             } else if (lbm_dec_sym(arg) == symbol_rotate) {
               attr_now = &res.attr_rotate;
               attr_now->arg_num = 3;
+              res.transform_attr_present = true;
             } else if (lbm_dec_sym(arg) == symbol_resolution) {
               attr_now = &res.attr_resolution;
               attr_now->arg_num = 1;
             } else if (lbm_dec_sym(arg) == symbol_tile) {
               attr_now = &res.attr_tile;
               attr_now->arg_num = 0;
+              res.transform_attr_present = true;
             } else if (lbm_dec_sym(arg) == symbol_clip) {
               attr_now = &res.attr_clip;
               attr_now->arg_num = 4;
+              res.transform_attr_present = true;
+            } else if (lbm_dec_sym(arg) == symbol_palette) {
+              attr_now = &res.attr_palette;
+              attr_now->arg_num = 1;
+            } else if (lbm_dec_sym(arg) == symbol_alpha) {
+              attr_now = &res.attr_alpha;
+              attr_now->arg_num = 1;
+            } else if (lbm_dec_sym(arg) == symbol_alpha_buffer) {
+              attr_now = &res.attr_alpha_buffer;
+              attr_now->arg_num = 1;
             }
             else {
               return res;
             }
           } else {
-            if (!lbm_is_number(arg)) {
+            if (attr_now == &res.attr_palette) {
+              if (!lbm_is_list(arg)) {
+                return res;
+              }
+            } else if (attr_now == &res.attr_alpha_buffer) {
+              if (!lbm_dec_array_r(arg)) {
+                return res;
+              }
+            } else if (!lbm_is_number(arg)) {
               return res;
             }
 
@@ -2184,7 +614,7 @@ static lbm_value ext_is_image_buffer(lbm_value *args, lbm_uint argn) {
 static lbm_value ext_color(lbm_value *args, lbm_uint argn) {
   lbm_value res = ENC_SYM_TERROR;
 
-  if (argn >= 2 && argn <= 6 &&
+  if (argn >= 2 && argn <= 7 &&
       lbm_is_symbol(args[0]) &&
       lbm_is_number(args[1])) {
 
@@ -2220,6 +650,8 @@ static lbm_value ext_color(lbm_value *args, lbm_uint argn) {
     }
 
     bool mirrored = false;
+    lbm_uint alpha_arg = argn;
+
     if (argn >= 6) {
       if (lbm_is_symbol(args[5])) {
         lbm_uint sym = lbm_dec_sym(args[5]);
@@ -2230,6 +662,9 @@ static lbm_value ext_color(lbm_value *args, lbm_uint argn) {
         } else {
           return ENC_SYM_TERROR;
         }
+        alpha_arg = 6;
+      } else if (argn == 6 && lbm_is_number(args[5])) {
+        alpha_arg = 5;
       } else {
         return ENC_SYM_TERROR;
       }
@@ -2250,8 +685,24 @@ static lbm_value ext_color(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
 
+    if (t == COLOR_REGULAR && argn == 3) {
+      alpha_arg = 2;
+    }
+
+    uint8_t alpha = 255;
+    if (alpha_arg < argn) {
+      if (lbm_is_number(args[alpha_arg])) {
+        int32_t a = lbm_dec_as_i32(args[alpha_arg]);
+        if (a < 0) a = 0;
+        if (a > 255) a = 255;
+        alpha = (uint8_t)a;
+      } else {
+        return ENC_SYM_TERROR;
+      }
+    }
+
     // Maybe check if param is in ranges first ?
-    res = color_allocate(t, color1, color2, (uint16_t)param1, (uint16_t)param2, mirrored);
+    res = color_allocate(t, color1, color2, (uint16_t)param1, (uint16_t)param2, mirrored, alpha);
   }
 
   return res;
@@ -2301,6 +752,14 @@ static lbm_value ext_color_set(lbm_value *args, lbm_uint argn) {
     } else {
       return ENC_SYM_TERROR;
     }
+  } else if (prop == symbol_alpha) {
+    if (!lbm_is_number(args[2])) {
+      return ENC_SYM_TERROR;
+    }
+    int32_t a = lbm_dec_as_i32(args[2]);
+    if (a < 0) a = 0;
+    if (a > 255) a = 255;
+    color->alpha = (uint8_t)a;
   } else {
     return ENC_SYM_TERROR;
   }
@@ -2342,6 +801,8 @@ static lbm_value ext_color_get(lbm_value *args, lbm_uint argn) {
       return ENC_SYM_TERROR;
     }
     return lbm_enc_sym(color->mirrored ? symbol_mirrored : symbol_repeat);
+  } else if (prop == symbol_alpha) {
+    return lbm_enc_u32((uint32_t)color->alpha);
   } else {
     return ENC_SYM_TERROR;
   }
@@ -2443,7 +904,7 @@ static lbm_value ext_line(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
-  line(&arg_dec.img,
+  tinygfx_line(&arg_dec.img,
        lbm_dec_as_i32(arg_dec.args[0]),
        lbm_dec_as_i32(arg_dec.args[1]),
        lbm_dec_as_i32(arg_dec.args[2]),
@@ -2456,6 +917,24 @@ static lbm_value ext_line(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+// Shared by ext_arc/ext_circle_sector/ext_circle_segment, which decode
+// identical attribute sets and only differ in sector/segment and which
+// args[] slot holds the color.
+static arc_params_t make_arc_params(const img_args_t *a, bool rounded, bool sector, bool segment, lbm_value color_arg) {
+  arc_params_t p = {
+    .thickness  = lbm_dec_as_i32(a->attr_thickness.args[0]),
+    .rounded    = rounded,
+    .filled     = a->attr_filled.is_valid,
+    .sector     = sector,
+    .segment    = segment,
+    .dot1       = lbm_dec_as_i32(a->attr_dotted.args[0]),
+    .dot2       = lbm_dec_as_i32(a->attr_dotted.args[1]),
+    .resolution = lbm_dec_as_i32(a->attr_resolution.args[0]),
+    .color      = lbm_dec_as_u32(color_arg),
+  };
+  return p;
+}
+
 // lisp args: img cx cy r color opt-attr1 ... opt-attrN
 static lbm_value ext_circle(lbm_value *args, lbm_uint argn) {
   img_args_t arg_dec = decode_args(args, argn, 4);
@@ -2465,27 +944,23 @@ static lbm_value ext_circle(lbm_value *args, lbm_uint argn) {
   }
 
   if (arg_dec.attr_filled.is_valid) {
-    fill_circle(&arg_dec.img,
+    tinygfx_fill_circle(&arg_dec.img,
                 lbm_dec_as_i32(arg_dec.args[0]),
                 lbm_dec_as_i32(arg_dec.args[1]),
                 lbm_dec_as_i32(arg_dec.args[2]),
                 lbm_dec_as_u32(arg_dec.args[3]));
-  } if (arg_dec.attr_dotted.is_valid) {
-    arc(&arg_dec.img,
+  } else if (arg_dec.attr_dotted.is_valid) {
+    // rounded here currently does nothing as the line function doesn't
+    // support square ends.
+    arc_params_t p = make_arc_params(&arg_dec, arg_dec.attr_rounded.is_valid, false, false, arg_dec.args[3]);
+    tinygfx_arc(&arg_dec.img,
         lbm_dec_as_i32(arg_dec.args[0]),
         lbm_dec_as_i32(arg_dec.args[1]),
         lbm_dec_as_i32(arg_dec.args[2]),
         0, 359.9f,
-        lbm_dec_as_i32(arg_dec.attr_thickness.args[0]),
-        arg_dec.attr_rounded.is_valid, // currently does nothing as the line function doesn't support square ends.
-        false,
-        false, false,
-        lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
-        lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
-        lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-        lbm_dec_as_u32(arg_dec.args[3]));
+        &p);
   } else {
-    circle(&arg_dec.img,
+    tinygfx_circle(&arg_dec.img,
            lbm_dec_as_i32(arg_dec.args[0]),
            lbm_dec_as_i32(arg_dec.args[1]),
            lbm_dec_as_i32(arg_dec.args[2]),
@@ -2504,20 +979,14 @@ static lbm_value ext_arc(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
-  arc(&arg_dec.img,
+  arc_params_t p = make_arc_params(&arg_dec, arg_dec.attr_rounded.is_valid, false, false, arg_dec.args[5]);
+  tinygfx_arc(&arg_dec.img,
       lbm_dec_as_i32(arg_dec.args[0]),
       lbm_dec_as_i32(arg_dec.args[1]),
       lbm_dec_as_i32(arg_dec.args[2]),
       lbm_dec_as_float(arg_dec.args[3]),
       lbm_dec_as_float(arg_dec.args[4]),
-      lbm_dec_as_i32(arg_dec.attr_thickness.args[0]),
-      arg_dec.attr_rounded.is_valid,
-      arg_dec.attr_filled.is_valid,
-      false, false,
-      lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
-      lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
-      lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-      lbm_dec_as_u32(arg_dec.args[5]));
+      &p);
 
   return ENC_SYM_TRUE;
 }
@@ -2530,20 +999,14 @@ static lbm_value ext_circle_sector(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
-  arc(&arg_dec.img,
+  arc_params_t p = make_arc_params(&arg_dec, true, true, false, arg_dec.args[5]);
+  tinygfx_arc(&arg_dec.img,
       lbm_dec_as_i32(arg_dec.args[0]),
       lbm_dec_as_i32(arg_dec.args[1]),
       lbm_dec_as_i32(arg_dec.args[2]),
       lbm_dec_as_float(arg_dec.args[3]),
       lbm_dec_as_float(arg_dec.args[4]),
-      lbm_dec_as_i32(arg_dec.attr_thickness.args[0]),
-      true,
-      arg_dec.attr_filled.is_valid,
-      true, false,
-      lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
-      lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
-      lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-      lbm_dec_as_u32(arg_dec.args[5]));
+      &p);
 
   return ENC_SYM_TRUE;
 }
@@ -2556,20 +1019,14 @@ static lbm_value ext_circle_segment(lbm_value *args, lbm_uint argn) {
     return ENC_SYM_TERROR;
   }
 
-  arc(&arg_dec.img,
+  arc_params_t p = make_arc_params(&arg_dec, true, false, true, arg_dec.args[5]);
+  tinygfx_arc(&arg_dec.img,
       lbm_dec_as_i32(arg_dec.args[0]),
       lbm_dec_as_i32(arg_dec.args[1]),
       lbm_dec_as_i32(arg_dec.args[2]),
       lbm_dec_as_float(arg_dec.args[3]),
       lbm_dec_as_float(arg_dec.args[4]),
-      lbm_dec_as_i32(arg_dec.attr_thickness.args[0]),
-      true,
-      arg_dec.attr_filled.is_valid,
-      false, true,
-      lbm_dec_as_i32(arg_dec.attr_dotted.args[0]),
-      lbm_dec_as_i32(arg_dec.attr_dotted.args[1]),
-      lbm_dec_as_i32(arg_dec.attr_resolution.args[0]),
-      lbm_dec_as_u32(arg_dec.args[5]));
+      &p);
 
 
   return ENC_SYM_TRUE;
@@ -2597,40 +1054,12 @@ static lbm_value ext_rectangle(lbm_value *args, lbm_uint argn) {
 
   if (arg_dec.attr_rounded.is_valid) {
     if (arg_dec.attr_filled.is_valid) {
-      rectangle(img, x + rad, y, width - 2 * rad, rad, 1, 1, 0, 0, color);
-      rectangle(img, x + rad, y + height - rad, width - 2 * rad, rad, 1, 1, 0, 0, color);
-      rectangle(img, x, y + rad, width, height - 2 * rad, 1, 1, 0, 0, color);
-      fill_circle(img, x + rad, y + rad, rad, color);
-      fill_circle(img, x + rad, y + height - rad, rad, color);
-      fill_circle(img, x + width - rad, y + rad, rad, color);
-      fill_circle(img, x + width - rad, y + height - rad, rad, color);
+      tinygfx_fill_rounded_rectangle(img, x, y, width, height, rad, color);
     } else {
-      // Remember to change these to use the rounded attribute,
-      // when/if line supports it!
-
-      int line_thickness = thickness / 2;
-      thickness = line_thickness * 2; // round it to even for consistency.
-
-      // top
-      line(img, x + rad, y + line_thickness, x + width - rad, y + line_thickness, line_thickness, dot1, dot2, color);
-      // bottom
-      line(img, x + rad, y + height - line_thickness, x + width - rad, y + height - line_thickness, line_thickness, dot1, dot2, color);
-      // left
-      line(img, x + line_thickness, y + rad, x + line_thickness, y + height - rad, line_thickness, dot1, dot2, color);
-      // right
-      line(img, x + width - line_thickness, y + rad, x + width - line_thickness, y + height - rad, line_thickness, dot1, dot2, color);
-
-      // upper left
-      arc(img, x + rad, y + rad, rad, 180, 270, thickness, false, false, false, false, dot1, dot2, resolution, color);
-      // upper right
-      arc(img, x + width - rad, y + rad, rad, 270, 0, thickness, false, false, false, false, dot1, dot2, resolution, color);
-      // bottom left
-      arc(img, x + rad, y + height - rad, rad, 90, 180, thickness, false, false, false, false, dot1, dot2, resolution, color);
-      // bottom right
-      arc(img, x + width - rad, y + height - rad, rad, 0, 90, thickness, false, false, false, false, dot1, dot2, resolution, color);
+      tinygfx_rounded_rectangle(img, x, y, width, height, rad, thickness, dot1, dot2, resolution, color);
     }
   } else {
-    rectangle(img,
+    tinygfx_rectangle(img,
               x, y,
               width, height,
               arg_dec.attr_filled.is_valid,
@@ -2663,19 +1092,38 @@ static lbm_value ext_triangle(lbm_value *args, lbm_uint argn) {
   uint32_t color = lbm_dec_as_u32(arg_dec.args[6]);
 
   if (arg_dec.attr_filled.is_valid) {
-    fill_triangle(img, x0, y0, x1, y1, x2, y2, color);
+    tinygfx_fill_triangle(img, x0, y0, x1, y1, x2, y2, color);
   } else {
-    line(img, x0, y0, x1, y1, thickness, dot1, dot2, color);
-    line(img, x1, y1, x2, y2, thickness, dot1, dot2, color);
-    line(img, x2, y2, x0, y0, thickness, dot1, dot2, color);
+    tinygfx_line(img, x0, y0, x1, y1, thickness, dot1, dot2, color);
+    tinygfx_line(img, x1, y1, x2, y2, thickness, dot1, dot2, color);
+    tinygfx_line(img, x2, y2, x0, y0, thickness, dot1, dot2, color);
   }
 
   return ENC_SYM_TRUE;
 }
 
+static bool font_data_is_valid(const lbm_array_header_t *font) {
+  if (font->size < 4) {
+    return false;
+  }
+
+  const uint8_t *font_data = (const uint8_t*)font->data;
+  uint8_t bits_per_pixel = font_data[3];
+  if (font_data[0] == 0 || font_data[1] == 0 || font_data[2] == 0 ||
+      (bits_per_pixel != 1 && bits_per_pixel != 2)) {
+    return false;
+  }
+
+  uint32_t bytes_per_char =
+    ((uint32_t)font_data[0] * font_data[1] * bits_per_pixel + 7) / 8;
+  uint32_t required_size = 4 + bytes_per_char * font_data[2];
+  return font->size >= required_size;
+}
+
 // lisp args:
 //   img x y fg bg font str  [attrs] ['up|'down]
-//   img x y fg bg str       [attrs] ['up|'down]   uses built-in retro5x7 font
+//   img x y fg bg font-id str [attrs] ['up|'down]  uses a compiled-in font
+//   img x y fg bg str       [attrs] ['up|'down]   uses TINYGFX_DEFAULT_FONT_ID
 //   img x y '(c0..c3) font str [attrs] ['up|'down]  4-color form for 2bpp fonts
 // attrs: '(magnify N) '(scale N) '(spacing N) '(align 'left|'center|'right) '(rotate deg)
 // orient: 0=normal 1=up/90CCW 2=180 3=down/90CW
@@ -2703,7 +1151,7 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
     break;
   }
 
-  if (core_argn < 6 || core_argn > 7) return ENC_SYM_TERROR;
+  if (core_argn != 6 && core_argn != 7) return ENC_SYM_TERROR;
 
   if (rot_deg != 0) {
     orient = (((rot_deg % 360) + 360) % 360) / 90;
@@ -2713,7 +1161,7 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   int y = lbm_dec_as_i32(args[2]);
 
   int32_t colors[4] = {-1, -1, -1, -1};
-  uint8_t *font_data = (uint8_t*)retro5x7;
+  const uint8_t *font_data = NULL;
   char *txt = NULL;
 
   if (lbm_is_cons(args[3])) {
@@ -2729,11 +1177,14 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
     }
     if (lbm_type_of_functional(args[4]) == LBM_TYPE_ARRAY) {
       lbm_array_header_t *fh = (lbm_array_header_t*)lbm_car(args[4]);
-      if (fh->size < 4) return ENC_SYM_TERROR;
-      uint8_t *fd = (uint8_t*)fh->data;
-      uint32_t need = ((uint32_t)fd[0] * fd[1] * fd[2] * fd[3] + 7) / 8;
-      if (fh->size - 4 < need) return ENC_SYM_TERROR;
+      if (!font_data_is_valid(fh)) return ENC_SYM_TERROR;
+      const uint8_t *fd = (const uint8_t*)fh->data;
       font_data = fd;
+    } else if (lbm_is_number(args[4])) {
+      font_data = tinygfx_get_builtin_font(lbm_dec_as_i32(args[4]));
+      if (!font_data) return ENC_SYM_TERROR;
+    } else {
+      return ENC_SYM_TERROR;
     }
     txt = lbm_dec_str(args[5]);
   } else if (lbm_is_number(args[3]) && lbm_is_number(args[4])) {
@@ -2742,16 +1193,19 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
     if (core_argn == 7) {
       if (lbm_type_of_functional(args[5]) == LBM_TYPE_ARRAY) {
         lbm_array_header_t *fh = (lbm_array_header_t*)lbm_car(args[5]);
-        if (fh->size < 4) return ENC_SYM_TERROR;
-        uint8_t *fd = (uint8_t*)fh->data;
-        uint32_t need = ((uint32_t)fd[0] * fd[1] * fd[2] * fd[3] + 7) / 8;
-        if (fh->size - 4 < need) return ENC_SYM_TERROR;
+        if (!font_data_is_valid(fh)) return ENC_SYM_TERROR;
+        const uint8_t *fd = (const uint8_t*)fh->data;
         font_data = fd;
+      } else if (lbm_is_number(args[5])) {
+        font_data = tinygfx_get_builtin_font(lbm_dec_as_i32(args[5]));
+        if (!font_data) return ENC_SYM_TERROR;
       } else {
         return ENC_SYM_TERROR;
       }
       txt = lbm_dec_str(args[6]);
     } else {
+      font_data = tinygfx_get_builtin_font(TINYGFX_DEFAULT_FONT_ID);
+      if (!font_data) return ENC_SYM_TERROR;
       txt = lbm_dec_str(args[5]);
     }
   } else {
@@ -2786,7 +1240,7 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   int y0 = y - align_offset * incy;
 
   for (int ind = 0; txt[ind] != 0; ind++) {
-    img_putc(&img_buf,
+    tinygfx_img_putc(&img_buf,
       x0 + ind * char_step * incx,
       y0 + ind * char_step * incy,
       (uint32_t *)colors,
@@ -2800,6 +1254,38 @@ static lbm_value ext_text(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+
+// Number of distinct index values an indexed format can hold, 0 if fmt isn't indexed.
+static int indexed_depth(color_format_t fmt) {
+  switch (fmt) {
+  case indexed2: return 2;
+  case indexed4: return 4;
+  case indexed16: return 16;
+  default: return 0;
+  }
+}
+
+// Decodes a plain numeric list (as opposed to lbm_display_decode_color_list's
+// color-or-number list) into out[], up to max_len entries. Reports the exact
+// decoded length via out_len so callers can validate it against a required size.
+static bool decode_palette_list(lbm_value lst, uint32_t *out, int max_len, int *out_len) {
+  int i = 0;
+  lbm_value curr = lst;
+  while (lbm_is_cons(curr)) {
+    if (i >= max_len) return false;
+    lbm_value arg = lbm_car(curr);
+    if (!lbm_is_number(arg)) return false;
+    out[i] = lbm_dec_as_u32(arg);
+    i++;
+    curr = lbm_cdr(curr);
+  }
+  if (curr != ENC_SYM_NIL) return false;
+  *out_len = i;
+  return true;
+}
+
+// TODO: Think about way to simplify the blit dispatch
+//       based on transform or not.
 static lbm_value ext_blit(lbm_value *args, lbm_uint argn) {
   img_args_t arg_dec = decode_args(args + 1, argn - 1, 3);
 
@@ -2813,27 +1299,90 @@ static lbm_value ext_blit(lbm_value *args, lbm_uint argn) {
     dest_buf.mem_base = (uint8_t*)arr->data;
     dest_buf.data = image_buffer_data((uint8_t*)arr->data);
 
-    float scale = 1.0;
-    if (arg_dec.attr_scale.is_valid) {
-      scale = lbm_dec_as_float(arg_dec.attr_scale.args[0]);
+    int dest_x = lbm_dec_as_i32(arg_dec.args[0]);
+    int dest_y = lbm_dec_as_i32(arg_dec.args[1]);
+    int32_t transparent_color = lbm_dec_as_i32(arg_dec.args[2]);
+
+    int src_depth = indexed_depth(arg_dec.img.fmt);
+    int dest_depth = indexed_depth(dest_buf.fmt);
+
+    if (src_depth == 0 && dest_depth != 0) {
+      lbm_set_error_reason("img-blit: an rgb source cannot be blitted into an indexed destination.");
+      return ENC_SYM_EERROR;
     }
-    
-    blit(
-        &dest_buf,
-        &arg_dec.img,
-        lbm_dec_as_i32(arg_dec.args[0]),
-        lbm_dec_as_i32(arg_dec.args[1]),
-        lbm_dec_as_float(arg_dec.attr_rotate.args[0]),
-        lbm_dec_as_float(arg_dec.attr_rotate.args[1]),
-        lbm_dec_as_float(arg_dec.attr_rotate.args[2]),
-        scale,
-        lbm_dec_as_i32(arg_dec.args[2]),
-        arg_dec.attr_tile.is_valid,
-        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[0]) : 0,
-        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[1]) : 0,
-        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[2]) : dest_buf.width,
-        arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[3]) : dest_buf.height
-    );
+
+    uint32_t palette[16];
+    const uint32_t *palette_ptr = NULL;
+    int palette_len = 0;
+
+    if (arg_dec.attr_palette.is_valid) {
+      if (src_depth == 0 ||
+          !decode_palette_list(arg_dec.attr_palette.args[0], palette, 16, &palette_len) ||
+          palette_len != src_depth) {
+        lbm_set_error_reason("img-blit: palette must be a list with exactly as many entries as the source image's color space.");
+        return ENC_SYM_EERROR;
+      }
+      palette_ptr = palette;
+    } else if (src_depth != 0 && arg_dec.img.fmt != dest_buf.fmt) {
+      lbm_set_error_reason("img-blit: blitting between differing indexed formats, or from indexed into rgb, requires a palette attribute.");
+      return ENC_SYM_EERROR;
+    }
+
+    uint8_t alpha = 255;
+    if (arg_dec.attr_alpha.is_valid) {
+      int32_t a = lbm_dec_as_i32(arg_dec.attr_alpha.args[0]);
+      if (a < 0) a = 0;
+      if (a > 255) a = 255;
+      alpha = (uint8_t)a;
+    }
+
+    image_buffer_t alpha_buf_img;
+    image_buffer_t *alpha_buf_ptr = NULL;
+    if (arg_dec.attr_alpha_buffer.is_valid) {
+      lbm_array_header_t *abuf_arr = get_image_buffer(arg_dec.attr_alpha_buffer.args[0]);
+      color_format_t abuf_fmt = abuf_arr ? image_buffer_format((uint8_t*)abuf_arr->data) : format_not_supported;
+      uint16_t abuf_w = abuf_arr ? image_buffer_width((uint8_t*)abuf_arr->data) : 0;
+      uint16_t abuf_h = abuf_arr ? image_buffer_height((uint8_t*)abuf_arr->data) : 0;
+      if (!abuf_arr ||
+          (abuf_fmt != indexed2 && abuf_fmt != indexed4 && abuf_fmt != indexed16 && abuf_fmt != rgb332) ||
+          abuf_w != arg_dec.img.width || abuf_h != arg_dec.img.height) {
+        lbm_set_error_reason("img-blit: alpha-buffer must be an indexed2/4/16 or rgb332 image buffer with the same dimensions as the source.");
+        return ENC_SYM_EERROR;
+      }
+      alpha_buf_img.width = abuf_w;
+      alpha_buf_img.height = abuf_h;
+      alpha_buf_img.fmt = abuf_fmt;
+      alpha_buf_img.mem_base = (uint8_t*)abuf_arr->data;
+      alpha_buf_img.data = image_buffer_data((uint8_t*)abuf_arr->data);
+      alpha_buf_ptr = &alpha_buf_img;
+    }
+
+    blit_compose_t compose = {
+      .palette = palette_ptr,
+      .palette_len = palette_len,
+      .alpha = alpha,
+      .alpha_buf = alpha_buf_ptr,
+    };
+    const blit_compose_t *compose_ptr =
+      (palette_ptr || alpha != 255 || alpha_buf_ptr) ? &compose : NULL;
+
+    if (!arg_dec.transform_attr_present) {
+      tinygfx_blit(&dest_buf, &arg_dec.img, dest_x, dest_y, transparent_color, compose_ptr);
+    } else {
+      blit_transform_t transform = {
+        .rot_x = lbm_dec_as_float(arg_dec.attr_rotate.args[0]),
+        .rot_y = lbm_dec_as_float(arg_dec.attr_rotate.args[1]),
+        .rot_angle = lbm_dec_as_float(arg_dec.attr_rotate.args[2]),
+        .scale = arg_dec.attr_scale.is_valid ? lbm_dec_as_float(arg_dec.attr_scale.args[0]) : 1.0f,
+        .tile = arg_dec.attr_tile.is_valid,
+        .clip_x = arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[0]) : 0,
+        .clip_y = arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[1]) : 0,
+        .clip_w = arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[2]) : dest_buf.width,
+        .clip_h = arg_dec.attr_clip.is_valid ? lbm_dec_as_i32(arg_dec.attr_clip.args[3]) : dest_buf.height,
+      };
+
+      tinygfx_blit_transform(&dest_buf, &arg_dec.img, dest_x, dest_y, transform, transparent_color, compose_ptr);
+    }
     res = ENC_SYM_TRUE;
   }
   return res;
@@ -2901,6 +1450,30 @@ static lbm_value ext_disp_clear(lbm_value *args, lbm_uint argn) {
   return ENC_SYM_TRUE;
 }
 
+bool lbm_display_decode_color_list(lbm_value color_list, color_t *colors, int max_colors) {
+  memset(colors, 0, sizeof(color_t) * (size_t)max_colors);
+  if (!lbm_is_list(color_list)) {
+    return true;
+  }
+  int i = 0;
+  lbm_value curr = color_list;
+  while (lbm_is_cons(curr) && i < max_colors) {
+    lbm_value arg = lbm_car(curr);
+    color_t *color;
+    if (lbm_is_number(arg)) {
+      colors[i].color1 = (int)lbm_dec_as_u32(arg);
+    } else if ((color = get_color(arg))) { // color assignment
+      colors[i] = *color;
+    } else {
+      return false;
+    }
+
+    curr = lbm_cdr(curr);
+    i++;
+  }
+  return true;
+}
+
 static lbm_value ext_disp_render(lbm_value *args, lbm_uint argn) {
   if (disp_render_image == NULL) {
     lbm_set_error_reason(msg_not_supported);
@@ -2921,25 +1494,10 @@ static lbm_value ext_disp_render(lbm_value *args, lbm_uint argn) {
     img_buf.data = image_buffer_data((uint8_t*)arr->data);
 
     color_t colors[16];
-    memset(colors, 0, sizeof(color_t) * 16);
-
-    if (argn == 4 && lbm_is_list(args[3])) {
-      int i = 0;
-      lbm_value curr = args[3];
-      while (lbm_is_cons(curr) && i < 16) {
-        lbm_value arg = lbm_car(curr);
-        color_t *color;
-        if (lbm_is_number(arg)) {
-          colors[i].color1 = (int)lbm_dec_as_u32(arg);
-        } else if ((color = get_color(arg))) { // color assignment
-          colors[i] = *color;
-        } else {
-          return ENC_SYM_TERROR;
-        }
-
-        curr = lbm_cdr(curr);
-        i++;
-      }
+    if (argn == 4 && !lbm_display_decode_color_list(args[3], colors, 16)) {
+      return ENC_SYM_TERROR;
+    } else if (argn == 3) {
+      memset(colors, 0, sizeof(color_t) * 16);
     }
 
     // img_buf is a stack allocated image_buffer_t.
@@ -2955,34 +1513,12 @@ static lbm_value ext_disp_render(lbm_value *args, lbm_uint argn) {
 
 // Jpg decoder
 
-typedef struct {
-  uint8_t *data;
-  int pos;
-  int size;
-  int ofs_x;
-  int ofs_y;
-} jpg_bufdef;
-
-size_t jpg_input_func (JDEC* jd, uint8_t* buff, size_t ndata) {
-  jpg_bufdef *dev = (jpg_bufdef*)jd->device;
-
-  if ((int)ndata > (dev->size - dev->pos)) {
-    ndata = (size_t)(dev->size - dev->pos);
-  }
-
-  if (buff) {
-    memcpy(buff, dev->data + dev->pos, ndata);
-  }
-  dev->pos += (int)ndata;
-  return ndata;
-}
-
 int jpg_output_func (	/* 1:Ok, 0:Aborted */
                      JDEC* jd,		/* Decompression object */
                      void* bitmap,	/* Bitmap data to be output */
                      JRECT* rect		/* Rectangular region to output */
                         ) {
-  jpg_bufdef *dev = (jpg_bufdef*)jd->device;
+  tinygfx_jpg_io_t *dev = (tinygfx_jpg_io_t*)jd->device;
 
   image_buffer_t img;
   img.mem_base = (uint8_t*)bitmap;
@@ -3018,16 +1554,52 @@ static lbm_value ext_disp_render_jpg(lbm_value *args, lbm_uint argn) {
 
 
 
-    jpg_bufdef iodev;
+    tinygfx_jpg_io_t iodev;
     iodev.data = (uint8_t*)(array->data);
-    iodev.size = (int)array->size;
+    iodev.size = array->size;
     iodev.pos = 0;
+    iodev.dest = NULL;
     iodev.ofs_x = lbm_dec_as_i32(args[1]);
     iodev.ofs_y = lbm_dec_as_i32(args[2]);
-    jd_prepare(&jd, jpg_input_func, jdwork, sz_work, &iodev);
+    jd_prepare(&jd, tinygfx_jpg_input, jdwork, sz_work, &iodev);
     jd_decomp(&jd, jpg_output_func, 0);
     lbm_free(jdwork);
     res = ENC_SYM_TRUE;
+  }
+  return res;
+}
+
+static lbm_value ext_img_render_jpg(lbm_value *args, lbm_uint argn) {
+
+  lbm_array_header_t *dest_arr;
+  lbm_array_header_t *jpg_arr;
+  lbm_value res = ENC_SYM_TERROR;
+
+  if (argn == 4 &&
+      (dest_arr = get_image_buffer(args[0])) && //assignment
+      (jpg_arr = lbm_dec_array_r(args[1])) &&    //assignment
+      lbm_is_number(args[2]) &&
+      lbm_is_number(args[3])) {
+
+    image_buffer_t dest_buf;
+    dest_buf.width = image_buffer_width((uint8_t*)dest_arr->data);
+    dest_buf.height = image_buffer_height((uint8_t*)dest_arr->data);
+    dest_buf.fmt = image_buffer_format((uint8_t*)dest_arr->data);
+    dest_buf.mem_base = (uint8_t*)dest_arr->data;
+    dest_buf.data = image_buffer_data((uint8_t*)dest_arr->data);
+
+    const size_t sz_work = 4096;
+    void *jdwork = lbm_malloc(sz_work);
+    if (!jdwork) {
+      return ENC_SYM_MERROR;
+    }
+
+    bool ok = tinygfx_decode_jpg(&dest_buf,
+                                  (uint8_t*)jpg_arr->data, jpg_arr->size,
+                                  lbm_dec_as_i32(args[2]), lbm_dec_as_i32(args[3]),
+                                  jdwork, sz_work);
+    lbm_free(jdwork);
+    res = ok ? ENC_SYM_TRUE : ENC_SYM_NIL;
   }
   return res;
 }
@@ -3064,6 +1636,7 @@ void lbm_display_extensions_init(void) {
   lbm_add_extension("disp-clear", ext_disp_clear);
   lbm_add_extension("disp-render", ext_disp_render);
   lbm_add_extension("disp-render-jpg", ext_disp_render_jpg);
+  lbm_add_extension("img-render-jpg", ext_img_render_jpg);
 }
 
 void lbm_display_extensions_set_callbacks(
@@ -3071,7 +1644,7 @@ void lbm_display_extensions_set_callbacks(
                                           void(* volatile clear)(uint32_t color),
                                           void(* volatile reset)(void)
                                           ) {
-  disp_render_image = render_image ? render_image : display_dummy_render_image;  
+  disp_render_image = render_image ? render_image : display_dummy_render_image;
   disp_clear = clear ? clear : display_dummy_clear;
   disp_reset = reset ? reset : display_dummy_reset;
 }

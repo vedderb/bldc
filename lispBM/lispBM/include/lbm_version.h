@@ -30,7 +30,7 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 37u
+#define LBM_MINOR_VERSION 38u
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0u
 
@@ -38,9 +38,14 @@ extern "C" {
 
 /*! \page changelog Changelog
 
+Jul 11 2026: Version 0.38.0
+  - Important bug fix in the image system after update to store symbols names in top half.
+  - String pattern matching functions based on lua (extensions).
+  - Adding tests of image system.
+
 Jul 2 2026: Version 0.37.0
   - Symbol names are now stored in the top half of the image (the bootable image).
-    This fixes an issue where creating new symbols can and NOT saving the image can 
+    This fixes an issue where creating new symbols and NOT saving the image can
     lead to a corrupted image state.
   - unzip is part of the dynamic load extensions.
   - Lots of additions in the Linux REPL (qt, mcp).

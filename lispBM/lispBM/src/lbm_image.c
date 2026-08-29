@@ -246,15 +246,15 @@ static bool write_u64(uint64_t dw, int32_t *i, bool direction) {
   // upwards     hw   lw ...
   //            ix+1  ix
 
-  // true = downwards
+  // direction: DOWNWARDS (false) writes hw then lw; UPWARDS (true) writes lw then hw.
 
   bool r = true;
   if (direction) {
-    r = r && write_u32(words[1], i, direction);
     r = r && write_u32(words[0], i, direction);
+    r = r && write_u32(words[1], i, direction);
   } else {
-    r = r && write_u32(words[0], i, direction);
     r = r && write_u32(words[1], i, direction);
+    r = r && write_u32(words[0], i, direction);
   }
   return r;
 }

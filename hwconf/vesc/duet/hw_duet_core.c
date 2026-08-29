@@ -366,20 +366,18 @@ void smart_switch_keep_on(void) {
 }
 
 void smart_switch_shut_down(void) {
-	mc_interface_select_motor_thread(2);
-	mc_interface_set_current(0);
-	mc_interface_lock();
-	mc_interface_select_motor_thread(1);
-	mc_interface_set_current(0);
-	mc_interface_lock();
+	mc_interface_ignore_input_both(10000);
+	mc_interface_release_motor_override_both();
+
 	switch_state = SWITCH_SHUTTING_DOWN;
-	palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
-	return;
+
+	if (mc_interface_wait_for_motor_release_both(9.0)) {
+		palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
+	}
 }
 
 bool smart_switch_is_pressed(void) {
-	if (palReadPad(SWITCH_IN_GPIO, SWITCH_IN_PIN) == 1 &&
-			(mc_interface_temp_fet_filtered() < 68.0) /* why?? */) {
+	if (palReadPad(SWITCH_IN_GPIO, SWITCH_IN_PIN) == 1) {
 		return true;
 	} else {
 		return false;

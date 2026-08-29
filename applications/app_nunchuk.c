@@ -370,7 +370,7 @@ static THD_FUNCTION(output_thread, arg) {
 		}
 
 		// When leaving coast brake mode set the previous current
-		// to the actual currant to not get a spike in bidirectional mode
+		// to the actual current to not get a spike in bidirectional mode
 		// close to standstill.
 		if (coast_brake_prev && !coast_brake) {
 			prev_current = current_now;

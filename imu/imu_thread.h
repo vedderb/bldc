@@ -27,8 +27,8 @@
 void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz);
 
 // Start a thread that reads samples from the IMU device (at its sample_rate_hz) and hands
-// them to cb(accel, gyro, mag). A device must be set with imu_thread_set_device first.
-void imu_thread_start(void (*cb)(float *accel, float *gyro, float *mag));
+// them to cb(accel, gyro, mag, dt). A device must be set with imu_thread_set_device first.
+void imu_thread_start(void (*cb)(float *accel, float *gyro, float *mag, float dt));
 
 // Stop the IMU thread and wait for it to exit.
 void imu_thread_stop(void);

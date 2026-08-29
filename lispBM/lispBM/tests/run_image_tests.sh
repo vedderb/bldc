@@ -28,7 +28,7 @@ do
     fail_timeout=false;
     ok=false
     rm -f image.lbm
-    timeout $timeout_val ../repl/repl --silent --terminate -s $fn &> /dev/null
+    timeout $timeout_val ../repl/repl --persist_image --silent --terminate -s $fn &> /dev/null
     if [ $? == 124 ]; then
         fail_timeout=true;
     else

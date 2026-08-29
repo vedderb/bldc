@@ -1,6 +1,7 @@
 #!/usr/bin/env -S shlbm -H 32000 -M 512000 --
 
-(import "dsp_lang.lisp")
+(import "dsp_lang.lisp" 'dsp)
+(read-eval-program dsp)
 
 ;; The mixing.lisp example shows a problem with 
 ;; downmixing. The phase information is lost.

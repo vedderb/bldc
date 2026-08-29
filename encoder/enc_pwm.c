@@ -40,13 +40,20 @@ static volatile float m_icu_angle_last = 0.0;
 static volatile bool m_update_abi = false;
 static volatile uint32_t m_ts_last = 0;
 static volatile float m_speed_now = 0.0;
+static volatile bool m_inverted = false;
 
 static void icuwidthcb(ICUDriver *icup) {
 	m_icu_last_width = icuGetWidthX(icup);
 	m_icu_last_period = icuGetPeriodX(icup);
 	m_icu_update_cnt++;
 
-	m_icu_angle = fminf(m_icu_last_width, m_icu_last_period) / m_icu_last_period * 360.0;
+	float angle_tmp = fminf(m_icu_last_width, m_icu_last_period) / m_icu_last_period * 360.0;
+
+	if (m_inverted) {
+		m_icu_angle = 360.0 - angle_tmp;
+	} else {
+		m_icu_angle = angle_tmp;
+	}
 
 	if (m_icu_update_cnt > 2) {
 		float dt = timer_seconds_elapsed_since(m_ts_last);
@@ -110,4 +117,8 @@ float enc_pwm_read_deg(void) {
 
 uint32_t enc_pwm_update_cnt(void) {
 	return m_icu_update_cnt;
+}
+
+void enc_pwm_set_inverted(bool inverted) {
+	m_inverted = inverted;
 }

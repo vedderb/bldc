@@ -23,10 +23,9 @@
 #include "lispif.h"
 #include "lbm_image.h"
 #include "commands.h"
-#include "terminal.h"
 #include "flash_helper.h"
 #include "buffer.h"
-#include "timeout.h"
+#include "main.h"
 #include "lispbm.h"
 #include "mempools.h"
 #include "stm32f4xx_conf.h"
@@ -37,7 +36,7 @@
 #define LBM_MEMORY_BITMAP_SIZE_28K LBM_MEMORY_BITMAP_SIZE(448)
 
 #ifndef EXTENSION_STORAGE_SIZE
-#define EXTENSION_STORAGE_SIZE		319
+#define EXTENSION_STORAGE_SIZE		322
 #endif
 
 #ifndef ADC_SAMPLE_MAX_LEN
@@ -51,6 +50,9 @@
 #define PRINT_STACK_SIZE			128
 #define EXT_LOAD_CALLBACK_LEN		20
 #define PROF_DATA_NUM				30
+
+// Consecutive crashed boots after which lisp is no longer autostarted
+#define CRASH_STREAK_LIMIT			3
 
 __attribute__((section(".ram4"))) static lbm_cons_t heap[HEAP_SIZE] __attribute__ ((aligned (8)));
 static uint32_t memory_array[LISP_MEM_SIZE];
@@ -88,11 +90,11 @@ void(*ext_load_callbacks[EXT_LOAD_CALLBACK_LEN])(bool) = {0};
 extern lbm_const_heap_t *lbm_const_heap_state;
 
 void lispif_init(void) {
-	// Do not attempt to start lisp after a watchdog reset, in case lisp
-	// was the cause of it.
-	// TODO: Anything else to check?
-	if (!timeout_had_IWDG_reset() && terminal_get_first_fault() != FAULT_CODE_BOOTING_FROM_WATCHDOG_RESET) {
-		lispif_restart(false, true, true);
+	// Do not autostart lisp after several consecutive crashed boots, in case
+	// lisp is the cause. This avoids a broken package crash loop which would
+	// make the device unconnectable.
+	if (crash_info.crash_streak < CRASH_STREAK_LIMIT) {
+		lispif_restart(false, true);
 	}
 
 #ifdef LBM_USE_TIME_QUOTA
@@ -191,7 +193,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		if (!running) {
 			ok = pause_eval(0, 2000);
 		} else {
-			ok = lispif_restart(true, true, true);
+			ok = lispif_restart(true, true);
 		}
 
 		int32_t ind = 0;
@@ -287,7 +289,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		}
 
 		if (!lisp_thd_running) {
-			lispif_restart(true, false, true);
+			lispif_restart(true, false);
 		}
 
 		if (lisp_thd_running) {
@@ -431,7 +433,7 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 				}
 			} else if (strncmp(str, ":reset", 6) == 0) {
 				lispif_unlock_lbm();
-				commands_printf_lisp(lispif_restart(true, flash_helper_code_size(CODE_IND_LISP) > 0, true) ?
+				commands_printf_lisp(lispif_restart(true, flash_helper_code_size(CODE_IND_LISP) > 0) ?
 						"Reset OK\n\n" : "Reset Failed\n\n");
 				lispif_lock_lbm();
 			} else if (strncmp(str, ":pause", 6) == 0) {
@@ -468,7 +470,6 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 						lbm_create_string_char_channel(&string_tok_state, &string_tok, repl_buffer);
 						repl_cid = lbm_load_and_eval_expression(&string_tok);
 						repl_cid_for_buffer = repl_cid;
-						lbm_image_save_constant_heap_ix();
 						lbm_continue_eval();
 
 						if (reply_func != NULL) {
@@ -503,11 +504,11 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 
 		if (offset == 0) {
 			if (!lisp_thd_running) {
-				lispif_restart(true, restart == 2 ? true : false, true);
+				lispif_restart(true, restart == 2 ? true : false);
 			} else if (restart == 1) {
-				lispif_restart(true, false, true);
+				lispif_restart(true, false);
 			} else if (restart == 2) {
-				lispif_restart(true, true, true);
+				lispif_restart(true, true);
 			}
 		}
 
@@ -614,7 +615,6 @@ void lispif_process_cmd(unsigned char *data, unsigned int len,
 		if (ind == (int32_t)len) {
 			if ((offset + written) == tot_len) {
 				lbm_channel_writer_close(&buffered_string_tok);
-				lbm_image_save_constant_heap_ix();
 				string_tok_valid = false;
 				offset_last = -1;
 				commands_printf_lisp("Stream done, starting...");
@@ -668,7 +668,6 @@ static void done_callback(eval_context_t *ctx) {
 	}
 
 	if (cid == main_cid) {
-		lbm_image_save_constant_heap_ix();
 		main_cid = -1;
 	}
 }
@@ -691,7 +690,7 @@ void lispif_stop(void) {
 	lispif_unlock_lbm();
 }
 
-bool lispif_restart(bool print, bool load_code, bool load_imports) {
+bool lispif_restart(bool print, bool load_code) {
 	static lbm_string_channel_state_t string_tok_state;
 	static lbm_char_channel_t string_tok;
 
@@ -712,13 +711,7 @@ bool lispif_restart(bool print, bool load_code, bool load_imports) {
 			flash_helper_erase_code(CODE_IND_LISP_CONST);
 		}
 
-		bool save_heap = lisp_thd_running && lbm_image_exists();
-
 		lispif_stop();
-
-		if (save_heap) {
-			lbm_image_save_constant_heap_ix();
-		}
 
 		int code_chars = 0;
 		if (code_data) {
@@ -749,15 +742,11 @@ bool lispif_restart(bool print, bool load_code, bool load_imports) {
 		char ver_str[20];
 		sprintf(ver_str, "%08X", (unsigned int)flash_helper_app_crc());
 
-		bool load_imports_before = load_imports;
-		load_imports = false;
-
 		if (!lbm_image_exists() || strcmp(lbm_image_get_version(), ver_str) != 0) {
 			commands_printf_lisp("Preparing new image...");
 			flash_helper_erase_code(CODE_IND_LISP_CONST);
 			image_max_ind = 0;
 			lbm_image_create(ver_str);
-			load_imports = load_imports_before;
 			new_image_created = true;
 		}
 
@@ -793,29 +782,6 @@ bool lispif_restart(bool print, bool load_code, bool load_imports) {
 			}
 
 			ext_load_callbacks[i](main_found);
-		}
-
-		if (load_imports) {
-			if (code_len > code_chars + 3) {
-				int32_t ind = code_chars + 1;
-				uint16_t num_imports = buffer_get_uint16((uint8_t*)code_data, &ind);
-
-				if (num_imports > 0 && num_imports < 500) {
-					for (int i = 0;i < num_imports;i++) {
-						char *name = code_data + ind;
-						ind += strlen(name) + 1;
-						int32_t offset = buffer_get_int32((uint8_t*)code_data, &ind);
-						int32_t len = buffer_get_int32((uint8_t*)code_data, &ind);
-
-						lbm_value val;
-						if (lbm_share_array_const(&val, code_data + offset, len)) {
-							lbm_define(name, val);
-						}
-					}
-				}
-
-				lbm_image_save_global_env();
-			}
 		}
 
 		if (load_code) {
