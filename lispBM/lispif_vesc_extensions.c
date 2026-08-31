@@ -2090,6 +2090,10 @@ static bool check_arg_filter(lbm_value *args, lbm_uint argn, int *res) {
 	return true;
 }
 
+static float dir_mult(void) {
+	return mc_interface_get_configuration()->m_invert_direction ? -1.0 : 1.0;
+}
+
 static lbm_value ext_get_current(lbm_value *args, lbm_uint argn) {
 	int filter = 0;
 	if (!check_arg_filter(args, argn, &filter)) {
@@ -2143,7 +2147,7 @@ static lbm_value ext_get_iq(lbm_value *args, lbm_uint argn) {
 	if (filter == 1) {
 		return lbm_enc_float(mc_interface_read_reset_avg_iq());
 	} else {
-		return lbm_enc_float(mcpwm_foc_get_iq_filter());
+		return lbm_enc_float(dir_mult() * mcpwm_foc_get_iq_filter());
 	}
 }
 
@@ -2154,7 +2158,7 @@ static lbm_value ext_get_id_set(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_get_iq_set(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
-	return lbm_enc_float(mcpwm_foc_get_iq_set());
+	return lbm_enc_float(dir_mult() * mcpwm_foc_get_iq_set());
 }
 
 static lbm_value ext_get_id_target(lbm_value *args, lbm_uint argn) {
@@ -2164,7 +2168,7 @@ static lbm_value ext_get_id_target(lbm_value *args, lbm_uint argn) {
 
 static lbm_value ext_get_iq_target(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
-	return lbm_enc_float(mcpwm_foc_get_iq_target());
+	return lbm_enc_float(dir_mult() * mcpwm_foc_get_iq_target());
 }
 
 static lbm_value ext_get_vd(lbm_value *args, lbm_uint argn) {
@@ -2189,7 +2193,7 @@ static lbm_value ext_get_vq(lbm_value *args, lbm_uint argn) {
 	if (filter == 1) {
 		return lbm_enc_float(mc_interface_read_reset_avg_vq());
 	} else {
-		return lbm_enc_float(mcpwm_foc_get_vq());
+		return lbm_enc_float(dir_mult() * mcpwm_foc_get_vq());
 	}
 }
 
