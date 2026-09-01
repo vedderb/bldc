@@ -23,7 +23,7 @@
 // HW properties
 #define HW_HAS_3_SHUNTS
 
-#ifdef FOCSTROT_V3
+#if defined(FOCSTROT_V2) || defined(FOCSTROT_V3)
 #define HW_DEAD_TIME_NSEC       600.0
 #else
 #define HW_DEAD_TIME_NSEC       1200.0
@@ -81,7 +81,7 @@
 #define V_REG                   3.288
 #endif
 #ifndef VIN_R1
-#ifdef FOCSTROT_V3
+#if defined(FOCSTROT_V2) || defined(FOCSTROT_V3)
 #define VIN_R1                  68000.0
 #else
 #define VIN_R1                  110000.0
@@ -194,6 +194,7 @@
 // LSM6DS3
 #define IMU_DEV                 IMU_DEV_LSM6DS3
 #define IMU_COM                 IMU_COM_I2C_BB
+#define IMU_BUS_SPEED_HZ        700000
 #define IMU_I2C_SDA_GPIO        GPIOB
 #define IMU_I2C_SDA_PIN         2
 #define IMU_I2C_SCL_GPIO        GPIOA
@@ -218,10 +219,16 @@
 
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE
+#ifdef FOCSTROT_V2
 #define MCCONF_L_MIN_VOLTAGE            18.0        // Minimum input voltage
+#elif defined(FOCSTROT_V3)
+#define MCCONF_L_MIN_VOLTAGE            41.0        // Minimum input voltage
+#else
+#define MCCONF_L_MIN_VOLTAGE            52.0        // Minimum input voltage
+#endif
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
-#ifdef FOCSTROT_V3
+#if defined(FOCSTROT_V2) || defined(FOCSTROT_V3)
 #define MCCONF_L_MAX_VOLTAGE            95.0    // Maximum input voltage
 #else
 #define MCCONF_L_MAX_VOLTAGE            140.0    // Maximum input voltage
@@ -256,14 +263,22 @@
 #endif
 
 // Setting limits
-#ifdef FOCSTROT_V3
+#if defined(FOCSTROT_V2) || defined(FOCSTROT_V3)
 #define HW_LIM_CURRENT          -180.0, 180.0
 #define HW_LIM_CURRENT_IN       -80.0, 80.0
 #define HW_LIM_CURRENT_ABS      0.0, 250.0
+#ifdef FOCSTROT_V2
 #define HW_LIM_VIN              18.0, 95.0
 #else
-#define HW_LIM_VIN              18.0, 140.0
+#define HW_LIM_VIN              41.0, 95.0
 #endif
+#else
+#define HW_LIM_CURRENT          -200.0, 200.0
+#define HW_LIM_CURRENT_IN       -100.0, 100.0
+#define HW_LIM_CURRENT_ABS      0.0, 300.0
+#define HW_LIM_VIN              52.0, 140.0
+#endif
+
 #define HW_LIM_ERPM             -200e3, 200e3
 #define HW_LIM_DUTY_MIN         0.0, 0.1
 #define HW_LIM_DUTY_MAX         0.0, 0.99
