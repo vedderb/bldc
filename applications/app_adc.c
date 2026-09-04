@@ -385,10 +385,32 @@ static THD_FUNCTION(adc_thread, arg) {
 		// Apply throttle curve
 		pwr = utils_throttle_curve(pwr, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
 
+		bool coast_brake = false;
+		static bool was_coast_brake = false;
+		static bool pwr_last = 0.0;
+
+		// Coasting brake
+		if (config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER ||
+				config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER ||
+				config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON ||
+				config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC ||
+				config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC) {
+			if (config.coast_brake_level > 0.005 && fabsf(was_coast_brake ? pwr : pwr_last) < 0.01) {
+				pwr = -config.coast_brake_level;
+				coast_brake = true;
+			}
+		}
+
+		was_coast_brake = coast_brake;
+
 		// Apply ramping
 		static systime_t last_time = 0;
 		static float pwr_ramp = 0.0;
 		float ramp_time = fabsf(pwr) > fabsf(pwr_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
+
+		if (coast_brake) {
+			ramp_time = config.coast_brake_ramp_time;
+		}
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
@@ -396,6 +418,8 @@ static THD_FUNCTION(adc_thread, arg) {
 			last_time = chVTGetSystemTimeX();
 			pwr = pwr_ramp;
 		}
+
+		pwr_last = pwr;
 
 		float current_rel = 0.0;
 		bool current_mode = false;

@@ -282,6 +282,8 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 	buffer[ind++] = conf->app_adc_conf.tc;
 	buffer_append_float32_auto(buffer, conf->app_adc_conf.tc_max_diff, &ind);
 	buffer_append_uint16(buffer, conf->app_adc_conf.update_rate_hz, &ind);
+	buffer_append_float16(buffer, conf->app_adc_conf.coast_brake_level, 1000, &ind);
+	buffer_append_float32_auto(buffer, conf->app_adc_conf.coast_brake_ramp_time, &ind);
 	buffer_append_uint32(buffer, conf->app_uart_baudrate, &ind);
 	buffer[ind++] = conf->app_chuk_conf.ctrl_type;
 	buffer_append_float32_auto(buffer, conf->app_chuk_conf.hyst, &ind);
@@ -629,6 +631,8 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	conf->app_adc_conf.tc = buffer[ind++];
 	conf->app_adc_conf.tc_max_diff = buffer_get_float32_auto(buffer, &ind);
 	conf->app_adc_conf.update_rate_hz = buffer_get_uint16(buffer, &ind);
+	conf->app_adc_conf.coast_brake_level = buffer_get_float16(buffer, 1000, &ind);
+	conf->app_adc_conf.coast_brake_ramp_time = buffer_get_float32_auto(buffer, &ind);
 	conf->app_uart_baudrate = buffer_get_uint32(buffer, &ind);
 	conf->app_chuk_conf.ctrl_type = buffer[ind++];
 	conf->app_chuk_conf.hyst = buffer_get_float32_auto(buffer, &ind);
@@ -960,6 +964,8 @@ void confgenerator_set_defaults_appconf(app_configuration *conf) {
 	conf->app_adc_conf.tc = APPCONF_ADC_TC;
 	conf->app_adc_conf.tc_max_diff = APPCONF_ADC_TC_MAX_DIFF;
 	conf->app_adc_conf.update_rate_hz = APPCONF_ADC_UPDATE_RATE_HZ;
+	conf->app_adc_conf.coast_brake_level = APPCONF_ADC_COAST_BRAKE_LEVEL;
+	conf->app_adc_conf.coast_brake_ramp_time = APPCONF_ADC_COAST_BRAKE_RAMP_TIME;
 	conf->app_uart_baudrate = APPCONF_UART_BAUDRATE;
 	conf->app_chuk_conf.ctrl_type = APPCONF_CHUK_CTRL_TYPE;
 	conf->app_chuk_conf.hyst = APPCONF_CHUK_HYST;

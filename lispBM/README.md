@@ -4276,6 +4276,8 @@ The following selection of app and motor parameters can be read and set from Lis
 'adc-v1-max             ; Throttle 1 high fault voltage (Added in FW 6.05)
 'adc-v2-start           ; Throttle 2 start voltage (Added in FW 7.00.1)
 'adc-v2-end             ; Throttle 2 end voltage (Added in FW 7.00.1)
+'adc-coast-brake-level  ; Brake to apply when coasting (Added in FW 7.01)
+'adc-coast-brake-ramp-time ; Time to ramp up coasting brake in seconds (Added in FW 7.01)
 'pas-current-scaling    ; PAS current scaling (Added in FW 6.05)
 
 ; VESC Remote App (Added in firmware 7.00)

@@ -270,6 +270,8 @@ typedef struct {
 	lbm_uint adc_v1_center;
 	lbm_uint adc_v2_start;
 	lbm_uint adc_v2_end;
+	lbm_uint adc_coast_brake_level;
+	lbm_uint adc_coast_brake_ramp_time;
 	lbm_uint adc_tc;
 	lbm_uint adc_tc_max_diff;
 	lbm_uint pas_current_scaling;
@@ -719,6 +721,10 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("adc-v2-start", comp);
 		} else if (comp == &syms_vesc.adc_v2_end) {
 			lbm_add_symbol_const("adc-v2-end", comp);
+		} else if (comp == &syms_vesc.adc_coast_brake_level) {
+			lbm_add_symbol_const("adc-coast-brake-level", comp);
+		} else if (comp == &syms_vesc.adc_coast_brake_ramp_time) {
+			lbm_add_symbol_const("adc-coast-brake-ramp-time", comp);
 		} else if (comp == &syms_vesc.adc_tc) {
 			lbm_add_symbol_const("adc-tc", comp);
 		} else if (comp == &syms_vesc.adc_tc_max_diff) {
@@ -4188,6 +4194,12 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 		} else if (compare_symbol(name, &syms_vesc.adc_v2_end)) {
 			appconf->app_adc_conf.voltage2_end = lbm_dec_as_float(args[1]);
 			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.adc_coast_brake_level)) {
+			appconf->app_adc_conf.coast_brake_level = lbm_dec_as_float(args[1]);
+			changed_app = 2;
+		} else if (compare_symbol(name, &syms_vesc.adc_coast_brake_ramp_time)) {
+			appconf->app_adc_conf.coast_brake_ramp_time = lbm_dec_as_float(args[1]);
+			changed_app = 2;
 		} else if (compare_symbol(name, &syms_vesc.adc_tc)) {
 			appconf->app_adc_conf.tc = lbm_dec_as_i32(args[1]);
 			changed_app = 2;
@@ -4608,6 +4620,10 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(appconf->app_adc_conf.voltage2_start);
 	} else if (compare_symbol(name, &syms_vesc.adc_v2_end)) {
 		res = lbm_enc_float(appconf->app_adc_conf.voltage2_end);
+	} else if (compare_symbol(name, &syms_vesc.adc_coast_brake_level)) {
+		res = lbm_enc_float(appconf->app_adc_conf.coast_brake_level);
+	} else if (compare_symbol(name, &syms_vesc.adc_coast_brake_ramp_time)) {
+		res = lbm_enc_float(appconf->app_adc_conf.coast_brake_ramp_time);
 	} else if (compare_symbol(name, &syms_vesc.adc_tc)) {
 		res = lbm_enc_i(appconf->app_adc_conf.tc);
 	} else if (compare_symbol(name, &syms_vesc.adc_tc_max_diff)) {
