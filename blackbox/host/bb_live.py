@@ -43,46 +43,46 @@ MAGIC = b"BBIN"
 # Header carries the ISR tick of the first record so the wire records can omit
 # the per-record tick (records in a batch are consecutive, decimation == 1).
 HEADER = struct.Struct("<4sBBHII")
-# Firmware wire record (BB_STREAM_VERSION 11), 14 bytes, no tick:
-# ia, ib, ic, id, iq (int16, 50 LSB/A),
-# theta (int16, full turn over int16 range), duty (int16, 10000 LSB/duty).
-WIRE = struct.Struct("<hhhhhhh")
-# Self-contained record stored in the temp .bin (tick reconstructed + 7 int16).
-RECORD = struct.Struct("<Ihhhhhhh")
-STREAM_VERSION = 11
+# Firmware wire record (BB_STREAM_VERSION 14), 12 bytes, no tick:
+# erpm (int16, 1 LSB/ERPM), id, iq (int16, 50 LSB/A),
+# ud, uq (int16, 100 LSB/V), theta_obs (int16, full turn over int16 range).
+WIRE = struct.Struct("<hhhhhh")
+# Self-contained record stored in the temp .bin (tick reconstructed + 6 int16).
+RECORD = struct.Struct("<Ihhhhhh")
+STREAM_VERSION = 14
 STREAM_I_LSB_PER_A = 50.0
-STREAM_DUTY_LSB = 10000.0
+STREAM_V_LSB_PER_V = 100.0
+STREAM_ERPM_LSB = 1.0
 STREAM_ANG_LSB = 32768.0 / (2.0 * math.pi)
 
 
 def decode_record(raw):
-    # raw = (tick, ia, ib, ic, id, iq, theta, duty) as fixed-point ints.
+    # raw = (tick, erpm, id, iq, ud, uq, theta_obs) as fixed-point ints.
     tick = raw[0]
-    ia, ib, ic, idc, iqc, theta, duty = raw[1:8]
+    erpm, idc, iqc, ud, uq, theta_obs = raw[1:7]
     return (
         tick,
-        ia / STREAM_I_LSB_PER_A,
-        ib / STREAM_I_LSB_PER_A,
-        ic / STREAM_I_LSB_PER_A,
+        erpm / STREAM_ERPM_LSB,
         idc / STREAM_I_LSB_PER_A,
         iqc / STREAM_I_LSB_PER_A,
-        theta / STREAM_ANG_LSB,
-        duty / STREAM_DUTY_LSB,
+        ud / STREAM_V_LSB_PER_V,
+        uq / STREAM_V_LSB_PER_V,
+        theta_obs / STREAM_ANG_LSB,
     )
 
 RAW_COLUMNS = [
-    "tick", "ia", "ib", "ic", "id", "iq", "theta", "duty",
+    "tick", "erpm", "id", "iq", "ud", "uq", "theta_obs",
 ]
 
 PLOT_COLUMNS = [
-    "ia", "ib", "ic", "id", "iq", "theta", "duty",
+    "erpm", "id", "iq", "ud", "uq", "theta_obs",
 ]
 
 DEFAULT_PANELS = [
-    {"title": "Phase currents", "cols": ["ia", "ib", "ic"]},
+    {"title": "ERPM", "cols": ["erpm"]},
     {"title": "dq currents", "cols": ["id", "iq"]},
-    {"title": "Theta", "cols": ["theta"]},
-    {"title": "Duty", "cols": ["duty"]},
+    {"title": "dq voltages", "cols": ["ud", "uq"]},
+    {"title": "Observer angle", "cols": ["theta_obs"]},
 ]
 
 
@@ -159,13 +159,13 @@ def stream_checksum(data):
 def get_unit(col):
     if col in ("ia", "ib", "ic", "id", "iq", "i_abs", "i_abs_filter"):
         return "A"
-    if col == "v_bus":
+    if col in ("v_bus", "ud", "uq", "vd", "vq"):
         return "V"
     if col == "erpm":
         return "ERPM"
     if col == "speed_rad_s":
         return "rad/s"
-    if col in ("phase", "theta", "theta_used"):
+    if col in ("phase", "theta", "theta_enc", "theta_obs", "theta_used", "phase_obs"):
         return "rad"
     return ""
 

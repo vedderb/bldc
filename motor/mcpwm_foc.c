@@ -3831,7 +3831,13 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			bb->duty_now = motor_now->m_motor_state.duty_now;
 			bb->v_bus = motor_now->m_motor_state.v_bus;
 			bb->phase = motor_now->m_motor_state.phase;
+			float phase_enc = motor_now->m_phase_now_encoder;
+			utils_norm_angle_rad(&phase_enc);
+			bb->phase_enc = phase_enc;
 			bb->speed_rad_s = motor_now->m_pll_speed;
+			bb->vd = motor_now->m_motor_state.vd;
+			bb->vq = motor_now->m_motor_state.vq;
+			bb->phase_obs = motor_now->m_phase_now_observer;
 			bb->state = (uint8_t)motor_now->m_state;
 			bb->control_mode = (uint8_t)motor_now->m_control_mode;
 			blackbox_commit_isr();

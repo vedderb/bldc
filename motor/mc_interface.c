@@ -41,6 +41,7 @@
 #include "crc.h"
 #include "bms.h"
 #include "events.h"
+#include "timeout.h"
 #include "blackbox.h"
 
 #include <math.h>
@@ -817,6 +818,7 @@ void mc_interface_set_openloop_current(float current, float rpm) {
 		break;
 
 	case MOTOR_TYPE_FOC:
+		timeout_reset();
 		mcpwm_foc_set_openloop_current(current, DIR_MULT * rpm);
 		break;
 
@@ -865,6 +867,7 @@ void mc_interface_set_openloop_duty(float dutyCycle, float rpm){
 		break;
 
 	case MOTOR_TYPE_FOC:
+		timeout_reset();
 		mcpwm_foc_set_openloop_duty(dutyCycle, DIR_MULT * rpm);
 		break;
 

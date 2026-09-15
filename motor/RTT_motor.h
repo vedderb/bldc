@@ -156,11 +156,11 @@
 // Sensorless ERPM Hybrid
 #define MCCONF_HALL_ERPM 2000
 
-// Current KP
-#define MCCONF_FOC_CURRENT_KP 0.0399033
+// Current KP (L * 1000, tc=1000us)
+#define MCCONF_FOC_CURRENT_KP 0.0431195
 
-// Current KI
-#define MCCONF_FOC_CURRENT_KI 75.2818
+// Current KI (R * 1000, tc=1000us)
+#define MCCONF_FOC_CURRENT_KI 49.0
 
 // Zero Vector Frequency
 #define MCCONF_FOC_F_ZV 30000
@@ -186,20 +186,20 @@
 // Speed Tracker Ki
 #define MCCONF_FOC_PLL_KI 30000
 
-// Motor Inductance (L)
-#define MCCONF_FOC_MOTOR_L 3.99033e-05
+// Motor Inductance (L) = (Ld+Lq)/2, Ld=34.523uH Lq=51.716uH
+#define MCCONF_FOC_MOTOR_L 4.31195e-05
 
 // Motor Inductance Difference (Lq - Ld)
-#define MCCONF_FOC_MOTOR_LD_LQ_DIFF 1.83806e-05
+#define MCCONF_FOC_MOTOR_LD_LQ_DIFF 1.7193e-05
 
 // Motor Resistance (R)
-#define MCCONF_FOC_MOTOR_R 0.0752818
+#define MCCONF_FOC_MOTOR_R 0.049
 
-// Motor Flux Linkage (¦Ë)
-#define MCCONF_FOC_MOTOR_FLUX_LINKAGE 0.0101199
+// Motor Flux Linkage (?)
+#define MCCONF_FOC_MOTOR_FLUX_LINKAGE 0.00716
 
-// Observer Gain (x1M)
-#define MCCONF_FOC_OBSERVER_GAIN 9.76449e+06
+// Observer Gain (x1M) = 1e-3 / ?² * 1e6
+#define MCCONF_FOC_OBSERVER_GAIN 1.95064e+07
 
 // Observer Gain At Minimum Duty
 #define MCCONF_FOC_OBSERVER_GAIN_SLOW 0.05
@@ -549,8 +549,8 @@
 // Battery Filter Constant
 #define MCCONF_M_BATT_FILTER_CONST 45
 
-// Motor Poles
-#define MCCONF_SI_MOTOR_POLES 4
+// Motor Poles (pole pairs = 7)
+#define MCCONF_SI_MOTOR_POLES 14
 
 // Gear Ratio
 #define MCCONF_SI_GEAR_RATIO 1

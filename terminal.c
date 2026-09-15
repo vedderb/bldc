@@ -203,6 +203,7 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 			commands_printf("  duty         : %.3f", (double)r->duty_now);
 			commands_printf("  v_bus        : %.2f V", (double)r->v_bus);
 			commands_printf("  phase        : %.3f rad", (double)r->phase);
+			commands_printf("  phase_obs    : %.3f rad (%.1f deg)", (double)r->phase_obs, (double)RAD2DEG_f(r->phase_obs));
 			commands_printf("  speed        : %.1f rad/s (%.1f ERPM)",
 					(double)r->speed_rad_s, (double)(r->speed_rad_s * 60.0 / (2.0 * M_PI)));
 			commands_printf("  state/mode   : %d / %d", r->state, r->control_mode);
@@ -704,7 +705,7 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 			float erpm = -1.0;
 			sscanf(argv[1], "%f", &current);
 			sscanf(argv[2], "%f", &erpm);
-			commands_printf("Running FOC openloop...");
+			commands_printf("Running FOC IF openloop (current + erpm), holds until foc_openloop_stop...");
 			if (current > 0.0 && current <= mc_interface_get_configuration()->l_current_max && erpm >= 0.0) {
 				timeout_reset();
 				mc_interface_set_openloop_current(current, erpm);
@@ -712,6 +713,9 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 				if (fault != FAULT_CODE_NONE) {
 					commands_printf("Fault occured during openloop: %s", mc_interface_fault_to_string(fault));
 					commands_printf("For more info type \"faults\" to view all logged faults\n");
+				} else {
+					commands_printf("IF running: I=%.2f A, erpm=%.1f (stable hold enabled)\n",
+							(double)current, (double)erpm);
 				}
 			} else {
 				commands_printf("Invalid argument(s).");
@@ -732,7 +736,7 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 			float erpm = -1.0;
 			sscanf(argv[1], "%f", &duty);
 			sscanf(argv[2], "%f", &erpm);
-			commands_printf("Running FOC openloop duty...");
+			commands_printf("Running FOC VF openloop (duty + erpm), holds until foc_openloop_stop...");
 			if (duty >= 0.0 && duty <= 0.9 && erpm >= 0.0) {
 				timeout_reset();
 				mc_interface_set_openloop_duty(duty, erpm);
@@ -740,6 +744,9 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 				if (fault != FAULT_CODE_NONE) {
 					commands_printf("Fault occured during openloop: %s", mc_interface_fault_to_string(fault));
 					commands_printf("For more info type \"faults\" to view all logged faults\n");
+				} else {
+					commands_printf("VF running: duty=%.3f, erpm=%.1f (stable hold enabled)\n",
+							(double)duty, (double)erpm);
 				}
 			} else {
 				commands_printf("Invalid argument(s).");
@@ -754,6 +761,10 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 		} else {
 			commands_printf("This command requires two arguments. [duty erpm]\n");
 		}
+	} else if (strcmp(argv[0], "foc_openloop_stop") == 0) {
+		timeout_reset();
+		mc_interface_release_motor();
+		commands_printf("Openloop IF/VF stopped (motor released).\n");
 	} else if (strcmp(argv[0], "nrf_ext_set_enabled") == 0) {
 		if (argc == 2) {
 			int enabled = -1;
@@ -1272,10 +1283,15 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 		commands_printf("  Print some hardware status information.");
 
 		commands_printf("foc_openloop [current] [erpm]");
-		commands_printf("  Create an open loop rotating current vector.");
+		commands_printf("  IF mode: openloop rotating current vector. Runs continuously until foc_openloop_stop.");
+		commands_printf("  example: foc_openloop 5 500");
 
 		commands_printf("foc_openloop_duty [duty] [erpm]");
-		commands_printf("  Create an open loop rotating voltage vector.");
+		commands_printf("  VF mode: openloop rotating voltage/duty vector. Runs continuously until foc_openloop_stop.");
+		commands_printf("  example: foc_openloop_duty 0.1 500");
+
+		commands_printf("foc_openloop_stop");
+		commands_printf("  Stop IF/VF openloop and release the motor.");
 
 		commands_printf("nrf_ext_set_enabled [enabled]");
 		commands_printf("  Enable or disable external NRF51822.");

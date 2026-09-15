@@ -17,11 +17,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// Number of records in the ring buffer. 256 x 56 B = 14 KB in main SRAM.
+// Number of records in the ring buffer. 240 x 72 B ≈ 17 KB in main SRAM.
 // Stock 75_300 has ~25 KB of ram0 left for .bss + heap, so this leaves
 // roughly 10 KB of heap headroom. Verify with the terminal "mem" command.
 #ifndef BB_BUF_LEN
-#define BB_BUF_LEN			256
+#define BB_BUF_LEN			240
 #endif
 
 // Record every BB_DECIMATION:th FOC ADC ISR (1 = every ISR, ~12.5 kHz).
@@ -48,8 +48,12 @@ typedef struct {
 	float i_abs_filter;		// Filtered version (used when l_slow_abs_current is true)
 	float duty_now;
 	float v_bus;			// Input voltage (V)
-	float phase;			// Electrical phase (rad)
+	float phase;			// Electrical phase used by FOC (rad)
+	float phase_enc;		// Encoder-derived electrical phase, normalized to -pi..pi (rad)
 	float speed_rad_s;		// PLL speed (electrical rad/s)
+	float vd;				// dq voltages applied this cycle (V)
+	float vq;
+	float phase_obs;		// Observer electrical phase, normalized to -pi..pi (rad)
 	uint8_t fault_code;		// mc_fault_code that triggered the freeze (0 = none)
 	uint8_t state;			// mc_state
 	uint8_t control_mode;	// mc_control_mode

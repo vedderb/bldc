@@ -12,6 +12,7 @@ load or switch CSV files at any time without restarting from the command line.
 import argparse
 import bisect
 import csv
+import math
 import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -29,12 +30,15 @@ from matplotlib.widgets import RectangleSelector
 
 
 # Panels whose columns are absent in the loaded CSV are dropped automatically,
-# so this default works for both the trimmed live stream (ia/ib/ic/id/iq/
-# theta_used) and the full 'd' dump (which still carries duty/fault/v_bus).
+# so this default works for both the live stream (erpm/id/iq/ud/uq/theta_obs)
+# and the full 'd' dump (which still carries extra FOC fields).
 DEFAULT_PANELS = [
-    {"title": "Phase currents", "cols": ["ia", "ib", "ic"]},
+    {"title": "ERPM", "cols": ["erpm"]},
     {"title": "dq currents", "cols": ["id", "iq"]},
-    {"title": "Theta used", "cols": ["theta", "theta_used", "phase"]},
+    {"title": "dq voltages", "cols": ["ud", "uq", "vd", "vq"]},
+    {"title": "Observer angle", "cols": ["theta_obs", "phase_obs"]},
+    {"title": "Phase currents", "cols": ["ia", "ib", "ic"]},
+    {"title": "Electrical angle", "cols": ["theta", "theta_enc", "theta_used", "phase", "phase_enc", "theta_obs", "phase_obs"]},
     {"title": "Duty", "cols": ["duty"]},
     {"title": "Fault", "cols": ["fault"]},
 ]
@@ -47,9 +51,11 @@ def get_unit(col):
         return ""
     if col == "fault":
         return "code"
-    if col == "v_bus":
+    if col in ("v_bus", "ud", "uq", "vd", "vq"):
         return "V"
-    if col in ("theta", "theta_used", "phase"):
+    if col == "erpm":
+        return "ERPM"
+    if col in ("theta", "theta_enc", "theta_obs", "theta_used", "phase", "phase_enc", "phase_obs"):
         return "rad"
     return ""
 
@@ -59,7 +65,24 @@ class CsvData:
         self.path = path
         self.columns = []
         self.data = {}
+        # Units for derived (computed) columns; overrides get_unit() by name.
+        self.units = {}
         self.load(path)
+
+    def unique_col_name(self, base):
+        name = base
+        i = 2
+        while name in self.data:
+            name = f"{base}#{i}"
+            i += 1
+        return name
+
+    def add_derived(self, name, values, unit=""):
+        self.data[name] = values
+        if name not in self.plot_columns:
+            self.plot_columns.append(name)
+        if unit:
+            self.units[name] = unit
 
     def load(self, path):
         with open(path, newline="") as f:
@@ -174,6 +197,7 @@ class CsvScopeApp:
         ttk.Button(row, text="新增子图", command=self.add_panel_dialog).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 2))
         ttk.Button(row, text="编辑子图", command=self.edit_panel_dialog).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(2, 0))
         ttk.Button(left, text="删除子图", command=self.delete_panel).pack(fill=tk.X, pady=(2, 0))
+        ttk.Button(left, text="新增差值子图", command=self.add_diff_panel_dialog).pack(fill=tk.X, pady=(2, 0))
 
         ttk.Separator(left).pack(fill=tk.X, pady=10)
         ttk.Label(left, text="滚轮缩放模式").pack(anchor="w")
@@ -246,6 +270,66 @@ class CsvScopeApp:
             self.current_panel = len(self.panels) - 1
             self.rebuild_figure(keep_xlim=True)
 
+    def col_unit(self, col):
+        if self.data is not None and col in self.data.units:
+            return self.data.units[col]
+        return get_unit(col)
+
+    def add_diff_panel_dialog(self):
+        if self.data is None or not self.data.plot_columns:
+            return
+        cols = list(self.data.plot_columns)
+
+        win = tk.Toplevel(self.root)
+        win.title("新增差值子图")
+        win.geometry("340x230")
+        win.transient(self.root)
+        win.grab_set()
+
+        ttk.Label(win, text="被减数 A").pack(anchor="w", padx=10, pady=(10, 2))
+        var_a = tk.StringVar(value=cols[0])
+        ttk.Combobox(win, textvariable=var_a, values=cols, state="readonly").pack(fill=tk.X, padx=10)
+
+        ttk.Label(win, text="减数 B").pack(anchor="w", padx=10, pady=(8, 2))
+        var_b = tk.StringVar(value=cols[1] if len(cols) > 1 else cols[0])
+        ttk.Combobox(win, textvariable=var_b, values=cols, state="readonly").pack(fill=tk.X, padx=10)
+
+        wrap_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(win, text="按角度归一化差值到 -π..π", variable=wrap_var).pack(anchor="w", padx=10, pady=(10, 0))
+
+        def sync_wrap(*_):
+            wrap_var.set(self.col_unit(var_a.get()) == "rad" and self.col_unit(var_b.get()) == "rad")
+
+        var_a.trace_add("write", sync_wrap)
+        var_b.trace_add("write", sync_wrap)
+        sync_wrap()
+
+        btns = ttk.Frame(win)
+        btns.pack(fill=tk.X, padx=10, pady=12)
+
+        def ok():
+            a, b = var_a.get(), var_b.get()
+            ya, yb = self.data.y(a), self.data.y(b)
+            n = min(len(ya), len(yb))
+            wrap = wrap_var.get()
+            out = []
+            for i in range(n):
+                d = ya[i] - yb[i]
+                if wrap:
+                    d = math.remainder(d, 2.0 * math.pi)
+                out.append(d)
+            unit = self.col_unit(a) if self.col_unit(a) == self.col_unit(b) else ""
+            name = self.data.unique_col_name(f"{a}-{b}")
+            self.data.add_derived(name, out, unit)
+            self.panels.append({"title": name, "cols": [name]})
+            self.current_panel = len(self.panels) - 1
+            self.rebuild_figure(keep_xlim=True)
+            win.destroy()
+
+        ttk.Button(btns, text="确定", command=ok).pack(side=tk.RIGHT, padx=(5, 0))
+        ttk.Button(btns, text="取消", command=win.destroy).pack(side=tk.RIGHT)
+        self.root.wait_window(win)
+
     def edit_panel_dialog(self):
         if self.data is None or not self.panels:
             return
@@ -314,7 +398,7 @@ class CsvScopeApp:
         self.canvas.draw_idle()
 
     def panel_ylabel(self, cols):
-        units = {get_unit(c) for c in cols if get_unit(c)}
+        units = {self.col_unit(c) for c in cols if self.col_unit(c)}
         return "/".join(sorted(units)) if units else "value"
 
     def autoscale_all_y_to_visible_x(self, redraw=True):

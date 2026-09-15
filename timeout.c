@@ -189,6 +189,28 @@ bool timeout_had_IWDG_reset(void) {
 	return false;
 }
 
+/**
+ * Rotating openloop IF/VF should keep running without command heartbeats.
+ * Kill-switch behavior is unchanged.
+ */
+static bool timeout_openloop_run_hold(void) {
+	const int mot_was = mc_interface_motor_now();
+	bool hold = false;
+
+	for (int m = 1; m <= 2; m++) {
+		mc_interface_select_motor_thread(m);
+		mc_control_mode mode = mc_interface_get_control_mode();
+		if (mode == CONTROL_MODE_OPENLOOP ||
+				mode == CONTROL_MODE_OPENLOOP_DUTY) {
+			hold = true;
+			break;
+		}
+	}
+
+	mc_interface_select_motor_thread(mot_was);
+	return hold;
+}
+
 static THD_FUNCTION(timeout_thread, arg) {
 	(void)arg;
 
@@ -220,6 +242,11 @@ static THD_FUNCTION(timeout_thread, arg) {
 
 		if (kill_sw_ext_set) {
 			kill_sw = true;
+		}
+
+		/* Keep IF (openloop current) / VF (openloop duty) alive across app timeout. */
+		if (!kill_sw && timeout_openloop_run_hold()) {
+			timeout_reset();
 		}
 
 		if (kill_sw || (timeout_msec != 0 && chVTTimeElapsedSinceX(last_update_time) > MS2ST(timeout_msec))) {

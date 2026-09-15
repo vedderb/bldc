@@ -28,28 +28,29 @@
 #endif
 
 #define BB_STREAM_MAGIC			"BBIN"
-#define BB_STREAM_VERSION		11
+#define BB_STREAM_VERSION		14
 
-// Compact binary stream fixed-point scales. Currents are int16 at
-// 0.02 A/LSB (+-655 A range). Duty is int16 at 0.0001/LSB. Electrical
-// phase is int16 mapping a full turn (0..2*pi) onto the int16 range.
+// Compact binary stream fixed-point scales.
+// Currents: int16 at 0.02 A/LSB (+-655 A). Voltages: int16 at 0.01 V/LSB
+// (+-327 V). ERPM: int16 at 1 ERPM/LSB (+-32767). Electrical phase is
+// int16 mapping a full turn onto the int16 range.
 #define BB_STREAM_I_LSB_PER_A	50.0f
-#define BB_STREAM_DUTY_LSB		10000.0f
+#define BB_STREAM_V_LSB_PER_V	100.0f
+#define BB_STREAM_ERPM_LSB		1.0f
 #define BB_STREAM_ANG_LSB		(32768.0f / (2.0f * (float)M_PI))
 #define BB_STREAM_I16_MAX		32767.0f
 #define BB_STREAM_I16_MIN		(-32768.0f)
 
-// 14 bytes per record (no padding): 7 x int16. The per-record tick is not
+// 12 bytes per record (no padding): 6 x int16. The per-record tick is not
 // transmitted; the host reconstructs it as header.first_tick + record_index.
 // This assumes BB_STREAM_DECIMATION == 1 so records in a batch are consecutive.
 typedef struct __attribute__((packed)) {
-	int16_t ia;				// Phase currents: int16, BB_STREAM_I_LSB_PER_A LSB per amp
-	int16_t ib;
-	int16_t ic;
+	int16_t erpm;			// Electrical RPM: int16, BB_STREAM_ERPM_LSB LSB per ERPM
 	int16_t id;				// dq currents: int16, BB_STREAM_I_LSB_PER_A LSB per amp
 	int16_t iq;
-	int16_t theta;			// Electrical phase used by FOC: int16, BB_STREAM_ANG_LSB LSB per rad
-	int16_t duty_now;		// Duty cycle: int16, BB_STREAM_DUTY_LSB LSB per duty
+	int16_t ud;				// dq voltages: int16, BB_STREAM_V_LSB_PER_V LSB per volt
+	int16_t uq;
+	int16_t theta_obs;		// Observer electrical phase: int16, BB_STREAM_ANG_LSB LSB per rad
 } bb_stream_record_t;
 
 static inline int16_t bb_stream_clamp_i16(float v) {
@@ -126,7 +127,7 @@ static bool rtt_write_chunk(const char *buf, unsigned int len) {
 }
 
 static void dump_csv(void) {
-	char line[224];
+	char line[288];
 	int len;
 
 	// Snapshot the indices. For a torn-free dump trigger it on a frozen
@@ -144,7 +145,7 @@ static void dump_csv(void) {
 	}
 
 	len = snprintf(line, sizeof(line),
-			"tick,ia,ib,ic,id,iq,i_abs,i_abs_filter,duty,v_bus,phase,speed_rad_s,fault,state,mode,flags\r\n");
+			"tick,ia,ib,ic,id,iq,i_abs,i_abs_filter,duty,v_bus,phase,phase_enc,phase_obs,speed_rad_s,vd,vq,fault,state,mode,flags\r\n");
 	if (!rtt_write_chunk(line, len)) {
 		return;
 	}
@@ -154,13 +155,14 @@ static void dump_csv(void) {
 		volatile bb_record_t *r = &m_buf[idx];
 
 		len = snprintf(line, sizeof(line),
-				"%lu,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.4f,%.2f,%.4f,%.2f,%u,%u,%u,%u\r\n",
+				"%lu,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.4f,%.2f,%.4f,%.4f,%.4f,%.2f,%.3f,%.3f,%u,%u,%u,%u\r\n",
 				(unsigned long)r->tick,
 				(double)r->ia, (double)r->ib, (double)r->ic,
 				(double)r->id, (double)r->iq,
 				(double)r->i_abs, (double)r->i_abs_filter,
 				(double)r->duty_now, (double)r->v_bus,
-				(double)r->phase, (double)r->speed_rad_s,
+				(double)r->phase, (double)r->phase_enc, (double)r->phase_obs, (double)r->speed_rad_s,
+				(double)r->vd, (double)r->vq,
 				(unsigned int)r->fault_code, (unsigned int)r->state,
 				(unsigned int)r->control_mode, (unsigned int)r->flags);
 		if (!rtt_write_chunk(line, len)) {
@@ -273,13 +275,12 @@ static void stream_binary(void) {
 				header->first_tick = r->tick;
 			}
 			bb_stream_record_t *out = (bb_stream_record_t*)&payload[payload_ofs];
-			out->ia = bb_stream_clamp_i16(r->ia * BB_STREAM_I_LSB_PER_A);
-			out->ib = bb_stream_clamp_i16(r->ib * BB_STREAM_I_LSB_PER_A);
-			out->ic = bb_stream_clamp_i16(r->ic * BB_STREAM_I_LSB_PER_A);
+			out->erpm = bb_stream_clamp_i16(r->speed_rad_s * (60.0f / (2.0f * (float)M_PI)) * BB_STREAM_ERPM_LSB);
 			out->id = bb_stream_clamp_i16(r->id * BB_STREAM_I_LSB_PER_A);
 			out->iq = bb_stream_clamp_i16(r->iq * BB_STREAM_I_LSB_PER_A);
-			out->theta = bb_stream_clamp_i16(r->phase * BB_STREAM_ANG_LSB);
-			out->duty_now = bb_stream_clamp_i16(r->duty_now * BB_STREAM_DUTY_LSB);
+			out->ud = bb_stream_clamp_i16(r->vd * BB_STREAM_V_LSB_PER_V);
+			out->uq = bb_stream_clamp_i16(r->vq * BB_STREAM_V_LSB_PER_V);
+			out->theta_obs = bb_stream_clamp_i16(r->phase_obs * BB_STREAM_ANG_LSB);
 			payload_ofs += sizeof(bb_stream_record_t);
 		}
 
