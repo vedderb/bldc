@@ -244,14 +244,14 @@
 #define READ_HALL3()			palReadPad(HW_HALL_ENC_GPIO3, HW_HALL_ENC_PIN3)
 
 // Override dead time. See the stm32f4 reference manual for calculating this value.
-#define HW_DEAD_TIME_NSEC		1000.0
+#define HW_DEAD_TIME_NSEC		400.0
 
 // Default setting overrides
 #ifndef MCCONF_L_MIN_VOLTAGE
-#define MCCONF_L_MIN_VOLTAGE			12.0	// Minimum input voltage
+#define MCCONF_L_MIN_VOLTAGE			20.0	// Minimum input voltage
 #endif
 #ifndef MCCONF_L_MAX_VOLTAGE
-#define MCCONF_L_MAX_VOLTAGE			110.0	// Maximum input voltage
+#define MCCONF_L_MAX_VOLTAGE			100.0	// Maximum input voltage
 #endif
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE		MOTOR_TYPE_FOC
@@ -273,17 +273,20 @@
 #endif
 
 // Setting limits
-#define HW_LIM_CURRENT			-500.0, 500.0 
+#define HW_LIM_CURRENT			-1200.0, 1200.0 
 #define HW_LIM_CURRENT_IN		-500.0, 500.0 
-#define HW_LIM_CURRENT_ABS		0.0, 650 
-#define HW_LIM_VIN			    6.0, 120.0 
+#define HW_LIM_CURRENT_ABS		0.0, 1500 
+#define HW_LIM_VIN			    20.0, 120.0 
 #define HW_LIM_ERPM			    -200e3, 200e3 
 #define HW_LIM_DUTY_MIN			0.0, 0.1
 #define HW_LIM_DUTY_MAX			0.0, 0.99
-#define HW_LIM_TEMP_FET			-40.0, 110.0
+#define HW_LIM_TEMP_FET			-40.0, 90.0
 
 // HW-specific functions
 float hw100_300_get_temp(void);
 bool hw_sample_shutdown_button(void);
+
+// Custom app: PPM throttle + ADC2 brake + ADC1 gain + reverse button
+#define APP_CUSTOM_TO_USE		"applications/app_ppm_adc_brake.c"
 
 #endif /* HW_MKSESC_100_300_HP_H_ */
