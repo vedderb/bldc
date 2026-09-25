@@ -448,7 +448,10 @@ void imu_set_read_callback(void (*func)(float *acc, float *gyro, float *mag, flo
 }
 
 static void imu_read_callback(float *accel, float *gyro, float *mag, float dt) {
-	if (!imu_ready && ST2MS(chVTGetSystemTimeX() - init_time) > 1000) {
+	// Once seeded, the high-gain init window only needs to smooth out seed noise
+	// and sensor turn-on; 1000 ms is the fallback if no plausible accel arrives.
+	systime_t window_ms = m_att_seeded ? 200 : 1000;
+	if (!imu_ready && ST2MS(chVTGetSystemTimeX() - init_time) > window_ms) {
 		ahrs_update_all_parameters(
 				&m_att,
 				m_settings.accel_confidence_decay,
