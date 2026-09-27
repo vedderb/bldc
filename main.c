@@ -423,7 +423,8 @@ int main(void) {
 
 	imu_reset_orientation();
 
-	chThdSleepMilliseconds(500);
+	// Matches the poll period of the lisp-releasing wait in blocking_thread.
+	chThdSleepMilliseconds(10);
 	m_init_done = true;
 
 #ifdef BOOT_OK_GPIO
