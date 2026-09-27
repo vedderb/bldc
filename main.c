@@ -331,7 +331,7 @@ int main(void) {
 	palClearPad(BOOT_OK_GPIO, BOOT_OK_PIN);
 #endif
 
-	chThdSleepMilliseconds(100);
+	chThdSleepMilliseconds(10);
 
 	mempools_init();
 	events_init();
