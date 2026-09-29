@@ -1275,35 +1275,35 @@ static bool shouldAcceptTransfer(const CanardInstance* ins,
 	switch (data_type_id) {
 		case UAVCAN_PROTOCOL_GETNODEINFO_ID:
 			*out_data_type_signature = UAVCAN_PROTOCOL_GETNODEINFO_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeRequest;
 
 		case UAVCAN_EQUIPMENT_ESC_RAWCOMMAND_ID:
 			*out_data_type_signature = UAVCAN_EQUIPMENT_ESC_RAWCOMMAND_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeBroadcast;
 
 		case UAVCAN_EQUIPMENT_ESC_RPMCOMMAND_ID:
 			*out_data_type_signature = UAVCAN_EQUIPMENT_ESC_RPMCOMMAND_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeBroadcast;
 
 		case UAVCAN_EQUIPMENT_ESC_STATUS_ID:
 			*out_data_type_signature = UAVCAN_EQUIPMENT_ESC_STATUS_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeBroadcast;
 
 		case UAVCAN_PROTOCOL_RESTARTNODE_ID:
 			*out_data_type_signature = UAVCAN_PROTOCOL_RESTARTNODE_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeRequest;
 
 		case UAVCAN_PROTOCOL_PARAM_GETSET_ID:
 			*out_data_type_signature = UAVCAN_PROTOCOL_PARAM_GETSET_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeRequest;
 
 		case UAVCAN_PROTOCOL_FILE_READ_ID:
 			*out_data_type_signature = UAVCAN_PROTOCOL_FILE_READ_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeResponse;
 		
 		case UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_ID:
 			*out_data_type_signature = UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeRequest;
 
 		default:
 			break;
