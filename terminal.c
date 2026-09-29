@@ -576,9 +576,9 @@ __attribute__((section(".text2"))) void terminal_process_string(char *str) {
 						commands_printf(
 									"Flux linkage            : %.7f\n"
 									"Flux Linkage (undriven) : %.7f\n"
-									"Undriven samples        : %.1f\n",
-									"Encoder Offset          : %.1f\n",
-									"Encoder Ratio           : %.1f\n",
+									"Undriven samples        : %.1f\n"
+									"Encoder Offset          : %.1f\n"
+									"Encoder Ratio           : %.1f\n"
 									"Encoder inverted        : %d\n",
 									(double)linkage, (double)linkage_undriven, (double)undriven_samples,
 									(double)enc_offset, (double)enc_ratio, enc_inverted);
