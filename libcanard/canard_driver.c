@@ -137,6 +137,9 @@ systime_t last_read_file_req = 0;
 systime_t jump_delay_start = 0;
 bool jump_to_bootloader = false;
 
+static systime_t restart_request_time = 0;
+static bool restart_pending = false;
+
 #define FLASH_SECTORS			12
 #define BOOTLOADER_BASE			11
 #define APP_BASE				0
@@ -957,13 +960,32 @@ static void handle_param_getset(CanardInstance* ins, CanardRxTransfer* transfer)
 	}												
 }
 
-/*
- * Create a Watchdog reset in order to restart the node if a restart command is recieved
+/**
+ * Handle a RestartNode request. The request is only honored if it carries the
+ * magic number. The reset is done from the canard thread after a short delay so
+ * that the response can be sent.
  */
-static void handle_restart_node(void) {
-	// Lock the system and enter an infinite loop. The watchdog will reboot.
-	__disable_irq();
-	for(;;){};
+static void handle_restart_node(CanardInstance* ins, CanardRxTransfer* transfer) {
+	uint64_t magic = 0;
+	bool ok = canardDecodeScalar(transfer, 0, 40, false, &magic) == 40 &&
+			magic == UAVCAN_PROTOCOL_RESTARTNODE_REQUEST_MAGIC_NUMBER;
+
+	uint8_t resp = 0;
+	canardEncodeScalar(&resp, 0, 1, &ok);
+	canardRequestOrRespond(ins,
+						   transfer->source_node_id,
+						   UAVCAN_PROTOCOL_RESTARTNODE_SIGNATURE,
+						   UAVCAN_PROTOCOL_RESTARTNODE_ID,
+						   &transfer->transfer_id,
+						   transfer->priority,
+						   CanardResponse,
+						   &resp,
+						   1);
+
+	if (ok) {
+		restart_request_time = chVTGetSystemTimeX();
+		restart_pending = true;
+	}
 }
 
 /*
@@ -1220,7 +1242,7 @@ static void onTransferReceived(CanardInstance* ins, CanardRxTransfer* transfer) 
 			if (debug_level > 0) {
 				commands_printf("RestartNode\n");
 			}
-			handle_restart_node();
+			handle_restart_node(ins, transfer);
 			break;
 
 		case UAVCAN_PROTOCOL_PARAM_GETSET_ID:
@@ -1470,6 +1492,12 @@ static THD_FUNCTION(canard_thread, arg) {
 		// delay jump to bootloader after receiving data for 0.5 sec
 		if ((ST2MS(chVTTimeElapsedSinceX(jump_delay_start)) >= 500) && (jump_to_bootloader == true)) {
 			flash_helper_jump_to_bootloader();
+		}
+
+		// Give the RestartNode response some time to leave the CAN controller
+		if (restart_pending && ST2MS(chVTTimeElapsedSinceX(restart_request_time)) >= 50) {
+			conf_general_store_backup_data();
+			NVIC_SystemReset();
 		}
 
 		chThdSleepMilliseconds(1);
