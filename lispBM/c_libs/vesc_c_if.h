@@ -672,6 +672,16 @@ typedef struct {
 
 	// Functions below were added in firmware 7.00
 	void (*foc_set_fw_override)(float current);
+
+	// Functions below were added in firmware 7.01
+
+	// Disable the motor and persist this state across reboots. Only works
+	// while the motor is stationary. Returns false if rejected.
+	bool (*mc_disable)(void);
+	// Re-enable the motor after mc_disable.
+	void (*mc_enable)(void);
+	// Check whether the motor is currently disabled.
+	bool (*mc_is_disabled)(void);
 } vesc_c_if;
 
 typedef struct {
