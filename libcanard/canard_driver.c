@@ -118,6 +118,11 @@ static bool shouldAcceptTransfer(const CanardInstance* ins,
 		CanardTransferType transfer_type,
 		uint8_t source_node_id);
 static void terminal_debug_on(int argc, const char **argv);
+static int16_t process_frame(CANRxFrame *msg, int interface);
+
+// Serializes access to the canard instances between the canard and CAN process threads
+static MUTEX_DECL(canard_mtx);
+static bool canard_ready = false;
 
 /*
 * Firmware Update Stuff
@@ -136,6 +141,9 @@ static struct {
 systime_t last_read_file_req = 0;
 systime_t jump_delay_start = 0;
 bool jump_to_bootloader = false;
+
+static systime_t restart_request_time = 0;
+static bool restart_pending = false;
 
 #define FLASH_SECTORS			12
 #define BOOTLOADER_BASE			11
@@ -408,7 +416,66 @@ uavcan_cmd_info canard_driver_last_rpmcmd(int can_if) {
 	return res;
 }
 
+/**
+ * Pass a received frame to libcanard. Called from the CAN process thread in
+ * CAN_MODE_VESC_UAVCAN, so it takes the lock shared with the canard thread.
+ *
+ * @param msg
+ * The received frame.
+ *
+ * @param interface
+ * CAN interface the frame was received on, 1 or 2.
+ *
+ * @return
+ * CANARD_OK (0) when libcanard took the frame, otherwise non-zero. Frames that
+ * arrive before the canard thread has initialized the instances are not taken.
+ */
 int16_t canard_process_frame(CANRxFrame *msg, int interface) {
+	int16_t res = -CANARD_ERROR_INVALID_ARGUMENT;
+
+	chMtxLock(&canard_mtx);
+	if (canard_ready) {
+		res = process_frame(msg, interface);
+	}
+	chMtxUnlock(&canard_mtx);
+
+	return res;
+}
+
+/**
+ * Transmit all frames in the TX queue of a canard instance. Transmitting can block
+ * when the mailboxes are full, so it is done without holding the lock so that
+ * canard_process_frame() in the CAN process thread is not stalled.
+ *
+ * @param ins
+ * The canard instance.
+ *
+ * @param interface
+ * CAN interface to transmit on, 1 or 2.
+ */
+static void transmit_tx_queue(CanardInstance *ins, int interface) {
+	for (;;) {
+		CanardCANFrame txf;
+		bool has_frame = false;
+
+		chMtxLock(&canard_mtx);
+		const CanardCANFrame *txf_ptr = canardPeekTxQueue(ins);
+		if (txf_ptr) {
+			txf = *txf_ptr;
+			canardPopTxQueue(ins);
+			has_frame = true;
+		}
+		chMtxUnlock(&canard_mtx);
+
+		if (!has_frame) {
+			break;
+		}
+
+		comm_can_transmit_eid_if(txf.id, txf.data, txf.data_len, interface);
+	}
+}
+
+static int16_t process_frame(CANRxFrame *msg, int interface) {
 	CanardCANFrame rx_frame;
 
 	if (msg->IDE == CAN_IDE_EXT) {
@@ -957,13 +1024,32 @@ static void handle_param_getset(CanardInstance* ins, CanardRxTransfer* transfer)
 	}												
 }
 
-/*
- * Create a Watchdog reset in order to restart the node if a restart command is recieved
+/**
+ * Handle a RestartNode request. The request is only honored if it carries the
+ * magic number. The reset is done from the canard thread after a short delay so
+ * that the response can be sent.
  */
-static void handle_restart_node(void) {
-	// Lock the system and enter an infinite loop. The watchdog will reboot.
-	__disable_irq();
-	for(;;){};
+static void handle_restart_node(CanardInstance* ins, CanardRxTransfer* transfer) {
+	uint64_t magic = 0;
+	bool ok = canardDecodeScalar(transfer, 0, 40, false, &magic) == 40 &&
+			magic == UAVCAN_PROTOCOL_RESTARTNODE_REQUEST_MAGIC_NUMBER;
+
+	uint8_t resp = 0;
+	canardEncodeScalar(&resp, 0, 1, &ok);
+	canardRequestOrRespond(ins,
+						   transfer->source_node_id,
+						   UAVCAN_PROTOCOL_RESTARTNODE_SIGNATURE,
+						   UAVCAN_PROTOCOL_RESTARTNODE_ID,
+						   &transfer->transfer_id,
+						   transfer->priority,
+						   CanardResponse,
+						   &resp,
+						   1);
+
+	if (ok) {
+		restart_request_time = chVTGetSystemTimeX();
+		restart_pending = true;
+	}
 }
 
 /*
@@ -1220,7 +1306,7 @@ static void onTransferReceived(CanardInstance* ins, CanardRxTransfer* transfer) 
 			if (debug_level > 0) {
 				commands_printf("RestartNode\n");
 			}
-			handle_restart_node();
+			handle_restart_node(ins, transfer);
 			break;
 
 		case UAVCAN_PROTOCOL_PARAM_GETSET_ID:
@@ -1275,35 +1361,35 @@ static bool shouldAcceptTransfer(const CanardInstance* ins,
 	switch (data_type_id) {
 		case UAVCAN_PROTOCOL_GETNODEINFO_ID:
 			*out_data_type_signature = UAVCAN_PROTOCOL_GETNODEINFO_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeRequest;
 
 		case UAVCAN_EQUIPMENT_ESC_RAWCOMMAND_ID:
 			*out_data_type_signature = UAVCAN_EQUIPMENT_ESC_RAWCOMMAND_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeBroadcast;
 
 		case UAVCAN_EQUIPMENT_ESC_RPMCOMMAND_ID:
 			*out_data_type_signature = UAVCAN_EQUIPMENT_ESC_RPMCOMMAND_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeBroadcast;
 
 		case UAVCAN_EQUIPMENT_ESC_STATUS_ID:
 			*out_data_type_signature = UAVCAN_EQUIPMENT_ESC_STATUS_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeBroadcast;
 
 		case UAVCAN_PROTOCOL_RESTARTNODE_ID:
 			*out_data_type_signature = UAVCAN_PROTOCOL_RESTARTNODE_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeRequest;
 
 		case UAVCAN_PROTOCOL_PARAM_GETSET_ID:
 			*out_data_type_signature = UAVCAN_PROTOCOL_PARAM_GETSET_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeRequest;
 
 		case UAVCAN_PROTOCOL_FILE_READ_ID:
 			*out_data_type_signature = UAVCAN_PROTOCOL_FILE_READ_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeResponse;
 		
 		case UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_ID:
 			*out_data_type_signature = UAVCAN_PROTOCOL_FILE_BEGINFIRMWAREUPDATE_SIGNATURE;
-			return true;
+			return transfer_type == CanardTransferTypeRequest;
 
 		default:
 			break;
@@ -1345,10 +1431,18 @@ static THD_FUNCTION(canard_thread, arg) {
 		const app_configuration *conf = app_get_configuration();
 
 		if (conf->can_mode != CAN_MODE_UAVCAN && conf->can_mode != CAN_MODE_VESC_UAVCAN) {
+			if (was_running) {
+				chMtxLock(&canard_mtx);
+				canard_ready = false;
+				chMtxUnlock(&canard_mtx);
+			}
+
 			chThdSleepMilliseconds(100);
 			was_running = false;
 			continue;
 		}
+
+		chMtxLock(&canard_mtx);
 
 		if (!was_running) {
 			memset(&canard_ins, 0, sizeof(canard_ins));
@@ -1372,6 +1466,7 @@ static THD_FUNCTION(canard_thread, arg) {
 			last_param_refresh = chVTGetSystemTimeX();
 
 			was_running = true;
+			canard_ready = true;
 		}
 
 		canardSetLocalNodeID(&canard_ins, conf->controller_id);
@@ -1383,26 +1478,16 @@ static THD_FUNCTION(canard_thread, arg) {
 		if (conf->can_mode == CAN_MODE_UAVCAN) {
 			CANRxFrame *rxmsg;
 			while ((rxmsg = comm_can_get_rx_frame(1)) != 0) {
-				canard_process_frame(rxmsg, 1);
+				process_frame(rxmsg, 1);
 			}
-		}
-
-		for (const CanardCANFrame* txf = NULL; (txf = canardPeekTxQueue(&canard_ins)) != NULL;) {
-			comm_can_transmit_eid_if(txf->id, txf->data, txf->data_len, 1);
-			canardPopTxQueue(&canard_ins);
 		}
 
 #ifdef HW_CAN2_DEV
 		if (conf->can_mode == CAN_MODE_UAVCAN) {
 			CANRxFrame *rxmsg;
 			while ((rxmsg = comm_can_get_rx_frame(2)) != 0) {
-				canard_process_frame(rxmsg, 2);
+				process_frame(rxmsg, 2);
 			}
-		}
-
-		for (const CanardCANFrame* txf = NULL; (txf = canardPeekTxQueue(&canard_ins_if2)) != NULL;) {
-			comm_can_transmit_eid_if(txf->id, txf->data, txf->data_len, 2);
-			canardPopTxQueue(&canard_ins_if2);
 		}
 #endif
 
@@ -1471,6 +1556,19 @@ static THD_FUNCTION(canard_thread, arg) {
 		if ((ST2MS(chVTTimeElapsedSinceX(jump_delay_start)) >= 500) && (jump_to_bootloader == true)) {
 			flash_helper_jump_to_bootloader();
 		}
+
+		// Give the RestartNode response some time to leave the CAN controller
+		if (restart_pending && ST2MS(chVTTimeElapsedSinceX(restart_request_time)) >= 50) {
+			conf_general_store_backup_data();
+			NVIC_SystemReset();
+		}
+
+		chMtxUnlock(&canard_mtx);
+
+		transmit_tx_queue(&canard_ins, 1);
+#ifdef HW_CAN2_DEV
+		transmit_tx_queue(&canard_ins_if2, 2);
+#endif
 
 		chThdSleepMilliseconds(1);
 	}

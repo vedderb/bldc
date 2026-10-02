@@ -1422,8 +1422,10 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 		CANRxFrame *rxmsg_tmp;
 		while ((rxmsg_tmp = comm_can_get_rx_frame(1)) != 0) {
 			if (app_get_configuration()->can_mode == CAN_MODE_VESC_UAVCAN) {
-				if (canard_process_frame(rxmsg_tmp, 1) != 0) {
-					process_frame_vesc(*rxmsg_tmp);
+				// canard_process_frame can block, copy the frame before it is reused
+				CANRxFrame rxmsg = *rxmsg_tmp;
+				if (canard_process_frame(&rxmsg, 1) != 0) {
+					process_frame_vesc(rxmsg);
 				}
 			} else {
 				process_frame_vesc(*rxmsg_tmp);
@@ -1433,8 +1435,10 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 #ifdef HW_CAN2_DEV
 		while ((rxmsg_tmp = comm_can_get_rx_frame(2)) != 0) {
 			if (app_get_configuration()->can_mode == CAN_MODE_VESC_UAVCAN) {
-				if (canard_process_frame(rxmsg_tmp, 2) != 0) {
-					process_frame_vesc(*rxmsg_tmp);
+				// canard_process_frame can block, copy the frame before it is reused
+				CANRxFrame rxmsg = *rxmsg_tmp;
+				if (canard_process_frame(&rxmsg, 2) != 0) {
+					process_frame_vesc(rxmsg);
 				}
 			} else {
 				process_frame_vesc(*rxmsg_tmp);
