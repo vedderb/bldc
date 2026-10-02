@@ -26,11 +26,18 @@
 #include "utils_math.h"
 
 #include <stdio.h>
+#include <string.h>
 
 // In DRDY mode, fall back to a timed read after this many sample periods
 // without a data-ready edge, so a missed edge or an unwired pin can't stall
 // the loop.
 #define DRDY_TIMEOUT_PERIODS 2
+
+// Reads on a dead bus can still "succeed" while returning constant data. A
+// live MEMS chip always has noise, so treat this many consecutive
+// bit-identical samples as a dead bus. The limit has enough headroom over the
+// short duplicate runs of a poll transiently outrunning the ODR.
+#define FROZEN_SAMPLES_LIMIT 32
 
 static THD_FUNCTION(thread_func, arg);
 
@@ -39,6 +46,8 @@ static thread_t *m_thd = NULL;
 static imu_device_t *m_dev;
 static drdy_t *m_drdy;
 static volatile uint32_t m_read_fails;
+static volatile uint32_t m_frozen_streak;
+static float m_prev_sample[6];
 static bool m_drdy_active = false;
 static void (*m_cb)(float *accel, float *gyro, float *mag, float dt);
 static bool m_cmds_registered = false;
@@ -84,13 +93,18 @@ static void terminal_status(int argc, const char **argv) {
 	if (m_dev->variant) {
 		commands_printf("Variant       : %s", m_dev->variant);
 	}
+	const char *running = m_thd ? "yes" : "no";
+	if (m_thd && m_frozen_streak >= FROZEN_SAMPLES_LIMIT) {
+		running = "frozen";
+	}
+
 	commands_printf(
 			"Transport     : %s\n"
 			"Running       : %s\n"
 			"Sample Rate   : %d Hz\n"
 			"Read fails    : %u",
 			m_dev->transport->interface->name,
-			m_thd ? "yes" : "no",
+			running,
 			m_dev->sample_rate_hz,
 			m_read_fails);
 
@@ -108,6 +122,7 @@ void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz, drdy_t *drdy) {
 	m_drdy = drdy;
 	m_dev->sample_rate_hz = rate_hz;
 	m_read_fails = 0;
+	m_frozen_streak = 0;
 
 	// Interrupt mode only when both a DRDY pin is wired to this device and the device can
 	// route its data-ready to it; otherwise the timed loop runs and the pin stays unused.
@@ -199,13 +214,27 @@ static THD_FUNCTION(thread_func, arg) {
 			continue;
 		}
 
+		// Detect a dead bus by a run of bit-identical samples and calling the
+		// callback until it changes again (mag is left out of the comparison).
+		if (memcmp(m_prev_sample, accel, sizeof(accel)) == 0 &&
+				memcmp(m_prev_sample + 3, gyro, sizeof(gyro)) == 0) {
+			if (m_frozen_streak < FROZEN_SAMPLES_LIMIT) {
+				m_frozen_streak++;
+			}
+		} else {
+			m_frozen_streak = 0;
+			memcpy(m_prev_sample, accel, sizeof(accel));
+			memcpy(m_prev_sample + 3, gyro, sizeof(gyro));
+		}
+		bool frozen = m_frozen_streak >= FROZEN_SAMPLES_LIMIT;
+
 		// An edge stamp can be older than the previous iteration's timeout-fallback stamp
 		// (edge fired right after the timeout expired), keep dt from wrapping to negative.
 		if ((int32_t)(ts - last_ts) <= 0) {
 			ts = timer_time_now();
 		}
 
-		if (m_cb) {
+		if (m_cb && !frozen) {
 			m_cb(accel, gyro, mag, timer_calc_diff(last_ts, ts));
 		}
 		last_ts = ts;
