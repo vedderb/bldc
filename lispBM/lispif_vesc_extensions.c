@@ -152,6 +152,8 @@ typedef struct {
 	lbm_uint l_current_max;
 	lbm_uint l_current_min_scale;
 	lbm_uint l_current_max_scale;
+	lbm_uint l_in_current_min_scale;
+	lbm_uint l_in_current_max_scale;
 	lbm_uint l_in_current_min;
 	lbm_uint l_in_current_max;
 	lbm_uint l_abs_current_max;
@@ -485,6 +487,10 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("l-current-min-scale", comp);
 		} else if (comp == &syms_vesc.l_current_max_scale) {
 			lbm_add_symbol_const("l-current-max-scale", comp);
+		} else if (comp == &syms_vesc.l_in_current_min_scale) {
+			lbm_add_symbol_const("l-in-current-min-scale", comp);
+		} else if (comp == &syms_vesc.l_in_current_max_scale) {
+			lbm_add_symbol_const("l-in-current-max-scale", comp);
 		} else if (comp == &syms_vesc.l_in_current_min) {
 			lbm_add_symbol_const("l-in-current-min", comp);
 		} else if (comp == &syms_vesc.l_in_current_max) {
@@ -3829,6 +3835,12 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.l_current_max_scale)) {
 		mcconf->l_current_max_scale = lbm_dec_as_float(args[1]);
 		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.l_in_current_min_scale)) {
+		mcconf->l_in_current_min_scale = lbm_dec_as_float(args[1]);
+		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.l_in_current_max_scale)) {
+		mcconf->l_in_current_max_scale = lbm_dec_as_float(args[1]);
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.l_in_current_min)) {
 		mcconf->l_in_current_min = -fabsf(lbm_dec_as_float(args[1]));
 		changed_mc = 1;
@@ -4384,6 +4396,10 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->l_current_min_scale);
 	} else if (compare_symbol(name, &syms_vesc.l_current_max_scale)) {
 		res = lbm_enc_float(mcconf->l_current_max_scale);
+	} else if (compare_symbol(name, &syms_vesc.l_in_current_min_scale)) {
+		res = lbm_enc_float(mcconf->l_in_current_min_scale);
+	} else if (compare_symbol(name, &syms_vesc.l_in_current_max_scale)) {
+		res = lbm_enc_float(mcconf->l_in_current_max_scale);
 	} else if (compare_symbol(name, &syms_vesc.l_in_current_min)) {
 		res = lbm_enc_float(mcconf->l_in_current_min);
 	} else if (compare_symbol(name, &syms_vesc.l_in_current_max)) {

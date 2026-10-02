@@ -80,6 +80,9 @@
 #ifndef MCCONF_L_RPM_MIN
 #define MCCONF_L_RPM_MIN				-100000.0	// The motor speed limit (Lower)
 #endif
+#ifndef MCCONF_L_ERPM_ABS_OVERSPEED
+#define MCCONF_L_ERPM_ABS_OVERSPEED		100000.0	// Absolute overspeed ERPM limit
+#endif
 #ifndef MCCONF_L_RPM_START
 #define MCCONF_L_RPM_START				0.8		// Fraction of full speed where RPM current limiting starts
 #endif
@@ -124,6 +127,12 @@
 #endif
 #ifndef MCCONF_L_CURRENT_MIN_SCALE
 #define MCCONF_L_CURRENT_MIN_SCALE		1.0	// Minimum current scale
+#endif
+#ifndef MCCONF_L_IN_CURRENT_MAX_SCALE
+#define MCCONF_L_IN_CURRENT_MAX_SCALE	1.0	// Maximum input current scale
+#endif
+#ifndef MCCONF_L_IN_CURRENT_MIN_SCALE
+#define MCCONF_L_IN_CURRENT_MIN_SCALE	1.0	// Minimum input current scale
 #endif
 #ifndef MCCONF_L_DUTY_START
 #define MCCONF_L_DUTY_START				1.0 // Start limiting current at this duty cycle

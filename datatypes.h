@@ -403,6 +403,7 @@ typedef struct {
 	float l_abs_current_max;
 	float l_min_erpm;
 	float l_max_erpm;
+	float l_erpm_abs_overspeed;
 	float l_erpm_start;
 	float l_max_erpm_fbrake;
 	float l_max_erpm_fbrake_cc;
@@ -424,6 +425,8 @@ typedef struct {
 	float l_watt_min;
 	float l_current_max_scale;
 	float l_current_min_scale;
+	float l_in_current_max_scale;
+	float l_in_current_min_scale;
 	float l_duty_start;
 	uint8_t l_additional_faults;
 	// Overridden limits (Computed during runtime)

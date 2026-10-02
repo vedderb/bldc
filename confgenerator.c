@@ -23,9 +23,10 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->l_abs_current_max, &ind);
 	buffer_append_float32_auto(buffer, conf->l_min_erpm, &ind);
 	buffer_append_float32_auto(buffer, conf->l_max_erpm, &ind);
+	buffer_append_float32_auto(buffer, conf->l_erpm_abs_overspeed, &ind);
 	buffer_append_float16(buffer, conf->l_erpm_start, 10000, &ind);
-	buffer_append_float32_auto(buffer, conf->l_max_erpm_fbrake, &ind);
-	buffer_append_float32_auto(buffer, conf->l_max_erpm_fbrake_cc, &ind);
+	buffer_append_float16(buffer, conf->l_max_erpm_fbrake, 0.1, &ind);
+	buffer_append_float16(buffer, conf->l_max_erpm_fbrake_cc, 0.1, &ind);
 	buffer_append_float16(buffer, conf->l_min_vin, 10, &ind);
 	buffer_append_float16(buffer, conf->l_max_vin, 10, &ind);
 	buffer_append_float16(buffer, conf->l_battery_cut_start, 10, &ind);
@@ -44,6 +45,8 @@ int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *
 	buffer_append_float32_auto(buffer, conf->l_watt_min, &ind);
 	buffer_append_float16(buffer, conf->l_current_max_scale, 10000, &ind);
 	buffer_append_float16(buffer, conf->l_current_min_scale, 10000, &ind);
+	buffer_append_float16(buffer, conf->l_in_current_max_scale, 10000, &ind);
+	buffer_append_float16(buffer, conf->l_in_current_min_scale, 10000, &ind);
 	buffer_append_float16(buffer, conf->l_duty_start, 10000, &ind);
 	buffer[ind++] = conf->l_additional_faults;
 	buffer_append_float32_auto(buffer, conf->sl_min_erpm, &ind);
@@ -369,9 +372,10 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->l_abs_current_max = buffer_get_float32_auto(buffer, &ind);
 	conf->l_min_erpm = buffer_get_float32_auto(buffer, &ind);
 	conf->l_max_erpm = buffer_get_float32_auto(buffer, &ind);
+	conf->l_erpm_abs_overspeed = buffer_get_float32_auto(buffer, &ind);
 	conf->l_erpm_start = buffer_get_float16(buffer, 10000, &ind);
-	conf->l_max_erpm_fbrake = buffer_get_float32_auto(buffer, &ind);
-	conf->l_max_erpm_fbrake_cc = buffer_get_float32_auto(buffer, &ind);
+	conf->l_max_erpm_fbrake = buffer_get_float16(buffer, 0.1, &ind);
+	conf->l_max_erpm_fbrake_cc = buffer_get_float16(buffer, 0.1, &ind);
 	conf->l_min_vin = buffer_get_float16(buffer, 10, &ind);
 	conf->l_max_vin = buffer_get_float16(buffer, 10, &ind);
 	conf->l_battery_cut_start = buffer_get_float16(buffer, 10, &ind);
@@ -390,6 +394,8 @@ bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *c
 	conf->l_watt_min = buffer_get_float32_auto(buffer, &ind);
 	conf->l_current_max_scale = buffer_get_float16(buffer, 10000, &ind);
 	conf->l_current_min_scale = buffer_get_float16(buffer, 10000, &ind);
+	conf->l_in_current_max_scale = buffer_get_float16(buffer, 10000, &ind);
+	conf->l_in_current_min_scale = buffer_get_float16(buffer, 10000, &ind);
 	conf->l_duty_start = buffer_get_float16(buffer, 10000, &ind);
 	conf->l_additional_faults = buffer[ind++];
 	conf->sl_min_erpm = buffer_get_float32_auto(buffer, &ind);
@@ -711,6 +717,7 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->l_abs_current_max = MCCONF_L_MAX_ABS_CURRENT;
 	conf->l_min_erpm = MCCONF_L_RPM_MIN;
 	conf->l_max_erpm = MCCONF_L_RPM_MAX;
+	conf->l_erpm_abs_overspeed = MCCONF_L_ERPM_ABS_OVERSPEED;
 	conf->l_erpm_start = MCCONF_L_RPM_START;
 	conf->l_max_erpm_fbrake = MCCONF_L_CURR_MAX_RPM_FBRAKE;
 	conf->l_max_erpm_fbrake_cc = MCCONF_L_CURR_MAX_RPM_FBRAKE_CC;
@@ -732,6 +739,8 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->l_watt_min = MCCONF_L_WATT_MIN;
 	conf->l_current_max_scale = MCCONF_L_CURRENT_MAX_SCALE;
 	conf->l_current_min_scale = MCCONF_L_CURRENT_MIN_SCALE;
+	conf->l_in_current_max_scale = MCCONF_L_IN_CURRENT_MAX_SCALE;
+	conf->l_in_current_min_scale = MCCONF_L_IN_CURRENT_MIN_SCALE;
 	conf->l_duty_start = MCCONF_L_DUTY_START;
 	conf->l_additional_faults = MCCONF_L_ADDITIONAL_FAULTS;
 	conf->sl_min_erpm = MCCONF_SL_MIN_RPM;

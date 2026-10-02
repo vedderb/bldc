@@ -4021,6 +4021,8 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-current-max          ; Maximum current in A
 'l-current-min-scale    ; Scaled minimum current, 0.0 to 1.0
 'l-current-max-scale    ; Scaled maximum current, 0.0 to 1.0
+'l-in-current-min-scale ; Scaled minimum input current, 0.0 to 1.0 (FW 7.01+)
+'l-in-current-max-scale ; Scaled maximum input current, 0.0 to 1.0 (FW 7.01+)
 'l-in-current-min       ; Minimum input current in A (a negative value)
 'l-in-current-max       ; Maximum input current in A
 'l-abs-current-max      ; Abs max current in A

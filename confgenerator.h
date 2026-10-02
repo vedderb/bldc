@@ -8,8 +8,8 @@
 #include <stdbool.h>
 
 // Constants
-#define MCCONF_SIGNATURE		3154770096
-#define APPCONF_SIGNATURE		296593100
+#define MCCONF_SIGNATURE		471314414
+#define APPCONF_SIGNATURE		2802465283
 
 // Functions
 int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *conf);

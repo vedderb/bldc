@@ -2456,8 +2456,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	if ((conf->l_additional_faults & (1 << 2)) && rpm_slow < conf->l_min_erpm) {
 		mc_interface_fault_stop(FAULT_CODE_UNDERSPEED, !is_motor_1, false);
 	}
-	if ((conf->l_additional_faults & (1 << 3)) &&
-			fabsf(rpm_slow) > fabsf(utils_max_abs(conf->l_min_erpm, conf->l_max_erpm))) {
+	if ((conf->l_additional_faults & (1 << 3)) && fabsf(rpm_slow) > fabsf(conf->l_erpm_abs_overspeed)) {
 		mc_interface_fault_stop(FAULT_CODE_ABS_OVERSPEED, !is_motor_1, false);
 	}
 
@@ -2479,26 +2478,29 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 
 	// Input current limits
 
+	const float l_in_current_min_tmp = conf->l_in_current_min * conf->l_in_current_min_scale;
+	const float l_in_current_max_tmp = conf->l_in_current_max * conf->l_in_current_max_scale;
+
 	// Battery cutoff
 	float lo_in_max_batt = 0.0;
 	if (v_in > (conf->l_battery_cut_start - 0.1)) {
-		lo_in_max_batt = conf->l_in_current_max;
+		lo_in_max_batt = l_in_current_max_tmp;
 	} else if (v_in < (conf->l_battery_cut_end + 0.1)) {
 		lo_in_max_batt = 0.0;
 	} else {
 		lo_in_max_batt = utils_map(v_in, conf->l_battery_cut_start,
-				conf->l_battery_cut_end, conf->l_in_current_max, 0.0);
+				conf->l_battery_cut_end, l_in_current_max_tmp, 0.0);
 	}
 
 	// Regen overvoltage cutoff
 	float lo_in_min_batt = 0.0;
 	if (v_in < (conf->l_battery_regen_cut_start + 0.1)) {
-		lo_in_min_batt = conf->l_in_current_min;
+		lo_in_min_batt = l_in_current_min_tmp;
 	} else if (v_in > (conf->l_battery_regen_cut_end - 0.1)) {
 		lo_in_min_batt = 0.0;
 	} else {
 		lo_in_min_batt = utils_map(v_in, conf->l_battery_regen_cut_start,
-				conf->l_battery_regen_cut_end, conf->l_in_current_min, 0.0);
+				conf->l_battery_regen_cut_end, l_in_current_min_tmp, 0.0);
 	}
 
 	// Wattage limits
@@ -2509,10 +2511,10 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	float lo_in_min = utils_min_abs(lo_in_min_watt, lo_in_min_batt);
 
 	// BMS limits
-	bms_update_limits(&lo_in_min,  &lo_in_max, conf->l_in_current_min, conf->l_in_current_max);
+	bms_update_limits(&lo_in_min,  &lo_in_max, l_in_current_min_tmp, l_in_current_max_tmp);
 
-	conf->lo_in_current_max = utils_min_abs(conf->l_in_current_max, lo_in_max);
-	conf->lo_in_current_min = utils_min_abs(conf->l_in_current_min, lo_in_min);
+	conf->lo_in_current_max = utils_min_abs(l_in_current_max_tmp, lo_in_max);
+	conf->lo_in_current_min = utils_min_abs(l_in_current_min_tmp, lo_in_min);
 
 	// Limit iq based on the input current. The input current depends on id and iq combined, but id is determined
 	// from iq based on MTPA and field weakening, which makes it tricky to limit them together in the fast
