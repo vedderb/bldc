@@ -51,6 +51,7 @@ static imu_device_t m_dev;
 static imu_config m_settings;
 static systime_t init_time;
 static bool imu_ready;
+static bool m_att_seeded;
 static Biquad acc_x_biquad, acc_y_biquad, acc_z_biquad, gyro_x_biquad, gyro_y_biquad, gyro_z_biquad;
 
 // Private functions
@@ -258,6 +259,7 @@ void imu_init(imu_config *set) {
 
 void imu_reset_orientation(void) {
 	imu_ready = false;
+	m_att_seeded = false;
 	init_time = chVTGetSystemTimeX();
 	ahrs_init_attitude_info(&m_att);
 	FusionAhrsInitialise(&m_fusionAhrs, 10.0, 1.0);
@@ -488,7 +490,10 @@ void imu_set_read_callback(void (*func)(float *acc, float *gyro, float *mag, flo
 }
 
 static void imu_read_callback(float *accel, float *gyro, float *mag, float dt) {
-	if (!imu_ready && ST2MS(chVTGetSystemTimeX() - init_time) > 1000) {
+	// Once seeded, the high-gain init window only needs to smooth out seed noise
+	// and sensor turn-on; 1000 ms is the fallback if no plausible accel arrives.
+	systime_t window_ms = m_att_seeded ? 200 : 1000;
+	if (!imu_ready && ST2MS(chVTGetSystemTimeX() - init_time) > window_ms) {
 		ahrs_update_all_parameters(
 				&m_att,
 				m_settings.accel_confidence_decay,
@@ -605,6 +610,21 @@ static void imu_read_callback(float *accel, float *gyro, float *mag, float dt) {
 		m_gyro[0] = biquad_process(&gyro_x_biquad, m_gyro[0]);
 		m_gyro[1] = biquad_process(&gyro_y_biquad, m_gyro[1]);
 		m_gyro[2] = biquad_process(&gyro_z_biquad, m_gyro[2]);
+	}
+
+	// Seed the attitude from gravity instead of converging from identity. The
+	// magnitude gate skips samples taken before the sensor (and any accel biquad)
+	// has settled, and holds off while the board is accelerating.
+	if (!m_att_seeded) {
+		float mag_sq = SQ(m_accel[0]) + SQ(m_accel[1]) + SQ(m_accel[2]);
+		if (mag_sq > SQ(0.7) && mag_sq < SQ(1.3)) {
+			ahrs_update_initial_orientation(m_accel, m_mag, &m_att);
+			m_fusionAhrs.quaternion.element.w = m_att.q0;
+			m_fusionAhrs.quaternion.element.x = m_att.q1;
+			m_fusionAhrs.quaternion.element.y = m_att.q2;
+			m_fusionAhrs.quaternion.element.z = m_att.q3;
+			m_att_seeded = true;
+		}
 	}
 
 	float gyro_rad[3];
