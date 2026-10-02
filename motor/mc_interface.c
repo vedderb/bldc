@@ -261,6 +261,15 @@ void mc_interface_init(bool reset_conf) {
 		break;
 	}
 
+	// Seed the filters from live reading so consumers don't see them slowly
+	// converge from 0 after boot.
+	m_motor_1.m_input_voltage_filtered = GET_INPUT_VOLTAGE();
+	m_motor_1.m_input_voltage_filtered_slower = m_motor_1.m_input_voltage_filtered;
+#ifdef HW_HAS_DUAL_MOTORS
+	m_motor_2.m_input_voltage_filtered = m_motor_1.m_input_voltage_filtered;
+	m_motor_2.m_input_voltage_filtered_slower = m_motor_1.m_input_voltage_filtered;
+#endif
+
 	bms_init((bms_config*)&m_motor_1.m_conf.bms);
 }
 
