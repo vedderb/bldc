@@ -21,10 +21,12 @@
 #define IMU_THREAD_H_
 
 #include "device.h"
+#include "drdy.h"
 
 // Bind the active IMU device at the given sample rate and register the debug terminal
 // commands. The rate is stored on the device, where its configure() may override it.
-void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz);
+// drdy is the DRDY instance wired to this device, or NULL when it has none.
+void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz, drdy_t *drdy);
 
 // Start a thread that reads samples from the IMU device (at its sample_rate_hz) and hands
 // them to cb(accel, gyro, mag, dt). A device must be set with imu_thread_set_device first.

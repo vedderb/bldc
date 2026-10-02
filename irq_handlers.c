@@ -67,12 +67,7 @@ static void exti_gpio_dispatch(void) {
 		encoder_pin_isr();
 		EXTI_ClearITPendingBit(HW_ENC_EXTI_LINE);
 	}
-#ifdef IMU_DRDY_GPIO
-	if (EXTI_GetITStatus(IMU_DRDY_EXTI_LINE) != RESET) {
-		EXTI_ClearITPendingBit(IMU_DRDY_EXTI_LINE);
-		drdy_signal_isr();
-	}
-#endif
+	drdy_exti_dispatch();
 }
 
 CH_IRQ_HANDLER(EXTI9_5_IRQHandler) {

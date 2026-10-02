@@ -39,6 +39,15 @@
 //   #define IMU_FALLBACK_COM   IMU_COM_I2C_BB              (only IMU_COM_I2C_BB is supported)
 //   #define IMU_FALLBACK_I2C_SDA_GPIO/_PIN, _SCL_          (fallback I2C pins)
 //   #define IMU_FALLBACK_BUS_SPEED_HZ 700000               (optional; 0/unset = transport default)
+//
+// External IMUs (imu_conf.type = IMU_TYPE_EXTERNAL_*) attach to the I2C COMM header by
+// default. A board may declare a dedicated bus for them instead, mirroring the primary
+// selectors with an IMU_EXT_ prefix:
+//
+//   #define IMU_EXT_COM        IMU_COM_SPI_HW              (IMU_COM_SPI_HW or IMU_COM_SPI_BB)
+//   #define IMU_EXT_SPI_*, IMU_EXT_BUS_SPEED_HZ            (as the primary equivalents; the bus
+//                                                           speed only applies to hardware SPI)
+//   #define IMU_EXT_DRDY_GPIO/_PIN                         (optional data-ready pin, see imu/drdy.h)
 
 // IMU model:
 #define IMU_DEV_NONE		0
@@ -156,6 +165,11 @@
 // 0 lets each transport pick its own default bus clock.
 #ifndef IMU_BUS_SPEED_HZ
 #define IMU_BUS_SPEED_HZ	0
+#endif
+#ifdef IMU_EXT_COM
+#ifndef IMU_EXT_BUS_SPEED_HZ
+#define IMU_EXT_BUS_SPEED_HZ	0
+#endif
 #endif
 #ifdef IMU_FALLBACK_COM
 #ifndef IMU_FALLBACK_BUS_SPEED_HZ

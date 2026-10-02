@@ -30,6 +30,7 @@
 #include "transport_i2c_bb.h"
 #include "transport_spi_bb.h"
 #include "transport_spi_hw.h"
+#include "drdy.h"
 #include "imu_thread.h"
 #include "utils_math.h"
 #include "Fusion.h"
@@ -43,6 +44,9 @@ static ATTITUDE_INFO m_att;
 static FusionAhrs m_fusionAhrs;
 static float m_accel[3], m_gyro[3], m_mag[3];
 static transport_t m_transport;
+#if defined(IMU_DRDY_GPIO) || defined(IMU_EXT_DRDY_GPIO)
+static drdy_t m_drdy;
+#endif
 static imu_device_t m_dev;
 static imu_config m_settings;
 static systime_t init_time;
@@ -83,6 +87,8 @@ static uint8_t imu_dev_for_external(IMU_TYPE type) {
 		return IMU_DEV_BMI160;
 	case IMU_TYPE_EXTERNAL_LSM6DS3:
 		return IMU_DEV_LSM6DS3;
+	case IMU_TYPE_EXTERNAL_LSM6DSV32X:
+		return IMU_DEV_LSM6DSV32X;
 	case IMU_TYPE_OFF:
 	case IMU_TYPE_INTERNAL:
 		break;
@@ -100,6 +106,26 @@ static void imu_fallback_transport_init(void) {
 			IMU_FALLBACK_I2C_SCL_GPIO, IMU_FALLBACK_I2C_SCL_PIN, IMU_FALLBACK_BUS_SPEED_HZ);
 #else
 #error "IMU_FALLBACK_COM currently supports only IMU_COM_I2C_BB"
+#endif
+}
+#endif
+
+#ifdef IMU_EXT_COM
+// Bind m_transport to the board's dedicated external IMU bus. A board declares IMU_EXT_COM
+// plus the matching IMU_EXT_* pins when external IMUs attach there instead of the I2C COMM
+// header (see imu/imu_config.h).
+static void imu_ext_transport_init(void) {
+#if IMU_EXT_COM == IMU_COM_SPI_HW
+	transport_spi_hw_init(&m_transport, &IMU_EXT_SPI_DEV, IMU_EXT_SPI_AF,
+			IMU_EXT_SPI_NSS_GPIO, IMU_EXT_SPI_NSS_PIN, IMU_EXT_SPI_SCK_GPIO, IMU_EXT_SPI_SCK_PIN,
+			IMU_EXT_SPI_MOSI_GPIO, IMU_EXT_SPI_MOSI_PIN, IMU_EXT_SPI_MISO_GPIO, IMU_EXT_SPI_MISO_PIN,
+			IMU_EXT_BUS_SPEED_HZ);
+#elif IMU_EXT_COM == IMU_COM_SPI_BB
+	transport_spi_bb_init(&m_transport, IMU_EXT_SPI_NSS_GPIO, IMU_EXT_SPI_NSS_PIN,
+			IMU_EXT_SPI_SCK_GPIO, IMU_EXT_SPI_SCK_PIN, IMU_EXT_SPI_MOSI_GPIO, IMU_EXT_SPI_MOSI_PIN,
+			IMU_EXT_SPI_MISO_GPIO, IMU_EXT_SPI_MISO_PIN);
+#else
+#error "IMU_EXT_COM currently supports only IMU_COM_SPI_HW and IMU_COM_SPI_BB"
 #endif
 }
 #endif
@@ -147,11 +173,17 @@ void imu_init(imu_config *set) {
 	// compile-time board macros, an external IMU from the runtime type.
 	uint8_t dev = IMU_DEV_NONE;
 	uint8_t com = IMU_COM_NONE;
+	drdy_t *drdy = NULL;
 
 	if (set->type == IMU_TYPE_INTERNAL) {
 #if IMU_DEV != IMU_DEV_NONE
 		dev = IMU_DEV;
 		com = IMU_COM;
+
+#ifdef IMU_DRDY_GPIO
+		drdy_bind(&m_drdy, IMU_DRDY_GPIO, IMU_DRDY_PIN);
+		drdy = &m_drdy;
+#endif
 
 #if IMU_COM == IMU_COM_I2C_BB
 		transport_i2c_bb_init(&m_transport, IMU_I2C_SDA_GPIO, IMU_I2C_SDA_PIN,
@@ -179,16 +211,26 @@ void imu_init(imu_config *set) {
 	} else {
 		dev = imu_dev_for_external(set->type);
 		if (dev != IMU_DEV_NONE) {
+#ifdef IMU_EXT_COM
+			com = IMU_EXT_COM;
+			imu_ext_transport_init();
+
+#ifdef IMU_EXT_DRDY_GPIO
+			drdy_bind(&m_drdy, IMU_EXT_DRDY_GPIO, IMU_EXT_DRDY_PIN);
+			drdy = &m_drdy;
+#endif
+#else
 			com = IMU_COM_I2C_BB;
 			transport_i2c_bb_init(&m_transport, HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 					HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, 0);
+#endif
 		}
 	}
 
 	if (dev != IMU_DEV_NONE) {
 		m_dev = imu_device_create(dev, com, &m_transport);
 		uint16_t rate_hz = MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport));
-		imu_thread_set_device(&m_dev, rate_hz);
+		imu_thread_set_device(&m_dev, rate_hz, drdy);
 		bool configured = m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer);
 
 #ifdef IMU_FALLBACK_COM
@@ -202,7 +244,7 @@ void imu_init(imu_config *set) {
 			com = IMU_FALLBACK_COM;
 			m_dev = imu_device_create(dev, com, &m_transport);
 			rate_hz = MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport));
-			imu_thread_set_device(&m_dev, rate_hz);
+			imu_thread_set_device(&m_dev, rate_hz, drdy);
 			configured = m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer);
 		}
 #endif
