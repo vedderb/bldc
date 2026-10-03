@@ -319,7 +319,7 @@ clean:
 # Include the dependency files, should be the last of the makefile
 #
 ifeq ($(OS),Windows_NT)
-  $(shell cmd /C if not exist "$(DEPPATH)" mkdir "$(DEPPATH)")
+  $(shell powershell -noprofile -command "New-Item -Force -ItemType Directory $(DEPPATH) | Out-Null")
 else
   $(shell mkdir $(DEPPATH) 2>/dev/null)
 endif
