@@ -42,10 +42,12 @@ static void recover(transport_t *t) {
 	i2c_bb_restore_bus(bus_of(t));
 }
 
-// The 700 kHz bus allows a higher sample rate than 400 kHz. The lower bus
-// speeds were never tested, they'll most likely require a lower limit.
+// Limit to 900 Hz due to unexplained spurious controller resets in one test
+// case (suspected to be due to CPU saturation, related to ZVF which also
+// increases CPU load). Not tested enough by others to be declared an anomaly
+// and safe to use, we have to hard-limit this until proven to be safe.
 static uint16_t max_sample_rate(transport_t *t) {
-	return t->bus.i2c_bb.rate >= I2C_BB_RATE_700K ? 1200 : 900;
+	return 900;
 }
 
 static const transport_interface_t i2c_bb_interface = {
