@@ -572,7 +572,7 @@ static bool lib_set_cfg_float(CFG_PARAM p, float value) {
 		case CFG_PARAM_si_motor_nl_current: mcconf->si_motor_nl_current = value; changed_mc = 1; res = true; break;
 
 		case CFG_PARAM_foc_motor_r: mcconf->foc_motor_r = value; changed_mc = 1; res = true; break;
-		case CFG_PARAM_foc_motor_l: mcconf->foc_motor_r = value; changed_mc = 1; res = true; break;
+		case CFG_PARAM_foc_motor_l: mcconf->foc_motor_l = value; changed_mc = 1; res = true; break;
 		case CFG_PARAM_foc_motor_flux_linkage: mcconf->foc_motor_flux_linkage = value; changed_mc = 1; res = true; break;
 		default: break;
 	}
