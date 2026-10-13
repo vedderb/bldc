@@ -41,6 +41,13 @@ static const I2CConfig i2cfg = {
 		STD_DUTY_CYCLE
 };
 
+static virtual_timer_t buzzer_vt;
+
+static void buzzer_off_vt_cb(void *arg) {
+	(void)arg;
+	HW_BUZZER_OFF();
+}
+
 void hw_Thor_buzzer_init(void) {
 	//    //Add early latch on code here
 	// ShutDown
@@ -48,13 +55,10 @@ void hw_Thor_buzzer_init(void) {
 	palSetPadMode(HW_SHUTDOWN_SENSE_GPIO, HW_SHUTDOWN_SENSE_PIN, PAL_MODE_INPUT_ANALOG);
 	HW_SHUTDOWN_HOLD_ON();
 
-	//Start the buzzer and beep it
+	// Start the buzzer beep, switch it off from a timer to not block booting
 	pwm_servo_init((uint32_t)4000, (float)0.5f);
 	HW_BUZZER_ON();
-	chThdSleepMilliseconds(400);
-	HW_BUZZER_OFF();
-
-	chThdSleepMilliseconds(1000);
+	chVTSet(&buzzer_vt, MS2ST(400), buzzer_off_vt_cb, NULL);
 }
 
 static void beep_off(void)
@@ -142,12 +146,6 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
-
-	//Start the buzzer and beep it
-	pwm_servo_init((uint32_t)4000, (float)0.5f);
-	HW_BUZZER_ON();
-	chThdSleepMilliseconds(100);
-	HW_BUZZER_OFF();
 }
 
 void hw_setup_adc_channels(void) {
