@@ -47,6 +47,7 @@ static void recover(transport_t *t) {
 // increases CPU load). Not tested enough by others to be declared an anomaly
 // and safe to use, we have to hard-limit this until proven to be safe.
 static uint16_t max_sample_rate(transport_t *t) {
+	(void)t;
 	return 900;
 }
 
