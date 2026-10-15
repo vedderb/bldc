@@ -30,7 +30,6 @@
   Whereever Tiny3D is integrated, that integration is responisble
   for all object lifetime and memory management.
 
-
   SCOPE:
    Aim at rendering of simple 3D objects, not complex 3d environments.
    The 3D objects exist in a 3d space:
@@ -69,6 +68,7 @@
 */
 
 #include "tiny3d.h"
+#include "tinyutils.h"
 #include "cos_table.h"
 #include <math.h>
 #include <stdlib.h>
@@ -305,6 +305,7 @@ bool tiny3d_init(tiny3d_state_t *state,
   state->ambient = ambient;
 
   switch (img->fmt) {
+  case indexed2:  state->shade_mode = TINY3D_SHADE_INDEX; state->index_max = 1;  break;
   case indexed4:  state->shade_mode = TINY3D_SHADE_INDEX; state->index_max = 3;  break;
   case indexed16: state->shade_mode = TINY3D_SHADE_INDEX; state->index_max = 15; break;
   case rgb332:
@@ -312,6 +313,8 @@ bool tiny3d_init(tiny3d_state_t *state,
   case rgb888:    state->shade_mode = TINY3D_SHADE_RGB;   state->index_max = 0;  break;
   default:        state->shade_mode = TINY3D_SHADE_NONE;  state->index_max = 0;  break;
   }
+
+  state->dither = TINY3D_DITHER_NONE; // enabled later via a setter, if at all
 
   // Camera-space view frustum
   state->planes[0] = (tiny3d_plane_t){ .normal = {0, 0,  (1 << 16)}, .d = near };
@@ -387,6 +390,32 @@ static int32_t inv_scale_squared(int32_t scale) {
   return q16_16_div(TINY3D_SCALE_ONE, scale_sq);
 }
 
+// A face normal is a cross product of two already-scaled (post
+// mat_apply3x4) edge vectors, so it carries scale^2 - inv_scale_squared
+// above cancels that. A vertex normal is instead a single direction
+// rotated by mat_rotate3x4, which (local_to_world3x4 folds scale into
+// the rotation sub-matrix) carries exactly one factor of scale, so it
+// needs this plain reciprocal instead.
+static int32_t inv_scale_linear(int32_t scale) {
+  if (scale == 0) return 0;
+  return q16_16_div(TINY3D_SCALE_ONE, scale);
+}
+
+// Shared by the flat (one normal/triangle) and Gouraud (one normal/vertex)
+// paths - n and inv_scale_factor differ (face cross-product + inv_scale_squared
+// vs a single rotated vertex normal + inv_scale_linear, see above), the
+// diffuse+ambient blend itself is identical either way.
+static int32_t lit_intensity(tiny3d_vec_t n, tiny3d_vec_t light_cam,
+                              int32_t one_over_abs_n, int32_t inv_scale_factor,
+                              int32_t ambient) {
+  int32_t diffuse = q16_16_mul(q16_16_mul(vec_dot(n, light_cam), one_over_abs_n), inv_scale_factor);
+  if (diffuse < 0) diffuse = 0;
+  if (diffuse > TINY3D_SCALE_ONE) diffuse = TINY3D_SCALE_ONE;
+  int32_t intensity = ambient + q16_16_mul(TINY3D_SCALE_ONE - ambient, diffuse);
+  if (intensity > TINY3D_SCALE_ONE) intensity = TINY3D_SCALE_ONE;
+  return intensity;
+}
+
 static uint32_t shade_rgb888(uint32_t color, int32_t intensity) {
   int32_t r = (int32_t)((color >> 16) & 0xFF);
   int32_t g = (int32_t)((color >> 8)  & 0xFF);
@@ -402,6 +431,285 @@ static uint32_t shade_index(int32_t intensity, int32_t index_max) {
   if (idx < 0) idx = 0;
   if (idx > index_max) idx = index_max;
   return (uint32_t)idx;
+}
+
+// Same mapping as shade_index, but instead of rounding to the nearest
+// index it splits intensity into the two bracketing indices plus the
+// Q16.16 fractional remainder between them, for ordered dithering.
+static void shade_index_dither(int32_t intensity, int32_t index_max,
+                                uint32_t *lo, uint32_t *hi, int32_t *ratio_q16) {
+  int32_t scaled = (int32_t)(((int64_t)intensity * index_max)); // Q16.16, range [0, index_max<<16]
+  if (scaled < 0) scaled = 0;
+  int32_t max_q16 = index_max << 16;
+  if (scaled > max_q16) scaled = max_q16;
+  int32_t idx_lo = scaled >> 16;
+  int32_t idx_hi = idx_lo < index_max ? idx_lo + 1 : idx_lo;
+  *lo = (uint32_t)idx_lo;
+  *hi = (uint32_t)idx_hi;
+  *ratio_q16 = scaled & 0xFFFF; // fractional part between idx_lo and idx_hi
+}
+
+// The bayer matrices contains "intensity" levels.
+// when a dithered pixel is drawn at position x,y with intensity, i,
+// then the i is compared to the value in the tiled bayer matrix
+// at position x,y and we pic to use hi-color (bright) or lo-color (dark)
+// depending on i being larger than the bayer value or not.
+
+// Bayer matrix is an even spread of intensities over 2d area (an image)
+static const uint8_t bayer_2x2[2][2] = {
+  {0, 2},
+  {3, 1},
+};
+
+static const uint8_t bayer_4x4[4][4] = {
+  { 0,  8,  2, 10},
+  {12,  4, 14,  6},
+  { 3, 11,  1,  9},
+  {15,  7, 13,  5},
+};
+
+static const uint8_t bayer_8x8[8][8] = {
+  { 0, 32,  8, 40,  2, 34, 10, 42},
+  {48, 16, 56, 24, 50, 18, 58, 26},
+  {12, 44,  4, 36, 14, 46,  6, 38},
+  {60, 28, 52, 20, 62, 30, 54, 22},
+  { 3, 35, 11, 43,  1, 33,  9, 41},
+  {51, 19, 59, 27, 49, 17, 57, 25},
+  {15, 47,  7, 39, 13, 45,  5, 37},
+  {63, 31, 55, 23, 61, 29, 53, 21},
+};
+
+static inline bool dither_pick(int x, int y, int32_t ratio_q16, tiny3d_dither_t size) {
+  int32_t n, v;
+  switch (size) {
+  case TINY3D_DITHER_2: n = 2; v = bayer_2x2[y & 1][x & 1]; break;
+  case TINY3D_DITHER_4: n = 4; v = bayer_4x4[y & 3][x & 3]; break;
+  case TINY3D_DITHER_8: n = 8; v = bayer_8x8[y & 7][x & 7]; break;
+  default: return false; // TINY3D_DITHER_NONE
+  }
+  int32_t nn = n * n; // number of intensities in the bayer matrix.
+  int32_t intensity = ratio_q16 * nn;
+  int32_t bayer = (v << 16) + 32768; // Compare in q16.16 format.
+  return intensity > bayer;
+}
+
+// Same scanline structure as tinygfx_fill_triangle (utils/tinygfx.c),
+// but the color can differ at every pixel, so it cannot use h_line's
+// flat-run write and instead calls putpixel directly per pixel.
+static void fill_triangle_dither(image_buffer_t *img, int x0, int y0,
+                                  int x1, int y1, int x2, int y2,
+                                  uint32_t color_lo, uint32_t color_hi,
+                                  int32_t ratio_q16, tiny3d_dither_t size) {
+  if (y0 > y1) swap_points(&x0, &y0, &x1, &y1);
+  if (y1 > y2) swap_points(&x1, &y1, &x2, &y2);
+  if (y0 > y1) swap_points(&x0, &y0, &x1, &y1);
+
+  if (y0 == y2) return;
+
+  int32_t dx_long = tri_slope_fp(x0, x2, y0, y2);
+  int32_t x_long = x0 * 256;
+
+  if (y1 > y0) {
+    int32_t dx_short = tri_slope_fp(x0, x1, y0, y1);
+    int32_t x_short = x0 * 256;
+    for (int y = y0; y < y1; y++) {
+      int xa = (int)(x_long >> 8), xb = (int)(x_short >> 8);
+      int lo = MIN(xa, xb), hi = MAX(xa, xb);
+      for (int x = lo; x <= hi; x++) {
+        putpixel(img, x, y, dither_pick(x, y, ratio_q16, size) ? color_hi : color_lo);
+      }
+      x_long += dx_long;
+      x_short += dx_short;
+    }
+  }
+
+  if (y2 > y1) {
+    int32_t dx_short = tri_slope_fp(x1, x2, y1, y2);
+    int32_t x_short = x1 * 256;
+    for (int y = y1; y <= y2; y++) {
+      int xa = (int)(x_long >> 8), xb = (int)(x_short >> 8);
+      int lo = MIN(xa, xb), hi = MAX(xa, xb);
+      for (int x = lo; x <= hi; x++) {
+        putpixel(img, x, y, dither_pick(x, y, ratio_q16, size) ? color_hi : color_lo);
+      }
+      x_long += dx_long;
+      x_short += dx_short;
+    }
+  } else {
+    int xa = (int)(x_long >> 8), xb = x1;
+    int lo = MIN(xa, xb), hi = MAX(xa, xb);
+    for (int x = lo; x <= hi; x++) {
+      putpixel(img, x, y1, dither_pick(x, y1, ratio_q16, size) ? color_hi : color_lo);
+    }
+  }
+}
+
+
+static inline void swap_val3(int32_t a[3], int32_t b[3]) {
+  for (int k = 0; k < 3; k++) { int32_t t = a[k]; a[k] = b[k]; b[k] = t; }
+}
+
+
+// Essentially h_line for Gouraud
+static void gouraud_row(image_buffer_t *img, int y, int xa, int xb,
+                         const int32_t va[3], const int32_t vb[3], int n,
+                         tiny3d_dither_t dither, int32_t index_max) {
+  int lo = MIN(xa, xb), hi = MAX(xa, xb);
+  const int32_t *v_lo = (xa <= xb) ? va : vb;
+  const int32_t *v_hi = (xa <= xb) ? vb : va;
+  int32_t dv[3] = {0, 0, 0};
+  int32_t v[3] = {0, 0, 0};
+  for (int k = 0; k < n; k++) {
+    v[k] = v_lo[k] * 256;
+    dv[k] = (hi > lo) ? tri_slope_fp(v_lo[k], v_hi[k], 0, hi - lo) : 0;
+  }
+  for (int x = lo; x <= hi; x++) {
+    if (n == 3) {
+      // RGB does not support dithering
+      uint32_t r = (uint32_t)((v[0] + 128) >> 8);
+      uint32_t g = (uint32_t)((v[1] + 128) >> 8);
+      uint32_t b = (uint32_t)((v[2] + 128) >> 8);
+      putpixel(img, x, y, (r << 16) | (g << 8) | b);
+    } else if (dither == TINY3D_DITHER_NONE) {
+      // Dithering is off
+      int32_t resolved = (v[0] + 128) >> 8;      // back to Q16.16 index-space
+      int32_t idx = (resolved + (1 << 15)) >> 16; // round to nearest index
+      putpixel(img, x, y, (uint32_t)idx);
+    } else {
+      // Indexed format and dithering is on
+      int32_t resolved = (v[0] + 128) >> 8;
+      int32_t idx_lo = resolved >> 16;
+      int32_t ratio_q16 = resolved & 0xFFFF;
+      bool pick_hi = idx_lo < index_max && dither_pick(x, y, ratio_q16, dither);
+      uint32_t idx = pick_hi ? (uint32_t)(idx_lo + 1) : (uint32_t)idx_lo;
+      putpixel(img, x, y, idx);
+    }
+    for (int k = 0; k < n; k++) {
+      v[k] += dv[k];
+    }
+  }
+}
+
+// Same edge-walk as in the fill_triangle function
+static void fill_triangle_gouraud(image_buffer_t *img,
+                                   int x0, int y0, int32_t val0[3],
+                                   int x1, int y1, int32_t val1[3],
+                                   int x2, int y2, int32_t val2[3],
+                                   int n, tiny3d_dither_t dither, int32_t index_max) {
+  if (y0 > y1) {
+    swap_points(&x0, &y0, &x1, &y1);
+    swap_val3(val0, val1);
+  }
+  if (y1 > y2) {
+    swap_points(&x1, &y1, &x2, &y2);
+    swap_val3(val1, val2);
+  }
+  if (y0 > y1) {
+    swap_points(&x0, &y0, &x1, &y1);
+    swap_val3(val0, val1);
+  }
+
+  if (y0 == y2) return;
+
+  int32_t dx_long = tri_slope_fp(x0, x2, y0, y2);
+  int32_t x_long = x0 * 256;
+  int32_t dv_long[3] = {0, 0, 0};
+  int32_t v_long[3] = {0, 0, 0};
+  for (int k = 0; k < n; k++) {
+    dv_long[k] = tri_slope_fp(val0[k], val2[k], y0, y2);
+    v_long[k] = val0[k] * 256;
+  }
+
+  if (y1 > y0) {
+    int32_t dx_short = tri_slope_fp(x0, x1, y0, y1);
+    int32_t x_short = x0 * 256;
+    int32_t dv_short[3] = {0, 0, 0};
+    int32_t v_short[3] = {0, 0, 0};
+    for (int k = 0; k < n; k++) {
+      dv_short[k] = tri_slope_fp(val0[k], val1[k], y0, y1);
+      v_short[k] = val0[k] * 256;
+    }
+    for (int y = y0; y < y1; y++) {
+      int32_t rv_long[3];
+      int32_t rv_short[3];
+      for (int k = 0; k < n; k++) {
+        rv_long[k] = v_long[k] >> 8;
+        rv_short[k] = v_short[k] >> 8;
+      }
+      gouraud_row(img, y, (int)(x_long >> 8), (int)(x_short >> 8), rv_long, rv_short, n, dither, index_max);
+      x_long += dx_long;
+      x_short += dx_short;
+      for (int k = 0; k < n; k++) {
+        v_long[k] += dv_long[k];
+        v_short[k] += dv_short[k];
+      }
+    }
+  }
+
+  if (y2 > y1) {
+    int32_t dx_short = tri_slope_fp(x1, x2, y1, y2);
+    int32_t x_short = x1 * 256;
+    int32_t dv_short[3] = {0, 0, 0};
+    int32_t v_short[3] = {0, 0, 0};
+    for (int k = 0; k < n; k++) {
+      dv_short[k] = tri_slope_fp(val1[k], val2[k], y1, y2);
+      v_short[k] = val1[k] * 256;
+    }
+    for (int y = y1; y <= y2; y++) {
+      int32_t rv_long[3];
+      int32_t rv_short[3];
+      for (int k = 0; k < n; k++) {
+        rv_long[k] = v_long[k] >> 8;
+        rv_short[k] = v_short[k] >> 8;
+      }
+      gouraud_row(img, y, (int)(x_long >> 8), (int)(x_short >> 8), rv_long, rv_short, n, dither, index_max);
+      x_long += dx_long;
+      x_short += dx_short;
+      for (int k = 0; k < n; k++) {
+        v_long[k] += dv_long[k];
+        v_short[k] += dv_short[k];
+      }
+    }
+  } else {
+    int32_t rv_long[3];
+    int32_t rv_end[3];
+    for (int k = 0; k < n; k++) {
+      rv_long[k] = v_long[k] >> 8;
+      rv_end[k] = val1[k];
+    }
+    gouraud_row(img, y1, (int)(x_long >> 8), x1, rv_long, rv_end, n, dither, index_max);
+  }
+}
+
+static void fill_triangle_gouraud_rgb(image_buffer_t *img,
+                                       int x0, int y0, uint32_t color0,
+                                       int x1, int y1, uint32_t color1,
+                                       int x2, int y2, uint32_t color2) {
+  int32_t val0[3] = { (int32_t)((color0 >> 16) & 0xFF), (int32_t)((color0 >> 8) & 0xFF), (int32_t)(color0 & 0xFF) };
+  int32_t val1[3] = { (int32_t)((color1 >> 16) & 0xFF), (int32_t)((color1 >> 8) & 0xFF), (int32_t)(color1 & 0xFF) };
+  int32_t val2[3] = { (int32_t)((color2 >> 16) & 0xFF), (int32_t)((color2 >> 8) & 0xFF), (int32_t)(color2 & 0xFF) };
+  fill_triangle_gouraud(img, x0, y0, val0, x1, y1, val1, x2, y2, val2, 3, TINY3D_DITHER_NONE, 0);
+}
+
+static void fill_triangle_gouraud_index(image_buffer_t *img,
+                                         int x0, int y0, int32_t value0,
+                                         int x1, int y1, int32_t value1,
+                                         int x2, int y2, int32_t value2) {
+  int32_t val0[3] = { value0, 0, 0 };
+  int32_t val1[3] = { value1, 0, 0 };
+  int32_t val2[3] = { value2, 0, 0 };
+  fill_triangle_gouraud(img, x0, y0, val0, x1, y1, val1, x2, y2, val2, 1, TINY3D_DITHER_NONE, 0);
+}
+
+static void fill_triangle_gouraud_index_dither(image_buffer_t *img,
+                                                int x0, int y0, int32_t value0,
+                                                int x1, int y1, int32_t value1,
+                                                int x2, int y2, int32_t value2,
+                                                tiny3d_dither_t size, int32_t index_max) {
+  int32_t val0[3] = { value0, 0, 0 };
+  int32_t val1[3] = { value1, 0, 0 };
+  int32_t val2[3] = { value2, 0, 0 };
+  fill_triangle_gouraud(img, x0, y0, val0, x1, y1, val1, x2, y2, val2, 1, size, index_max);
 }
 
 // Back faces are culled by a triangle winding order convention.
@@ -427,8 +735,9 @@ static screen_point_t project_to_screen(const tiny3d_state_t *state, tiny3d_vec_
   return p;
 }
 
-static tiny3d_vec_t clip_edge(tiny3d_vec_t inside, tiny3d_vec_t outside, int32_t near) {
+static tiny3d_vec_t clip_edge(tiny3d_vec_t inside, tiny3d_vec_t outside, int32_t near, int32_t *out_t) {
   int32_t t = q16_16_div(near - inside.z, outside.z - inside.z);
+  *out_t = t;
   return (tiny3d_vec_t){
     inside.x + q16_16_mul(t, outside.x - inside.x),
     inside.y + q16_16_mul(t, outside.y - inside.y),
@@ -436,8 +745,17 @@ static tiny3d_vec_t clip_edge(tiny3d_vec_t inside, tiny3d_vec_t outside, int32_t
   };
 }
 
+static int32_t lerp_q16(int32_t a, int32_t b, int32_t t) {
+  return a + q16_16_mul(t, b - a);
+}
+
+// Per-vertex intensities interpolate the same way position does: when
+// the triangle is not Gouraud-shaded, render_instance sets vi0/vi1/vi2
+// all to -1 together (not just vi0), so lerp_q16(-1, -1, t) == -1 for
+// any t and the sentinel survives clipping with no special-casing here.
 static int clip_near(tiny3d_camera_tri_t tri, int32_t near, tiny3d_camera_tri_t out[2]) {
   tiny3d_vec_t v[3] = { tri.v0, tri.v1, tri.v2 };
+  int32_t vi[3] = { tri.vi0, tri.vi1, tri.vi2 };
   bool inside[3] = { v[0].z >= near, v[1].z >= near, v[2].z >= near };
   int in_count = (inside[0] ? 1 : 0) + (inside[1] ? 1 : 0) + (inside[2] ? 1 : 0);
 
@@ -452,18 +770,36 @@ static int clip_near(tiny3d_camera_tri_t tri, int32_t near, tiny3d_camera_tri_t 
     int i_in = inside[0] ? 0 : (inside[1] ? 1 : 2);
     int i_a  = (i_in + 1) % 3;
     int i_b  = (i_in + 2) % 3;
-    tiny3d_vec_t pa = clip_edge(v[i_in], v[i_a], near);
-    tiny3d_vec_t pb = clip_edge(v[i_in], v[i_b], near);
-    out[0] = (tiny3d_camera_tri_t){ .v0 = v[i_in], .v1 = pa, .v2 = pb, .color = tri.color };
+    int32_t t_a, t_b;
+    tiny3d_vec_t pa = clip_edge(v[i_in], v[i_a], near, &t_a);
+    tiny3d_vec_t pb = clip_edge(v[i_in], v[i_b], near, &t_b);
+    out[0] = (tiny3d_camera_tri_t){
+      .v0 = v[i_in], .v1 = pa, .v2 = pb,
+      .color = tri.color, .dither_ratio_q16 = tri.dither_ratio_q16,
+      .vi0 = vi[i_in],
+      .vi1 = lerp_q16(vi[i_in], vi[i_a], t_a),
+      .vi2 = lerp_q16(vi[i_in], vi[i_b], t_b),
+    };
     return 1;
   }
   int i_out = !inside[0] ? 0 : (!inside[1] ? 1 : 2);
   int i_a   = (i_out + 1) % 3;
   int i_b   = (i_out + 2) % 3;
-  tiny3d_vec_t ia = clip_edge(v[i_a], v[i_out], near);
-  tiny3d_vec_t ib = clip_edge(v[i_b], v[i_out], near);
-  out[0] = (tiny3d_camera_tri_t){ .v0 = ia, .v1 = v[i_a], .v2 = v[i_b], .color = tri.color };
-  out[1] = (tiny3d_camera_tri_t){ .v0 = ia, .v1 = v[i_b], .v2 = ib,     .color = tri.color };
+  int32_t t_a, t_b;
+  tiny3d_vec_t ia = clip_edge(v[i_a], v[i_out], near, &t_a);
+  tiny3d_vec_t ib = clip_edge(v[i_b], v[i_out], near, &t_b);
+  int32_t vi_a = lerp_q16(vi[i_a], vi[i_out], t_a);
+  int32_t vi_b = lerp_q16(vi[i_b], vi[i_out], t_b);
+  out[0] = (tiny3d_camera_tri_t){
+    .v0 = ia, .v1 = v[i_a], .v2 = v[i_b],
+    .color = tri.color, .dither_ratio_q16 = tri.dither_ratio_q16,
+    .vi0 = vi_a, .vi1 = vi[i_a], .vi2 = vi[i_b],
+  };
+  out[1] = (tiny3d_camera_tri_t){
+    .v0 = ia, .v1 = v[i_b], .v2 = ib,
+    .color = tri.color, .dither_ratio_q16 = tri.dither_ratio_q16,
+    .vi0 = vi_a, .vi1 = vi[i_b], .vi2 = vi_b,
+  };
   return 2;
 }
 
@@ -488,7 +824,9 @@ static void render_instance(tiny3d_state_t *state, const tiny3d_instance_t *inst
 
   matrix3x4_t l2c = local_to_camera3x4(inst->pos, inst->orient, inst->scale, world_to_camera);
   int32_t inv_scale_sq = inv_scale_squared(inst->scale);
+  int32_t inv_scale_lin = inv_scale_linear(inst->scale);
   bool lit = state->light_source && state->shade_mode != TINY3D_SHADE_NONE;
+  bool gouraud = lit && mesh.normals != NULL;
 
   int32_t effective_radius = q16_16_mul(mesh.bounding_radius, inst->scale);
   if (cull_instance(state, l2c, effective_radius)) return;
@@ -503,19 +841,36 @@ static void render_instance(tiny3d_state_t *state, const tiny3d_instance_t *inst
     if (state->cull_backfaces && is_backface(v0, v1, v2)) continue;
 
     uint32_t color = t->color;
-    if (lit) {
+    int32_t dither_ratio_q16 = -1;
+    int32_t vi0 = -1, vi1 = -1, vi2 = -1;
+    if (gouraud) {
+      // Per-vertex normal, rotated (not translated) into camera space -
+      // same reasoning as light_cam itself below. Base color stays
+      // t->color (unshaded): the per-vertex intensities are carried
+      // through clipping and only turned into a final color/index at
+      // the fill call site, same as the flat dithered path does with
+      // dither_ratio_q16.
+      const tiny3d_normal_t *n0 = &mesh.normals[t->i0];
+      const tiny3d_normal_t *n1 = &mesh.normals[t->i1];
+      const tiny3d_normal_t *n2 = &mesh.normals[t->i2];
+      vi0 = lit_intensity(mat_rotate3x4(l2c, n0->n), light_cam, n0->one_over_abs_n, inv_scale_lin, state->ambient);
+      vi1 = lit_intensity(mat_rotate3x4(l2c, n1->n), light_cam, n1->one_over_abs_n, inv_scale_lin, state->ambient);
+      vi2 = lit_intensity(mat_rotate3x4(l2c, n2->n), light_cam, n2->one_over_abs_n, inv_scale_lin, state->ambient);
+    } else if (lit) {
       tiny3d_vec_t n = vec_cross(vec_sub(v1, v0), vec_sub(v2, v0));
-      int32_t diffuse = q16_16_mul(q16_16_mul(vec_dot(n, light_cam), t->one_over_abs_n), inv_scale_sq);
-      if (diffuse < 0) diffuse = 0;
-      if (diffuse > TINY3D_SCALE_ONE) diffuse = TINY3D_SCALE_ONE;
-      int32_t intensity = state->ambient + q16_16_mul(TINY3D_SCALE_ONE - state->ambient, diffuse);
-      if (intensity > TINY3D_SCALE_ONE) intensity = TINY3D_SCALE_ONE;
-      color = (state->shade_mode == TINY3D_SHADE_RGB)
-        ? shade_rgb888(t->color, intensity)
-        : shade_index(intensity, state->index_max);
+      int32_t intensity = lit_intensity(n, light_cam, t->one_over_abs_n, inv_scale_sq, state->ambient);
+      if (state->shade_mode == TINY3D_SHADE_RGB) {
+        color = shade_rgb888(t->color, intensity);
+      } else if (state->dither != TINY3D_DITHER_NONE) {
+        uint32_t lo, hi;
+        shade_index_dither(intensity, state->index_max, &lo, &hi, &dither_ratio_q16);
+        color = lo;
+      } else {
+        color = shade_index(intensity, state->index_max);
+      }
     }
 
-    state->tri_buffer[out_count] = (tiny3d_camera_tri_t){ v0, v1, v2, color };
+    state->tri_buffer[out_count] = (tiny3d_camera_tri_t){ v0, v1, v2, color, dither_ratio_q16, vi0, vi1, vi2 };
     out_count++;
   }
 
@@ -535,6 +890,32 @@ static void render_instance(tiny3d_state_t *state, const tiny3d_instance_t *inst
         tinygfx_line(state->img, p0.x, p0.y, p1.x, p1.y, 1, 0, 0, clipped[c].color);
         tinygfx_line(state->img, p1.x, p1.y, p2.x, p2.y, 1, 0, 0, clipped[c].color);
         tinygfx_line(state->img, p2.x, p2.y, p0.x, p0.y, 1, 0, 0, clipped[c].color);
+      } else if (clipped[c].vi0 >= 0) {
+        if (state->shade_mode == TINY3D_SHADE_RGB) {
+          uint32_t c0 = shade_rgb888(clipped[c].color, clipped[c].vi0);
+          uint32_t c1 = shade_rgb888(clipped[c].color, clipped[c].vi1);
+          uint32_t c2 = shade_rgb888(clipped[c].color, clipped[c].vi2);
+          fill_triangle_gouraud_rgb(state->img, p0.x, p0.y, c0, p1.x, p1.y, c1, p2.x, p2.y, c2);
+        } else {
+          // Same Q16.16-index-space product shade_index itself rounds
+          // (intensity * index_max), just left for the rasterizer to
+          // interpolate and round (or dither) per pixel instead of once
+          // per triangle.
+          int32_t idx0 = clipped[c].vi0 * state->index_max;
+          int32_t idx1 = clipped[c].vi1 * state->index_max;
+          int32_t idx2 = clipped[c].vi2 * state->index_max;
+          if (state->dither != TINY3D_DITHER_NONE) {
+            fill_triangle_gouraud_index_dither(state->img, p0.x, p0.y, idx0, p1.x, p1.y, idx1,
+                                                        p2.x, p2.y, idx2, state->dither, state->index_max);
+          } else {
+            fill_triangle_gouraud_index(state->img, p0.x, p0.y, idx0, p1.x, p1.y, idx1, p2.x, p2.y, idx2);
+          }
+        }
+      } else if (clipped[c].dither_ratio_q16 >= 0) {
+        uint32_t hi = clipped[c].color + 1;
+        if (hi > (uint32_t)state->index_max) hi = (uint32_t)state->index_max;
+        fill_triangle_dither(state->img, p0.x, p0.y, p1.x, p1.y, p2.x, p2.y,
+                                      clipped[c].color, hi, clipped[c].dither_ratio_q16, state->dither);
       } else {
         tinygfx_fill_triangle(state->img, p0.x, p0.y, p1.x, p1.y, p2.x, p2.y, clipped[c].color);
       }

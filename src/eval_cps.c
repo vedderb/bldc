@@ -785,7 +785,6 @@ static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cd
 #define LOOP_BODY  2
 
 static void atomic_error(void) {
-  is_atomic = false;
   lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
   ERROR_CTX(ENC_SYM_EERROR);
 }
@@ -1114,6 +1113,9 @@ static void unlink_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) {
 /* End execution of the running context. */
 static void finish_ctx(void) {
 
+  // Reset atomic status if this finish_ctx is part of an
+  // untrapper error or a self-kill within an atomic block.
+  is_atomic = false;
   if (!ctx_running) {
     return;
   }
@@ -1157,6 +1159,8 @@ sizeopt static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_
 sizeopt static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigned int row, unsigned int column) {
 #endif
   bool print_trapped = !lbm_hide_trapped_error && (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN);
+  // An error always exists atomic status.
+  is_atomic = false;
 
   if (!(lbm_hide_trapped_error &&
         (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN))) {
@@ -2794,7 +2798,6 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
       // enforced in the case where it can cause problems.
       if (lbm_channel_may_block(lbm_dec_channel(chan)) && is_atomic) {
        lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-       is_atomic = false;
        ERROR_CTX(ENC_SYM_EERROR);
       }
     } else {
@@ -3015,7 +3018,7 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
     lbm_value prg_copy;
 
     int len = -1;
-    WITH_GC(prg_copy, lbm_list_copy(&len, prg));
+    WITH_GC(prg_copy, lbm_list_copy(&len, prg, ENC_SYM_NIL));
     stack_drop(ctx, (unsigned int)nargs+1);
     // There is always a continuation (DONE).
     // If ctx->program is nil, the stack should contain DONE.
@@ -3075,7 +3078,6 @@ static void apply_ok(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs >= 1) {
     ok_val = args[0];
   }
-  is_atomic = false;
   ctx->r = ok_val;
   ok_ctx();
 }
@@ -3086,7 +3088,6 @@ static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs >= 1) {
     err_val = args[0];
   }
-  is_atomic = false;
   ERROR_AT_CTX(err_val, ENC_SYM_EXIT_ERROR);
 }
 
@@ -3309,8 +3310,8 @@ static void apply_merge(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_value b;
     int len_a = -1;
     int len_b = -1;
-    WITH_GC(a, lbm_list_copy(&len_a, args[1]));
-    WITH_GC_RMBR_1(b, lbm_list_copy(&len_b, args[2]), a);
+    WITH_GC(a, lbm_list_copy(&len_a, args[1], ENC_SYM_NIL));
+    WITH_GC_RMBR_1(b, lbm_list_copy(&len_b, args[2], ENC_SYM_NIL), a);
 
     if (len_a == 0) {
       ctx->r = b;
@@ -3382,7 +3383,7 @@ static void apply_sort(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 
     int len = -1;
     lbm_value list_copy;
-    WITH_GC(list_copy, lbm_list_copy(&len, args[1]));
+    WITH_GC(list_copy, lbm_list_copy(&len, args[1], ENC_SYM_NIL));
     if (len <= 1) {
       stack_drop(ctx, 3);
       ctx->r = list_copy;
@@ -3472,7 +3473,7 @@ static void apply_rotate(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 2 && lbm_is_list(args[0]) && lbm_is_number(args[1])) {
     int len = -1;
     lbm_value ls;
-    WITH_GC(ls, lbm_list_copy(&len, args[0]));
+    WITH_GC(ls, lbm_list_copy(&len, args[0], ENC_SYM_NIL));
     int dist = lbm_dec_as_i32(args[1]);
     if (len > 0 && dist != 0) {
       int d = dist;

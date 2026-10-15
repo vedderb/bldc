@@ -63,12 +63,15 @@ CCFLAGS    += -DWITH_MCP
 REPL_SRC = $(LISPBM_SRC)\
            repl.c \
            repl_exts.c \
+           image_file.c \
            ../utils/crc.c \
            ../utils/packet.c \
            lbm_gnuplot.c \
            lbm_octave.c \
            ../utils/mcp/lbm_mcp.c \
-           ../utils/mcp/cJSON.c
+           ../utils/mcp/cJSON.c \
+           ../tinyml/moons/moons_gen.c \
+           ../tinyml/moons/moons_adapter.c
 
 ## Dropped usage of pkg-config as it felt like more trouble than benefit.
 ## pkg-config searches for .pc files unrelated to compile flags such as -m32.

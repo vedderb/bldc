@@ -725,15 +725,9 @@ static lbm_value fundamental_append(lbm_value *args, lbm_uint nargs) {
       lbm_set_error_suspect(curr);
       return ENC_SYM_TERROR;
     }
-    int n = 0;
-    while (lbm_type_of_functional(curr) == LBM_TYPE_CONS) {
-      n++;
-      curr = lbm_cdr(curr);
-    }
-    curr = args[i];
-    for (int j = n-1; j >= 0; j --) {
-      res = lbm_cons(lbm_index_list(curr,j),res);
-    }
+    int len = -1;
+    res = lbm_list_copy(&len, curr, res);
+    if (lbm_is_symbol_merror(res)) return res;
   }
   return(res);
 }
@@ -1324,7 +1318,7 @@ static lbm_value fundamental_take(lbm_value *args, lbm_uint nargs) {
   lbm_value res = ENC_SYM_TERROR;
   if (nargs == 2 && IS_NUMBER(args[1]) && lbm_is_list(args[0])) {
     int len = lbm_dec_as_i32(args[1]);
-    res = lbm_list_copy(&len, args[0]);
+    res = lbm_list_copy(&len, args[0], ENC_SYM_NIL);
   }
   return res;
 }
@@ -1462,7 +1456,11 @@ static lbm_value fundamental_member(lbm_value *args, lbm_uint argn) {
     while (lbm_is_cons(curr)) {
       lbm_cons_t *cell = lbm_ref_cell(curr);
       if (struct_eq(cell->car, args[0],0)) {
+#ifdef LBM_USE_MEMBER_TAIL
+        res = curr;
+#else
         res = args[1];
+#endif
         break;
       }
       curr = cell->cdr;

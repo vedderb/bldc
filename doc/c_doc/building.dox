@@ -28,6 +28,7 @@ These should be added as a -D... flag to the C compiler for the LispBM compilati
 <li>LBM_USE_EXT_MAILBOX_GET - loads the mailbox-get extension that allows introspection into mailboxes.</li>
 <li>LBM_USE_ERROR_LINENO - Reports the line in eval_cps.c where the error was triggered. For debug use.</li>
 <li>LBM_USE_MACRO_REST_ARGS - allow macros to access a rest-args list just like lambda defined functions.</li>
+<li>LBM_USE_MEMBER_TAIL - member returns the sublist starting at the matched element instead of the whole list.</li>
 <li>LBM_USE_SHEBANG_COMMENTS - if #! starts the first row and column of text, that row is considered a comment.</li>
 <li>LBM_SINGLE_THREADED - Build for a single-threaded host, removing checks around message send/define that assume a paused evaluator thread. Used by the WASM build.</li>
 <li>LBM_USE_TTF_FREETYPE - Use FreeType as the TTF rendering backend instead of the built-in schrift renderer. (LBM_TTF_USE_FREETYPE is also accepted, for backwards compatibility.)</li>

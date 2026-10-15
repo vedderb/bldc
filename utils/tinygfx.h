@@ -172,6 +172,10 @@ void tinygfx_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int
 void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0, int x1, int y1, int x2, int y2,
                             uint32_t color);
 
+// Ordered-dither and Gouraud triangle fills used to live here, but
+// nothing outside tiny3d.c ever called them - moved there (as static
+// functions) and TINYGFX_DITHER_* became TINY3D_DITHER_* in tiny3d.h.
+
 ////////////////////////////////////////////////////////////
 //  TEXT
 

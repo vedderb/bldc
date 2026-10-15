@@ -24,10 +24,16 @@
 (define dst (img-buffer 'indexed4 60 60))
 (img-clear dst 0)
 
-;; Remap src {0,1} -> dst {2,3}. Since this is a format change (indexed2 !=
-;; indexed4) a palette is required -- no palette should error.
-(define no-palette-result (trap (img-blit dst src 0 0 -1)))
+;; dst (indexed4) has at least as many colors as src (indexed2), so no
+;; palette is required: src index i identity-maps to dst index i.
+;; See test_img_blit_indexed_identity.lisp for dedicated coverage of that.
+(define identity-ok (img-blit dst src 0 0 -1))
+(define bg-identity-px (img-getpix dst 2 2))    ; src index 0 -> 0
+(define fg-identity-px (img-getpix dst 30 30))  ; src index 1 -> 1
 
+(img-clear dst 0)
+
+;; An explicit palette remaps src {0,1} -> dst {2,3} instead.
 (define blit-ok (img-blit dst src 0 0 -1 '(palette (2 3))))
 
 (define bg-px (img-getpix dst 2 2))     ; outside the circle -> src index 0 -> 2
@@ -40,7 +46,9 @@
 (disp-render dst 0 0 '(0x000000 0xFFFFFF 0x3080E0 0xE04030))
 (save-img dst "sdl_tests/png_out/test_img_blit_palette_indexed2_to_indexed4.png" '(0x000000 0xFFFFFF 0x3080E0 0xE04030))
 
-(if (and (eq no-palette-result '(exit-error eval_error))
+(if (and identity-ok
+         (= bg-identity-px 0)
+         (= fg-identity-px 1)
          blit-ok
          (= bg-px 2)
          (= fg-px 3)

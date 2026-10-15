@@ -54,6 +54,7 @@ LISPBM_SRC = $(LISPBM)/src/env.c \
              $(LISPBM)/src/extensions/crypto_extensions.c \
              $(LISPBM)/src/extensions/ecc_extensions.c \
              $(LISPBM)/src/extensions/pattern_extensions.c \
+             $(LISPBM)/src/extensions/tinyml_extensions.c \
 	     $(LISPBM_UTILS_SRC)
 
 LISPBM_H = $(LISPBM)/include/env.h \
@@ -94,6 +95,7 @@ LISPBM_H = $(LISPBM)/include/env.h \
            $(LISPBM)/include/extensions/crypto_extensions.h \
            $(LISPBM)/include/extensions/ecc_extensions.h \
            $(LISPBM)/include/extensions/pattern_extensions.h \
+           $(LISPBM)/include/extensions/tinyml_extensions.h \
 	   $(LISPBM_UTILS_H)
 
 LISPBM_INC = -I$(LISPBM)/include \

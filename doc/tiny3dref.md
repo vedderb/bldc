@@ -114,13 +114,16 @@ A standalone object or **mesh** is then created from these vertices and triangle
 
 ### tiny3d-mesh
 
-Creates a mesh from a list of vertices and a list of index triangles. Vertices shared between triangles (for example a cube's 8 corners across its 12 triangles) are stored once, not duplicated per triangle. The form of a `tiny3d-mesh` expression is `(tiny3d-mesh vertices triangles)`. 
+Creates a mesh from a list of vertices and a list of index triangles. Vertices shared between triangles (for example a cube's 8 corners across its 12 triangles) are stored once, not duplicated per triangle. The form of a `tiny3d-mesh` expression is `(tiny3d-mesh vertices triangles opt-normals)`. 
 
-|Arg || 
- |----|----|
- `vertices`  | List of `(x y z)`, one entry per unique vertex.
- `triangles` | List of `(i0 i1 i2 color)` - `i0`/`i1`/`i2` index into `vertices`, `color` is a raw TinyGFX color (index or 0xRRGGBB).
- 
+
+|Arg||
+|:----:|:----:|
+|`vertices`|List of `(x y z)`, one entry per unique vertex.|
+|`triangles`|List of `(i0 i1 i2 color)` - `i0`/`i1`/`i2` index into `vertices`, `color` is a raw TinyGFX color (index or 0xRRGGBB).|
+|`opt-normals`|List of `(nx ny nz)`, same length as `vertices` and same index space - a vertex index looks up both its position and its normal.|
+
+When `opt-normals` is given, lit rendering of this mesh is per-pixel (Gouraud) shaded instead of flat per-face; when omitted, rendering is exactly the flat per-face shading. A mesh wanting hard edges (for example a cube's corners) should duplicate vertices per face rather than share one averaged normal across faces - sharing produces a smoothed, rounded look instead of crisp edges. 
 
 A mesh's bounding radius (used for frustum culling) is computed automatically from the vertex furthest from the local origin. 
 
@@ -140,7 +143,25 @@ A mesh's bounding radius (used for frustum culling) is computed automatically fr
 <td>
 
 ```clj
-[0 77 68 51 8 0 12 0 104 187 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 255 255
+[0 77 68 51 8 0 12 0 104 187 1 0 0 0 0 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(tiny3d-mesh cube-verts (cube-tris 0xE04030) cube-normals)
+```
+
+
+</td>
+<td>
+
+```clj
+[0 77 68 51 8 0 12 0 104 187 1 0 1 0 0 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0
 ```
 
 
@@ -312,13 +333,13 @@ Returns a mesh's bounding sphere radius (local, unscaled space), as used interna
 
 Creates an instance of a mesh: a positioned, oriented (and optionally scaled) placement of the mesh's geometry in the world. Several instances can share one mesh, so the mesh's vertices/triangles only need to exist once no matter how many copies of it appear in the scene. The form of a `tiny3d-instance` expression is `(tiny3d-instance mesh pos orient opt-scale)`. 
 
-|Arg || 
- |----|----|
- `mesh`      | A mesh created with `tiny3d-mesh`.
- `pos`       | `(x y z)`, world units.
- `orient`    | `(ax ay az)`, degrees, rotation order X then Y then Z.
- `opt-scale` | Optional uniform scale factor, defaults to `1.0`.
- 
+
+|Arg||
+|:----:|:----:|
+|`mesh`|A mesh created with `tiny3d-mesh`.|
+|`pos`|`(x y z)`, world units.|
+|`orient`|`(ax ay az)`, degrees, rotation order X then Y then Z.|
+|`opt-scale`|Optional uniform scale factor, defaults to `1.0`.|
 
 Returns an `(instance . mesh)` pair - this is the value passed in the `objects` list to `tiny3d-render`/`tiny3d-cull`, and the value the `tiny3d-instance-*` accessors/setters below operate on (they also accept the bare instance). 
 
@@ -338,7 +359,7 @@ Returns an `(instance . mesh)` pair - this is the value passed in the `objects` 
 <td>
 
 ```clj
-([0 73 68 51 0 0 0 0 0 0 0 0 0 0 6 0 57 14 228 24 0 0 0 0 0 0 1 0] . [0 77 68 51 8 0 12 0 104 187 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 255 255)
+([0 73 68 51 0 0 0 0 0 0 0 0 0 0 6 0 57 14 228 24 0 0 0 0 0 0 1 0] . [0 77 68 51 8 0 12 0 104 187 1 0 0 0 0 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0)
 ```
 
 
@@ -356,7 +377,7 @@ Returns an `(instance . mesh)` pair - this is the value passed in the `objects` 
 <td>
 
 ```clj
-([0 73 68 51 0 0 0 0 0 0 0 0 0 0 6 0 0 0 0 0 0 0 0 0 0 0 2 0] . [0 77 68 51 8 0 12 0 104 187 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 255 255)
+([0 73 68 51 0 0 0 0 0 0 0 0 0 0 6 0 0 0 0 0 0 0 0 0 0 0 2 0] . [0 77 68 51 8 0 12 0 104 187 1 0 0 0 0 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0)
 ```
 
 
@@ -718,22 +739,25 @@ Returns an instance's uniform scale factor. The form of a `tiny3d-instance-scale
 
 Creates a tiny3d rendering state bound to a destination image buffer. Returns a `(state . img)` pair - a "tiny3d state" is this whole pair, not just its `car`. Pass it as-is to `tiny3d-render`/`tiny3d-cull`: internally `state` holds raw pointers into `img`'s bytes, so keeping the pair together is what keeps `img` reachable for as long as `state` is actually used. The form of a `tiny3d-state-create` expression is `(tiny3d-state-create img max-tris-per-object near far fov-degrees cull-margin ..option)`. 
 
-|Arg || 
- |----|----|
- `img`                 | Destination image buffer, created with `img-buffer`.
- `max-tris-per-object` | Size of the internal triangle scratch buffer, in triangles - must be at least as large as the most complex single object's triangle count.
- `near far`            | Near/far clipping plane distances, world units.
- `fov-degrees`         | Vertical field of view, degrees.
- `cull-margin`         | Extra frustum-cull margin, world units.
- 
+
+|Arg||
+|:----:|:----:|
+|`img`|Destination image buffer, created with `img-buffer`.|
+|`max-tris-per-object`|Size of the internal triangle scratch buffer, in triangles - must be at least as large as the most complex single object's triangle count.|
+|`near far`|Near/far clipping plane distances, world units.|
+|`fov-degrees`|Vertical field of view, degrees.|
+|`cull-margin`|Extra frustum-cull margin, world units.|
 
 <br> 
 
-|Option                || 
- |----|----|
- `'(filled)`           | Solid triangles instead of the default wireframe outlines.
- `'(no-backface-cull)` | Keep back-facing triangles, which are culled by default.
- 
+
+|Option||
+|:----:|:----:|
+|`'(filled)`|Solid triangles instead of the default wireframe outlines.|
+|`'(no-backface-cull)`|Keep back-facing triangles, which are culled by default.|
+|`'(light-source x y z)`|Enables flat directional lighting. `x y z` need not be pre-normalized - the direction is normalized internally. Implies backface culling regardless of `'(no-backface-cull)` appearing anywhere in the attribute list. See `tiny3d-set-light-vec` to change the direction after creation.|
+|`'(ambient a)`|Base brightness floor in `[0, 1]`, blended with the directional term - `0`: fully off, unlit faces are black; `1`: fully lit regardless of angle. Requires `'(light-source ...)` also be given. See `tiny3d-set-ambiance` to change it after creation.|
+|`'(dither-2)` `'(dither-4)` `'(dither-8)`|Ordered (Bayer) dithering between shade bands instead of rounding to the nearest one, using a 2x2, 4x4, or 8x8 threshold matrix. Only has an effect on indexed (`indexed4`/`indexed16`) image buffers with `'(light-source ...)` also given; silently does nothing otherwise (`indexed2` is always unlit, same as unindexed formats without a light source). At most one may be given.|
 
 Each option is its own separate `'(name)` argument, the same convention used by the `img-*` drawing functions - for example `'(filled) '(no-backface-cull)`, not `'(filled no-backface-cull)`. 
 
@@ -829,17 +853,85 @@ Top to bottom: default (wireframe, backface-culled), `'(filled)`, `'(filled) '(n
 ---
 
 
+### tiny3d-set-light-vec
+
+Changes a state's light direction in place. `dir` need not be pre-normalized - same as the `'(light-source ...)` option it updates. Returns `nil` without error if `state` was not created with `'(light-source ...)` in the first place, since there is then no direction to update. The form of a `tiny3d-set-light-vec` expression is `(tiny3d-set-light-vec state dir)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(tiny3d-set-light-vec my-state (list 1.0 1.0 0.0))
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### tiny3d-set-ambiance
+
+Changes a state's ambient brightness floor in place, same `[0, 1]` range as the `'(ambient a)` option. Returns `nil` without error if `state` was not created with `'(light-source ...)`. The form of a `tiny3d-set-ambiance` expression is `(tiny3d-set-ambiance state a)`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(tiny3d-set-ambiance my-state 0.2)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
 ### tiny3d-render
 
 Renders a list of instances into `state`'s destination image. Each instance is transformed, frustum- and backface-culled, near-plane clipped and rasterized - objects entirely outside the view are skipped cheaply without touching their vertices. The form of a `tiny3d-render` expression is `(tiny3d-render state objects cam-pos cam-orient)`. 
 
-|Arg || 
- |----|----|
- `state`      | The `(state . img)` pair from `tiny3d-state-create`.
- `objects`    | List of `(instance . mesh)` pairs, as returned by `tiny3d-instance`.
- `cam-pos`    | `(x y z)`, world units.
- `cam-orient` | `(ax ay az)`, degrees.
- 
+
+|Arg||
+|:----:|:----:|
+|`state`|The `(state . img)` pair from `tiny3d-state-create`.|
+|`objects`|List of `(instance . mesh)` pairs, as returned by `tiny3d-instance`.|
+|`cam-pos`|`(x y z)`, world units.|
+|`cam-orient`|`(ax ay az)`, degrees.|
 
 `tiny3d-render` does not sort objects by depth itself - for scenes where overlapping objects need correct back-to-front ordering, cull with `tiny3d-cull` first, sort the survivors by the returned depth, then render the sorted list (see `repl/examples/tiny3d_orbit.lisp` for the full pattern). 
 
@@ -913,13 +1005,13 @@ t
 
 Transforms and culls a single object without rendering it - the stage-1 half of `tiny3d-render`'s pipeline, exposed so objects can be sorted by depth before the actual rendering pass (`tiny3d-render` re-culls internally too, so this is safe to run ahead of time on the same objects). The form of a `tiny3d-cull` expression is `(tiny3d-cull state obj cam-pos cam-orient)`. 
 
-|Arg || 
- |----|----|
- `state`      | The `(state . img)` pair from `tiny3d-state-create`.
- `obj`        | A single `(instance . mesh)` pair.
- `cam-pos`    | `(x y z)`, world units.
- `cam-orient` | `(ax ay az)`, degrees.
- 
+
+|Arg||
+|:----:|:----:|
+|`state`|The `(state . img)` pair from `tiny3d-state-create`.|
+|`obj`|A single `(instance . mesh)` pair.|
+|`cam-pos`|`(x y z)`, world units.|
+|`cam-orient`|`(ax ay az)`, degrees.|
 
 Returns the object's camera-space depth (a float, useful as a sort key - larger means farther away) if any part of it survives culling, or `nil` if the whole object is definitely outside the view frustum. 
 
@@ -996,7 +1088,7 @@ This example shows how to use the culling and rendering pipelines together. Firs
 <td>
 
 ```clj
-(([0 73 68 51 0 0 0 0 0 0 0 0 0 0 9 0 57 14 228 24 0 0 0 0 0 0 1 0] . [0 77 68 51 8 0 12 0 104 187 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 255 255) ([0 73 68 51 102 102 254 255 0 0 0 0 0 0 6 0 0 0 28 7 0 0 0 0 0 0 1 0] . [0 77 68 51 8 0 12 0 104 187 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 255 255) ([0 73 68 51 154 153 1 0 205 76 0 0 0 128 7 0 28 7 171 42 0 0 0 0 0 0 1 0] . [0 77 68 51 8 0 12 0 104 187 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 255 255))
+(([0 73 68 51 0 0 0 0 0 0 0 0 0 0 9 0 57 14 228 24 0 0 0 0 0 0 1 0] . [0 77 68 51 8 0 12 0 104 187 1 0 0 0 0 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0) ([0 73 68 51 102 102 254 255 0 0 0 0 0 0 6 0 0 0 28 7 0 0 0 0 0 0 1 0] . [0 77 68 51 8 0 12 0 104 187 1 0 0 0 0 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0) ([0 73 68 51 154 153 1 0 205 76 0 0 0 128 7 0 28 7 171 42 0 0 0 0 0 0 1 0] . [0 77 68 51 8 0 12 0 104 187 1 0 0 0 0 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 255 255 0 0 1 0 0 0 255 255 0 0 255 255 0 0 255 255 0 0 1 0 0 0 1 0 0 0 255 255 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0))
 ```
 
 
@@ -1048,5 +1140,5 @@ t
 
 ---
 
-This document was generated by LispBM version 0.38.0 
+This document was generated by LispBM version 0.40.0 
 

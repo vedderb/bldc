@@ -342,178 +342,196 @@ lbm_uint lbm_dec_custom(lbm_value val) {
   return res;
 }
 
+#define LBM_IMM_IX(T) ((unsigned int)(((lbm_uint)(T)) & LBM_VAL_TYPE_MASK) >> 2)
+#define LBM_PTR_IX(T) ((unsigned int)(((lbm_uint)(T)) >> (LBM_PTR_TO_CONSTANT_SHIFT + 2)))
+
 uint8_t lbm_dec_as_char(lbm_value a) {
-  uint8_t r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (uint8_t)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (uint8_t)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (uint8_t)lbm_dec_u(a); break;
-  case LBM_TYPE_I32:
-    r = (uint8_t)lbm_dec_i32(a); break;
-  case LBM_TYPE_U32:
-    r = (uint8_t)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (uint8_t)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (uint8_t)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (uint8_t)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (uint8_t) lbm_dec_double(a); break;
+  if (!(a & LBM_PTR_BIT)) {
+    switch ((unsigned int)((a & LBM_VAL_TYPE_MASK) >> 2)) {
+    case LBM_IMM_IX(LBM_TYPE_CHAR): return (uint8_t)lbm_dec_char(a);
+    case LBM_IMM_IX(LBM_TYPE_I):    return (uint8_t)lbm_dec_i(a);
+    case LBM_IMM_IX(LBM_TYPE_U):    return (uint8_t)lbm_dec_u(a);
+#ifdef LBM64
+    case LBM_IMM_IX(LBM_TYPE_I32):   return (uint8_t)lbm_dec_i32(a);
+    case LBM_IMM_IX(LBM_TYPE_U32):   return (uint8_t)lbm_dec_u32(a);
+    case LBM_IMM_IX(LBM_TYPE_FLOAT): return (uint8_t)lbm_dec_float(a);
+#endif
+    default: return 0;
+    }
   }
-  return r;
+  switch ((unsigned int)(a >> (LBM_PTR_TO_CONSTANT_SHIFT + 2))) {
+#ifndef LBM64
+  case LBM_PTR_IX(LBM_TYPE_I32):   return (uint8_t)lbm_dec_i32(a);
+  case LBM_PTR_IX(LBM_TYPE_U32):   return (uint8_t)lbm_dec_u32(a);
+  case LBM_PTR_IX(LBM_TYPE_FLOAT): return (uint8_t)lbm_dec_float(a);
+#endif
+  case LBM_PTR_IX(LBM_TYPE_I64):    return (uint8_t)lbm_dec_i64(a);
+  case LBM_PTR_IX(LBM_TYPE_U64):    return (uint8_t)lbm_dec_u64(a);
+  case LBM_PTR_IX(LBM_TYPE_DOUBLE): return (uint8_t)lbm_dec_double(a);
+  default: return 0;
+  }
 }
 
 uint32_t lbm_dec_as_u32(lbm_value a) {
-  uint32_t r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (uint32_t)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (uint32_t)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (uint32_t)lbm_dec_u(a); break;
-  case LBM_TYPE_I32: /* fall through */
-  case LBM_TYPE_U32:
-    r = (uint32_t)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (uint32_t)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (uint32_t)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (uint32_t)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (uint32_t)lbm_dec_double(a); break;
+  if (!(a & LBM_PTR_BIT)) {
+    switch ((unsigned int)((a & LBM_VAL_TYPE_MASK) >> 2)) {
+    case LBM_IMM_IX(LBM_TYPE_CHAR): return (uint32_t)lbm_dec_char(a);
+    case LBM_IMM_IX(LBM_TYPE_I):    return (uint32_t)lbm_dec_i(a);
+    case LBM_IMM_IX(LBM_TYPE_U):    return (uint32_t)lbm_dec_u(a);
+#ifdef LBM64
+    case LBM_IMM_IX(LBM_TYPE_I32): /* fall through */
+    case LBM_IMM_IX(LBM_TYPE_U32):   return (uint32_t)lbm_dec_u32(a);
+    case LBM_IMM_IX(LBM_TYPE_FLOAT): return (uint32_t)lbm_dec_float(a);
+#endif
+    default: return 0;
+    }
   }
-  return r;
+  switch ((unsigned int)(a >> (LBM_PTR_TO_CONSTANT_SHIFT + 2))) {
+#ifndef LBM64
+  case LBM_PTR_IX(LBM_TYPE_I32): /* fall through */
+  case LBM_PTR_IX(LBM_TYPE_U32):   return (uint32_t)lbm_dec_u32(a);
+  case LBM_PTR_IX(LBM_TYPE_FLOAT): return (uint32_t)lbm_dec_float(a);
+#endif
+  case LBM_PTR_IX(LBM_TYPE_I64):    return (uint32_t)lbm_dec_i64(a);
+  case LBM_PTR_IX(LBM_TYPE_U64):    return (uint32_t)lbm_dec_u64(a);
+  case LBM_PTR_IX(LBM_TYPE_DOUBLE): return (uint32_t)lbm_dec_double(a);
+  default: return 0;
+  }
 }
 
 int32_t lbm_dec_as_i32(lbm_value a) {
-  int32_t r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (int32_t)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (int32_t)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (int32_t)lbm_dec_u(a); break;
-  case LBM_TYPE_I32:
-    r = (int32_t)lbm_dec_i32(a); break;
-  case LBM_TYPE_U32:
-    r = (int32_t)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (int32_t)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (int32_t)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (int32_t)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (int32_t) lbm_dec_double(a); break;
+  if (!(a & LBM_PTR_BIT)) {
+    switch ((unsigned int)((a & LBM_VAL_TYPE_MASK) >> 2)) {
+    case LBM_IMM_IX(LBM_TYPE_CHAR): return (int32_t)lbm_dec_char(a);
+    case LBM_IMM_IX(LBM_TYPE_I):    return (int32_t)lbm_dec_i(a);
+    case LBM_IMM_IX(LBM_TYPE_U):    return (int32_t)lbm_dec_u(a);
+#ifdef LBM64
+    case LBM_IMM_IX(LBM_TYPE_I32):   return (int32_t)lbm_dec_i32(a);
+    case LBM_IMM_IX(LBM_TYPE_U32):   return (int32_t)lbm_dec_u32(a);
+    case LBM_IMM_IX(LBM_TYPE_FLOAT): return (int32_t)lbm_dec_float(a);
+#endif
+    default: return 0;
+    }
   }
-  return r;
+  switch ((unsigned int)(a >> (LBM_PTR_TO_CONSTANT_SHIFT + 2))) {
+#ifndef LBM64
+  case LBM_PTR_IX(LBM_TYPE_I32):   return (int32_t)lbm_dec_i32(a);
+  case LBM_PTR_IX(LBM_TYPE_U32):   return (int32_t)lbm_dec_u32(a);
+  case LBM_PTR_IX(LBM_TYPE_FLOAT): return (int32_t)lbm_dec_float(a);
+#endif
+  case LBM_PTR_IX(LBM_TYPE_I64):    return (int32_t)lbm_dec_i64(a);
+  case LBM_PTR_IX(LBM_TYPE_U64):    return (int32_t)lbm_dec_u64(a);
+  case LBM_PTR_IX(LBM_TYPE_DOUBLE): return (int32_t)lbm_dec_double(a);
+  default: return 0;
+  }
 }
 
 int64_t lbm_dec_as_i64(lbm_value a) {
-  int64_t r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (int64_t)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (int64_t)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (int64_t)lbm_dec_u(a); break;
-  case LBM_TYPE_I32:
-    r = (int64_t)lbm_dec_i32(a); break;
-  case LBM_TYPE_U32:
-    r = (int64_t)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (int64_t)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (int64_t)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (int64_t)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (int64_t) lbm_dec_double(a); break;
+  if (!(a & LBM_PTR_BIT)) {
+    switch ((unsigned int)((a & LBM_VAL_TYPE_MASK) >> 2)) {
+    case LBM_IMM_IX(LBM_TYPE_CHAR): return (int64_t)lbm_dec_char(a);
+    case LBM_IMM_IX(LBM_TYPE_I):    return (int64_t)lbm_dec_i(a);
+    case LBM_IMM_IX(LBM_TYPE_U):    return (int64_t)lbm_dec_u(a);
+#ifdef LBM64
+    case LBM_IMM_IX(LBM_TYPE_I32):   return (int64_t)lbm_dec_i32(a);
+    case LBM_IMM_IX(LBM_TYPE_U32):   return (int64_t)lbm_dec_u32(a);
+    case LBM_IMM_IX(LBM_TYPE_FLOAT): return (int64_t)lbm_dec_float(a);
+#endif
+    default: return 0;
+    }
   }
-  return r;
+  switch ((unsigned int)(a >> (LBM_PTR_TO_CONSTANT_SHIFT + 2))) {
+#ifndef LBM64
+  case LBM_PTR_IX(LBM_TYPE_I32):   return (int64_t)lbm_dec_i32(a);
+  case LBM_PTR_IX(LBM_TYPE_U32):   return (int64_t)lbm_dec_u32(a);
+  case LBM_PTR_IX(LBM_TYPE_FLOAT): return (int64_t)lbm_dec_float(a);
+#endif
+  case LBM_PTR_IX(LBM_TYPE_I64):    return (int64_t)lbm_dec_i64(a);
+  case LBM_PTR_IX(LBM_TYPE_U64):    return (int64_t)lbm_dec_u64(a);
+  case LBM_PTR_IX(LBM_TYPE_DOUBLE): return (int64_t)lbm_dec_double(a);
+  default: return 0;
+  }
 }
 
 uint64_t lbm_dec_as_u64(lbm_value a) {
-  uint64_t r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (uint64_t)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (uint64_t)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (uint64_t)lbm_dec_u(a); break;
-  case LBM_TYPE_I32:
-    r = (uint64_t)lbm_dec_i32(a); break;
-  case LBM_TYPE_U32:
-    r = (uint64_t)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (uint64_t)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (uint64_t)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (uint64_t)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (uint64_t)lbm_dec_double(a); break;
+  if (!(a & LBM_PTR_BIT)) {
+    switch ((unsigned int)((a & LBM_VAL_TYPE_MASK) >> 2)) {
+    case LBM_IMM_IX(LBM_TYPE_CHAR): return (uint64_t)lbm_dec_char(a);
+    case LBM_IMM_IX(LBM_TYPE_I):    return (uint64_t)lbm_dec_i(a);
+    case LBM_IMM_IX(LBM_TYPE_U):    return (uint64_t)lbm_dec_u(a);
+#ifdef LBM64
+    case LBM_IMM_IX(LBM_TYPE_I32):   return (uint64_t)lbm_dec_i32(a);
+    case LBM_IMM_IX(LBM_TYPE_U32):   return (uint64_t)lbm_dec_u32(a);
+    case LBM_IMM_IX(LBM_TYPE_FLOAT): return (uint64_t)lbm_dec_float(a);
+#endif
+    default: return 0;
+    }
   }
-  return r;
+  switch ((unsigned int)(a >> (LBM_PTR_TO_CONSTANT_SHIFT + 2))) {
+#ifndef LBM64
+  case LBM_PTR_IX(LBM_TYPE_I32):   return (uint64_t)lbm_dec_i32(a);
+  case LBM_PTR_IX(LBM_TYPE_U32):   return (uint64_t)lbm_dec_u32(a);
+  case LBM_PTR_IX(LBM_TYPE_FLOAT): return (uint64_t)lbm_dec_float(a);
+#endif
+  case LBM_PTR_IX(LBM_TYPE_I64):    return (uint64_t)lbm_dec_i64(a);
+  case LBM_PTR_IX(LBM_TYPE_U64):    return (uint64_t)lbm_dec_u64(a);
+  case LBM_PTR_IX(LBM_TYPE_DOUBLE): return (uint64_t)lbm_dec_double(a);
+  default: return 0;
+  }
 }
 
 float lbm_dec_as_float(lbm_value a) {
-  float r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (float)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (float)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (float)lbm_dec_u(a); break;
-  case LBM_TYPE_I32:
-    r = (float)lbm_dec_i32(a); break;
-  case LBM_TYPE_U32:
-    r = (float)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (float)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (float)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (float)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (float)lbm_dec_double(a); break;
+  if (!(a & LBM_PTR_BIT)) {
+    switch ((unsigned int)((a & LBM_VAL_TYPE_MASK) >> 2)) {
+    case LBM_IMM_IX(LBM_TYPE_CHAR): return (float)lbm_dec_char(a);
+    case LBM_IMM_IX(LBM_TYPE_I):    return (float)lbm_dec_i(a);
+    case LBM_IMM_IX(LBM_TYPE_U):    return (float)lbm_dec_u(a);
+#ifdef LBM64
+    case LBM_IMM_IX(LBM_TYPE_I32):   return (float)lbm_dec_i32(a);
+    case LBM_IMM_IX(LBM_TYPE_U32):   return (float)lbm_dec_u32(a);
+    case LBM_IMM_IX(LBM_TYPE_FLOAT): return (float)lbm_dec_float(a);
+#endif
+    default: return 0;
+    }
   }
-  return r;
+  switch ((unsigned int)(a >> (LBM_PTR_TO_CONSTANT_SHIFT + 2))) {
+#ifndef LBM64
+  case LBM_PTR_IX(LBM_TYPE_I32):   return (float)lbm_dec_i32(a);
+  case LBM_PTR_IX(LBM_TYPE_U32):   return (float)lbm_dec_u32(a);
+  case LBM_PTR_IX(LBM_TYPE_FLOAT): return (float)lbm_dec_float(a);
+#endif
+  case LBM_PTR_IX(LBM_TYPE_I64):    return (float)lbm_dec_i64(a);
+  case LBM_PTR_IX(LBM_TYPE_U64):    return (float)lbm_dec_u64(a);
+  case LBM_PTR_IX(LBM_TYPE_DOUBLE): return (float)lbm_dec_double(a);
+  default: return 0;
+  }
 }
 
 double lbm_dec_as_double(lbm_value a) {
-  double r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (double)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (double)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (double)lbm_dec_u(a); break;
-  case LBM_TYPE_I32:
-    r = (double)lbm_dec_i32(a); break;
-  case LBM_TYPE_U32:
-    r = (double)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (double)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (double)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (double)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (double)lbm_dec_double(a); break;
+  if (!(a & LBM_PTR_BIT)) {
+    switch ((unsigned int)((a & LBM_VAL_TYPE_MASK) >> 2)) {
+    case LBM_IMM_IX(LBM_TYPE_CHAR): return (double)lbm_dec_char(a);
+    case LBM_IMM_IX(LBM_TYPE_I):    return (double)lbm_dec_i(a);
+    case LBM_IMM_IX(LBM_TYPE_U):    return (double)lbm_dec_u(a);
+#ifdef LBM64
+    case LBM_IMM_IX(LBM_TYPE_I32):   return (double)lbm_dec_i32(a);
+    case LBM_IMM_IX(LBM_TYPE_U32):   return (double)lbm_dec_u32(a);
+    case LBM_IMM_IX(LBM_TYPE_FLOAT): return (double)lbm_dec_float(a);
+#endif
+    default: return 0;
+    }
   }
-  return r;
+  switch ((unsigned int)(a >> (LBM_PTR_TO_CONSTANT_SHIFT + 2))) {
+#ifndef LBM64
+  case LBM_PTR_IX(LBM_TYPE_I32):   return (double)lbm_dec_i32(a);
+  case LBM_PTR_IX(LBM_TYPE_U32):   return (double)lbm_dec_u32(a);
+  case LBM_PTR_IX(LBM_TYPE_FLOAT): return (double)lbm_dec_float(a);
+#endif
+  case LBM_PTR_IX(LBM_TYPE_I64):    return (double)lbm_dec_i64(a);
+  case LBM_PTR_IX(LBM_TYPE_U64):    return (double)lbm_dec_u64(a);
+  case LBM_PTR_IX(LBM_TYPE_DOUBLE): return (double)lbm_dec_double(a);
+  default: return 0;
+  }
 }
 
 // ////////////////////////////////////////////////////////////
@@ -1053,7 +1071,7 @@ lbm_value lbm_list_destructive_reverse(lbm_value list) {
 }
 
 
-lbm_value lbm_list_copy(int *m, lbm_value list) {
+lbm_value lbm_list_copy(int *m, lbm_value list, lbm_value tail) {
   lbm_value curr = list;
   lbm_uint n = lbm_list_length(list);
   lbm_uint copy_n = n;
@@ -1062,19 +1080,21 @@ lbm_value lbm_list_copy(int *m, lbm_value list) {
   } else { // *m == -1 or *m >= n
     *m = (int)n;
   }
-  if (copy_n == 0) return ENC_SYM_NIL;
+  if (copy_n == 0) return tail;
   lbm_uint new_list = lbm_heap_allocate_list(copy_n);
   if (lbm_is_symbol(new_list)) return new_list;
   lbm_value curr_targ = new_list;
+  lbm_cons_t *targ_cell = NULL;
 
   while (lbm_is_cons(curr) && copy_n > 0) {
     lbm_cons_t *curr_cell = lbm_ref_cell(curr);
-    lbm_cons_t *targ_cell = lbm_ref_cell(curr_targ);
+    targ_cell = lbm_ref_cell(curr_targ);
     targ_cell->car = curr_cell->car;
     curr_targ = targ_cell->cdr;
     curr = curr_cell->cdr;
     copy_n --;
   }
+  targ_cell->cdr = tail; // targ_cell is the last cell allocated into new_list
   return new_list;
 }
 
