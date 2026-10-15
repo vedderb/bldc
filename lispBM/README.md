@@ -6014,6 +6014,78 @@ As with bufget big endian is the default byte order and little-endian can be pas
 
 ---
 
+#### bufget-bits-\[x\]
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 7.01+ |
+
+Read data from an array at a bit position. bitpos is which bit to start at and bitlen is how many bits to read. The optional argument optEndian can be set to 'little-endian or 'big-endian with 'big-endian being the default. The optional argument optDbc can be set to 'dbc to count the bit position in the same way as CAN DBC files, which only matters when using 'little-endian (see [here](https://www.typhoon-hil.com/documentation/typhoon-hil-software-manual/References/can_bus_protocol.html) what DBC counting looks like).
+
+Note that bitlen only is used for i and u, f32 is always 32 bits.
+
+```clj
+(bufget-bits-[x] arr bitpos bitlen optEndian optDbc)
+```
+
+Examples
+
+```clj
+; Read 14 bits starting at position 2 in unsigned big-endian
+(bufget-bits-u arr 2 14)
+
+; Read 20 bits starting at position 5 in signed little-endian
+(bufget-bits-i arr 5 20 'little-endian)
+
+; Read 11 bits starting at position 5 in signed little-endian
+(bufget-bits-i arr 5 11 'big-endian 'dbc)
+(bufget-bits-i arr 5 11 'dbc) ; same as above
+
+; Read a 32-bit float starting at position 5 in big-endian
+(bufget-bits-f32 arr 5)
+
+; Read a 32-bit float starting at position 5 in little-endian
+(bufget-bits-f32 arr 5 'little-endian)
+```
+
+---
+
+#### bufset-bits-\[x\]
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 7.01+ |
+
+Write value to an array at a bit position. bitpos is which bit to start at and bitlen is how many bits to write. The optional argument optEndian can be set to 'little-endian or 'big-endian with 'big-endian being the default. The optional argument optDbc can be set to 'dbc to count the bit position in the same way as CAN DBC files, which only matters when using 'little-endian (see [here](https://www.typhoon-hil.com/documentation/typhoon-hil-software-manual/References/can_bus_protocol.html) what DBC counting looks like).
+
+Note that bitlen only is used for i and u, f32 is always 32 bits.
+
+```clj
+(bufset-bits-[x] arr bitpos bitlen value optEndian optDbc)
+```
+
+Examples
+
+```clj
+; Write 287 as 14 bits starting at position 2 in unsigned big-endian
+(bufset-bits-u arr 2 14 287)
+
+; Write 7825 as 20 bits starting at position 5 in signed little-endian
+(bufset-bits-i arr 5 20 7852 'little-endian)
+
+; Write 511 as 11 bits starting at position 5 in signed little-endian
+(bufset-bits-i arr 5 11 511 'big-endian 'dbc)
+(bufset-bits-i arr 5 11 511 'dbc) ; same as above
+
+; Write 1.234 as a 32-bit float starting at position 5 in big-endian
+(bufset-bits-f32 arr 5 1.234)
+
+; Write 1.234 as a 32-bit float starting at position 5 in little-endian
+(bufset-bits-f32 arr 5 1.1234 'little-endian)
+```
+
+---
+
 #### bufcpy
 
 | Platforms | Firmware |
