@@ -1323,8 +1323,13 @@ static lbm_value ext_blit(lbm_value *args, lbm_uint argn) {
         return ENC_SYM_EERROR;
       }
       palette_ptr = palette;
+    } else if (src_depth != 0 && dest_depth != 0 && dest_depth >= src_depth) {
+      // Indexed source into an indexed dest with at least as many colors:
+      // source index i is a valid dest index unchanged, so the
+      // getpixel/putpixel fallback below (no compose) is already an
+      // identity mapping and needs no palette.
     } else if (src_depth != 0 && arg_dec.img.fmt != dest_buf.fmt) {
-      lbm_set_error_reason("img-blit: blitting between differing indexed formats, or from indexed into rgb, requires a palette attribute.");
+      lbm_set_error_reason("img-blit: needs a palette attribute here.");
       return ENC_SYM_EERROR;
     }
 

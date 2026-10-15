@@ -23,6 +23,16 @@
   (list  1.0  1.0  1.0)   ; 6
   (list -1.0  1.0  1.0))) ; 7
 
+;; Outward-pointing per-vertex normals for cube-verts above, for the
+;; opt-normals/Gouraud example below - just the normalized
+;; center-to-vertex direction, since the cube is centered at the origin.
+(defun vec3-normalize (v)
+  (let ((x (ix v 0)) (y (ix v 1)) (z (ix v 2))
+        (len (sqrt (+ (* x x) (* y y) (* z z)))))
+    (list (/ x len) (/ y len) (/ z len))))
+
+(define cube-normals (map vec3-normalize cube-verts))
+
 (defun cube-tris (color) (list
   (list 4 5 6 color) (list 4 6 7 color)   ; front  z=+1
   (list 0 2 1 color) (list 0 3 2 color)   ; back   z=-1
@@ -53,17 +63,25 @@
                           "triangles. Vertices shared between triangles (for example a"
                           "cube's 8 corners across its 12 triangles) are stored once, not"
                           "duplicated per triangle."
-                          "The form of a `tiny3d-mesh` expression is `(tiny3d-mesh vertices triangles)`."
+                          "The form of a `tiny3d-mesh` expression is `(tiny3d-mesh vertices triangles opt-normals)`."
                           ))
-              (para (list "|Arg || \n"
-                          "|----|----|\n"
-                          "`vertices`  | List of `(x y z)`, one entry per unique vertex.\n"
-                          "`triangles` | List of `(i0 i1 i2 color)` - `i0`/`i1`/`i2` index into `vertices`, `color` is a raw TinyGFX color (index or 0xRRGGBB).\n"
+              (table '("Arg" "")
+                     '(("`vertices`" "List of `(x y z)`, one entry per unique vertex.")
+                       ("`triangles`" "List of `(i0 i1 i2 color)` - `i0`/`i1`/`i2` index into `vertices`, `color` is a raw TinyGFX color (index or 0xRRGGBB).")
+                       ("`opt-normals`" "List of `(nx ny nz)`, same length as `vertices` and same index space - a vertex index looks up both its position and its normal.")))
+              (para (list "When `opt-normals` is given, lit rendering of this mesh is"
+                          "per-pixel (Gouraud) shaded instead of flat per-face; when"
+                          "omitted, rendering is exactly the flat per-face shading."
+                          "A mesh wanting hard edges (for example a cube's corners) should"
+                          "duplicate vertices per face rather than share one averaged"
+                          "normal across faces - sharing produces a smoothed, rounded look"
+                          "instead of crisp edges."
                           ))
               (para (list "A mesh's bounding radius (used for frustum culling) is computed"
                           "automatically from the vertex furthest from the local origin."
                           ))
-              (code-str (list "(tiny3d-mesh cube-verts (cube-tris 0xE04030))"))
+              (code-str (list "(tiny3d-mesh cube-verts (cube-tris 0xE04030))"
+                              "(tiny3d-mesh cube-verts (cube-tris 0xE04030) cube-normals)"))
               end)))
 
 (define entry-tiny3d-mesh-p
@@ -114,13 +132,11 @@
                           "copies of it appear in the scene."
                           "The form of a `tiny3d-instance` expression is `(tiny3d-instance mesh pos orient opt-scale)`."
                           ))
-              (para (list "|Arg || \n"
-                          "|----|----|\n"
-                          "`mesh`      | A mesh created with `tiny3d-mesh`.\n"
-                          "`pos`       | `(x y z)`, world units.\n"
-                          "`orient`    | `(ax ay az)`, degrees, rotation order X then Y then Z.\n"
-                          "`opt-scale` | Optional uniform scale factor, defaults to `1.0`.\n"
-                          ))
+              (table '("Arg" "")
+                     '(("`mesh`" "A mesh created with `tiny3d-mesh`.")
+                       ("`pos`" "`(x y z)`, world units.")
+                       ("`orient`" "`(ax ay az)`, degrees, rotation order X then Y then Z.")
+                       ("`opt-scale`" "Optional uniform scale factor, defaults to `1.0`.")))
               (para (list "Returns an `(instance . mesh)` pair - this is the value passed"
                           "in the `objects` list to `tiny3d-render`/`tiny3d-cull`, and the"
                           "value the `tiny3d-instance-*` accessors/setters below operate on"
@@ -220,20 +236,27 @@
                           "The form of a `tiny3d-state-create` expression is"
                           "`(tiny3d-state-create img max-tris-per-object near far fov-degrees cull-margin ..option)`."
                           ))
-              (para (list "|Arg || \n"
-                          "|----|----|\n"
-                          "`img`                 | Destination image buffer, created with `img-buffer`.\n"
-                          "`max-tris-per-object` | Size of the internal triangle scratch buffer, in triangles - must be at least as large as the most complex single object's triangle count.\n"
-                          "`near far`            | Near/far clipping plane distances, world units.\n"
-                          "`fov-degrees`         | Vertical field of view, degrees.\n"
-                          "`cull-margin`         | Extra frustum-cull margin, world units.\n"
-                          ))
+              (table '("Arg" "")
+                     '(("`img`" "Destination image buffer, created with `img-buffer`.")
+                       ("`max-tris-per-object`" "Size of the internal triangle scratch buffer, in triangles - must be at least as large as the most complex single object's triangle count.")
+                       ("`near far`" "Near/far clipping plane distances, world units.")
+                       ("`fov-degrees`" "Vertical field of view, degrees.")
+                       ("`cull-margin`" "Extra frustum-cull margin, world units.")))
               (para (list "<br>"))
-              (para (list "|Option                || \n"
-                          "|----|----|\n"
-                          "`'(filled)`           | Solid triangles instead of the default wireframe outlines.\n"
-                          "`'(no-backface-cull)` | Keep back-facing triangles, which are culled by default.\n"
-                          ))
+              (table '("Option" "")
+                     (list
+                      (list "`'(filled)`" "Solid triangles instead of the default wireframe outlines.")
+                      (list "`'(no-backface-cull)`" "Keep back-facing triangles, which are culled by default.")
+                      (list "`'(light-source x y z)`"
+                            (str-merge "Enables flat directional lighting. `x y z` need not be pre-normalized - the direction is normalized internally. "
+                                       "Implies backface culling regardless of `'(no-backface-cull)` appearing anywhere in the attribute list. "
+                                       "See `tiny3d-set-light-vec` to change the direction after creation."))
+                      (list "`'(ambient a)`"
+                            (str-merge "Base brightness floor in `[0, 1]`, blended with the directional term - `0`: fully off, unlit faces are black; `1`: fully lit regardless of angle. "
+                                       "Requires `'(light-source ...)` also be given. See `tiny3d-set-ambiance` to change it after creation."))
+                      (list "`'(dither-2)` `'(dither-4)` `'(dither-8)`"
+                            (str-merge "Ordered (Bayer) dithering between shade bands instead of rounding to the nearest one, using a 2x2, 4x4, or 8x8 threshold matrix. "
+                                       "Only has an effect on indexed (`indexed4`/`indexed16`) image buffers with `'(light-source ...)` also given; silently does nothing otherwise (`indexed2` is always unlit, same as unindexed formats without a light source). At most one may be given."))))
               (para (list "Each option is its own separate `'(name)` argument, the same"
                           "convention used by the `img-*` drawing functions - for example"
                           "`'(filled) '(no-backface-cull)`, not `'(filled no-backface-cull)`."
@@ -249,6 +272,30 @@
                           ))
               end)))
 
+(define entry-tiny3d-set-light-vec
+  (ref-entry "tiny3d-set-light-vec"
+             (list
+              (para (list "Changes a state's light direction in place. `dir` need not be"
+                          "pre-normalized - same as the `'(light-source ...)` option it updates."
+                          "Returns `nil` without error if `state` was not created with"
+                          "`'(light-source ...)` in the first place, since there is then no"
+                          "direction to update."
+                          "The form of a `tiny3d-set-light-vec` expression is `(tiny3d-set-light-vec state dir)`."
+                          ))
+              (code-str (list "(tiny3d-set-light-vec my-state (list 1.0 1.0 0.0))"))
+              end)))
+
+(define entry-tiny3d-set-ambiance
+  (ref-entry "tiny3d-set-ambiance"
+             (list
+              (para (list "Changes a state's ambient brightness floor in place, same `[0, 1]`"
+                          "range as the `'(ambient a)` option. Returns `nil` without error if"
+                          "`state` was not created with `'(light-source ...)`."
+                          "The form of a `tiny3d-set-ambiance` expression is `(tiny3d-set-ambiance state a)`."
+                          ))
+              (code-str (list "(tiny3d-set-ambiance my-state 0.2)"))
+              end)))
+
 (define entry-tiny3d-render
   (ref-entry "tiny3d-render"
              (list
@@ -258,13 +305,11 @@
                           "view are skipped cheaply without touching their vertices."
                           "The form of a `tiny3d-render` expression is `(tiny3d-render state objects cam-pos cam-orient)`."
                           ))
-              (para (list "|Arg || \n"
-                          "|----|----|\n"
-                          "`state`      | The `(state . img)` pair from `tiny3d-state-create`.\n"
-                          "`objects`    | List of `(instance . mesh)` pairs, as returned by `tiny3d-instance`.\n"
-                          "`cam-pos`    | `(x y z)`, world units.\n"
-                          "`cam-orient` | `(ax ay az)`, degrees.\n"
-                          ))
+              (table '("Arg" "")
+                     '(("`state`" "The `(state . img)` pair from `tiny3d-state-create`.")
+                       ("`objects`" "List of `(instance . mesh)` pairs, as returned by `tiny3d-instance`.")
+                       ("`cam-pos`" "`(x y z)`, world units.")
+                       ("`cam-orient`" "`(ax ay az)`, degrees.")))
               (para (list "`tiny3d-render` does not sort objects by depth itself - for"
                           "scenes where overlapping objects need correct back-to-front"
                           "ordering, cull with `tiny3d-cull` first, sort the survivors by"
@@ -292,13 +337,11 @@
                           "to run ahead of time on the same objects)."
                           "The form of a `tiny3d-cull` expression is `(tiny3d-cull state obj cam-pos cam-orient)`."
                           ))
-              (para (list "|Arg || \n"
-                          "|----|----|\n"
-                          "`state`      | The `(state . img)` pair from `tiny3d-state-create`.\n"
-                          "`obj`        | A single `(instance . mesh)` pair.\n"
-                          "`cam-pos`    | `(x y z)`, world units.\n"
-                          "`cam-orient` | `(ax ay az)`, degrees.\n"
-                          ))
+              (table '("Arg" "")
+                     '(("`state`" "The `(state . img)` pair from `tiny3d-state-create`.")
+                       ("`obj`" "A single `(instance . mesh)` pair.")
+                       ("`cam-pos`" "`(x y z)`, world units.")
+                       ("`cam-orient`" "`(ax ay az)`, degrees.")))
               (para (list "Returns the object's camera-space depth (a float, useful as a"
                           "sort key - larger means farther away) if any part of it survives"
                           "culling, or `nil` if the whole object is definitely outside the"
@@ -395,6 +438,8 @@
                   entry-tiny3d-instance-orient
                   entry-tiny3d-instance-scale
                   entry-tiny3d-state-create
+                  entry-tiny3d-set-light-vec
+                  entry-tiny3d-set-ambiance
                   entry-tiny3d-render
                   entry-tiny3d-cull
                   ))

@@ -3,7 +3,7 @@
 
 LBM=lbm
 
-all: lbmref.md displayref.md runtimeref.md dynref.md ttfref.md mathref.md stringref.md arrayref.md dspref.md mutexref.md randomref.md setref.md cryptref.md patternref.md tiny3dref.md
+all: lbmref.md displayref.md runtimeref.md dynref.md ttfref.md mathref.md stringref.md arrayref.md dspref.md mutexref.md randomref.md setref.md cryptref.md patternref.md tiny3dref.md tinymlref.md
 
 doclib.env: doclib.lisp
 	$(LBM) -H 100000 -M 512000 --src="doclib.lisp" --store_env=doclib.env --terminate
@@ -53,6 +53,9 @@ patternref.md: doclib.env patternref.lisp
 tiny3dref.md: doclib.env tiny3dref.lisp
 	$(LBM) -H 150000 -M 640000 --src="tiny3dref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
 
+tinymlref.md: doclib.env tinymlref.lisp
+	$(LBM) -H 100000 -M 512000 --src="tinymlref.lisp" --eval="(render-manual)" --load_env="doclib.env" --terminate
+
 clean:
 	rm -f doclib.env
 	rm -f displayref.md
@@ -69,3 +72,4 @@ clean:
 	rm -f cryptref.md
 	rm -f patternref.md
 	rm -f tiny3dref.md
+	rm -f tinymlref.md

@@ -53,12 +53,24 @@ typedef struct {
   int32_t  one_over_abs_n; // used in lighting calculations
 } tiny3d_triangle_t;
 
+// Per-vertex normal, for Gouraud shading. one_over_abs_n is precomputed
+// from the supplied (not necessarily unit-length) normal, same pattern
+// as tiny3d_triangle_t's own one_over_abs_n.
+typedef struct {
+  tiny3d_vec_t n;
+  int32_t one_over_abs_n;
+} tiny3d_normal_t;
+
 typedef struct {
   const tiny3d_vec_t *vertices;
   uint16_t vertex_count;
   const tiny3d_triangle_t *triangles;
   uint16_t triangle_count;
   int32_t bounding_radius;
+  // NULL: flat per-face shading.
+  // Non-NULL: one normal per vertex. For Gouraud, hard edges look strange
+  // with shared "averaged" normals. 
+  const tiny3d_normal_t *normals;
 } tiny3d_mesh_t;
 
 // The user of Tiny3D provides a get_mesh function. This is
@@ -84,7 +96,13 @@ typedef bool (*tiny3d_next_instance_fn)(void *ctx, tiny3d_instance_t *out);
 // triangles_to_render entry: camera-space, post local->camera, pre-clip.
 typedef struct {
   tiny3d_vec_t v0, v1, v2;
-  uint32_t color;
+  uint32_t color;            // final color, or color_lo when dithered
+  int32_t  dither_ratio_q16; // -1: not dithered. Else Q16.16 in [0, 1<<16];
+                              // color_hi is color+1 clamped to index_max.
+  int32_t  vi0, vi1, vi2;    // -1 in vi0: not Gouraud, use color/dither_ratio_q16
+                              // as above. Else per-vertex Q16.16 intensity
+                              // in [0, TINY3D_SCALE_ONE] (dither_ratio_q16
+                              // unused in this case).
 } tiny3d_camera_tri_t;
 
 // Camera-space frustum plane.
@@ -100,6 +118,15 @@ typedef enum {
   TINY3D_SHADE_INDEX, // indexed4/indexed16 - color becomes an index into a grayscale ramp
 } tiny3d_shade_mode_t;
 
+// Ordered (Bayer) dithering between two colors.
+// Bayer matrices are tiled across the image space (screen-anchored).
+typedef enum {
+  TINY3D_DITHER_NONE = 0,
+  TINY3D_DITHER_2,
+  TINY3D_DITHER_4,
+  TINY3D_DITHER_8,
+} tiny3d_dither_t;
+
 typedef struct {
   image_buffer_t       *img;
   tiny3d_camera_tri_t  *tri_buffer;
@@ -113,11 +140,12 @@ typedef struct {
   bool                  wireframe;
   bool                  cull_backfaces;
   const tiny3d_vec_t   *light_source; // NULL: unlit. Otherwise a unit
-                                       // direction vector, owned by the
-                                       // caller (same lifetime contract as img).
+                                      // direction vector, owned by the
+                                      // caller (same lifetime contract as img).
   tiny3d_shade_mode_t    shade_mode;  // derived once from img->fmt at init
-  int32_t                index_max;   // TINY3D_SHADE_INDEX only: 3 or 15
+  int32_t                index_max;   // TINY3D_SHADE_INDEX only: 1, 3, or 15
   int32_t                ambient;     // Q16.16, clamped [0, TINY3D_SCALE_ONE]
+  tiny3d_dither_t        dither;      // TINY3D_SHADE_INDEX only; TINY3D_DITHER_NONE elsewhere (no-op)
 } tiny3d_state_t;
 
 bool tiny3d_init(tiny3d_state_t *state,

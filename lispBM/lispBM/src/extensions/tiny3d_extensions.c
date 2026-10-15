@@ -31,13 +31,21 @@ static lbm_uint symbol_filled = 0;
 static lbm_uint symbol_no_backface_cull = 0;
 static lbm_uint symbol_light_source = 0;
 static lbm_uint symbol_ambient = 0;
+static lbm_uint symbol_dither_2 = 0;
+static lbm_uint symbol_dither_4 = 0;
+static lbm_uint symbol_dither_8 = 0;
 
 typedef struct {
   uint32_t magic;
   uint16_t vertex_count;
   uint16_t triangle_count;
   int32_t  bounding_radius;
+  uint8_t  has_normals; // blob layout: header, vertices[], [normals[] iff this], triangles[]
 } tiny3d_mesh_header_t;
+
+static lbm_uint mesh_normals_bytes(const tiny3d_mesh_header_t *hdr) {
+  return hdr->has_normals ? (lbm_uint)hdr->vertex_count * sizeof(tiny3d_normal_t) : 0;
+}
 
 static bool is_mesh(const uint8_t *data, lbm_uint size) {
   if (size < sizeof(tiny3d_mesh_header_t)) return false;
@@ -45,6 +53,7 @@ static bool is_mesh(const uint8_t *data, lbm_uint size) {
   if (hdr->magic != TINY3D_MESH_MAGIC) return false;
   lbm_uint expected = sizeof(tiny3d_mesh_header_t)
     + (lbm_uint)hdr->vertex_count * sizeof(tiny3d_vec_t)
+    + mesh_normals_bytes(hdr)
     + (lbm_uint)hdr->triangle_count * sizeof(tiny3d_triangle_t);
   return size == expected;
 }
@@ -62,8 +71,9 @@ static tiny3d_mesh_t to_mesh(tiny3d_mesh_header_t *hdr) {
   tiny3d_mesh_t m;
   m.vertices = (const tiny3d_vec_t*)(base + sizeof(tiny3d_mesh_header_t));
   m.vertex_count = hdr->vertex_count;
-  m.triangles = (const tiny3d_triangle_t*)
-    (base + sizeof(tiny3d_mesh_header_t) + (lbm_uint)hdr->vertex_count * sizeof(tiny3d_vec_t));
+  uint8_t *after_vertices = (uint8_t*)m.vertices + (lbm_uint)hdr->vertex_count * sizeof(tiny3d_vec_t);
+  m.normals = hdr->has_normals ? (const tiny3d_normal_t*)after_vertices : NULL;
+  m.triangles = (const tiny3d_triangle_t*)(after_vertices + mesh_normals_bytes(hdr));
   m.triangle_count = hdr->triangle_count;
   m.bounding_radius = hdr->bounding_radius;
   return m;
@@ -110,13 +120,22 @@ static bool validate_index_triangle_list(lbm_value tris_list, lbm_uint vertex_co
   return true;
 }
 
-// (tiny3d-mesh vertices triangles)
+// (tiny3d-mesh vertices triangles opt-normals)
 // vertices: list of (x y z), one entry per unique vertex.
 // triangles: list of (i0 i1 i2 color) - indices into vertices, so
 // vertices are shared between triangles.
-// Precomputes the one_over_abs_n value per triangle.
+// opt-normals: list of (nx ny nz), same length as vertices, same index
+// space (a vertex index looks up both its position and its normal) - a
+// mesh wanting hard edges duplicates vertices rather than sharing one
+// normal across faces. When given, lit rendering of this mesh is
+// per-pixel (Gouraud) shaded instead of flat per-face; when omitted,
+// rendering is exactly the flat per-face shading as before.
+// Precomputes one_over_abs_n per triangle, and per vertex when
+// opt-normals is given (same reciprocal-length pattern either way).
 static lbm_value ext_tiny3d_mesh(lbm_value *args, lbm_uint argn) {
-  if (argn != 2 || !lbm_is_list(args[0]) || !lbm_is_list(args[1])) return ENC_SYM_TERROR;
+  if ((argn != 2 && argn != 3) || !lbm_is_list(args[0]) || !lbm_is_list(args[1])) return ENC_SYM_TERROR;
+  bool has_normals = argn == 3;
+  if (has_normals && !lbm_is_list(args[2])) return ENC_SYM_TERROR;
 
   lbm_uint vert_count;
   if (!validate_vertex_list(args[0], &vert_count) || vert_count == 0 || vert_count > 0xFFFF) {
@@ -126,20 +145,31 @@ static lbm_value ext_tiny3d_mesh(lbm_value *args, lbm_uint argn) {
   if (!validate_index_triangle_list(args[1], vert_count, &tri_count) || tri_count == 0 || tri_count > 0xFFFF) {
     return ENC_SYM_TERROR;
   }
+  if (has_normals) {
+    lbm_uint normal_count;
+    if (!validate_vertex_list(args[2], &normal_count) || normal_count != vert_count) {
+      return ENC_SYM_TERROR;
+    }
+  }
 
+  lbm_uint normals_bytes = has_normals ? vert_count * sizeof(tiny3d_normal_t) : 0;
   lbm_uint size = sizeof(tiny3d_mesh_header_t)
     + vert_count * sizeof(tiny3d_vec_t)
+    + normals_bytes
     + tri_count  * sizeof(tiny3d_triangle_t);
 
   uint8_t *buf = lbm_malloc(size);
   if (!buf) return ENC_SYM_MERROR;
 
   tiny3d_vec_t *verts = (tiny3d_vec_t*)(buf + sizeof(tiny3d_mesh_header_t));
+  tiny3d_normal_t *normals = has_normals
+    ? (tiny3d_normal_t*)((uint8_t*)verts + vert_count * sizeof(tiny3d_vec_t))
+    : NULL;
   tiny3d_triangle_t *tris = (tiny3d_triangle_t*)
-    (buf + sizeof(tiny3d_mesh_header_t) + vert_count * sizeof(tiny3d_vec_t));
+    (buf + sizeof(tiny3d_mesh_header_t) + vert_count * sizeof(tiny3d_vec_t) + normals_bytes);
 
   // Populate the vertices and keep track of the  distance to the point
-  // furthest away from 0,0,0 local coord which is used as mesh bounding sphere radius. 
+  // furthest away from 0,0,0 local coord which is used as mesh bounding sphere radius.
   float max_r = 0.0f;
   lbm_uint vi = 0;
   lbm_value curr = args[0];
@@ -157,8 +187,30 @@ static lbm_value ext_tiny3d_mesh(lbm_value *args, lbm_uint argn) {
     curr = lbm_cdr(curr);
   }
 
+  // Populate the per-vertex normals (if given) - same reciprocal-length
+  // precompute as the per-triangle one below.
+  if (has_normals) {
+    lbm_uint ni = 0;
+    curr = args[2];
+    while (lbm_is_cons(curr)) {
+      lbm_value nv = lbm_car(curr);
+      float nx = lbm_dec_as_float(lbm_car(nv));
+      float ny = lbm_dec_as_float(lbm_cadr(nv));
+      float nz = lbm_dec_as_float(lbm_car(lbm_cddr(nv)));
+      normals[ni].n.x = (int32_t)llroundf(nx * 65536.0f);
+      normals[ni].n.y = (int32_t)llroundf(ny * 65536.0f);
+      normals[ni].n.z = (int32_t)llroundf(nz * 65536.0f);
+      float len = sqrtf(nx * nx + ny * ny + nz * nz);
+      float inv_len = 1.0f / len;
+      if (inv_len > 30000.0f) inv_len = 30000.0f;
+      normals[ni].one_over_abs_n = (int32_t)llroundf(inv_len * 65536.0f); // Q16.16
+      ni++;
+      curr = lbm_cdr(curr);
+    }
+  }
+
   // Populate the triangles and compute the (1/|N|) where N is
-  // is the triangles normal length. 
+  // is the triangles normal length.
   lbm_uint ti = 0;
   curr = args[1];
   while (lbm_is_cons(curr)) {
@@ -212,6 +264,7 @@ static lbm_value ext_tiny3d_mesh(lbm_value *args, lbm_uint argn) {
   hdr->vertex_count = (uint16_t)vert_count;
   hdr->triangle_count = (uint16_t)tri_count;
   hdr->bounding_radius = (int32_t)llroundf(max_r * 65536.0f);
+  hdr->has_normals = has_normals ? 1 : 0;
 
   lbm_value res;
   if (!lbm_lift_array(&res, (char*)buf, size)) {
@@ -422,6 +475,13 @@ static tiny3d_state_blob_t *resolve_state(lbm_value v) {
 //                            directional term (0: fully off, unlit faces are
 //                            black; 1: fully lit regardless of angle).
 //                            Requires '(light-source ...) also be given.
+//   '(dither-2|4|8)        - ordered (Bayer) dithering between shade bands
+//                            instead of rounding to the nearest one, using a
+//                            2x2, 4x4, or 8x8 threshold matrix. Only applies
+//                            to indexed (indexed4/indexed16) image buffers
+//                            with '(light-source ...) also given; silently
+//                            has no effect otherwise. At most one of these
+//                            may be given.
 // Returns (state . img)
 static lbm_value ext_tiny3d_state_create(lbm_value *args, lbm_uint argn) {
   if (argn < 6) return ENC_SYM_TERROR;
@@ -433,8 +493,10 @@ static lbm_value ext_tiny3d_state_create(lbm_value *args, lbm_uint argn) {
   bool cull_backfaces = true;
   bool has_light = false;
   bool has_ambient = false;
+  bool has_dither = false;
   tiny3d_vec_t light_source_vec = {0};
   float ambient_val = 0.0f;
+  tiny3d_dither_t dither_val = TINY3D_DITHER_NONE;
   for (lbm_uint i = 6; i < argn; i++) {
     if (!lbm_is_cons(args[i]) || !lbm_is_symbol(lbm_car(args[i]))) {
       return ENC_SYM_TERROR;
@@ -453,6 +515,12 @@ static lbm_value ext_tiny3d_state_create(lbm_value *args, lbm_uint argn) {
       if (lbm_list_length(args[i]) != 2 || !lbm_is_number(lbm_cadr(args[i]))) return ENC_SYM_TERROR;
       ambient_val = lbm_dec_as_float(lbm_cadr(args[i]));
       has_ambient = true;
+    } else if (s == symbol_dither_2 || s == symbol_dither_4 || s == symbol_dither_8) {
+      if (lbm_list_length(args[i]) != 1 || has_dither) return ENC_SYM_TERROR;
+      dither_val = (s == symbol_dither_2) ? TINY3D_DITHER_2
+                 : (s == symbol_dither_4) ? TINY3D_DITHER_4
+                                           : TINY3D_DITHER_8;
+      has_dither = true;
     } else {
       return ENC_SYM_TERROR;
     }
@@ -490,6 +558,7 @@ static lbm_value ext_tiny3d_state_create(lbm_value *args, lbm_uint argn) {
     lbm_free(buf);
     return ENC_SYM_TERROR;
   }
+  blob->state.dither = dither_val;
 
   lbm_value state_val;
   if (!lbm_lift_array(&state_val, (char*)buf, size)) {
@@ -673,6 +742,9 @@ void lbm_tiny3d_extensions_init(void) {
   lbm_add_symbol_const("no-backface-cull", &symbol_no_backface_cull);
   lbm_add_symbol_const("light-source", &symbol_light_source);
   lbm_add_symbol_const("ambient", &symbol_ambient);
+  lbm_add_symbol_const("dither-2", &symbol_dither_2);
+  lbm_add_symbol_const("dither-4", &symbol_dither_4);
+  lbm_add_symbol_const("dither-8", &symbol_dither_8);
 
   lbm_add_extension("tiny3d-mesh", ext_tiny3d_mesh);
   lbm_add_extension("tiny3d-mesh?", ext_tiny3d_is_mesh);

@@ -24,6 +24,7 @@
 */
 
 #include "tinygfx.h"
+#include "tinyutils.h"
 #include "cos_table.h"
 
 #include <math.h>
@@ -39,13 +40,6 @@
 #endif
 #ifdef LBM_OPT_DISPLAY_EXTENSIONS_SIZE_AGGRESSIVE
 #pragma GCC optimize ("-Oz")
-#endif
-
-#ifndef MIN
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#endif
-#ifndef MAX
-#define MAX(a,b) (((a)>(b))?(a):(b))
 #endif
 
 ////////////////////////////////////////////////////////////
@@ -1377,21 +1371,13 @@ void tinygfx_rounded_rectangle(image_buffer_t *img, int x, int y, int width, int
 ////////////////////////////////////////////////////////////
 //  TRIANGLES
 
-static inline void swap_points(int *x0, int *y0, int *x1, int *y1) {
-  int tx = *x0, ty = *y0;
-  *x0 = *x1; *y0 = *y1;
-  *x1 = tx;  *y1 = ty;
-}
-
 // Scanline fill:
 // See Black art of 3d game programming - André Lamothe for a good
 // introduction to scanline fill approaches.
 // The triangle filler in "Black art" explicitly splits triangles into subtriangles
 // and invents a "cut-vertex" along the long edge. Here the long edge state
 // is shared across the "implicitly" split up subtriangles saving some work.
-static inline int32_t tri_slope_fp(int32_t xa, int32_t xb, int32_t ya, int32_t yb) {
-  return (xb - xa) * 256 / (yb - ya);
-}
+// swap_points/tri_slope_fp are shared with tiny3d.c - see tinyutils.h.
 
 void tinygfx_fill_triangle(image_buffer_t *img, int x0, int y0,
                           int x1, int y1, int x2, int y2, uint32_t color) {

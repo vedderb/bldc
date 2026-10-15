@@ -27,12 +27,12 @@ for fn in repl_tests/*.lisp
 do
     fail_timeout=false;
     ok=false
-    rm -f image.lbm 
-    timeout $timeout_val ../repl/repl --persist_image --silent --terminate --load_image=image.lbm -s $fn &> /dev/null
+    rm -f image.lbm
+    timeout $timeout_val ../repl/repl --image_file=image.lbm --persist_image --silent --terminate -s $fn &> /dev/null
     if [ $? == 124 ]; then
         fail_timeout=true;
     else
-        timeout $timeout_val ../repl/repl --persist_image --silent --terminate --load_image=image.lbm -s $fn | grep 'SUCCESS' &> /dev/null
+        timeout $timeout_val ../repl/repl --image_file=image.lbm --load_image --persist_image --silent --terminate -s $fn | grep 'SUCCESS' &> /dev/null
         res=$?
         if [ $res == 0 ]; then
             ok=true

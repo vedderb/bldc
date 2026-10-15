@@ -48,4 +48,3 @@
 (print "a " t3)
 (print "a " ct3)
 (image-save)
-(f-write-image (f-open "image.lbm" "w"))

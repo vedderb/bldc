@@ -33,6 +33,7 @@
 
 static lbm_uint little_endian = 0;
 static lbm_uint big_endian = 0;
+static lbm_uint dbc_sym = 0;
 
 static lbm_value array_extension_unsafe_free_array(lbm_value *args, lbm_uint argn);
 static lbm_value array_extension_buffer_append_i8(lbm_value *args, lbm_uint argn);
@@ -59,10 +60,18 @@ static lbm_value array_extensions_bufclear(lbm_value *args, lbm_uint argn);
 static lbm_value array_extensions_bufcpy(lbm_value *args, lbm_uint argn);
 static lbm_value array_extensions_bufset_bit(lbm_value *args, lbm_uint argn);
 
+static lbm_value array_extensions_bufset_bits_u(lbm_value *args, lbm_uint argn);
+static lbm_value array_extensions_bufset_bits_i(lbm_value *args, lbm_uint argn);
+static lbm_value array_extensions_bufget_bits_u(lbm_value *args, lbm_uint argn);
+static lbm_value array_extensions_bufget_bits_i(lbm_value *args, lbm_uint argn);
+static lbm_value array_extensions_bufset_bits_f32(lbm_value *args, lbm_uint argn);
+static lbm_value array_extensions_bufget_bits_f32(lbm_value *args, lbm_uint argn);
+
 void lbm_array_extensions_init(void) {
 
   lbm_add_symbol_const("little-endian", &little_endian);
   lbm_add_symbol_const("big-endian", &big_endian);
+  lbm_add_symbol_const("dbc", &dbc_sym);
 
   lbm_add_extension("free", array_extension_unsafe_free_array);
   lbm_add_extension("bufset-i8", array_extension_buffer_append_i8);
@@ -87,6 +96,13 @@ void lbm_array_extensions_init(void) {
   lbm_add_extension("bufclear", array_extensions_bufclear);
   lbm_add_extension("bufcpy", array_extensions_bufcpy);
   lbm_add_extension("bufset-bit", array_extensions_bufset_bit);
+
+  lbm_add_extension("bufset-bits-u", array_extensions_bufset_bits_u);
+  lbm_add_extension("bufset-bits-i", array_extensions_bufset_bits_i);
+  lbm_add_extension("bufget-bits-u", array_extensions_bufget_bits_u);
+  lbm_add_extension("bufget-bits-i", array_extensions_bufget_bits_i);
+  lbm_add_extension("bufset-bits-f32", array_extensions_bufset_bits_f32);
+  lbm_add_extension("bufget-bits-f32", array_extensions_bufget_bits_f32);
 }
 
 lbm_value array_extension_unsafe_free_array(lbm_value *args, lbm_uint argn) {
@@ -686,6 +702,233 @@ static lbm_value array_extensions_bufset_bit(lbm_value *args, lbm_uint argn) {
 
       res = ENC_SYM_TRUE;
     }
+  }
+  return res;
+}
+
+/* extract/set sequence of bits at arbitrary bit positon
+   within a byte-array. Alternatively allowing DBC bit order
+   with using the 'dbc symbol argument.
+*/
+
+static lbm_uint dbc_bit_pos(lbm_uint pos) {
+  return (7 - (pos % 8)) + (pos / 8) * 8;
+}
+
+static int64_t sign_extend64(uint64_t v, lbm_uint len) {
+  if (len >= 64) return (int64_t)v;
+  uint64_t sign_bit = (uint64_t)1 << (len - 1);
+  return (int64_t)((v ^ sign_bit) - sign_bit);
+}
+
+static void decode_bits_flags(lbm_value *args, lbm_uint argn, lbm_uint fixed_argn, bool *be, bool *dbc) {
+  *be = true;
+  *dbc = false;
+  for (lbm_uint i = fixed_argn; i < argn; i ++) {
+    if (lbm_type_of(args[i]) == LBM_TYPE_SYMBOL) {
+      lbm_uint s = lbm_dec_sym(args[i]);
+      if (s == little_endian) *be = false;
+      else if (s == big_endian) *be = true;
+      else if (s == dbc_sym) *dbc = true;
+    }
+  }
+}
+
+static bool decode_bits_get_args(lbm_value *error, lbm_value *args, lbm_uint argn,
+                                  lbm_uint *pos, lbm_uint *len, bool *be, bool *dbc,
+                                  lbm_uint *a_size, uint8_t **a_data) {
+  *error = ENC_SYM_EERROR;
+  if (argn < 3 || argn > 5) return false;
+  lbm_array_header_t *array = lbm_dec_array_r(args[0]);
+  if (!(array && lbm_is_number(args[1]) && lbm_is_number(args[2]))) {
+    *error = ENC_SYM_TERROR;
+    return false;
+  }
+  *a_size = array->size;
+  *a_data = (uint8_t*)array->data;
+  *pos = lbm_dec_as_u32(args[1]);
+  *len = lbm_dec_as_u32(args[2]);
+  decode_bits_flags(args, argn, 3, be, dbc);
+  return true;
+}
+
+static bool decode_bits_set_args(lbm_value *error, lbm_value *args, lbm_uint argn,
+                                  lbm_uint *pos, lbm_uint *len, bool *be, bool *dbc,
+                                  lbm_uint *a_size, uint8_t **a_data) {
+  *error = ENC_SYM_EERROR;
+  if (argn < 4 || argn > 6) return false;
+  lbm_array_header_t *array = lbm_dec_array_rw(args[0]);
+  if (!(array && lbm_is_number(args[1]) && lbm_is_number(args[2]) && lbm_is_number(args[3]))) {
+    *error = ENC_SYM_TERROR;
+    return false;
+  }
+  *a_size = array->size;
+  *a_data = (uint8_t*)array->data;
+  *pos = lbm_dec_as_u32(args[1]);
+  *len = lbm_dec_as_u32(args[2]);
+  decode_bits_flags(args, argn, 4, be, dbc);
+  return true;
+}
+
+static bool bits_insert(uint8_t *data, lbm_uint d_size, lbm_uint pos, lbm_uint len,
+                         bool be, bool dbc, uint64_t number) {
+  if (len == 0 || len > 64) return false;
+  if (dbc && be) pos = dbc_bit_pos(pos);
+  if (be) number <<= (64 - len);
+
+  lbm_uint bitcnt = 0, remaining = len;
+  while (remaining > 0) {
+    lbm_uint bytepos = (pos + bitcnt) / 8;
+    if (bytepos >= d_size) return false;
+    lbm_uint shift = (pos + bitcnt) % 8;
+    lbm_uint bits = 8 - shift;
+    if (bits > remaining) bits = remaining;
+
+    uint8_t bval, mask;
+    if (be) {
+      bval = (uint8_t)((number >> (64 - bits)) << (8 - bits - shift));
+      mask = (uint8_t)(~(0xFFu << (8 - bits - shift)) | (0xFFu << (8 - shift)));
+      number <<= bits;
+    } else {
+      bval = (uint8_t)(number << shift);
+      mask = (uint8_t)(~(0xFFu >> (8 - bits - shift)) | (0xFFu >> (8 - shift)));
+      number >>= bits;
+    }
+    data[bytepos] = (uint8_t)((data[bytepos] & mask) | bval);
+    bitcnt += bits;
+    remaining -= bits;
+  }
+  return true;
+}
+
+static bool bits_extract(const uint8_t *data, lbm_uint d_size, lbm_uint pos, lbm_uint len,
+                          bool be, bool dbc, uint64_t *out) {
+  if (len == 0 || len > 64) return false;
+  if (dbc && be) pos = dbc_bit_pos(pos);
+
+  uint64_t res = 0;
+  lbm_uint bitcnt = 0, remaining = len;
+  while (remaining > 0) {
+    lbm_uint bytepos = (pos + bitcnt) / 8;
+    if (bytepos >= d_size) return false;
+    lbm_uint shift = (pos + bitcnt) % 8;
+    lbm_uint bits = 8 - shift;
+    if (bits > remaining) bits = remaining;
+
+    if (be) {
+      uint8_t bval = (uint8_t)(data[bytepos] & (0xFFu >> shift));
+      res = (res + bval) << (bits + shift);
+    } else {
+      uint8_t mask = (uint8_t)~(0xFFu << bits);
+      uint8_t bval = (uint8_t)((data[bytepos] >> shift) & mask);
+      res |= ((uint64_t)bval) << bitcnt;
+    }
+    bitcnt += bits;
+    remaining -= bits;
+  }
+  if (be) res >>= 8;
+  *out = res;
+  return true;
+}
+
+// Number of bits that fit in a u/i type.
+#define BITS_IMMEDIATE_SAFE (((lbm_uint)sizeof(lbm_uint) * 8) - LBM_VAL_SHIFT)
+
+static lbm_value array_extensions_bufset_bits_u(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  lbm_uint pos, len, d_size; uint8_t *data; bool be, dbc;
+  if (decode_bits_set_args(&res, args, argn, &pos, &len, &be, &dbc, &d_size, &data)) {
+    res = bits_insert(data, d_size, pos, len, be, dbc,
+                       lbm_dec_as_u64(args[3])) ? ENC_SYM_TRUE : ENC_SYM_EERROR;
+  }
+  return res;
+}
+
+static lbm_value array_extensions_bufset_bits_i(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  lbm_uint pos, len, d_size; uint8_t *data; bool be, dbc;
+  if (decode_bits_set_args(&res, args, argn, &pos, &len, &be, &dbc, &d_size, &data)) {
+    res = bits_insert(data, d_size, pos, len, be, dbc,
+                       (uint64_t)lbm_dec_as_i64(args[3])) ? ENC_SYM_TRUE : ENC_SYM_EERROR;
+  }
+  return res;
+}
+
+static lbm_value array_extensions_bufget_bits_u(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  lbm_uint pos, len, d_size; uint8_t *data; bool be, dbc; uint64_t raw;
+  if (decode_bits_get_args(&res, args, argn, &pos, &len, &be, &dbc, &d_size, &data) &&
+      bits_extract(data, d_size, pos, len, be, dbc, &raw)) {
+    if (len <= BITS_IMMEDIATE_SAFE) res = lbm_enc_u((lbm_uint)raw);
+    else if (len <= 32)             res = lbm_enc_u32((uint32_t)raw);
+    else                            res = lbm_enc_u64(raw);
+  }
+  return res;
+}
+
+static lbm_value array_extensions_bufget_bits_i(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  lbm_uint pos, len, d_size; uint8_t *data; bool be, dbc; uint64_t raw;
+  if (decode_bits_get_args(&res, args, argn, &pos, &len, &be, &dbc, &d_size, &data) &&
+      bits_extract(data, d_size, pos, len, be, dbc, &raw)) {
+    int64_t sv = sign_extend64(raw, len);
+    if (len <= BITS_IMMEDIATE_SAFE) res = lbm_enc_i((lbm_int)sv);
+    else if (len <= 32)             res = lbm_enc_i32((int32_t)sv);
+    else                            res = lbm_enc_i64(sv);
+  }
+  return res;
+}
+
+static bool decode_bits_f32_get_args(lbm_value *error, lbm_value *args, lbm_uint argn,
+                                   lbm_uint *pos, bool *be, bool *dbc,
+                                   lbm_uint *a_size, uint8_t **a_data) {
+  *error = ENC_SYM_EERROR;
+  if (argn < 2 || argn > 4) return false;
+  lbm_array_header_t *array = lbm_dec_array_r(args[0]);
+  if (!(array && lbm_is_number(args[1]))) {
+    *error = ENC_SYM_TERROR;
+    return false;
+  }
+  *a_size = array->size;
+  *a_data = (uint8_t*)array->data;
+  *pos = lbm_dec_as_u32(args[1]);
+  decode_bits_flags(args, argn, 2, be, dbc);
+  return true;
+}
+
+static bool decode_bits_f32_set_args(lbm_value *error, lbm_value *args, lbm_uint argn,
+                                   lbm_uint *pos, bool *be, bool *dbc,
+                                   lbm_uint *a_size, uint8_t **a_data) {
+  *error = ENC_SYM_EERROR;
+  if (argn < 3 || argn > 5) return false;
+  lbm_array_header_t *array = lbm_dec_array_rw(args[0]);
+  if (!(array && lbm_is_number(args[1]) && lbm_is_number(args[2]))) {
+    *error = ENC_SYM_TERROR;
+    return false;
+  }
+  *a_size = array->size;
+  *a_data = (uint8_t*)array->data;
+  *pos = lbm_dec_as_u32(args[1]);
+  decode_bits_flags(args, argn, 3, be, dbc);
+  return true;
+}
+
+static lbm_value array_extensions_bufset_bits_f32(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  lbm_uint pos, d_size; uint8_t *data; bool be, dbc;
+  if (decode_bits_f32_set_args(&res, args, argn, &pos, &be, &dbc, &d_size, &data)) {
+    res = bits_insert(data, d_size, pos, 32, be, dbc,
+                       (uint64_t)float_to_u(lbm_dec_as_float(args[2]))) ? ENC_SYM_TRUE : ENC_SYM_EERROR;
+  }
+  return res;
+}
+
+static lbm_value array_extensions_bufget_bits_f32(lbm_value *args, lbm_uint argn) {
+  lbm_value res = ENC_SYM_EERROR;
+  lbm_uint pos, d_size; uint8_t *data; bool be, dbc; uint64_t raw;
+  if (decode_bits_f32_get_args(&res, args, argn, &pos, &be, &dbc, &d_size, &data) &&
+      bits_extract(data, d_size, pos, 32, be, dbc, &raw)) {
+    res = lbm_enc_float(u_to_float((uint32_t)raw));
   }
   return res;
 }

@@ -53,6 +53,9 @@
 #include "extensions/crypto_extensions.h"
 #include "extensions/ecc_extensions.h"
 #include "extensions/pattern_extensions.h"
+#include "extensions/tinyml_extensions.h"
+
+void moons_model_register(void); // tinyml/moons/moons_adapter.c
 
 #ifdef WITH_VESC
 #include "vesc_extension_stubs.h"
@@ -524,23 +527,15 @@ static lbm_value ext_fwrite_value(lbm_value *args, lbm_uint argn) {
   return res;
 }
 
+// Disabled while the image_file.h header format (open_image/load_image/
+// save_image) is under development - this used to write a headerless raw
+// dump of the image, which the new loader no longer accepts. A no-op for
+// now rather than removed, so existing callers don't hit an unbound
+// symbol error while this is sorted out.
 static lbm_value ext_fwrite_image(lbm_value *args, lbm_uint argn) {
-
-  lbm_value res = ENC_SYM_TERROR;
-  if (argn == 1 &&
-      is_file_handle(args[0])) {
-    lbm_file_handle_t *h = (lbm_file_handle_t*)lbm_get_custom_value(args[0]);
-    uint32_t *image_data = lbm_image_get_image();
-    if (image_data) {
-      size_t size = (size_t)lbm_image_get_size();
-      fwrite((uint8_t*)image_data, 1, size * sizeof(uint32_t), h->fp);
-      fflush(h->fp);
-      res = ENC_SYM_TRUE;
-    } else {
-      res = ENC_SYM_NIL;
-    }
-  }
-  return res;
+  (void)args;
+  (void)argn;
+  return ENC_SYM_NIL;
 }
 
 static lbm_value ext_file_list(lbm_value *args, lbm_uint argn) {
@@ -1570,6 +1565,7 @@ lbm_value ext_image_save(lbm_value *args, lbm_uint argn) {
  image_has_main:
   r = r && lbm_image_save_extensions();
   r = r && lbm_image_save_constant_heap_ix();
+  r = r && image_save_to_disk();
   return r ? ENC_SYM_TRUE : ENC_SYM_NIL;
 }
 
@@ -1756,19 +1752,8 @@ static lbm_value fetch_url_to_lbm_array(const char *url) {
     return ENC_SYM_NIL;
   }
 
-  uint8_t *lbm_data = lbm_malloc(acc.size + 1);
-  if (!lbm_data) {
-    free(acc.data);
-    return ENC_SYM_MERROR;
-  }
-  memcpy(lbm_data, acc.data, acc.size + 1);
+  lbm_value val = import_area_add(url, acc.data, acc.size);
   free(acc.data);
-
-  lbm_value val;
-  if (!lbm_lift_array(&val, (char*)lbm_data, (lbm_uint)(acc.size + 1))) {
-    lbm_free(lbm_data);
-    return ENC_SYM_MERROR;
-  }
   return val;
 }
 
@@ -1785,21 +1770,15 @@ static lbm_value load_local_file_to_lbm_array(const char *filename) {
     rewind(fp);
 
     if (size > 0 && (size_t)size < SIZE_MAX) {
-      uint8_t *data = lbm_malloc((size_t)size + 1);
+      uint8_t *data = malloc((size_t)size);
       if (data) {
-        memset(data, 0, (size_t)size + 1);
-        lbm_value val;
-        if (lbm_lift_array(&val, (char*)data, (lbm_uint)size + 1)) {
-          size_t n = fread(data, 1, (size_t)size, fp);
-          if (n > 0) {
-            res = val;
-          } else {
-            lbm_free(data);
-            res = ENC_SYM_NIL;
-          }
+        size_t n = fread(data, 1, (size_t)size, fp);
+        if (n == (size_t)size) {
+          res = import_area_add(filename, data, (size_t)size);
         } else {
-          lbm_free(data);
+          res = ENC_SYM_NIL;
         }
+        free(data);
       }
     } else {
       res = ENC_SYM_NIL;
@@ -1900,6 +1879,8 @@ int init_exts(void) {
   lbm_crypto_extensions_init();
   lbm_ecc_extensions_init();
   lbm_pattern_extensions_init();
+  lbm_tinyml_extensions_init();
+  moons_model_register();
 
 #ifndef LBM_WIN
   init_proc_management();
