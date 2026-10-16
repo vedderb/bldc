@@ -168,6 +168,8 @@ typedef struct {
 	lbm_uint l_watt_max;
 	lbm_uint l_battery_cut_start;
 	lbm_uint l_battery_cut_end;
+	lbm_uint l_battery_regen_cut_start;
+	lbm_uint l_battery_regen_cut_end;
 	lbm_uint l_temp_motor_start;
 	lbm_uint l_temp_motor_end;
 	lbm_uint l_temp_accel_dec;
@@ -519,6 +521,10 @@ static bool compare_symbol(lbm_uint sym, lbm_uint *comp) {
 			lbm_add_symbol_const("l-battery-cut-start", comp);
 		} else if (comp == &syms_vesc.l_battery_cut_end) {
 			lbm_add_symbol_const("l-battery-cut-end", comp);
+		} else if (comp == &syms_vesc.l_battery_regen_cut_start) {
+			lbm_add_symbol_const("l-battery-regen-cut-start", comp);
+		} else if (comp == &syms_vesc.l_battery_regen_cut_end) {
+			lbm_add_symbol_const("l-battery-regen-cut-end", comp);
 		} else if (comp == &syms_vesc.l_temp_motor_start) {
 			lbm_add_symbol_const("l-temp-motor-start", comp);
 		} else if (comp == &syms_vesc.l_temp_motor_end) {
@@ -3889,6 +3895,12 @@ static lbm_value ext_conf_set(lbm_value *args, lbm_uint argn) {
 	} else if (compare_symbol(name, &syms_vesc.l_battery_cut_end)) {
 		mcconf->l_battery_cut_end = lbm_dec_as_float(args[1]);
 		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.l_battery_regen_cut_start)) {
+		mcconf->l_battery_regen_cut_start = lbm_dec_as_float(args[1]);
+		changed_mc = 1;
+	} else if (compare_symbol(name, &syms_vesc.l_battery_regen_cut_end)) {
+		mcconf->l_battery_regen_cut_end = lbm_dec_as_float(args[1]);
+		changed_mc = 1;
 	} else if (compare_symbol(name, &syms_vesc.l_temp_motor_start)) {
 		mcconf->l_temp_motor_start = lbm_dec_as_float(args[1]);
 		changed_mc = 1;
@@ -4428,6 +4440,10 @@ static lbm_value ext_conf_get(lbm_value *args, lbm_uint argn) {
 		res = lbm_enc_float(mcconf->l_battery_cut_start);
 	} else if (compare_symbol(name, &syms_vesc.l_battery_cut_end)) {
 		res = lbm_enc_float(mcconf->l_battery_cut_end);
+	} else if (compare_symbol(name, &syms_vesc.l_battery_regen_cut_start)) {
+		res = lbm_enc_float(mcconf->l_battery_regen_cut_start);
+	} else if (compare_symbol(name, &syms_vesc.l_battery_regen_cut_end)) {
+		res = lbm_enc_float(mcconf->l_battery_regen_cut_end);
 	} else if (compare_symbol(name, &syms_vesc.l_temp_motor_start)) {
 		res = lbm_enc_float(mcconf->l_temp_motor_start);
 	} else if (compare_symbol(name, &syms_vesc.l_temp_motor_end)) {

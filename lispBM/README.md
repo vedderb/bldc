@@ -4037,6 +4037,8 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-watt-max             ; Maximum power in W
 'l-battery-cut-start    ; Voltage where current starts to get reduced
 'l-battery-cut-end      ; Voltage below which current is not allowed
+'l-battery-regen-cut-start ; Regen voltage where current starts to get reduced (FW 7.01+)
+'l-battery-regen-cut-end ; Regen voltage above which current is not allowed (FW 7.01+)
 'l-temp-motor-start     ; Temperature where motor current starts to get reduced
 'l-temp-motor-end       ; Temperature above which motor current is not allowed
 'l-temp-accel-dec       ; Decrease temp limits this much during acceleration
