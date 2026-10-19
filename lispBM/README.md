@@ -8313,6 +8313,94 @@ Example:
 
 ---
 
+## Packet Encoder/Decoder
+
+This is an encoder/decoder for the same packets that VESC Tool uses to communicate with ESCs and other devices. The decoder can be used to decode a stream of bytes as they get received in chunks.
+
+Example Encoder over UART:
+
+```clj
+(uart-start 1 20 21 115200)
+
+(loopwhile-thd 150 t {
+        (uart-write (pkt-enc (flatten (list 1 2 3 "Hello"))))
+        (sleep 0.1)
+})
+```
+
+Example Decoder over UART:
+
+```clj
+(var dec-state (pkt-dec-alloc))
+(var uart-buf (bufcreate 10))
+(uart-start 1 20 21 115200)
+
+(loopwhile t {
+        (var len (uart-read uart-buf (buflen uart-buf) nil nil 0.02))
+        (var res (pkt-dec dec-state uart-buf len))
+        (if res (print (unflatten res)))
+})
+```
+
+---
+
+#### pkt-enc
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 7.01+ |
+
+```clj
+(pkt-enc data)
+```
+
+Encode data in the VESC packet format. Returns a byte array with one start byte, one or two length bytes, the payload, two CRC16-bytes and one stop byte.
+
+---
+
+#### pkt-dec-alloc
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 7.01+ |
+
+```clj
+(pkt-dec-alloc)
+```
+
+Allocate packet decoder state.
+
+---
+
+#### pkt-dec
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 7.01+ |
+
+```clj
+(pkt-dec dec-state data optLen)
+```
+
+Decode packet. Dec-state is the decoder state created with pkt-dec-alloc and data is the data to decode. The optional argument optLen can be used if only the first optLen bytes of data should be decoded (otherwise all of data is decoded). If a complete packet is decoded with a correct checksum the decoded payload is returned. If the decoding is not complete or if no valid packet is found nil is returned.
+
+This function can be used when streaming packets over e.g. TCP or UART.
+
+Example:
+
+```clj
+(def to-send (pkt-enc "Hello"))
+(def dec-state (pkt-dec-alloc))
+
+(print to-send)
+> [2 6 72 101 108 108 111 0 190 39 3]
+
+(print (pkt-dec dec-state to-send))
+> "Hello"
+```
+
+---
+
 ## Sleep Modes
 
 ---

@@ -39,6 +39,8 @@ typedef struct {
 	int bytes_left;
 	unsigned char rx_buffer[PACKET_BUFFER_LEN];
 	unsigned char tx_buffer[PACKET_BUFFER_LEN];
+	unsigned char *rxtxbuf;
+	int rxtxlen;
 } PACKET_STATE_t;
 
 // Functions

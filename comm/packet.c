@@ -23,7 +23,8 @@
 
 // Private functions
 static int try_decode_packet(unsigned char *buffer, unsigned int in_len,
-		void(*process_func)(unsigned char *data, unsigned int len), int *bytes_left);
+		void(*process_func)(unsigned char *data, unsigned int len),
+		int *bytes_left, unsigned char *rxtxbuf, int *rxtxlen);
 
 void packet_init(void (*s_func)(unsigned char *data, unsigned int len),
 		void (*p_func)(unsigned char *data, unsigned int len), PACKET_STATE_t *state) {
@@ -74,6 +75,7 @@ void packet_send_packet(unsigned char *data, unsigned int len, PACKET_STATE_t *s
 
 void packet_process_byte(uint8_t rx_data, PACKET_STATE_t *state) {
 	unsigned int data_len = state->rx_write_ptr - state->rx_read_ptr;
+	state->rxtxlen = 0;
 
 	// Out of space (should not happen)
 	if (data_len >= PACKET_BUFFER_LEN) {
@@ -107,7 +109,8 @@ void packet_process_byte(uint8_t rx_data, PACKET_STATE_t *state) {
 	// until we run out of data.
 	for (;;) {
 		int res = try_decode_packet(state->rx_buffer + state->rx_read_ptr,
-				data_len, state->process_func, &state->bytes_left);
+				data_len, state->process_func, &state->bytes_left,
+				state->rxtxbuf, &state->rxtxlen);
 
 		// More data is needed
 		if (res == -2) {
@@ -153,7 +156,8 @@ void packet_process_byte(uint8_t rx_data, PACKET_STATE_t *state) {
  * -2: OK so far, but not enough data
  */
 static int try_decode_packet(unsigned char *buffer, unsigned int in_len,
-		void(*process_func)(unsigned char *data, unsigned int len), int *bytes_left) {
+		void(*process_func)(unsigned char *data, unsigned int len),
+		int *bytes_left, unsigned char *rxtxbuf, int *rxtxlen) {
 	*bytes_left = 0;
 
 	if (in_len == 0) {
@@ -235,6 +239,11 @@ static int try_decode_packet(unsigned char *buffer, unsigned int in_len,
 							| (unsigned short)buffer[data_start + len + 1];
 
 	if (crc_calc == crc_rx) {
+		if (rxtxbuf) {
+			memcpy(rxtxbuf, buffer + data_start, len);
+			*rxtxlen = len;
+		}
+
 		if (process_func) {
 			process_func(buffer + data_start, len);
 		}
