@@ -3396,6 +3396,20 @@ This version of uart-start is for the Express-platform. Start the UART uart-num 
 
 ---
 
+#### uart-select
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.01+ |
+
+```clj
+(uart-select uart-num)
+```
+
+Select which UART port to use. The UART must be started with uart-start first. Note that uart-start automatically selects the uart that is started to keep compatibility with old code.
+
+---
+
 #### uart-stop
 
 | Platforms | Firmware |
