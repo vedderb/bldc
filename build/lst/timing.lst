@@ -1,4 +1,4 @@
-ARM GAS  /tmp/ccAr9XE1.s 			page 1
+ARM GAS  /tmp/ccSosZbt.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
   55              		.p2align 4,,15
   56              		.global	platform_timeout_is_expired
   57              		.syntax unified
-ARM GAS  /tmp/ccAr9XE1.s 			page 2
+ARM GAS  /tmp/ccSosZbt.s 			page 2
 
 
   58              		.thumb
@@ -118,7 +118,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  112              		.file 24 "ChibiOS_3.0.5/os/hal/ports/STM32/STM32F4xx/stm32_dma.h"
  113              		.file 25 "ChibiOS_3.0.5/os/hal/ports/STM32/LLD/GPIOv2/pal_lld.h"
  114              		.file 26 "ChibiOS_3.0.5/os/hal/include/can.h"
-ARM GAS  /tmp/ccAr9XE1.s 			page 3
+ARM GAS  /tmp/ccSosZbt.s 			page 3
 
 
  115              		.file 27 "ChibiOS_3.0.5/os/hal/ports/STM32/LLD/can_lld.h"
@@ -178,7 +178,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  169 0052 07       		.byte	0x7
  170 0053 950E0000 		.4byte	.LASF5
  171 0057 03       		.uleb128 0x3
-ARM GAS  /tmp/ccAr9XE1.s 			page 4
+ARM GAS  /tmp/ccSosZbt.s 			page 4
 
 
  172 0058 05140000 		.4byte	.LASF6
@@ -238,7 +238,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  226 00c4 57000000 		.4byte	0x57
  227 00c8 06       		.uleb128 0x6
  228 00c9 BD000000 		.4byte	0xbd
-ARM GAS  /tmp/ccAr9XE1.s 			page 5
+ARM GAS  /tmp/ccSosZbt.s 			page 5
 
 
  229 00cd 03       		.uleb128 0x3
@@ -298,7 +298,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  283 0143 0B       		.uleb128 0xb
  284 0144 AC0A0000 		.4byte	.LASF25
  285 0148 06       		.byte	0x6
-ARM GAS  /tmp/ccAr9XE1.s 			page 6
+ARM GAS  /tmp/ccSosZbt.s 			page 6
 
 
  286 0149 A9       		.byte	0xa9
@@ -358,7 +358,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  340 01b5 11       		.uleb128 0x11
  341 01b6 FA110000 		.4byte	.LASF36
  342 01ba 18       		.byte	0x18
-ARM GAS  /tmp/ccAr9XE1.s 			page 7
+ARM GAS  /tmp/ccSosZbt.s 			page 7
 
 
  343 01bb 07       		.byte	0x7
@@ -418,7 +418,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  397 0225 37       		.byte	0x37
  398 0226 97020000 		.4byte	0x297
  399 022a 0F       		.uleb128 0xf
-ARM GAS  /tmp/ccAr9XE1.s 			page 8
+ARM GAS  /tmp/ccSosZbt.s 			page 8
 
 
  400 022b EC0C0000 		.4byte	.LASF38
@@ -478,7 +478,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  454 0297 13       		.uleb128 0x13
  455 0298 030D0000 		.4byte	.LASF47
  456 029c 0801     		.2byte	0x108
-ARM GAS  /tmp/ccAr9XE1.s 			page 9
+ARM GAS  /tmp/ccSosZbt.s 			page 9
 
 
  457 029e 07       		.byte	0x7
@@ -538,7 +538,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  511 030d 93130000 		.4byte	.LASF54
  512 0311 07       		.byte	0x7
  513 0312 61       		.byte	0x61
-ARM GAS  /tmp/ccAr9XE1.s 			page 10
+ARM GAS  /tmp/ccSosZbt.s 			page 10
 
 
  514 0313 2B030000 		.4byte	0x32b
@@ -598,7 +598,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  568 037e B6       		.byte	0xb6
  569 037f 67030000 		.4byte	0x367
  570 0383 00       		.byte	0
-ARM GAS  /tmp/ccAr9XE1.s 			page 11
+ARM GAS  /tmp/ccSosZbt.s 			page 11
 
 
  571 0384 12       		.uleb128 0x12
@@ -658,7 +658,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  625 03ee 0F       		.uleb128 0xf
  626 03ef 750E0000 		.4byte	.LASF65
  627 03f3 07       		.byte	0x7
-ARM GAS  /tmp/ccAr9XE1.s 			page 12
+ARM GAS  /tmp/ccSosZbt.s 			page 12
 
 
  628 03f4 CA       		.byte	0xca
@@ -718,7 +718,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  682 0460 DB       		.byte	0xdb
  683 0461 0E010000 		.4byte	0x10e
  684 0465 50       		.byte	0x50
-ARM GAS  /tmp/ccAr9XE1.s 			page 13
+ARM GAS  /tmp/ccSosZbt.s 			page 13
 
 
  685 0466 0F       		.uleb128 0xf
@@ -778,7 +778,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  739 04db 19       		.uleb128 0x19
  740 04dc 31090000 		.4byte	.LASF77
  741 04e0 07       		.byte	0x7
-ARM GAS  /tmp/ccAr9XE1.s 			page 14
+ARM GAS  /tmp/ccSosZbt.s 			page 14
 
 
  742 04e1 6702     		.2byte	0x267
@@ -838,7 +838,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  796 0556 7502     		.2byte	0x275
  797 0558 08020000 		.4byte	0x208
  798 055c 40       		.byte	0x40
-ARM GAS  /tmp/ccAr9XE1.s 			page 15
+ARM GAS  /tmp/ccSosZbt.s 			page 15
 
 
  799 055d 19       		.uleb128 0x19
@@ -898,7 +898,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  853 05d5 1A       		.uleb128 0x1a
  854 05d6 12130000 		.4byte	.LASF95
  855 05da 07       		.byte	0x7
-ARM GAS  /tmp/ccAr9XE1.s 			page 16
+ARM GAS  /tmp/ccSosZbt.s 			page 16
 
 
  856 05db AD02     		.2byte	0x2ad
@@ -958,7 +958,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  910 065a 96010000 		.4byte	0x196
  911 065e 00       		.byte	0
  912 065f 07       		.uleb128 0x7
-ARM GAS  /tmp/ccAr9XE1.s 			page 17
+ARM GAS  /tmp/ccSosZbt.s 			page 17
 
 
  913 0660 04       		.byte	0x4
@@ -1018,7 +1018,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  967 06d7 0E       		.byte	0xe
  968 06d8 07       		.byte	0x7
  969 06d9 3F01     		.2byte	0x13f
-ARM GAS  /tmp/ccAr9XE1.s 			page 18
+ARM GAS  /tmp/ccSosZbt.s 			page 18
 
 
  970 06db 07070000 		.4byte	0x707
@@ -1078,7 +1078,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1024 074f 1E020000 		.4byte	0x21e
  1025 0753 24       		.byte	0x24
  1026 0754 19       		.uleb128 0x19
-ARM GAS  /tmp/ccAr9XE1.s 			page 19
+ARM GAS  /tmp/ccSosZbt.s 			page 19
 
 
  1027 0755 AA150000 		.4byte	.LASF109
@@ -1138,7 +1138,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1081 07ca EB080000 		.4byte	.LASF118
  1082 07ce 07       		.byte	0x7
  1083 07cf 8F02     		.2byte	0x28f
-ARM GAS  /tmp/ccAr9XE1.s 			page 20
+ARM GAS  /tmp/ccSosZbt.s 			page 20
 
 
  1084 07d1 80010000 		.4byte	0x180
@@ -1198,7 +1198,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1138 0848 1C       		.uleb128 0x1c
  1139 0849 F0       		.byte	0xf0
  1140 084a 07       		.byte	0x7
-ARM GAS  /tmp/ccAr9XE1.s 			page 21
+ARM GAS  /tmp/ccSosZbt.s 			page 21
 
 
  1141 084b 9902     		.2byte	0x299
@@ -1258,7 +1258,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1195 08c3 07       		.uleb128 0x7
  1196 08c4 04       		.byte	0x4
  1197 08c5 BE080000 		.4byte	0x8be
-ARM GAS  /tmp/ccAr9XE1.s 			page 22
+ARM GAS  /tmp/ccSosZbt.s 			page 22
 
 
  1198 08c9 1F       		.uleb128 0x1f
@@ -1318,7 +1318,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1252 0940 03       		.uleb128 0x3
  1253 0941 4F160000 		.4byte	.LASF134
  1254 0945 09       		.byte	0x9
-ARM GAS  /tmp/ccAr9XE1.s 			page 23
+ARM GAS  /tmp/ccSosZbt.s 			page 23
 
 
  1255 0946 49       		.byte	0x49
@@ -1378,7 +1378,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1309 09bb C50A0000 		.4byte	0xac5
  1310 09bf 0F       		.uleb128 0xf
  1311 09c0 900C0000 		.4byte	.LASF145
-ARM GAS  /tmp/ccAr9XE1.s 			page 24
+ARM GAS  /tmp/ccSosZbt.s 			page 24
 
 
  1312 09c4 0B       		.byte	0xb
@@ -1438,7 +1438,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1366 0a30 0B       		.byte	0xb
  1367 0a31 E6       		.byte	0xe6
  1368 0a32 4B090000 		.4byte	0x94b
-ARM GAS  /tmp/ccAr9XE1.s 			page 25
+ARM GAS  /tmp/ccSosZbt.s 			page 25
 
 
  1369 0a36 1E       		.byte	0x1e
@@ -1498,7 +1498,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1423 0aa9 40       		.byte	0x40
  1424 0aaa 19       		.uleb128 0x19
  1425 0aab D80C0000 		.4byte	.LASF163
-ARM GAS  /tmp/ccAr9XE1.s 			page 26
+ARM GAS  /tmp/ccSosZbt.s 			page 26
 
 
  1426 0aaf 0B       		.byte	0xb
@@ -1558,7 +1558,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1480 0b1d 0F       		.uleb128 0xf
  1481 0b1e 110A0000 		.4byte	.LASF146
  1482 0b22 0B       		.byte	0xb
-ARM GAS  /tmp/ccAr9XE1.s 			page 27
+ARM GAS  /tmp/ccSosZbt.s 			page 27
 
 
  1483 0b23 B9       		.byte	0xb9
@@ -1618,7 +1618,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1537 0b96 0A       		.byte	0xa
  1538 0b97 5C       		.byte	0x5c
  1539 0b98 9C0B0000 		.4byte	0xb9c
-ARM GAS  /tmp/ccAr9XE1.s 			page 28
+ARM GAS  /tmp/ccSosZbt.s 			page 28
 
 
  1540 0b9c 07       		.uleb128 0x7
@@ -1678,7 +1678,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1594 0c0e 120C0000 		.4byte	0xc12
  1595 0c12 1B       		.uleb128 0x1b
  1596 0c13 3D020000 		.4byte	.LASF187
-ARM GAS  /tmp/ccAr9XE1.s 			page 29
+ARM GAS  /tmp/ccSosZbt.s 			page 29
 
 
  1597 0c17 10       		.byte	0x10
@@ -1738,7 +1738,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1651 0c8a 5802     		.2byte	0x258
  1652 0c8c 0B       		.byte	0xb
  1653 0c8d C201     		.2byte	0x1c2
-ARM GAS  /tmp/ccAr9XE1.s 			page 30
+ARM GAS  /tmp/ccSosZbt.s 			page 30
 
 
  1654 0c8f E10C0000 		.4byte	0xce1
@@ -1798,7 +1798,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1708 0d04 CD000000 		.4byte	0xcd
  1709 0d08 0E       		.uleb128 0xe
  1710 0d09 10       		.byte	0x10
-ARM GAS  /tmp/ccAr9XE1.s 			page 31
+ARM GAS  /tmp/ccSosZbt.s 			page 31
 
 
  1711 0d0a 0E       		.byte	0xe
@@ -1858,7 +1858,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1765 0d73 D8000000 		.4byte	0xd8
  1766 0d77 08       		.byte	0x8
  1767 0d78 0F       		.uleb128 0xf
-ARM GAS  /tmp/ccAr9XE1.s 			page 32
+ARM GAS  /tmp/ccSosZbt.s 			page 32
 
 
  1768 0d79 8A0F0000 		.4byte	.LASF206
@@ -1918,7 +1918,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1822 0dea 0F01     		.2byte	0x10f
  1823 0dec D8000000 		.4byte	0xd8
  1824 0df0 08       		.byte	0x8
-ARM GAS  /tmp/ccAr9XE1.s 			page 33
+ARM GAS  /tmp/ccSosZbt.s 			page 33
 
 
  1825 0df1 19       		.uleb128 0x19
@@ -1978,7 +1978,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1879 0e69 24       		.uleb128 0x24
  1880 0e6a 464D5200 		.ascii	"FMR\000"
  1881 0e6e 0E       		.byte	0xe
-ARM GAS  /tmp/ccAr9XE1.s 			page 34
+ARM GAS  /tmp/ccSosZbt.s 			page 34
 
 
  1882 0e6f 1901     		.2byte	0x119
@@ -2038,7 +2038,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1936 0eed 2201     		.2byte	0x122
  1937 0eef 360F0000 		.4byte	0xf36
  1938 0ef3 4002     		.2byte	0x240
-ARM GAS  /tmp/ccAr9XE1.s 			page 35
+ARM GAS  /tmp/ccSosZbt.s 			page 35
 
 
  1939 0ef5 00       		.byte	0
@@ -2098,7 +2098,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  1993 0f6c 0E       		.byte	0xe
  1994 0f6d 6E01     		.2byte	0x16e
  1995 0f6f D8000000 		.4byte	0xd8
-ARM GAS  /tmp/ccAr9XE1.s 			page 36
+ARM GAS  /tmp/ccSosZbt.s 			page 36
 
 
  1996 0f73 04       		.byte	0x4
@@ -2158,7 +2158,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2050 0fe8 22       		.uleb128 0x22
  2051 0fe9 43523100 		.ascii	"CR1\000"
  2052 0fed 0E       		.byte	0xe
-ARM GAS  /tmp/ccAr9XE1.s 			page 37
+ARM GAS  /tmp/ccSosZbt.s 			page 37
 
 
  2053 0fee 4102     		.2byte	0x241
@@ -2218,7 +2218,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2107 1062 4A02     		.2byte	0x24a
  2108 1064 D8000000 		.4byte	0xd8
  2109 1068 24       		.byte	0x24
-ARM GAS  /tmp/ccAr9XE1.s 			page 38
+ARM GAS  /tmp/ccSosZbt.s 			page 38
 
 
  2110 1069 00       		.byte	0
@@ -2278,7 +2278,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2164 10d9 2A170000 		.4byte	.LASF237
  2165 10dd 0E       		.byte	0xe
  2166 10de E402     		.2byte	0x2e4
-ARM GAS  /tmp/ccAr9XE1.s 			page 39
+ARM GAS  /tmp/ccSosZbt.s 			page 39
 
 
  2167 10e0 D8000000 		.4byte	0xd8
@@ -2338,7 +2338,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2221 1153 14       		.byte	0x14
  2222 1154 19       		.uleb128 0x19
  2223 1155 970A0000 		.4byte	.LASF240
-ARM GAS  /tmp/ccAr9XE1.s 			page 40
+ARM GAS  /tmp/ccSosZbt.s 			page 40
 
 
  2224 1159 0E       		.byte	0xe
@@ -2398,7 +2398,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2278 11ca 12       		.uleb128 0x12
  2279 11cb 73313700 		.ascii	"s17\000"
  2280 11cf 10       		.byte	0x10
-ARM GAS  /tmp/ccAr9XE1.s 			page 41
+ARM GAS  /tmp/ccSosZbt.s 			page 41
 
 
  2281 11d0 F7       		.byte	0xf7
@@ -2458,7 +2458,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2335 123c 0001     		.2byte	0x100
  2336 123e 83110000 		.4byte	0x1183
  2337 1242 28       		.byte	0x28
-ARM GAS  /tmp/ccAr9XE1.s 			page 42
+ARM GAS  /tmp/ccSosZbt.s 			page 42
 
 
  2338 1243 22       		.uleb128 0x22
@@ -2518,7 +2518,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2392 12b4 22       		.uleb128 0x22
  2393 12b5 723800   		.ascii	"r8\000"
  2394 12b8 10       		.byte	0x10
-ARM GAS  /tmp/ccAr9XE1.s 			page 43
+ARM GAS  /tmp/ccSosZbt.s 			page 43
 
 
  2395 12b9 0B01     		.2byte	0x10b
@@ -2578,7 +2578,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2449 1322 B40B0000 		.4byte	.LASF248
  2450 1326 0B       		.byte	0xb
  2451 1327 0101     		.2byte	0x101
-ARM GAS  /tmp/ccAr9XE1.s 			page 44
+ARM GAS  /tmp/ccSosZbt.s 			page 44
 
 
  2452 1329 6C090000 		.4byte	0x96c
@@ -2638,7 +2638,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2506 13a1 07       		.uleb128 0x7
  2507 13a2 04       		.byte	0x4
  2508 13a3 7C130000 		.4byte	0x137c
-ARM GAS  /tmp/ccAr9XE1.s 			page 45
+ARM GAS  /tmp/ccSosZbt.s 			page 45
 
 
  2509 13a7 11       		.uleb128 0x11
@@ -2698,7 +2698,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2563 1413 0F       		.uleb128 0xf
  2564 1414 8B180000 		.4byte	.LASF263
  2565 1418 14       		.byte	0x14
-ARM GAS  /tmp/ccAr9XE1.s 			page 46
+ARM GAS  /tmp/ccSosZbt.s 			page 46
 
 
  2566 1419 36       		.byte	0x36
@@ -2758,7 +2758,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2620 1485 3F       		.byte	0x3f
  2621 1486 A2000000 		.4byte	0xa2
  2622 148a 0E       		.byte	0xe
-ARM GAS  /tmp/ccAr9XE1.s 			page 47
+ARM GAS  /tmp/ccSosZbt.s 			page 47
 
 
  2623 148b 0F       		.uleb128 0xf
@@ -2818,7 +2818,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2677 14f7 FF130000 		.4byte	0x13ff
  2678 14fb 05       		.uleb128 0x5
  2679 14fc F0140000 		.4byte	0x14f0
-ARM GAS  /tmp/ccAr9XE1.s 			page 48
+ARM GAS  /tmp/ccSosZbt.s 			page 48
 
 
  2680 1500 21       		.uleb128 0x21
@@ -2878,7 +2878,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2734 156f 00       		.byte	0
  2735 1570 07       		.uleb128 0x7
  2736 1571 04       		.byte	0x4
-ARM GAS  /tmp/ccAr9XE1.s 			page 49
+ARM GAS  /tmp/ccSosZbt.s 			page 49
 
 
  2737 1572 1C150000 		.4byte	0x151c
@@ -2938,7 +2938,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2791 15e1 0F       		.uleb128 0xf
  2792 15e2 66110000 		.4byte	.LASF299
  2793 15e6 16       		.byte	0x16
-ARM GAS  /tmp/ccAr9XE1.s 			page 50
+ARM GAS  /tmp/ccSosZbt.s 			page 50
 
 
  2794 15e7 53       		.byte	0x53
@@ -2998,7 +2998,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2848 1659 17       		.uleb128 0x17
  2849 165a 96010000 		.4byte	0x196
  2850 165e 17       		.uleb128 0x17
-ARM GAS  /tmp/ccAr9XE1.s 			page 51
+ARM GAS  /tmp/ccSosZbt.s 			page 51
 
 
  2851 165f 69160000 		.4byte	0x1669
@@ -3058,14 +3058,14 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2905 16da 0D       		.uleb128 0xd
  2906 16db 9B000000 		.4byte	0x9b
  2907 16df 07       		.byte	0x7
-ARM GAS  /tmp/ccAr9XE1.s 			page 52
+ARM GAS  /tmp/ccSosZbt.s 			page 52
 
 
  2908 16e0 00       		.byte	0
  2909 16e1 20       		.uleb128 0x20
  2910 16e2 D5100000 		.4byte	.LASF308
  2911 16e6 17       		.byte	0x17
- 2912 16e7 4101     		.2byte	0x141
+ 2912 16e7 4201     		.2byte	0x142
  2913 16e9 CA160000 		.4byte	0x16ca
  2914 16ed 0E       		.uleb128 0xe
  2915 16ee 0C       		.byte	0xc
@@ -3118,7 +3118,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  2962 174a 3E170000 		.4byte	0x173e
  2963 174e 0C       		.uleb128 0xc
  2964 174f 49170000 		.4byte	0x1749
-ARM GAS  /tmp/ccAr9XE1.s 			page 53
+ARM GAS  /tmp/ccSosZbt.s 			page 53
 
 
  2965 1753 5E170000 		.4byte	0x175e
@@ -3178,7 +3178,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3019 17d5 17       		.uleb128 0x17
  3020 17d6 96010000 		.4byte	0x196
  3021 17da 17       		.uleb128 0x17
-ARM GAS  /tmp/ccAr9XE1.s 			page 54
+ARM GAS  /tmp/ccSosZbt.s 			page 54
 
 
  3022 17db 34160000 		.4byte	0x1634
@@ -3238,7 +3238,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3076 1840 D8000000 		.4byte	0xd8
  3077 1844 00       		.byte	0
  3078 1845 0F       		.uleb128 0xf
-ARM GAS  /tmp/ccAr9XE1.s 			page 55
+ARM GAS  /tmp/ccSosZbt.s 			page 55
 
 
  3079 1846 F7010000 		.4byte	.LASF318
@@ -3298,7 +3298,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3133 18b2 42525200 		.ascii	"BRR\000"
  3134 18b6 19       		.byte	0x19
  3135 18b7 BB       		.byte	0xbb
-ARM GAS  /tmp/ccAr9XE1.s 			page 56
+ARM GAS  /tmp/ccSosZbt.s 			page 56
 
 
  3136 18b8 D8000000 		.4byte	0xd8
@@ -3358,7 +3358,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3190 1924 18       		.byte	0x18
  3191 1925 00       		.byte	0
  3192 1926 03       		.uleb128 0x3
-ARM GAS  /tmp/ccAr9XE1.s 			page 57
+ARM GAS  /tmp/ccSosZbt.s 			page 57
 
 
  3193 1927 38120000 		.4byte	.LASF332
@@ -3418,7 +3418,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3247 1993 F8       		.byte	0xf8
  3248 1994 26190000 		.4byte	0x1926
  3249 1998 C4       		.byte	0xc4
-ARM GAS  /tmp/ccAr9XE1.s 			page 58
+ARM GAS  /tmp/ccSosZbt.s 			page 58
 
 
  3250 1999 0F       		.uleb128 0xf
@@ -3478,7 +3478,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3304 1a07 D4190000 		.4byte	0x19d4
  3305 1a0b 0E       		.uleb128 0xe
  3306 1a0c 08       		.byte	0x8
-ARM GAS  /tmp/ccAr9XE1.s 			page 59
+ARM GAS  /tmp/ccSosZbt.s 			page 59
 
 
  3307 1a0d 1B       		.byte	0x1b
@@ -3538,7 +3538,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3361 1a80 1B       		.byte	0x1b
  3362 1a81 2301     		.2byte	0x123
  3363 1a83 8F150000 		.4byte	0x158f
-ARM GAS  /tmp/ccAr9XE1.s 			page 60
+ARM GAS  /tmp/ccSosZbt.s 			page 60
 
 
  3364 1a87 18       		.byte	0x18
@@ -3598,7 +3598,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3418 1af7 201B0000 		.4byte	0x1b20
  3419 1afb 28       		.uleb128 0x28
  3420 1afc 3F040000 		.4byte	.LASF363
-ARM GAS  /tmp/ccAr9XE1.s 			page 61
+ARM GAS  /tmp/ccSosZbt.s 			page 61
 
 
  3421 1b00 00       		.byte	0
@@ -3658,7 +3658,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3475 1b70 29       		.uleb128 0x29
  3476 1b71 07       		.byte	0x7
  3477 1b72 01       		.byte	0x1
-ARM GAS  /tmp/ccAr9XE1.s 			page 62
+ARM GAS  /tmp/ccSosZbt.s 			page 62
 
 
  3478 1b73 37000000 		.4byte	0x37
@@ -3718,7 +3718,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3532 1be7 EB1B0000 		.4byte	0x1beb
  3533 1beb 1B       		.uleb128 0x1b
  3534 1bec E3020000 		.4byte	.LASF384
-ARM GAS  /tmp/ccAr9XE1.s 			page 63
+ARM GAS  /tmp/ccSosZbt.s 			page 63
 
 
  3535 1bf0 38       		.byte	0x38
@@ -3778,7 +3778,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3589 1c65 1D       		.byte	0x1d
  3590 1c66 C201     		.2byte	0x1c2
  3591 1c68 8E1C0000 		.4byte	0x1c8e
-ARM GAS  /tmp/ccAr9XE1.s 			page 64
+ARM GAS  /tmp/ccSosZbt.s 			page 64
 
 
  3592 1c6c 2C       		.byte	0x2c
@@ -3838,7 +3838,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3646 1cd8 37       		.byte	0x37
  3647 1cd9 A61C0000 		.4byte	0x1ca6
  3648 1cdd 03       		.uleb128 0x3
-ARM GAS  /tmp/ccAr9XE1.s 			page 65
+ARM GAS  /tmp/ccSosZbt.s 			page 65
 
 
  3649 1cde 6E110000 		.4byte	.LASF400
@@ -3898,7 +3898,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3703 1d51 551D0000 		.4byte	0x1d55
  3704 1d55 1F       		.uleb128 0x1f
  3705 1d56 601D0000 		.4byte	0x1d60
-ARM GAS  /tmp/ccAr9XE1.s 			page 66
+ARM GAS  /tmp/ccSosZbt.s 			page 66
 
 
  3706 1d5a 17       		.uleb128 0x17
@@ -3958,7 +3958,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3760 1dca BE180000 		.4byte	.LASF408
  3761 1dce 20       		.byte	0x20
  3762 1dcf A601     		.2byte	0x1a6
-ARM GAS  /tmp/ccAr9XE1.s 			page 67
+ARM GAS  /tmp/ccSosZbt.s 			page 67
 
 
  3763 1dd1 D8000000 		.4byte	0xd8
@@ -4018,7 +4018,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3817 1e46 D8000000 		.4byte	0xd8
  3818 1e4a 4C       		.byte	0x4c
  3819 1e4b 22       		.uleb128 0x22
-ARM GAS  /tmp/ccAr9XE1.s 			page 68
+ARM GAS  /tmp/ccSosZbt.s 			page 68
 
 
  3820 1e4c 4F5200   		.ascii	"OR\000"
@@ -4078,7 +4078,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3874 1ebb 28       		.uleb128 0x28
  3875 1ebc EC110000 		.4byte	.LASF419
  3876 1ec0 00       		.byte	0
-ARM GAS  /tmp/ccAr9XE1.s 			page 69
+ARM GAS  /tmp/ccSosZbt.s 			page 69
 
 
  3877 1ec1 28       		.uleb128 0x28
@@ -4138,7 +4138,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3931 1f32 CD000000 		.4byte	0xcd
  3932 1f36 18       		.byte	0x18
  3933 1f37 00       		.byte	0
-ARM GAS  /tmp/ccAr9XE1.s 			page 70
+ARM GAS  /tmp/ccSosZbt.s 			page 70
 
 
  3934 1f38 09       		.uleb128 0x9
@@ -4198,7 +4198,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  3988 1fab 78       		.byte	0x78
  3989 1fac 10200000 		.4byte	0x2010
  3990 1fb0 12       		.uleb128 0x12
-ARM GAS  /tmp/ccAr9XE1.s 			page 71
+ARM GAS  /tmp/ccSosZbt.s 			page 71
 
 
  3991 1fb1 766D7400 		.ascii	"vmt\000"
@@ -4258,7 +4258,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4045 201d 53443300 		.ascii	"SD3\000"
  4046 2021 22       		.byte	0x22
  4047 2022 1501     		.2byte	0x115
-ARM GAS  /tmp/ccAr9XE1.s 			page 72
+ARM GAS  /tmp/ccSosZbt.s 			page 72
 
 
  4048 2024 981F0000 		.4byte	0x1f98
@@ -4318,7 +4318,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4102 2099 21       		.byte	0x21
  4103 209a 6E       		.byte	0x6e
  4104 209b A2170000 		.4byte	0x17a2
-ARM GAS  /tmp/ccAr9XE1.s 			page 73
+ARM GAS  /tmp/ccSosZbt.s 			page 73
 
 
  4105 209f 14       		.byte	0x14
@@ -4378,7 +4378,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4159 210b 23       		.byte	0x23
  4160 210c 4C       		.byte	0x4c
  4161 210d DA200000 		.4byte	0x20da
-ARM GAS  /tmp/ccAr9XE1.s 			page 74
+ARM GAS  /tmp/ccSosZbt.s 			page 74
 
 
  4162 2111 09       		.uleb128 0x9
@@ -4438,7 +4438,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4216 2186 7A050000 		.4byte	.LASF389
  4217 218a 24       		.byte	0x24
  4218 218b E201     		.2byte	0x1e2
-ARM GAS  /tmp/ccAr9XE1.s 			page 75
+ARM GAS  /tmp/ccSosZbt.s 			page 75
 
 
  4219 218d CD000000 		.4byte	0xcd
@@ -4498,7 +4498,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4273 2200 00       		.byte	0
  4274 2201 09       		.uleb128 0x9
  4275 2202 71160000 		.4byte	.LASF459
-ARM GAS  /tmp/ccAr9XE1.s 			page 76
+ARM GAS  /tmp/ccSosZbt.s 			page 76
 
 
  4276 2206 24       		.byte	0x24
@@ -4558,7 +4558,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4330 227e B2000000 		.4byte	0xb2
  4331 2282 0A       		.byte	0xa
  4332 2283 22       		.uleb128 0x22
-ARM GAS  /tmp/ccAr9XE1.s 			page 77
+ARM GAS  /tmp/ccSosZbt.s 			page 77
 
 
  4333 2284 65706300 		.ascii	"epc\000"
@@ -4618,7 +4618,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4387 22f9 080F0000 		.4byte	.LASF473
  4388 22fd 26       		.byte	0x26
  4389 22fe B501     		.2byte	0x1b5
-ARM GAS  /tmp/ccAr9XE1.s 			page 78
+ARM GAS  /tmp/ccSosZbt.s 			page 78
 
 
  4390 2300 A2000000 		.4byte	0xa2
@@ -4678,7 +4678,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4444 2373 FF       		.byte	0xff
  4445 2374 A2000000 		.4byte	0xa2
  4446 2378 29       		.uleb128 0x29
-ARM GAS  /tmp/ccAr9XE1.s 			page 79
+ARM GAS  /tmp/ccSosZbt.s 			page 79
 
 
  4447 2379 07       		.byte	0x7
@@ -4738,7 +4738,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4501 23e8 05       		.byte	0x5
  4502 23e9 28       		.uleb128 0x28
  4503 23ea 040B0000 		.4byte	.LASF494
-ARM GAS  /tmp/ccAr9XE1.s 			page 80
+ARM GAS  /tmp/ccSosZbt.s 			page 80
 
 
  4504 23ee 06       		.byte	0x6
@@ -4798,7 +4798,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4558 245d 04       		.byte	0x4
  4559 245e 00       		.byte	0
  4560 245f 09       		.uleb128 0x9
-ARM GAS  /tmp/ccAr9XE1.s 			page 81
+ARM GAS  /tmp/ccSosZbt.s 			page 81
 
 
  4561 2460 F00E0000 		.4byte	.LASF505
@@ -4858,7 +4858,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4615 24dc 25       		.byte	0x25
  4616 24dd 6101     		.2byte	0x161
  4617 24df E3240000 		.4byte	0x24e3
-ARM GAS  /tmp/ccAr9XE1.s 			page 82
+ARM GAS  /tmp/ccSosZbt.s 			page 82
 
 
  4618 24e3 07       		.uleb128 0x7
@@ -4918,7 +4918,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4672 2559 08       		.byte	0x8
  4673 255a 0F       		.uleb128 0xf
  4674 255b EF120000 		.4byte	.LASF514
-ARM GAS  /tmp/ccAr9XE1.s 			page 83
+ARM GAS  /tmp/ccSosZbt.s 			page 83
 
 
  4675 255f 27       		.byte	0x27
@@ -4978,7 +4978,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4729 25c8 4A       		.byte	0x4a
  4730 25c9 D8000000 		.4byte	0xd8
  4731 25cd 08       		.byte	0x8
-ARM GAS  /tmp/ccAr9XE1.s 			page 84
+ARM GAS  /tmp/ccSosZbt.s 			page 84
 
 
  4732 25ce 0F       		.uleb128 0xf
@@ -5038,7 +5038,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4786 2637 B5100000 		.4byte	.LASF529
  4787 263b 27       		.byte	0x27
  4788 263c 5C       		.byte	0x5c
-ARM GAS  /tmp/ccAr9XE1.s 			page 85
+ARM GAS  /tmp/ccSosZbt.s 			page 85
 
 
  4789 263d D8000000 		.4byte	0xd8
@@ -5098,7 +5098,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4843 26ac 04       		.byte	0x4
  4844 26ad 0F       		.uleb128 0xf
  4845 26ae E4040000 		.4byte	.LASF534
-ARM GAS  /tmp/ccAr9XE1.s 			page 86
+ARM GAS  /tmp/ccSosZbt.s 			page 86
 
 
  4846 26b2 27       		.byte	0x27
@@ -5158,7 +5158,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4900 271e 27       		.byte	0x27
  4901 271f 78       		.byte	0x78
  4902 2720 D8000000 		.4byte	0xd8
-ARM GAS  /tmp/ccAr9XE1.s 			page 87
+ARM GAS  /tmp/ccSosZbt.s 			page 87
 
 
  4903 2724 2C       		.byte	0x2c
@@ -5218,7 +5218,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  4957 2793 0004     		.2byte	0x400
  4958 2795 14       		.uleb128 0x14
  4959 2796 DC180000 		.4byte	.LASF552
-ARM GAS  /tmp/ccAr9XE1.s 			page 88
+ARM GAS  /tmp/ccSosZbt.s 			page 88
 
 
  4960 279a 27       		.byte	0x27
@@ -5278,7 +5278,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5014 280e 27       		.byte	0x27
  5015 280f 93       		.byte	0x93
  5016 2810 BB290000 		.4byte	0x29bb
-ARM GAS  /tmp/ccAr9XE1.s 			page 89
+ARM GAS  /tmp/ccSosZbt.s 			page 89
 
 
  5017 2814 0005     		.2byte	0x500
@@ -5338,7 +5338,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5071 2889 1C08     		.2byte	0x81c
  5072 288b 14       		.uleb128 0x14
  5073 288c 1A040000 		.4byte	.LASF570
-ARM GAS  /tmp/ccAr9XE1.s 			page 90
+ARM GAS  /tmp/ccSosZbt.s 			page 90
 
 
  5074 2890 27       		.byte	0x27
@@ -5398,7 +5398,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5128 2905 27       		.byte	0x27
  5129 2906 AD       		.byte	0xad
  5130 2907 F0290000 		.4byte	0x29f0
-ARM GAS  /tmp/ccAr9XE1.s 			page 91
+ARM GAS  /tmp/ccSosZbt.s 			page 91
 
 
  5131 290b 8008     		.2byte	0x880
@@ -5458,7 +5458,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5185 297d D8000000 		.4byte	0xd8
  5186 2981 8C290000 		.4byte	0x298c
  5187 2985 0D       		.uleb128 0xd
-ARM GAS  /tmp/ccAr9XE1.s 			page 92
+ARM GAS  /tmp/ccSosZbt.s 			page 92
 
 
  5188 2986 9B000000 		.4byte	0x9b
@@ -5518,7 +5518,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5242 2a04 00       		.byte	0
  5243 2a05 0C       		.uleb128 0xc
  5244 2a06 7F260000 		.4byte	0x267f
-ARM GAS  /tmp/ccAr9XE1.s 			page 93
+ARM GAS  /tmp/ccSosZbt.s 			page 93
 
 
  5245 2a0a 152A0000 		.4byte	0x2a15
@@ -5578,7 +5578,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5299 2a7d 00       		.byte	0
  5300 2a7e 03       		.uleb128 0x3
  5301 2a7f 7A070000 		.4byte	.LASF589
-ARM GAS  /tmp/ccAr9XE1.s 			page 94
+ARM GAS  /tmp/ccSosZbt.s 			page 94
 
 
  5302 2a83 26       		.byte	0x26
@@ -5638,7 +5638,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5356 2ae6 0E050000 		.4byte	.LASF593
  5357 2aea 26       		.byte	0x26
  5358 2aeb D3       		.byte	0xd3
-ARM GAS  /tmp/ccAr9XE1.s 			page 95
+ARM GAS  /tmp/ccSosZbt.s 			page 95
 
 
  5359 2aec CA160000 		.4byte	0x16ca
@@ -5698,7 +5698,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5413 2b59 00       		.byte	0
  5414 2b5a 00       		.byte	0
  5415 2b5b 07       		.uleb128 0x7
-ARM GAS  /tmp/ccAr9XE1.s 			page 96
+ARM GAS  /tmp/ccSosZbt.s 			page 96
 
 
  5416 2b5c 04       		.byte	0x4
@@ -5758,7 +5758,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5470 2bca 09       		.uleb128 0x9
  5471 2bcb 98130000 		.4byte	.LASF602
  5472 2bcf 26       		.byte	0x26
-ARM GAS  /tmp/ccAr9XE1.s 			page 97
+ARM GAS  /tmp/ccSosZbt.s 			page 97
 
 
  5473 2bd0 1201     		.2byte	0x112
@@ -5818,7 +5818,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5527 2c46 18       		.byte	0x18
  5528 2c47 19       		.uleb128 0x19
  5529 2c48 F50C0000 		.4byte	.LASF611
-ARM GAS  /tmp/ccAr9XE1.s 			page 98
+ARM GAS  /tmp/ccSosZbt.s 			page 98
 
 
  5530 2c4c 26       		.byte	0x26
@@ -5878,7 +5878,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5584 2cbd 09       		.uleb128 0x9
  5585 2cbe B00C0000 		.4byte	.LASF618
  5586 2cc2 26       		.byte	0x26
-ARM GAS  /tmp/ccAr9XE1.s 			page 99
+ARM GAS  /tmp/ccSosZbt.s 			page 99
 
 
  5587 2cc3 7201     		.2byte	0x172
@@ -5938,7 +5938,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5641 2d3a 00       		.byte	0
  5642 2d3b 21       		.uleb128 0x21
  5643 2d3c DA170000 		.4byte	.LASF622
-ARM GAS  /tmp/ccAr9XE1.s 			page 100
+ARM GAS  /tmp/ccSosZbt.s 			page 100
 
 
  5644 2d40 29       		.byte	0x29
@@ -5998,7 +5998,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5698 2db9 E22D0000 		.4byte	0x2de2
  5699 2dbd 2E       		.uleb128 0x2e
  5700 2dbe 7400     		.ascii	"t\000"
-ARM GAS  /tmp/ccAr9XE1.s 			page 101
+ARM GAS  /tmp/ccSosZbt.s 			page 101
 
 
  5701 2dc0 01       		.byte	0x1
@@ -6058,7 +6058,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5755 0020 00       		.byte	0
  5756 0021 03       		.uleb128 0x3
  5757 0022 0E       		.uleb128 0xe
-ARM GAS  /tmp/ccAr9XE1.s 			page 102
+ARM GAS  /tmp/ccSosZbt.s 			page 102
 
 
  5758 0023 3A       		.uleb128 0x3a
@@ -6118,7 +6118,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5812 0059 03       		.uleb128 0x3
  5813 005a 0E       		.uleb128 0xe
  5814 005b 3A       		.uleb128 0x3a
-ARM GAS  /tmp/ccAr9XE1.s 			page 103
+ARM GAS  /tmp/ccSosZbt.s 			page 103
 
 
  5815 005c 0B       		.uleb128 0xb
@@ -6178,7 +6178,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5869 0092 0B       		.uleb128 0xb
  5870 0093 0B       		.uleb128 0xb
  5871 0094 3A       		.uleb128 0x3a
-ARM GAS  /tmp/ccAr9XE1.s 			page 104
+ARM GAS  /tmp/ccSosZbt.s 			page 104
 
 
  5872 0095 0B       		.uleb128 0xb
@@ -6238,7 +6238,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5926 00cb 13       		.uleb128 0x13
  5927 00cc 38       		.uleb128 0x38
  5928 00cd 0B       		.uleb128 0xb
-ARM GAS  /tmp/ccAr9XE1.s 			page 105
+ARM GAS  /tmp/ccSosZbt.s 			page 105
 
 
  5929 00ce 00       		.byte	0
@@ -6298,7 +6298,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  5983 0104 13       		.uleb128 0x13
  5984 0105 00       		.byte	0
  5985 0106 00       		.byte	0
-ARM GAS  /tmp/ccAr9XE1.s 			page 106
+ARM GAS  /tmp/ccSosZbt.s 			page 106
 
 
  5986 0107 18       		.uleb128 0x18
@@ -6358,7 +6358,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6040 013d 3B       		.uleb128 0x3b
  6041 013e 05       		.uleb128 0x5
  6042 013f 01       		.uleb128 0x1
-ARM GAS  /tmp/ccAr9XE1.s 			page 107
+ARM GAS  /tmp/ccSosZbt.s 			page 107
 
 
  6043 0140 13       		.uleb128 0x13
@@ -6418,7 +6418,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6097 0176 03       		.uleb128 0x3
  6098 0177 0E       		.uleb128 0xe
  6099 0178 3A       		.uleb128 0x3a
-ARM GAS  /tmp/ccAr9XE1.s 			page 108
+ARM GAS  /tmp/ccSosZbt.s 			page 108
 
 
  6100 0179 0B       		.uleb128 0xb
@@ -6478,7 +6478,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6154 01af 00       		.byte	0
  6155 01b0 00       		.byte	0
  6156 01b1 24       		.uleb128 0x24
-ARM GAS  /tmp/ccAr9XE1.s 			page 109
+ARM GAS  /tmp/ccSosZbt.s 			page 109
 
 
  6157 01b2 0D       		.uleb128 0xd
@@ -6538,7 +6538,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6211 01e8 0B       		.uleb128 0xb
  6212 01e9 3B       		.uleb128 0x3b
  6213 01ea 0B       		.uleb128 0xb
-ARM GAS  /tmp/ccAr9XE1.s 			page 110
+ARM GAS  /tmp/ccSosZbt.s 			page 110
 
 
  6214 01eb 01       		.uleb128 0x1
@@ -6598,7 +6598,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6268 0221 38       		.uleb128 0x38
  6269 0222 05       		.uleb128 0x5
  6270 0223 00       		.byte	0
-ARM GAS  /tmp/ccAr9XE1.s 			page 111
+ARM GAS  /tmp/ccSosZbt.s 			page 111
 
 
  6271 0224 00       		.byte	0
@@ -6658,7 +6658,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6325 025d 00       		.byte	0
  6326 025e 11       		.uleb128 0x11
  6327 025f 01       		.uleb128 0x1
-ARM GAS  /tmp/ccAr9XE1.s 			page 112
+ARM GAS  /tmp/ccSosZbt.s 			page 112
 
 
  6328 0260 31       		.uleb128 0x31
@@ -6718,7 +6718,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6382 000b 07000000 		.4byte	.LVL3-1
  6383 000f 14000000 		.4byte	.LFE260
  6384 0013 0100     		.2byte	0x1
-ARM GAS  /tmp/ccAr9XE1.s 			page 113
+ARM GAS  /tmp/ccSosZbt.s 			page 113
 
 
  6385 0015 54       		.byte	0x54
@@ -6778,7 +6778,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6435              	.LASF482:
  6436 0000 5553425F 		.ascii	"USB_STOP\000"
  6436      53544F50 
-ARM GAS  /tmp/ccAr9XE1.s 			page 114
+ARM GAS  /tmp/ccSosZbt.s 			page 114
 
 
  6436      00
@@ -6838,7 +6838,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6464      6C00
  6465              	.LASF391:
  6466 0094 646D6172 		.ascii	"dmarx\000"
-ARM GAS  /tmp/ccAr9XE1.s 			page 115
+ARM GAS  /tmp/ccSosZbt.s 			page 115
 
 
  6466      7800
@@ -6898,7 +6898,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6497              	.LASF546:
  6498 0114 47434346 		.ascii	"GCCFG\000"
  6498      4700
-ARM GAS  /tmp/ccAr9XE1.s 			page 116
+ARM GAS  /tmp/ccSosZbt.s 			page 116
 
 
  6499              	.LASF410:
@@ -6958,7 +6958,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6528      77657200 
  6529              	.LASF559:
  6530 01a4 48505254 		.ascii	"HPRT\000"
-ARM GAS  /tmp/ccAr9XE1.s 			page 117
+ARM GAS  /tmp/ccSosZbt.s 			page 117
 
 
  6530      00
@@ -7018,7 +7018,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6562 0227 656C5F65 		.ascii	"el_events\000"
  6562      76656E74 
  6562      7300
-ARM GAS  /tmp/ccAr9XE1.s 			page 118
+ARM GAS  /tmp/ccSosZbt.s 			page 118
 
 
  6563              	.LASF359:
@@ -7078,7 +7078,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6594 02b9 716E6F74 		.ascii	"qnotify_t\000"
  6594      6966795F 
  6594      7400
-ARM GAS  /tmp/ccAr9XE1.s 			page 119
+ARM GAS  /tmp/ccSosZbt.s 			page 119
 
 
  6595              	.LASF311:
@@ -7138,7 +7138,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6624 0347 54524953 		.ascii	"TRISE\000"
  6624      4500
  6625              	.LASF571:
-ARM GAS  /tmp/ccAr9XE1.s 			page 120
+ARM GAS  /tmp/ccSosZbt.s 			page 120
 
 
  6626 034d 72657376 		.ascii	"resvd824\000"
@@ -7198,7 +7198,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6650      00
  6651              	.LASF599:
  6652 03e4 72787175 		.ascii	"rxqueued\000"
-ARM GAS  /tmp/ccAr9XE1.s 			page 121
+ARM GAS  /tmp/ccSosZbt.s 			page 121
 
 
  6652      65756564 
@@ -7258,7 +7258,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6680      64383338 
  6680      00
  6681              	.LASF379:
-ARM GAS  /tmp/ccAr9XE1.s 			page 122
+ARM GAS  /tmp/ccSosZbt.s 			page 122
 
 
  6682 0473 69326364 		.ascii	"i2cdutycycle_t\000"
@@ -7318,7 +7318,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6711              	.LASF234:
  6712 04fd 43524350 		.ascii	"CRCPR\000"
  6712      5200
-ARM GAS  /tmp/ccAr9XE1.s 			page 123
+ARM GAS  /tmp/ccSosZbt.s 			page 123
 
 
  6713              	.LASF4:
@@ -7378,7 +7378,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6740      6B00
  6741              	.LASF422:
  6742 058e 6D6F6465 		.ascii	"mode\000"
-ARM GAS  /tmp/ccAr9XE1.s 			page 124
+ARM GAS  /tmp/ccSosZbt.s 			page 124
 
 
  6742      00
@@ -7438,7 +7438,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6770      705F6362 
  6770      00
  6771              	.LASF1:
-ARM GAS  /tmp/ccAr9XE1.s 			page 125
+ARM GAS  /tmp/ccSosZbt.s 			page 125
 
 
  6772 0627 756E7369 		.ascii	"unsigned char\000"
@@ -7498,7 +7498,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6798      656D5F64 
  6798      65627567 
  6798      5F7400
-ARM GAS  /tmp/ccAr9XE1.s 			page 126
+ARM GAS  /tmp/ccSosZbt.s 			page 126
 
 
  6799              	.LASF406:
@@ -7558,7 +7558,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6826      76656E74 
  6826      63625F74 
  6826      00
-ARM GAS  /tmp/ccAr9XE1.s 			page 127
+ARM GAS  /tmp/ccSosZbt.s 			page 127
 
 
  6827              	.LASF43:
@@ -7618,7 +7618,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6851      6973696F 
  6851      6E203236 
  6851      31393037 
-ARM GAS  /tmp/ccAr9XE1.s 			page 128
+ARM GAS  /tmp/ccSosZbt.s 			page 128
 
 
  6852 082d 61726420 		.ascii	"ard -mfpu=fpv4-sp-d16 -mno-thumb-interwork -mthumb "
@@ -7678,7 +7678,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6874              	.LASF428:
  6875 0941 64696572 		.ascii	"dier\000"
  6875      00
-ARM GAS  /tmp/ccAr9XE1.s 			page 129
+ARM GAS  /tmp/ccSosZbt.s 			page 129
 
 
  6876              	.LASF554:
@@ -7738,7 +7738,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6909 09c6 5F6C6F63 		.ascii	"_localtime_buf\000"
  6909      616C7469 
  6909      6D655F62 
-ARM GAS  /tmp/ccAr9XE1.s 			page 130
+ARM GAS  /tmp/ccSosZbt.s 			page 130
 
 
  6909      756600
@@ -7798,7 +7798,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6941 0a5b 5F637674 		.ascii	"_cvtbuf\000"
  6941      62756600 
  6942              	.LASF610:
-ARM GAS  /tmp/ccAr9XE1.s 			page 131
+ARM GAS  /tmp/ccSosZbt.s 			page 131
 
 
  6943 0a63 6F75745F 		.ascii	"out_state\000"
@@ -7858,7 +7858,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  6972              	.LASF441:
  6973 0af4 53657269 		.ascii	"SerialDriverVMT\000"
  6973      616C4472 
-ARM GAS  /tmp/ccAr9XE1.s 			page 132
+ARM GAS  /tmp/ccSosZbt.s 			page 132
 
 
  6973      69766572 
@@ -7918,7 +7918,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7000              	.LASF41:
  7001 0b8c 5F5F746D 		.ascii	"__tm_mday\000"
  7001      5F6D6461 
-ARM GAS  /tmp/ccAr9XE1.s 			page 133
+ARM GAS  /tmp/ccSosZbt.s 			page 133
 
 
  7001      7900
@@ -7978,7 +7978,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7030              	.LASF493:
  7031 0c26 5553425F 		.ascii	"USB_EP0_SENDING_STS\000"
  7031      4550305F 
-ARM GAS  /tmp/ccAr9XE1.s 			page 134
+ARM GAS  /tmp/ccSosZbt.s 			page 134
 
 
  7031      53454E44 
@@ -8038,7 +8038,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7059 0cba 72657376 		.ascii	"resvdC\000"
  7059      644300
  7060              	.LASF427:
-ARM GAS  /tmp/ccAr9XE1.s 			page 135
+ARM GAS  /tmp/ccSosZbt.s 			page 135
 
 
  7061 0cc1 6368616E 		.ascii	"channel\000"
@@ -8098,7 +8098,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7089 0d4f 5F776372 		.ascii	"_wcrtomb_state\000"
  7089      746F6D62 
  7089      5F737461 
-ARM GAS  /tmp/ccAr9XE1.s 			page 136
+ARM GAS  /tmp/ccSosZbt.s 			page 136
 
 
  7089      746500
@@ -8158,7 +8158,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7117      6275675F 
  7117      7400
  7118              	.LASF600:
-ARM GAS  /tmp/ccAr9XE1.s 			page 137
+ARM GAS  /tmp/ccSosZbt.s 			page 137
 
 
  7119 0def 72787369 		.ascii	"rxsize\000"
@@ -8218,7 +8218,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7147 0e7b 5553425F 		.ascii	"USB_EVENT_SUSPEND\000"
  7147      4556454E 
  7147      545F5355 
-ARM GAS  /tmp/ccAr9XE1.s 			page 138
+ARM GAS  /tmp/ccSosZbt.s 			page 138
 
 
  7147      5350454E 
@@ -8278,7 +8278,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7174              	.LASF277:
  7175 0f1b 63665F6F 		.ascii	"cf_off_refs\000"
  7175      66665F72 
-ARM GAS  /tmp/ccAr9XE1.s 			page 139
+ARM GAS  /tmp/ccSosZbt.s 			page 139
 
 
  7175      65667300 
@@ -8338,7 +8338,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7203      6800
  7204              	.LASF255:
  7205 0fb1 63685F73 		.ascii	"ch_semaphore\000"
-ARM GAS  /tmp/ccAr9XE1.s 			page 140
+ARM GAS  /tmp/ccSosZbt.s 			page 140
 
 
  7205      656D6170 
@@ -8398,7 +8398,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7231      73746174 
  7231      6500
  7232              	.LASF296:
-ARM GAS  /tmp/ccAr9XE1.s 			page 141
+ARM GAS  /tmp/ccSosZbt.s 			page 141
 
 
  7233 1045 715F636F 		.ascii	"q_counter\000"
@@ -8458,7 +8458,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7266              	.LASF435:
  7267 10c2 73647374 		.ascii	"sdstate_t\000"
  7267      6174655F 
-ARM GAS  /tmp/ccAr9XE1.s 			page 142
+ARM GAS  /tmp/ccSosZbt.s 			page 142
 
 
  7267      7400
@@ -8518,7 +8518,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7293      7400
  7294              	.LASF299:
  7295 1166 715F7772 		.ascii	"q_wrptr\000"
-ARM GAS  /tmp/ccAr9XE1.s 			page 143
+ARM GAS  /tmp/ccSosZbt.s 			page 143
 
 
  7295      70747200 
@@ -8578,7 +8578,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7325      4348414E 
  7325      4E454C5F 
  7325      3100
-ARM GAS  /tmp/ccAr9XE1.s 			page 144
+ARM GAS  /tmp/ccSosZbt.s 			page 144
 
 
  7326              	.LASF36:
@@ -8638,7 +8638,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7350              	.LASF490:
  7351 1290 5553425F 		.ascii	"USB_EP0_WAITING_TX0\000"
  7351      4550305F 
-ARM GAS  /tmp/ccAr9XE1.s 			page 145
+ARM GAS  /tmp/ccSosZbt.s 			page 145
 
 
  7351      57414954 
@@ -8698,7 +8698,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7379 1325 5F5F636C 		.ascii	"__cleanup\000"
  7379      65616E75 
  7379      7000
-ARM GAS  /tmp/ccAr9XE1.s 			page 146
+ARM GAS  /tmp/ccSosZbt.s 			page 146
 
 
  7380              	.LASF398:
@@ -8758,7 +8758,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7408              	.LASF123:
  7409 13c0 5F685F65 		.ascii	"_h_errno\000"
  7409      72726E6F 
-ARM GAS  /tmp/ccAr9XE1.s 			page 147
+ARM GAS  /tmp/ccSosZbt.s 			page 147
 
 
  7409      00
@@ -8818,7 +8818,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7435      63786100 
  7436              	.LASF331:
  7437 145f 61667268 		.ascii	"afrh\000"
-ARM GAS  /tmp/ccAr9XE1.s 			page 148
+ARM GAS  /tmp/ccSosZbt.s 			page 148
 
 
  7437      00
@@ -8878,7 +8878,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7467      3400
  7468              	.LASF222:
  7469 14e0 52455345 		.ascii	"RESERVED5\000"
-ARM GAS  /tmp/ccAr9XE1.s 			page 149
+ARM GAS  /tmp/ccSosZbt.s 			page 149
 
 
  7469      52564544 
@@ -8938,7 +8938,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7494              	.LASF12:
  7495 1579 6C6F6E67 		.ascii	"long long unsigned int\000"
  7495      206C6F6E 
-ARM GAS  /tmp/ccAr9XE1.s 			page 150
+ARM GAS  /tmp/ccSosZbt.s 			page 150
 
 
  7495      6720756E 
@@ -8998,7 +8998,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7524              	.LASF153:
  7525 1615 705F666C 		.ascii	"p_flags\000"
  7525      61677300 
-ARM GAS  /tmp/ccAr9XE1.s 			page 151
+ARM GAS  /tmp/ccSosZbt.s 			page 151
 
 
  7526              	.LASF254:
@@ -9058,7 +9058,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7553 16a7 705F6E61 		.ascii	"p_name\000"
  7553      6D6500
  7554              	.LASF84:
-ARM GAS  /tmp/ccAr9XE1.s 			page 152
+ARM GAS  /tmp/ccSosZbt.s 			page 152
 
 
  7555 16ae 5F5F7364 		.ascii	"__sdidinit\000"
@@ -9118,7 +9118,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7580              	.LASF262:
  7581 1747 63685F69 		.ascii	"ch_identifier\000"
  7581      64656E74 
-ARM GAS  /tmp/ccAr9XE1.s 			page 153
+ARM GAS  /tmp/ccSosZbt.s 			page 153
 
 
  7581      69666965 
@@ -9178,7 +9178,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7608              	.LASF622:
  7609 17da 706C6174 		.ascii	"platform_swdio_port\000"
  7609      666F726D 
-ARM GAS  /tmp/ccAr9XE1.s 			page 154
+ARM GAS  /tmp/ccSosZbt.s 			page 154
 
 
  7609      5F737764 
@@ -9238,7 +9238,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7637      7900
  7638              	.LASF34:
  7639 1873 5F736967 		.ascii	"_sign\000"
-ARM GAS  /tmp/ccAr9XE1.s 			page 155
+ARM GAS  /tmp/ccSosZbt.s 			page 155
 
 
  7639      6E00
@@ -9298,7 +9298,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7669 18f3 6932636F 		.ascii	"i2copmode_t\000"
  7669      706D6F64 
  7669      655F7400 
-ARM GAS  /tmp/ccAr9XE1.s 			page 156
+ARM GAS  /tmp/ccSosZbt.s 			page 156
 
 
  7670              	.LASF2:
@@ -9358,7 +9358,7 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7698              	.LASF229:
  7699 1993 4F415231 		.ascii	"OAR1\000"
  7699      00
-ARM GAS  /tmp/ccAr9XE1.s 			page 157
+ARM GAS  /tmp/ccSosZbt.s 			page 157
 
 
  7700              	.LASF230:
@@ -9369,15 +9369,15 @@ ARM GAS  /tmp/ccAr9XE1.s 			page 1
  7703      45414459 
  7703      00
  7704              		.ident	"GCC: (GNU Tools for Arm Embedded Processors 7-2018-q2-update) 7.3.1 20180622 (release) [AR
-ARM GAS  /tmp/ccAr9XE1.s 			page 158
+ARM GAS  /tmp/ccSosZbt.s 			page 158
 
 
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 timing.c
-     /tmp/ccAr9XE1.s:18     .text.platform_timeout_set:0000000000000000 $t
-     /tmp/ccAr9XE1.s:26     .text.platform_timeout_set:0000000000000000 platform_timeout_set
-     /tmp/ccAr9XE1.s:54     .text.platform_timeout_is_expired:0000000000000000 $t
-     /tmp/ccAr9XE1.s:62     .text.platform_timeout_is_expired:0000000000000000 platform_timeout_is_expired
+     /tmp/ccSosZbt.s:18     .text.platform_timeout_set:0000000000000000 $t
+     /tmp/ccSosZbt.s:26     .text.platform_timeout_set:0000000000000000 platform_timeout_set
+     /tmp/ccSosZbt.s:54     .text.platform_timeout_is_expired:0000000000000000 $t
+     /tmp/ccSosZbt.s:62     .text.platform_timeout_is_expired:0000000000000000 platform_timeout_is_expired
 
 UNDEFINED SYMBOLS
 platform_time_ms

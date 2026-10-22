@@ -1,4 +1,4 @@
-ARM GAS  /tmp/ccckRWEp.s 			page 1
+ARM GAS  /tmp/cclvYvlo.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
   55 0016 032A     		cmp	r2, #3
   56              		.loc 1 201 0
   57 0018 9ABF     		itte	ls
-ARM GAS  /tmp/ccckRWEp.s 			page 2
+ARM GAS  /tmp/cclvYvlo.s 			page 2
 
 
   58 001a 0448     		ldrls	r0, .L9+8
@@ -118,7 +118,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  112              	@ 342 "ChibiOS_3.0.5/os/ext/CMSIS/include/core_cmFunc.h" 1
  113 000a 72B6     		cpsid i
  114              	@ 0 "" 2
-ARM GAS  /tmp/ccckRWEp.s 			page 3
+ARM GAS  /tmp/cclvYvlo.s 			page 3
 
 
  115              		.thumb
@@ -178,7 +178,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  169              		.cfi_restore 5
  170              		.cfi_restore 14
  171 0030 7047     		bx	lr
-ARM GAS  /tmp/ccckRWEp.s 			page 4
+ARM GAS  /tmp/cclvYvlo.s 			page 4
 
 
  172              	.L19:
@@ -238,7 +238,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  226 002a 0E49     		ldr	r1, .L22+12
  227 002c 2846     		mov	r0, r5
  228 002e FFF7FEFF 		bl	sduStart
-ARM GAS  /tmp/ccckRWEp.s 			page 5
+ARM GAS  /tmp/cclvYvlo.s 			page 5
 
 
  229              	.LVL16:
@@ -298,7 +298,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  283              		.loc 1 335 0
  284 000a A0F10400 		sub	r0, #4
  285 000e B0FA80F0 		clz	r0, r0
-ARM GAS  /tmp/ccckRWEp.s 			page 6
+ARM GAS  /tmp/cclvYvlo.s 			page 6
 
 
  286 0012 4009     		lsrs	r0, r0, #5
@@ -358,7 +358,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  336              		.size	configured_cnt, 4
  337              	configured_cnt:
  338 0000 00000000 		.space	4
-ARM GAS  /tmp/ccckRWEp.s 			page 7
+ARM GAS  /tmp/cclvYvlo.s 			page 7
 
 
  339              		.section	.bss.ep1instate,"aw",%nobits
@@ -418,7 +418,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  381 0004 00000000 		.word	0
  382 0008 00000000 		.word	sduInterruptTransmitted
  383 000c 00000000 		.word	0
-ARM GAS  /tmp/ccckRWEp.s 			page 8
+ARM GAS  /tmp/cclvYvlo.s 			page 8
 
 
  384 0010 1000     		.short	16
@@ -478,7 +478,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  438 000d 01       		.byte	1
  439 000e 02       		.byte	2
  440 000f 02       		.byte	2
-ARM GAS  /tmp/ccckRWEp.s 			page 9
+ARM GAS  /tmp/cclvYvlo.s 			page 9
 
 
  441 0010 01       		.byte	1
@@ -538,7 +538,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  495              		.type	vcom_device_descriptor, %object
  496              		.size	vcom_device_descriptor, 8
  497              	vcom_device_descriptor:
-ARM GAS  /tmp/ccckRWEp.s 			page 10
+ARM GAS  /tmp/cclvYvlo.s 			page 10
 
 
  498 0000 12000000 		.word	18
@@ -598,7 +598,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  552 000f 00       		.byte	0
  553 0010 65       		.byte	101
  554 0011 00       		.byte	0
-ARM GAS  /tmp/ccckRWEp.s 			page 11
+ARM GAS  /tmp/cclvYvlo.s 			page 11
 
 
  555 0012 6C       		.byte	108
@@ -658,7 +658,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  609 001d 00       		.byte	0
  610 001e 74       		.byte	116
  611 001f 00       		.byte	0
-ARM GAS  /tmp/ccckRWEp.s 			page 12
+ARM GAS  /tmp/cclvYvlo.s 			page 12
 
 
  612 0020 75       		.byte	117
@@ -718,7 +718,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  666              		.file 4 "/workspaces/bldc/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/machine/_defaul
  667              		.file 5 "/workspaces/bldc/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/_stdint.h"
  668              		.file 6 "ChibiOS_3.0.5/os/rt/ports/ARMCMx/compilers/GCC/chtypes.h"
-ARM GAS  /tmp/ccckRWEp.s 			page 13
+ARM GAS  /tmp/cclvYvlo.s 			page 13
 
 
  669              		.file 7 "ChibiOS_3.0.5/os/rt/include/chsystypes.h"
@@ -778,7 +778,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  723 0032 E7090000 		.4byte	.LASF2
  724 0036 03       		.byte	0x3
  725 0037 D8       		.byte	0xd8
-ARM GAS  /tmp/ccckRWEp.s 			page 14
+ARM GAS  /tmp/cclvYvlo.s 			page 14
 
 
  726 0038 41000000 		.4byte	0x41
@@ -838,7 +838,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  780 00a1 D6150000 		.4byte	.LASF12
  781 00a5 04       		.uleb128 0x4
  782 00a6 EE0B0000 		.4byte	.LASF13
-ARM GAS  /tmp/ccckRWEp.s 			page 15
+ARM GAS  /tmp/cclvYvlo.s 			page 15
 
 
  783 00aa 04       		.byte	0x4
@@ -898,7 +898,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  837 011f 960C0000 		.4byte	.LASF23
  838 0123 06       		.byte	0x6
  839 0124 4A       		.byte	0x4a
-ARM GAS  /tmp/ccckRWEp.s 			page 16
+ARM GAS  /tmp/cclvYvlo.s 			page 16
 
 
  840 0125 B7000000 		.4byte	0xb7
@@ -958,7 +958,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  894 019d 00       		.byte	0
  895 019e 08       		.uleb128 0x8
  896 019f 170A0000 		.4byte	.LASF33
-ARM GAS  /tmp/ccckRWEp.s 			page 17
+ARM GAS  /tmp/cclvYvlo.s 			page 17
 
 
  897 01a3 08       		.byte	0x8
@@ -1018,7 +1018,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  951 020f 08       		.byte	0x8
  952 0210 EC       		.byte	0xec
  953 0211 29010000 		.4byte	0x129
-ARM GAS  /tmp/ccckRWEp.s 			page 18
+ARM GAS  /tmp/cclvYvlo.s 			page 18
 
 
  954 0215 1F       		.byte	0x1f
@@ -1078,7 +1078,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1008 0289 44       		.byte	0x44
  1009 028a 0A       		.uleb128 0xa
  1010 028b E9040000 		.4byte	.LASF51
-ARM GAS  /tmp/ccckRWEp.s 			page 19
+ARM GAS  /tmp/cclvYvlo.s 			page 19
 
 
  1011 028f 08       		.byte	0x8
@@ -1138,7 +1138,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1065 02fc 00       		.byte	0
  1066 02fd 04       		.uleb128 0x4
  1067 02fe 91060000 		.4byte	.LASF58
-ARM GAS  /tmp/ccckRWEp.s 			page 20
+ARM GAS  /tmp/cclvYvlo.s 			page 20
 
 
  1068 0302 07       		.byte	0x7
@@ -1198,7 +1198,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1122 0375 0D       		.uleb128 0xd
  1123 0376 80030000 		.4byte	0x380
  1124 037a 0E       		.uleb128 0xe
-ARM GAS  /tmp/ccckRWEp.s 			page 21
+ARM GAS  /tmp/cclvYvlo.s 			page 21
 
 
  1125 037b 80030000 		.4byte	0x380
@@ -1258,7 +1258,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1179 03ed 08       		.byte	0x8
  1180 03ee 7B01     		.2byte	0x17b
  1181 03f0 29040000 		.4byte	0x429
-ARM GAS  /tmp/ccckRWEp.s 			page 22
+ARM GAS  /tmp/cclvYvlo.s 			page 22
 
 
  1182 03f4 0A       		.uleb128 0xa
@@ -1318,7 +1318,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1236 0468 0A       		.uleb128 0xa
  1237 0469 CC030000 		.4byte	.LASF82
  1238 046d 08       		.byte	0x8
-ARM GAS  /tmp/ccckRWEp.s 			page 23
+ARM GAS  /tmp/cclvYvlo.s 			page 23
 
 
  1239 046e C601     		.2byte	0x1c6
@@ -1378,7 +1378,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1293 04e0 E9       		.byte	0xe9
  1294 04e1 16050000 		.4byte	0x516
  1295 04e5 16       		.uleb128 0x16
-ARM GAS  /tmp/ccckRWEp.s 			page 24
+ARM GAS  /tmp/cclvYvlo.s 			page 24
 
 
  1296 04e6 54495200 		.ascii	"TIR\000"
@@ -1438,7 +1438,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1350 0552 0B       		.byte	0xb
  1351 0553 FA       		.byte	0xfa
  1352 0554 ED000000 		.4byte	0xed
-ARM GAS  /tmp/ccckRWEp.s 			page 25
+ARM GAS  /tmp/cclvYvlo.s 			page 25
 
 
  1353 0558 0C       		.byte	0xc
@@ -1498,7 +1498,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1407 05c7 9B0A0000 		.4byte	.LASF97
  1408 05cb 0B       		.byte	0xb
  1409 05cc 1001     		.2byte	0x110
-ARM GAS  /tmp/ccckRWEp.s 			page 26
+ARM GAS  /tmp/cclvYvlo.s 			page 26
 
 
  1410 05ce ED000000 		.4byte	0xed
@@ -1558,7 +1558,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1464 0646 ED000000 		.4byte	0xed
  1465 064a 0002     		.2byte	0x200
  1466 064c 1A       		.uleb128 0x1a
-ARM GAS  /tmp/ccckRWEp.s 			page 27
+ARM GAS  /tmp/cclvYvlo.s 			page 27
 
 
  1467 064d 6C070000 		.4byte	.LASF103
@@ -1618,7 +1618,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1521 06cb 11       		.uleb128 0x11
  1522 06cc E2000000 		.4byte	0xe2
  1523 06d0 DB060000 		.4byte	0x6db
-ARM GAS  /tmp/ccckRWEp.s 			page 28
+ARM GAS  /tmp/cclvYvlo.s 			page 28
 
 
  1524 06d4 12       		.uleb128 0x12
@@ -1678,7 +1678,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1578 0749 09       		.uleb128 0x9
  1579 074a 50415200 		.ascii	"PAR\000"
  1580 074e 0B       		.byte	0xb
-ARM GAS  /tmp/ccckRWEp.s 			page 29
+ARM GAS  /tmp/cclvYvlo.s 			page 29
 
 
  1581 074f 6F01     		.2byte	0x16f
@@ -1738,7 +1738,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1635 07c5 ED000000 		.4byte	0xed
  1636 07c9 00       		.byte	0
  1637 07ca 09       		.uleb128 0x9
-ARM GAS  /tmp/ccckRWEp.s 			page 30
+ARM GAS  /tmp/cclvYvlo.s 			page 30
 
 
  1638 07cb 43523200 		.ascii	"CR2\000"
@@ -1798,7 +1798,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1692 083f 18       		.uleb128 0x18
  1693 0840 EA0E0000 		.4byte	.LASF121
  1694 0844 0B       		.byte	0xb
-ARM GAS  /tmp/ccckRWEp.s 			page 31
+ARM GAS  /tmp/cclvYvlo.s 			page 31
 
 
  1695 0845 4B02     		.2byte	0x24b
@@ -1858,7 +1858,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1749 08b9 1C       		.byte	0x1c
  1750 08ba 0A       		.uleb128 0xa
  1751 08bb FD040000 		.4byte	.LASF126
-ARM GAS  /tmp/ccckRWEp.s 			page 32
+ARM GAS  /tmp/cclvYvlo.s 			page 32
 
 
  1752 08bf 0B       		.byte	0xb
@@ -1918,7 +1918,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1806 092f 1103     		.2byte	0x311
  1807 0931 ED000000 		.4byte	0xed
  1808 0935 18       		.byte	0x18
-ARM GAS  /tmp/ccckRWEp.s 			page 33
+ARM GAS  /tmp/cclvYvlo.s 			page 33
 
 
  1809 0936 00       		.byte	0
@@ -1978,7 +1978,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1863 09a6 58090000 		.4byte	0x958
  1864 09aa 04       		.byte	0x4
  1865 09ab 16       		.uleb128 0x16
-ARM GAS  /tmp/ccckRWEp.s 			page 34
+ARM GAS  /tmp/cclvYvlo.s 			page 34
 
 
  1866 09ac 73313800 		.ascii	"s18\000"
@@ -2038,7 +2038,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1920 0a19 73323700 		.ascii	"s27\000"
  1921 0a1d 0D       		.byte	0xd
  1922 0a1e 0101     		.2byte	0x101
-ARM GAS  /tmp/ccckRWEp.s 			page 35
+ARM GAS  /tmp/cclvYvlo.s 			page 35
 
 
  1923 0a20 58090000 		.4byte	0x958
@@ -2098,7 +2098,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  1977 0a90 58090000 		.4byte	0x958
  1978 0a94 50       		.byte	0x50
  1979 0a95 09       		.uleb128 0x9
-ARM GAS  /tmp/ccckRWEp.s 			page 36
+ARM GAS  /tmp/cclvYvlo.s 			page 36
 
 
  1980 0a96 723900   		.ascii	"r9\000"
@@ -2158,7 +2158,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2034 0b02 1D       		.uleb128 0x1d
  2035 0b03 510A0000 		.4byte	.LASF137
  2036 0b07 08       		.byte	0x8
-ARM GAS  /tmp/ccckRWEp.s 			page 37
+ARM GAS  /tmp/cclvYvlo.s 			page 37
 
 
  2037 0b08 0801     		.2byte	0x108
@@ -2218,7 +2218,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2091 0b7d D7070000 		.4byte	.LASF146
  2092 0b81 10       		.byte	0x10
  2093 0b82 10       		.byte	0x10
-ARM GAS  /tmp/ccckRWEp.s 			page 38
+ARM GAS  /tmp/cclvYvlo.s 			page 38
 
 
  2094 0b83 39       		.byte	0x39
@@ -2278,7 +2278,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2148 0bef CC0C0000 		.4byte	0xccc
  2149 0bf3 08       		.uleb128 0x8
  2150 0bf4 C1150000 		.4byte	.LASF151
-ARM GAS  /tmp/ccckRWEp.s 			page 39
+ARM GAS  /tmp/cclvYvlo.s 			page 39
 
 
  2151 0bf8 11       		.byte	0x11
@@ -2338,7 +2338,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2205 0c64 11       		.byte	0x11
  2206 0c65 3E       		.byte	0x3e
  2207 0c66 B7000000 		.4byte	0xb7
-ARM GAS  /tmp/ccckRWEp.s 			page 40
+ARM GAS  /tmp/cclvYvlo.s 			page 40
 
 
  2208 0c6a 0D       		.byte	0xd
@@ -2398,7 +2398,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2262 0cd6 41000000 		.4byte	0x41
  2263 0cda 03       		.byte	0x3
  2264 0cdb 00       		.byte	0
-ARM GAS  /tmp/ccckRWEp.s 			page 41
+ARM GAS  /tmp/cclvYvlo.s 			page 41
 
 
  2265 0cdc 04       		.uleb128 0x4
@@ -2458,7 +2458,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2319 0d4e 0C       		.byte	0xc
  2320 0d4f 08       		.uleb128 0x8
  2321 0d50 3D0A0000 		.4byte	.LASF178
-ARM GAS  /tmp/ccckRWEp.s 			page 42
+ARM GAS  /tmp/cclvYvlo.s 			page 42
 
 
  2322 0d54 12       		.byte	0x12
@@ -2518,7 +2518,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2376 0dc0 0C       		.byte	0xc
  2377 0dc1 08       		.uleb128 0x8
  2378 0dc2 FF020000 		.4byte	.LASF187
-ARM GAS  /tmp/ccckRWEp.s 			page 43
+ARM GAS  /tmp/cclvYvlo.s 			page 43
 
 
  2379 0dc6 13       		.byte	0x13
@@ -2578,7 +2578,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2433 0e32 9D170000 		.4byte	.LASF194
  2434 0e36 13       		.byte	0x13
  2435 0e37 71       		.byte	0x71
-ARM GAS  /tmp/ccckRWEp.s 			page 44
+ARM GAS  /tmp/cclvYvlo.s 			page 44
 
 
  2436 0e38 860D0000 		.4byte	0xd86
@@ -2638,7 +2638,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2490 0eb6 05       		.uleb128 0x5
  2491 0eb7 01       		.byte	0x1
  2492 0eb8 02       		.byte	0x2
-ARM GAS  /tmp/ccckRWEp.s 			page 45
+ARM GAS  /tmp/cclvYvlo.s 			page 45
 
 
  2493 0eb9 FE000000 		.4byte	.LASF196
@@ -2652,7 +2652,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2501 0ecd 13       		.uleb128 0x13
  2502 0ece 1C100000 		.4byte	.LASF197
  2503 0ed2 14       		.byte	0x14
- 2504 0ed3 4101     		.2byte	0x141
+ 2504 0ed3 4201     		.2byte	0x142
  2505 0ed5 B60E0000 		.4byte	0xeb6
  2506 0ed9 15       		.uleb128 0x15
  2507 0eda 0C       		.byte	0xc
@@ -2698,7 +2698,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2547 0f26 ED000000 		.4byte	0xed
  2548 0f2a 04       		.uleb128 0x4
  2549 0f2b C60C0000 		.4byte	.LASF203
-ARM GAS  /tmp/ccckRWEp.s 			page 46
+ARM GAS  /tmp/cclvYvlo.s 			page 46
 
 
  2550 0f2f 15       		.byte	0x15
@@ -2758,7 +2758,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2604 0fb1 00       		.byte	0
  2605 0fb2 0B       		.uleb128 0xb
  2606 0fb3 04       		.byte	0x4
-ARM GAS  /tmp/ccckRWEp.s 			page 47
+ARM GAS  /tmp/cclvYvlo.s 			page 47
 
 
  2607 0fb4 940F0000 		.4byte	0xf94
@@ -2818,7 +2818,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2661 101f 16       		.byte	0x16
  2662 1020 A9       		.byte	0xa9
  2663 1021 AA100000 		.4byte	0x10aa
-ARM GAS  /tmp/ccckRWEp.s 			page 48
+ARM GAS  /tmp/cclvYvlo.s 			page 48
 
 
  2664 1025 08       		.uleb128 0x8
@@ -2878,7 +2878,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2718 1091 08       		.uleb128 0x8
  2719 1092 0A120000 		.4byte	.LASF213
  2720 1096 16       		.byte	0x16
-ARM GAS  /tmp/ccckRWEp.s 			page 49
+ARM GAS  /tmp/cclvYvlo.s 			page 49
 
 
  2721 1097 BA       		.byte	0xba
@@ -2938,7 +2938,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2775 1100 E2000000 		.4byte	0xe2
  2776 1104 14       		.byte	0x14
  2777 1105 08       		.uleb128 0x8
-ARM GAS  /tmp/ccckRWEp.s 			page 50
+ARM GAS  /tmp/cclvYvlo.s 			page 50
 
 
  2778 1106 31130000 		.4byte	.LASF220
@@ -2998,7 +2998,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2832 1172 16       		.byte	0x16
  2833 1173 F4       		.byte	0xf4
  2834 1174 12110000 		.4byte	0x1112
-ARM GAS  /tmp/ccckRWEp.s 			page 51
+ARM GAS  /tmp/cclvYvlo.s 			page 51
 
 
  2835 1178 A8       		.byte	0xa8
@@ -3058,7 +3058,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2889 11ea 02       		.byte	0x2
  2890 11eb 22       		.uleb128 0x22
  2891 11ec 09040000 		.4byte	.LASF238
-ARM GAS  /tmp/ccckRWEp.s 			page 52
+ARM GAS  /tmp/cclvYvlo.s 			page 52
 
 
  2892 11f0 03       		.byte	0x3
@@ -3118,7 +3118,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  2946 125e 18       		.byte	0x18
  2947 125f 1201     		.2byte	0x112
  2948 1261 CD020000 		.4byte	0x2cd
-ARM GAS  /tmp/ccckRWEp.s 			page 53
+ARM GAS  /tmp/cclvYvlo.s 			page 53
 
 
  2949 1265 08       		.byte	0x8
@@ -3178,7 +3178,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3003 12d6 36120000 		.4byte	0x1236
  3004 12da 13       		.uleb128 0x13
  3005 12db 19150000 		.4byte	.LASF252
-ARM GAS  /tmp/ccckRWEp.s 			page 54
+ARM GAS  /tmp/cclvYvlo.s 			page 54
 
 
  3006 12df 18       		.byte	0x18
@@ -3238,7 +3238,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3060 134f 22       		.uleb128 0x22
  3061 1350 76000000 		.4byte	.LASF263
  3062 1354 02       		.byte	0x2
-ARM GAS  /tmp/ccckRWEp.s 			page 55
+ARM GAS  /tmp/cclvYvlo.s 			page 55
 
 
  3063 1355 22       		.uleb128 0x22
@@ -3298,7 +3298,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3117 13c5 00       		.byte	0
  3118 13c6 18       		.uleb128 0x18
  3119 13c7 71010000 		.4byte	.LASF273
-ARM GAS  /tmp/ccckRWEp.s 			page 56
+ARM GAS  /tmp/cclvYvlo.s 			page 56
 
 
  3120 13cb 1A       		.byte	0x1a
@@ -3358,7 +3358,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3174 1443 1A       		.byte	0x1a
  3175 1444 BA01     		.2byte	0x1ba
  3176 1446 E2000000 		.4byte	0xe2
-ARM GAS  /tmp/ccckRWEp.s 			page 57
+ARM GAS  /tmp/cclvYvlo.s 			page 57
 
 
  3177 144a 24       		.byte	0x24
@@ -3418,7 +3418,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3231 14b8 83030000 		.4byte	.LASF286
  3232 14bc 02       		.byte	0x2
  3233 14bd 22       		.uleb128 0x22
-ARM GAS  /tmp/ccckRWEp.s 			page 58
+ARM GAS  /tmp/cclvYvlo.s 			page 58
 
 
  3234 14be 7C0D0000 		.4byte	.LASF287
@@ -3478,7 +3478,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3288 1533 1C       		.byte	0x1c
  3289 1534 4D01     		.2byte	0x14d
  3290 1536 240F0000 		.4byte	0xf24
-ARM GAS  /tmp/ccckRWEp.s 			page 59
+ARM GAS  /tmp/cclvYvlo.s 			page 59
 
 
  3291 153a 14       		.byte	0x14
@@ -3538,7 +3538,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3345 15a8 45475200 		.ascii	"EGR\000"
  3346 15ac 1D       		.byte	0x1d
  3347 15ad A401     		.2byte	0x1a4
-ARM GAS  /tmp/ccckRWEp.s 			page 60
+ARM GAS  /tmp/cclvYvlo.s 			page 60
 
 
  3348 15af ED000000 		.4byte	0xed
@@ -3598,7 +3598,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3402 1624 ED000000 		.4byte	0xed
  3403 1628 44       		.byte	0x44
  3404 1629 09       		.uleb128 0x9
-ARM GAS  /tmp/ccckRWEp.s 			page 61
+ARM GAS  /tmp/cclvYvlo.s 			page 61
 
 
  3405 162a 44435200 		.ascii	"DCR\000"
@@ -3658,7 +3658,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3459 169b 04       		.uleb128 0x4
  3460 169c C9110000 		.4byte	.LASF308
  3461 16a0 1C       		.byte	0x1c
-ARM GAS  /tmp/ccckRWEp.s 			page 62
+ARM GAS  /tmp/cclvYvlo.s 			page 62
 
 
  3462 16a1 F6       		.byte	0xf6
@@ -3718,7 +3718,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3516 1710 3C150000 		.4byte	0x153c
  3517 1714 10       		.byte	0x10
  3518 1715 0A       		.uleb128 0xa
-ARM GAS  /tmp/ccckRWEp.s 			page 63
+ARM GAS  /tmp/cclvYvlo.s 			page 63
 
 
  3519 1716 870C0000 		.4byte	.LASF317
@@ -3778,7 +3778,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3573 178a 1E       		.byte	0x1e
  3574 178b 59       		.byte	0x59
  3575 178c 65170000 		.4byte	0x1765
-ARM GAS  /tmp/ccckRWEp.s 			page 64
+ARM GAS  /tmp/cclvYvlo.s 			page 64
 
 
  3576 1790 04       		.uleb128 0x4
@@ -3838,7 +3838,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3630 17fb 2E110000 		.4byte	.LASF330
  3631 17ff 1E       		.byte	0x1e
  3632 1800 7B       		.byte	0x7b
-ARM GAS  /tmp/ccckRWEp.s 			page 65
+ARM GAS  /tmp/cclvYvlo.s 			page 65
 
 
  3633 1801 CC180000 		.4byte	0x18cc
@@ -3898,7 +3898,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3687 1879 1E       		.byte	0x1e
  3688 187a 6E       		.byte	0x6e
  3689 187b A90E0000 		.4byte	0xea9
-ARM GAS  /tmp/ccckRWEp.s 			page 66
+ARM GAS  /tmp/cclvYvlo.s 			page 66
 
 
  3690 187f 0C       		.byte	0xc
@@ -3958,7 +3958,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3744 18eb 22       		.uleb128 0x22
  3745 18ec 4F160000 		.4byte	.LASF340
  3746 18f0 02       		.byte	0x2
-ARM GAS  /tmp/ccckRWEp.s 			page 67
+ARM GAS  /tmp/cclvYvlo.s 			page 67
 
 
  3747 18f1 22       		.uleb128 0x22
@@ -4018,7 +4018,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3801 1964 04010000 		.4byte	.LASF281
  3802 1968 21       		.byte	0x21
  3803 1969 DA01     		.2byte	0x1da
-ARM GAS  /tmp/ccckRWEp.s 			page 68
+ARM GAS  /tmp/cclvYvlo.s 			page 68
 
 
  3804 196b 86140000 		.4byte	0x1486
@@ -4078,7 +4078,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3858 19de 0A       		.uleb128 0xa
  3859 19df 05060000 		.4byte	.LASF348
  3860 19e3 21       		.byte	0x21
-ARM GAS  /tmp/ccckRWEp.s 			page 69
+ARM GAS  /tmp/cclvYvlo.s 			page 69
 
 
  3861 19e4 B001     		.2byte	0x1b0
@@ -4138,7 +4138,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3915 1a5c C6240000 		.4byte	0x24c6
  3916 1a60 04       		.byte	0x4
  3917 1a61 0A       		.uleb128 0xa
-ARM GAS  /tmp/ccckRWEp.s 			page 70
+ARM GAS  /tmp/cclvYvlo.s 			page 70
 
 
  3918 1a62 4D150000 		.4byte	.LASF353
@@ -4198,7 +4198,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  3972 1ad7 D0040000 		.4byte	.LASF361
  3973 1adb 23       		.byte	0x23
  3974 1adc AD01     		.2byte	0x1ad
-ARM GAS  /tmp/ccckRWEp.s 			page 71
+ARM GAS  /tmp/cclvYvlo.s 			page 71
 
 
  3975 1ade BD0E0000 		.4byte	0xebd
@@ -4258,7 +4258,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4029 1b52 98020000 		.4byte	0x298
  4030 1b56 64       		.byte	0x64
  4031 1b57 0A       		.uleb128 0xa
-ARM GAS  /tmp/ccckRWEp.s 			page 72
+ARM GAS  /tmp/cclvYvlo.s 			page 72
 
 
  4032 1b58 EC0D0000 		.4byte	.LASF369
@@ -4318,7 +4318,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4086 1bc8 01       		.byte	0x1
  4087 1bc9 22       		.uleb128 0x22
  4088 1bca D9110000 		.4byte	.LASF380
-ARM GAS  /tmp/ccckRWEp.s 			page 73
+ARM GAS  /tmp/cclvYvlo.s 			page 73
 
 
  4089 1bce 02       		.byte	0x2
@@ -4378,7 +4378,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4143 1c38 571C0000 		.4byte	0x1c57
  4144 1c3c 0A       		.uleb128 0xa
  4145 1c3d C3170000 		.4byte	.LASF393
-ARM GAS  /tmp/ccckRWEp.s 			page 74
+ARM GAS  /tmp/cclvYvlo.s 			page 74
 
 
  4146 1c41 22       		.byte	0x22
@@ -4438,7 +4438,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4200 1cb9 0B       		.uleb128 0xb
  4201 1cba 04       		.byte	0x4
  4202 1cbb BF1C0000 		.4byte	0x1cbf
-ARM GAS  /tmp/ccckRWEp.s 			page 75
+ARM GAS  /tmp/cclvYvlo.s 			page 75
 
 
  4203 1cbf 0D       		.uleb128 0xd
@@ -4498,7 +4498,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4257 1d39 00       		.byte	0
  4258 1d3a 08       		.uleb128 0x8
  4259 1d3b E0090000 		.4byte	.LASF402
-ARM GAS  /tmp/ccckRWEp.s 			page 76
+ARM GAS  /tmp/cclvYvlo.s 			page 76
 
 
  4260 1d3f 24       		.byte	0x24
@@ -4558,7 +4558,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4314 1da8 47       		.byte	0x47
  4315 1da9 ED000000 		.4byte	0xed
  4316 1dad 00       		.byte	0
-ARM GAS  /tmp/ccckRWEp.s 			page 77
+ARM GAS  /tmp/cclvYvlo.s 			page 77
 
 
  4317 1dae 08       		.uleb128 0x8
@@ -4618,7 +4618,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4371 1e17 2C120000 		.4byte	.LASF418
  4372 1e1b 24       		.byte	0x24
  4373 1e1c 59       		.byte	0x59
-ARM GAS  /tmp/ccckRWEp.s 			page 78
+ARM GAS  /tmp/cclvYvlo.s 			page 78
 
 
  4374 1e1d ED000000 		.4byte	0xed
@@ -4678,7 +4678,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4428 1e89 5F210000 		.4byte	0x215f
  4429 1e8d 08       		.uleb128 0x8
  4430 1e8e 44030000 		.4byte	.LASF422
-ARM GAS  /tmp/ccckRWEp.s 			page 79
+ARM GAS  /tmp/cclvYvlo.s 			page 79
 
 
  4431 1e92 24       		.byte	0x24
@@ -4738,7 +4738,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4485 1efe 24       		.byte	0x24
  4486 1eff 75       		.byte	0x75
  4487 1f00 ED000000 		.4byte	0xed
-ARM GAS  /tmp/ccckRWEp.s 			page 80
+ARM GAS  /tmp/cclvYvlo.s 			page 80
 
 
  4488 1f04 24       		.byte	0x24
@@ -4798,7 +4798,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4542 1f71 0401     		.2byte	0x104
  4543 1f73 25       		.uleb128 0x25
  4544 1f74 030E0000 		.4byte	.LASF440
-ARM GAS  /tmp/ccckRWEp.s 			page 81
+ARM GAS  /tmp/cclvYvlo.s 			page 81
 
 
  4545 1f78 24       		.byte	0x24
@@ -4858,7 +4858,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4599 1fed 24       		.byte	0x24
  4600 1fee 90       		.byte	0x90
  4601 1fef ED000000 		.4byte	0xed
-ARM GAS  /tmp/ccckRWEp.s 			page 82
+ARM GAS  /tmp/cclvYvlo.s 			page 82
 
 
  4602 1ff3 4004     		.2byte	0x440
@@ -4918,7 +4918,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4656 2067 1408     		.2byte	0x814
  4657 2069 25       		.uleb128 0x25
  4658 206a 37150000 		.4byte	.LASF458
-ARM GAS  /tmp/ccckRWEp.s 			page 83
+ARM GAS  /tmp/cclvYvlo.s 			page 83
 
 
  4659 206e 24       		.byte	0x24
@@ -4978,7 +4978,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4713 20e3 24       		.byte	0x24
  4714 20e4 AB       		.byte	0xab
  4715 20e5 ED000000 		.4byte	0xed
-ARM GAS  /tmp/ccckRWEp.s 			page 84
+ARM GAS  /tmp/cclvYvlo.s 			page 84
 
 
  4716 20e9 3C08     		.2byte	0x83c
@@ -5038,7 +5038,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4770 215c 0010     		.2byte	0x1000
  4771 215e 00       		.byte	0
  4772 215f 11       		.uleb128 0x11
-ARM GAS  /tmp/ccckRWEp.s 			page 85
+ARM GAS  /tmp/cclvYvlo.s 			page 85
 
 
  4773 2160 ED000000 		.4byte	0xed
@@ -5098,7 +5098,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4827 21e1 12       		.uleb128 0x12
  4828 21e2 41000000 		.4byte	0x41
  4829 21e6 0F       		.byte	0xf
-ARM GAS  /tmp/ccckRWEp.s 			page 86
+ARM GAS  /tmp/cclvYvlo.s 			page 86
 
 
  4830 21e7 00       		.byte	0
@@ -5158,7 +5158,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4884 225d 08       		.uleb128 0x8
  4885 225e 99070000 		.4byte	.LASF477
  4886 2262 23       		.byte	0x23
-ARM GAS  /tmp/ccckRWEp.s 			page 87
+ARM GAS  /tmp/cclvYvlo.s 			page 87
 
 
  4887 2263 C8       		.byte	0xc8
@@ -5218,7 +5218,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4941 22c9 29       		.uleb128 0x29
  4942 22ca 44130000 		.4byte	.LASF482
  4943 22ce 23       		.byte	0x23
-ARM GAS  /tmp/ccckRWEp.s 			page 88
+ARM GAS  /tmp/cclvYvlo.s 			page 88
 
 
  4944 22cf E8       		.byte	0xe8
@@ -5278,7 +5278,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  4998 233a 00       		.byte	0
  4999 233b 00       		.byte	0
  5000 233c 17       		.uleb128 0x17
-ARM GAS  /tmp/ccckRWEp.s 			page 89
+ARM GAS  /tmp/cclvYvlo.s 			page 89
 
 
  5001 233d 04       		.byte	0x4
@@ -5338,7 +5338,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5055 23a8 DD050000 		.4byte	.LASF312
  5056 23ac 23       		.byte	0x23
  5057 23ad 0D01     		.2byte	0x10d
-ARM GAS  /tmp/ccckRWEp.s 			page 90
+ARM GAS  /tmp/cclvYvlo.s 			page 90
 
 
  5058 23af 59230000 		.4byte	0x2359
@@ -5398,7 +5398,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5112 2424 12       		.byte	0x12
  5113 2425 0A       		.uleb128 0xa
  5114 2426 F2160000 		.4byte	.LASF499
-ARM GAS  /tmp/ccckRWEp.s 			page 91
+ARM GAS  /tmp/cclvYvlo.s 			page 91
 
 
  5115 242a 23       		.byte	0x23
@@ -5458,7 +5458,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5169 249b D90C0000 		.4byte	.LASF506
  5170 249f 23       		.byte	0x23
  5171 24a0 6C01     		.2byte	0x16c
-ARM GAS  /tmp/ccckRWEp.s 			page 92
+ARM GAS  /tmp/cclvYvlo.s 			page 92
 
 
  5172 24a2 CF1C0000 		.4byte	0x1ccf
@@ -5518,7 +5518,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5226 251a 21       		.uleb128 0x21
  5227 251b 07       		.byte	0x7
  5228 251c 01       		.byte	0x1
-ARM GAS  /tmp/ccckRWEp.s 			page 93
+ARM GAS  /tmp/cclvYvlo.s 			page 93
 
 
  5229 251d 5A000000 		.4byte	0x5a
@@ -5578,7 +5578,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5283 258d 08       		.uleb128 0x8
  5284 258e 8F0C0000 		.4byte	.LASF329
  5285 2592 25       		.byte	0x25
-ARM GAS  /tmp/ccckRWEp.s 			page 94
+ARM GAS  /tmp/cclvYvlo.s 			page 94
 
 
  5286 2593 E8       		.byte	0xe8
@@ -5638,7 +5638,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5340 25fc 25       		.byte	0x25
  5341 25fd BA       		.byte	0xba
  5342 25fe BE250000 		.4byte	0x25be
-ARM GAS  /tmp/ccckRWEp.s 			page 95
+ARM GAS  /tmp/cclvYvlo.s 			page 95
 
 
  5343 2602 06       		.uleb128 0x6
@@ -5698,7 +5698,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5397 266e D60F0000 		.4byte	0xfd6
  5398 2672 1C       		.byte	0x1c
  5399 2673 00       		.byte	0
-ARM GAS  /tmp/ccckRWEp.s 			page 96
+ARM GAS  /tmp/cclvYvlo.s 			page 96
 
 
  5400 2674 06       		.uleb128 0x6
@@ -5758,7 +5758,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5454 26ed 00       		.byte	0
  5455 26ee 06       		.uleb128 0x6
  5456 26ef DE260000 		.4byte	0x26de
-ARM GAS  /tmp/ccckRWEp.s 			page 97
+ARM GAS  /tmp/cclvYvlo.s 			page 97
 
 
  5457 26f3 2C       		.uleb128 0x2c
@@ -5818,7 +5818,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5511 276b 41000000 		.4byte	0x41
  5512 276f 37       		.byte	0x37
  5513 2770 00       		.byte	0
-ARM GAS  /tmp/ccckRWEp.s 			page 98
+ARM GAS  /tmp/cclvYvlo.s 			page 98
 
 
  5514 2771 06       		.uleb128 0x6
@@ -5878,7 +5878,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5568 27e9 01       		.byte	0x1
  5569 27ea D6       		.byte	0xd6
  5570 27eb C2230000 		.4byte	0x23c2
-ARM GAS  /tmp/ccckRWEp.s 			page 99
+ARM GAS  /tmp/cclvYvlo.s 			page 99
 
 
  5571 27ef 05       		.uleb128 0x5
@@ -5938,7 +5938,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5625 2863 5301     		.2byte	0x153
  5626 2865 25000000 		.4byte	0x25
  5627 2869 00000000 		.4byte	.LFB260
-ARM GAS  /tmp/ccckRWEp.s 			page 100
+ARM GAS  /tmp/cclvYvlo.s 			page 100
 
 
  5628 286d 0C000000 		.4byte	.LFE260-.LFB260
@@ -5998,7 +5998,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5682 28d4 32       		.uleb128 0x32
  5683 28d5 01       		.uleb128 0x1
  5684 28d6 51       		.byte	0x51
-ARM GAS  /tmp/ccckRWEp.s 			page 101
+ARM GAS  /tmp/cclvYvlo.s 			page 101
 
 
  5685 28d7 03       		.uleb128 0x3
@@ -6058,7 +6058,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5739 2934 50       		.byte	0x50
  5740 2935 02       		.uleb128 0x2
  5741 2936 74       		.byte	0x74
-ARM GAS  /tmp/ccckRWEp.s 			page 102
+ARM GAS  /tmp/cclvYvlo.s 			page 102
 
 
  5742 2937 00       		.sleb128 0
@@ -6118,7 +6118,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5796 29a9 01       		.uleb128 0x1
  5797 29aa 52       		.byte	0x52
  5798 29ab 38       		.uleb128 0x38
-ARM GAS  /tmp/ccckRWEp.s 			page 103
+ARM GAS  /tmp/cclvYvlo.s 			page 103
 
 
  5799 29ac 7B0E0000 		.4byte	.LASF543
@@ -6178,7 +6178,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5853 2a14 3B       		.uleb128 0x3b
  5854 2a15 50290000 		.4byte	0x2950
  5855 2a19 53000000 		.4byte	.LLST1
-ARM GAS  /tmp/ccckRWEp.s 			page 104
+ARM GAS  /tmp/cclvYvlo.s 			page 104
 
 
  5856 2a1d 3B       		.uleb128 0x3b
@@ -6238,7 +6238,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5910 2ab0 3E       		.uleb128 0x3e
  5911 2ab1 DD290000 		.4byte	0x29dd
  5912 2ab5 24000000 		.4byte	.LBB67
-ARM GAS  /tmp/ccckRWEp.s 			page 105
+ARM GAS  /tmp/cclvYvlo.s 			page 105
 
 
  5913 2ab9 02000000 		.4byte	.LBE67-.LBB67
@@ -6298,7 +6298,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  5967 2b12 03       		.byte	0x3
  5968 2b13 00000000 		.4byte	.LANCHOR4
  5969 2b17 00       		.byte	0
-ARM GAS  /tmp/ccckRWEp.s 			page 106
+ARM GAS  /tmp/cclvYvlo.s 			page 106
 
 
  5970 2b18 33       		.uleb128 0x33
@@ -6358,7 +6358,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6024 0004 0E       		.uleb128 0xe
  6025 0005 13       		.uleb128 0x13
  6026 0006 0B       		.uleb128 0xb
-ARM GAS  /tmp/ccckRWEp.s 			page 107
+ARM GAS  /tmp/cclvYvlo.s 			page 107
 
 
  6027 0007 03       		.uleb128 0x3
@@ -6418,7 +6418,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6081 003d 06       		.uleb128 0x6
  6082 003e 26       		.uleb128 0x26
  6083 003f 00       		.byte	0
-ARM GAS  /tmp/ccckRWEp.s 			page 108
+ARM GAS  /tmp/cclvYvlo.s 			page 108
 
 
  6084 0040 49       		.uleb128 0x49
@@ -6478,7 +6478,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6138 0076 3A       		.uleb128 0x3a
  6139 0077 0B       		.uleb128 0xb
  6140 0078 3B       		.uleb128 0x3b
-ARM GAS  /tmp/ccckRWEp.s 			page 109
+ARM GAS  /tmp/cclvYvlo.s 			page 109
 
 
  6141 0079 05       		.uleb128 0x5
@@ -6538,7 +6538,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6195 00af 10       		.uleb128 0x10
  6196 00b0 13       		.uleb128 0x13
  6197 00b1 01       		.byte	0x1
-ARM GAS  /tmp/ccckRWEp.s 			page 110
+ARM GAS  /tmp/cclvYvlo.s 			page 110
 
 
  6198 00b2 03       		.uleb128 0x3
@@ -6598,7 +6598,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6252 00e8 3B       		.uleb128 0x3b
  6253 00e9 0B       		.uleb128 0xb
  6254 00ea 49       		.uleb128 0x49
-ARM GAS  /tmp/ccckRWEp.s 			page 111
+ARM GAS  /tmp/cclvYvlo.s 			page 111
 
 
  6255 00eb 13       		.uleb128 0x13
@@ -6658,7 +6658,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6309 0121 0B       		.uleb128 0xb
  6310 0122 3B       		.uleb128 0x3b
  6311 0123 05       		.uleb128 0x5
-ARM GAS  /tmp/ccckRWEp.s 			page 112
+ARM GAS  /tmp/cclvYvlo.s 			page 112
 
 
  6312 0124 49       		.uleb128 0x49
@@ -6718,7 +6718,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6366 015a 3B       		.uleb128 0x3b
  6367 015b 0B       		.uleb128 0xb
  6368 015c 01       		.uleb128 0x1
-ARM GAS  /tmp/ccckRWEp.s 			page 113
+ARM GAS  /tmp/cclvYvlo.s 			page 113
 
 
  6369 015d 13       		.uleb128 0x13
@@ -6778,7 +6778,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6423 0193 13       		.uleb128 0x13
  6424 0194 00       		.byte	0
  6425 0195 00       		.byte	0
-ARM GAS  /tmp/ccckRWEp.s 			page 114
+ARM GAS  /tmp/cclvYvlo.s 			page 114
 
 
  6426 0196 21       		.uleb128 0x21
@@ -6838,7 +6838,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6480 01cc 01       		.uleb128 0x1
  6481 01cd 13       		.uleb128 0x13
  6482 01ce 00       		.byte	0
-ARM GAS  /tmp/ccckRWEp.s 			page 115
+ARM GAS  /tmp/cclvYvlo.s 			page 115
 
 
  6483 01cf 00       		.byte	0
@@ -6898,7 +6898,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6537 0205 0D       		.uleb128 0xd
  6538 0206 00       		.byte	0
  6539 0207 03       		.uleb128 0x3
-ARM GAS  /tmp/ccckRWEp.s 			page 116
+ARM GAS  /tmp/cclvYvlo.s 			page 116
 
 
  6540 0208 0E       		.uleb128 0xe
@@ -6958,7 +6958,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6594 023e 2D       		.uleb128 0x2d
  6595 023f 34       		.uleb128 0x34
  6596 0240 00       		.byte	0
-ARM GAS  /tmp/ccckRWEp.s 			page 117
+ARM GAS  /tmp/cclvYvlo.s 			page 117
 
 
  6597 0241 03       		.uleb128 0x3
@@ -7018,7 +7018,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6651 0278 30       		.uleb128 0x30
  6652 0279 2E       		.uleb128 0x2e
  6653 027a 01       		.byte	0x1
-ARM GAS  /tmp/ccckRWEp.s 			page 118
+ARM GAS  /tmp/cclvYvlo.s 			page 118
 
 
  6654 027b 3F       		.uleb128 0x3f
@@ -7078,7 +7078,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6708 02b9 03       		.uleb128 0x3
  6709 02ba 0E       		.uleb128 0xe
  6710 02bb 3A       		.uleb128 0x3a
-ARM GAS  /tmp/ccckRWEp.s 			page 119
+ARM GAS  /tmp/cclvYvlo.s 			page 119
 
 
  6711 02bc 0B       		.uleb128 0xb
@@ -7138,7 +7138,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6765 02f3 3A       		.uleb128 0x3a
  6766 02f4 0B       		.uleb128 0xb
  6767 02f5 3B       		.uleb128 0x3b
-ARM GAS  /tmp/ccckRWEp.s 			page 120
+ARM GAS  /tmp/cclvYvlo.s 			page 120
 
 
  6768 02f6 0B       		.uleb128 0xb
@@ -7198,7 +7198,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6822 032d 3B       		.uleb128 0x3b
  6823 032e 05       		.uleb128 0x5
  6824 032f 00       		.byte	0
-ARM GAS  /tmp/ccckRWEp.s 			page 121
+ARM GAS  /tmp/cclvYvlo.s 			page 121
 
 
  6825 0330 31       		.uleb128 0x31
@@ -7258,7 +7258,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6879 0366 11       		.uleb128 0x11
  6880 0367 01       		.uleb128 0x1
  6881 0368 12       		.uleb128 0x12
-ARM GAS  /tmp/ccckRWEp.s 			page 122
+ARM GAS  /tmp/cclvYvlo.s 			page 122
 
 
  6882 0369 06       		.uleb128 0x6
@@ -7318,7 +7318,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6936 0017 50       		.byte	0x50
  6937 0018 9F       		.byte	0x9f
  6938 0019 12000000 		.4byte	.LVL2
-ARM GAS  /tmp/ccckRWEp.s 			page 123
+ARM GAS  /tmp/cclvYvlo.s 			page 123
 
 
  6939 001d 14000000 		.4byte	.LVL3
@@ -7378,7 +7378,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  6993 00a0 00000000 		.4byte	0
  6994 00a4 00000000 		.4byte	0
  6995              	.LLST3:
-ARM GAS  /tmp/ccckRWEp.s 			page 124
+ARM GAS  /tmp/cclvYvlo.s 			page 124
 
 
  6996 00a8 0A000000 		.4byte	.LVL7
@@ -7438,7 +7438,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7050 0000 D5050000 		.section	.debug_str,"MS",%progbits,1
  7050      02004505 
  7050      00000201 
-ARM GAS  /tmp/ccckRWEp.s 			page 125
+ARM GAS  /tmp/cclvYvlo.s 			page 125
 
 
  7050      FB0E0D00 
@@ -7498,7 +7498,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7072      5F697372 
  7073              	.LASF525:
  7074 009f 76636F6D 		.ascii	"vcom_configuration_descriptor\000"
-ARM GAS  /tmp/ccckRWEp.s 			page 126
+ARM GAS  /tmp/cclvYvlo.s 			page 126
 
 
  7074      5F636F6E 
@@ -7558,7 +7558,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7102      616C6C62 
  7102      61636B5F 
  7102      7400
-ARM GAS  /tmp/ccckRWEp.s 			page 127
+ARM GAS  /tmp/cclvYvlo.s 			page 127
 
 
  7103              	.LASF76:
@@ -7618,7 +7618,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7136 01bc 63685F74 		.ascii	"ch_threads_queue\000"
  7136      68726561 
  7136      64735F71 
-ARM GAS  /tmp/ccckRWEp.s 			page 128
+ARM GAS  /tmp/cclvYvlo.s 			page 128
 
 
  7136      75657565 
@@ -7678,7 +7678,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7166      7300
  7167              	.LASF249:
  7168 024e 736C6565 		.ascii	"sleep_event\000"
-ARM GAS  /tmp/ccckRWEp.s 			page 129
+ARM GAS  /tmp/cclvYvlo.s 			page 129
 
 
  7168      705F6576 
@@ -7738,7 +7738,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7196 02e8 48464E55 		.ascii	"HFNUM\000"
  7196      4D00
  7197              	.LASF192:
-ARM GAS  /tmp/ccckRWEp.s 			page 130
+ARM GAS  /tmp/cclvYvlo.s 			page 130
 
 
  7198 02ee 716E6F74 		.ascii	"qnotify_t\000"
@@ -7798,7 +7798,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7224      7400
  7225              	.LASF83:
  7226 037c 76746C69 		.ascii	"vtlist\000"
-ARM GAS  /tmp/ccckRWEp.s 			page 131
+ARM GAS  /tmp/cclvYvlo.s 			page 131
 
 
  7226      737400
@@ -7858,7 +7858,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7252      5900
  7253              	.LASF161:
  7254 0413 63665F6F 		.ascii	"cf_off_older\000"
-ARM GAS  /tmp/ccckRWEp.s 			page 132
+ARM GAS  /tmp/cclvYvlo.s 			page 132
 
 
  7254      66665F6F 
@@ -7918,7 +7918,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7280      79636C65 
  7280      5F7400
  7281              	.LASF513:
-ARM GAS  /tmp/ccckRWEp.s 			page 133
+ARM GAS  /tmp/cclvYvlo.s 			page 133
 
 
  7282 04aa 73647573 		.ascii	"sdustate_t\000"
@@ -7978,7 +7978,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7310      64383430 
  7310      00
  7311              	.LASF122:
-ARM GAS  /tmp/ccckRWEp.s 			page 134
+ARM GAS  /tmp/cclvYvlo.s 			page 134
 
 
  7312 053c 43524350 		.ascii	"CRCPR\000"
@@ -8038,7 +8038,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7338      696E6733 
  7338      00
  7339              	.LASF491:
-ARM GAS  /tmp/ccckRWEp.s 			page 135
+ARM GAS  /tmp/cclvYvlo.s 			page 135
 
 
  7340 05cd 7278636E 		.ascii	"rxcnt\000"
@@ -8098,7 +8098,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7366      636200
  7367              	.LASF494:
  7368 065d 73657475 		.ascii	"setup_cb\000"
-ARM GAS  /tmp/ccckRWEp.s 			page 136
+ARM GAS  /tmp/cclvYvlo.s 			page 136
 
 
  7368      705F6362 
@@ -8158,7 +8158,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7393              	.LASF296:
  7394 06f2 44494552 		.ascii	"DIER\000"
  7394      00
-ARM GAS  /tmp/ccckRWEp.s 			page 137
+ARM GAS  /tmp/cclvYvlo.s 			page 137
 
 
  7395              	.LASF35:
@@ -8218,7 +8218,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7422      745F6C69 
  7422      7374656E 
  7422      65725F74 
-ARM GAS  /tmp/ccckRWEp.s 			page 138
+ARM GAS  /tmp/cclvYvlo.s 			page 138
 
 
  7422      00
@@ -8278,7 +8278,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7447      6E203236 
  7447      31393037 
  7448 0870 61726420 		.ascii	"ard -mfpu=fpv4-sp-d16 -mno-thumb-interwork -mthumb "
-ARM GAS  /tmp/ccckRWEp.s 			page 139
+ARM GAS  /tmp/cclvYvlo.s 			page 139
 
 
  7448      2D6D6670 
@@ -8338,7 +8338,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7471      75616C5F 
  7471      74696D65 
  7471      725F7400 
-ARM GAS  /tmp/ccckRWEp.s 			page 140
+ARM GAS  /tmp/cclvYvlo.s 			page 140
 
 
  7472              	.LASF62:
@@ -8398,7 +8398,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7506              	.LASF64:
  7507 0a0f 725F6F6C 		.ascii	"r_older\000"
  7507      64657200 
-ARM GAS  /tmp/ccckRWEp.s 			page 141
+ARM GAS  /tmp/cclvYvlo.s 			page 141
 
 
  7508              	.LASF33:
@@ -8458,7 +8458,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7537      00
  7538              	.LASF248:
  7539 0aa0 6572726F 		.ascii	"error_event\000"
-ARM GAS  /tmp/ccckRWEp.s 			page 142
+ARM GAS  /tmp/cclvYvlo.s 			page 142
 
 
  7539      725F6576 
@@ -8518,7 +8518,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7567 0b34 5553425F 		.ascii	"USB_EP0_TX\000"
  7567      4550305F 
  7567      545800
-ARM GAS  /tmp/ccckRWEp.s 			page 143
+ARM GAS  /tmp/cclvYvlo.s 			page 143
 
 
  7568              	.LASF357:
@@ -8578,7 +8578,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7595 0bde 696F5F71 		.ascii	"io_queue\000"
  7595      75657565 
  7595      00
-ARM GAS  /tmp/ccckRWEp.s 			page 144
+ARM GAS  /tmp/cclvYvlo.s 			page 144
 
 
  7596              	.LASF222:
@@ -8638,7 +8638,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7623      00
  7624              	.LASF508:
  7625 0c76 55534243 		.ascii	"USBConfig\000"
-ARM GAS  /tmp/ccckRWEp.s 			page 145
+ARM GAS  /tmp/cclvYvlo.s 			page 145
 
 
  7625      6F6E6669 
@@ -8698,7 +8698,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7654              	.LASF373:
  7655 0d05 5553425F 		.ascii	"USB_READY\000"
  7655      52454144 
-ARM GAS  /tmp/ccckRWEp.s 			page 146
+ARM GAS  /tmp/cclvYvlo.s 			page 146
 
 
  7655      5900
@@ -8758,7 +8758,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7681      55524544 
  7682              	.LASF334:
  7683 0da4 70757474 		.ascii	"putt\000"
-ARM GAS  /tmp/ccckRWEp.s 			page 147
+ARM GAS  /tmp/cclvYvlo.s 			page 147
 
 
  7683      00
@@ -8818,7 +8818,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7707      65642063 
  7707      68617200 
  7708              	.LASF42:
-ARM GAS  /tmp/ccckRWEp.s 			page 148
+ARM GAS  /tmp/cclvYvlo.s 			page 148
 
 
  7709 0e53 705F7072 		.ascii	"p_preempt\000"
@@ -8878,7 +8878,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7737      494E475F 
  7737      53545300 
  7738              	.LASF121:
-ARM GAS  /tmp/ccckRWEp.s 			page 149
+ARM GAS  /tmp/cclvYvlo.s 			page 149
 
 
  7739 0eea 4932435F 		.ascii	"I2C_TypeDef\000"
@@ -8938,7 +8938,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7765      00
  7766              	.LASF9:
  7767 0f7d 6C6F6E67 		.ascii	"long int\000"
-ARM GAS  /tmp/ccckRWEp.s 			page 150
+ARM GAS  /tmp/cclvYvlo.s 			page 150
 
 
  7767      20696E74 
@@ -8998,7 +8998,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7800              	.LASF419:
  7801 0ffc 444F4550 		.ascii	"DOEPINT\000"
  7801      494E5400 
-ARM GAS  /tmp/ccckRWEp.s 			page 151
+ARM GAS  /tmp/cclvYvlo.s 			page 151
 
 
  7802              	.LASF211:
@@ -9058,7 +9058,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7827      6420696E 
  7827      7400
  7828              	.LASF188:
-ARM GAS  /tmp/ccckRWEp.s 			page 152
+ARM GAS  /tmp/cclvYvlo.s 			page 152
 
 
  7829 10a6 715F7772 		.ascii	"q_wrptr\000"
@@ -9118,7 +9118,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7856              	.LASF191:
  7857 1134 715F6C69 		.ascii	"q_link\000"
  7857      6E6B00
-ARM GAS  /tmp/ccckRWEp.s 			page 153
+ARM GAS  /tmp/cclvYvlo.s 			page 153
 
 
  7858              	.LASF541:
@@ -9178,7 +9178,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7881 11d3 636E745F 		.ascii	"cnt_t\000"
  7881      7400
  7882              	.LASF380:
-ARM GAS  /tmp/ccckRWEp.s 			page 154
+ARM GAS  /tmp/cclvYvlo.s 			page 154
 
 
  7883 11d9 5553425F 		.ascii	"USB_EP0_WAITING_TX0\000"
@@ -9238,7 +9238,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7909      426F785F 
  7909      54797065 
  7910              	.LASF138:
-ARM GAS  /tmp/ccckRWEp.s 			page 155
+ARM GAS  /tmp/cclvYvlo.s 			page 155
 
 
  7911 1275 77746F62 		.ascii	"wtobjp\000"
@@ -9298,7 +9298,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7937      62756700 
  7938              	.LASF459:
  7939 1308 4441494E 		.ascii	"DAINTMSK\000"
-ARM GAS  /tmp/ccckRWEp.s 			page 156
+ARM GAS  /tmp/cclvYvlo.s 			page 156
 
 
  7939      544D534B 
@@ -9358,7 +9358,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7967 1397 52455345 		.ascii	"RESERVED1\000"
  7967      52564544 
  7967      3100
-ARM GAS  /tmp/ccckRWEp.s 			page 157
+ARM GAS  /tmp/cclvYvlo.s 			page 157
 
 
  7968              	.LASF104:
@@ -9418,7 +9418,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  7995      6E737461 
  7995      746500
  7996              	.LASF86:
-ARM GAS  /tmp/ccckRWEp.s 			page 158
+ARM GAS  /tmp/cclvYvlo.s 			page 158
 
 
  7997 1437 49544D5F 		.ascii	"ITM_RxBuffer\000"
@@ -9478,7 +9478,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  8023      00
  8024              	.LASF457:
  8025 14d1 444F4550 		.ascii	"DOEPMSK\000"
-ARM GAS  /tmp/ccckRWEp.s 			page 159
+ARM GAS  /tmp/cclvYvlo.s 			page 159
 
 
  8025      4D534B00 
@@ -9538,7 +9538,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  8053      00
  8054              	.LASF38:
  8055 155a 705F6E61 		.ascii	"p_name\000"
-ARM GAS  /tmp/ccckRWEp.s 			page 160
+ARM GAS  /tmp/cclvYvlo.s 			page 160
 
 
  8055      6D6500
@@ -9598,7 +9598,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  8082              	.LASF158:
  8083 15ed 63665F6F 		.ascii	"cf_off_prio\000"
  8083      66665F70 
-ARM GAS  /tmp/ccckRWEp.s 			page 161
+ARM GAS  /tmp/cclvYvlo.s 			page 161
 
 
  8083      72696F00 
@@ -9658,7 +9658,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  8109      4556454E 
  8109      545F5741 
  8109      4B455550 
-ARM GAS  /tmp/ccckRWEp.s 			page 162
+ARM GAS  /tmp/cclvYvlo.s 			page 162
 
 
  8109      00
@@ -9718,7 +9718,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  8136              	.LASF157:
  8137 171a 63685F74 		.ascii	"ch_threadsize\000"
  8137      68726561 
-ARM GAS  /tmp/ccckRWEp.s 			page 163
+ARM GAS  /tmp/cclvYvlo.s 			page 163
 
 
  8137      6473697A 
@@ -9778,7 +9778,7 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  8165      5F7400
  8166              	.LASF475:
  8167 17ac 73746D33 		.ascii	"stm32_otg_t\000"
-ARM GAS  /tmp/ccckRWEp.s 			page 164
+ARM GAS  /tmp/cclvYvlo.s 			page 164
 
 
  8167      325F6F74 
@@ -9816,67 +9816,67 @@ ARM GAS  /tmp/ccckRWEp.s 			page 1
  8185      45414459 
  8185      00
  8186              		.ident	"GCC: (GNU Tools for Arm Embedded Processors 7-2018-q2-update) 7.3.1 20180622 (release) [AR
-ARM GAS  /tmp/ccckRWEp.s 			page 165
+ARM GAS  /tmp/cclvYvlo.s 			page 165
 
 
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 comm_usb_serial.c
-     /tmp/ccckRWEp.s:18     .text.get_descriptor:0000000000000000 $t
-     /tmp/ccckRWEp.s:25     .text.get_descriptor:0000000000000000 get_descriptor
-     /tmp/ccckRWEp.s:68     .text.get_descriptor:0000000000000024 $d
-     /tmp/ccckRWEp.s:75     .text.usb_event:0000000000000000 $t
-     /tmp/ccckRWEp.s:82     .text.usb_event:0000000000000000 usb_event
-     /tmp/ccckRWEp.s:175    .text.usb_event:0000000000000034 $d
-     /tmp/ccckRWEp.s:183    .text.comm_usb_serial_init:0000000000000000 $t
-     /tmp/ccckRWEp.s:191    .text.comm_usb_serial_init:0000000000000000 comm_usb_serial_init
-     /tmp/ccckRWEp.s:254    .text.comm_usb_serial_init:0000000000000058 $d
-     /tmp/ccckRWEp.s:263    .text.comm_usb_serial_is_active:0000000000000000 $t
-     /tmp/ccckRWEp.s:271    .text.comm_usb_serial_is_active:0000000000000000 comm_usb_serial_is_active
-     /tmp/ccckRWEp.s:291    .text.comm_usb_serial_is_active:0000000000000018 $d
-     /tmp/ccckRWEp.s:296    .text.comm_usb_serial_configured_cnt:0000000000000000 $t
-     /tmp/ccckRWEp.s:304    .text.comm_usb_serial_configured_cnt:0000000000000000 comm_usb_serial_configured_cnt
-     /tmp/ccckRWEp.s:319    .text.comm_usb_serial_configured_cnt:0000000000000008 $d
-     /tmp/ccckRWEp.s:396    .rodata.serusbcfg:0000000000000000 serusbcfg
-     /tmp/ccckRWEp.s:330    .bss.SDU1:0000000000000000 SDU1
-     /tmp/ccckRWEp.s:326    .bss.SDU1:0000000000000000 $d
-     /tmp/ccckRWEp.s:333    .bss.configured_cnt:0000000000000000 $d
-     /tmp/ccckRWEp.s:337    .bss.configured_cnt:0000000000000000 configured_cnt
-     /tmp/ccckRWEp.s:340    .bss.ep1instate:0000000000000000 $d
-     /tmp/ccckRWEp.s:343    .bss.ep1instate:0000000000000000 ep1instate
-     /tmp/ccckRWEp.s:346    .bss.ep1outstate:0000000000000000 $d
-     /tmp/ccckRWEp.s:349    .bss.ep1outstate:0000000000000000 ep1outstate
-     /tmp/ccckRWEp.s:352    .bss.ep2instate:0000000000000000 $d
-     /tmp/ccckRWEp.s:355    .bss.ep2instate:0000000000000000 ep2instate
-     /tmp/ccckRWEp.s:358    .rodata.ep1config:0000000000000000 $d
-     /tmp/ccckRWEp.s:362    .rodata.ep1config:0000000000000000 ep1config
-     /tmp/ccckRWEp.s:375    .rodata.ep2config:0000000000000000 $d
-     /tmp/ccckRWEp.s:379    .rodata.ep2config:0000000000000000 ep2config
-     /tmp/ccckRWEp.s:392    .rodata.serusbcfg:0000000000000000 $d
-     /tmp/ccckRWEp.s:403    .rodata.usbcfg:0000000000000000 $d
-     /tmp/ccckRWEp.s:407    .rodata.usbcfg:0000000000000000 usbcfg
-     /tmp/ccckRWEp.s:413    .rodata.vcom_configuration_descriptor:0000000000000000 $d
-     /tmp/ccckRWEp.s:417    .rodata.vcom_configuration_descriptor:0000000000000000 vcom_configuration_descriptor
-     /tmp/ccckRWEp.s:424    .rodata.vcom_configuration_descriptor_data:0000000000000000 vcom_configuration_descriptor_data
-     /tmp/ccckRWEp.s:421    .rodata.vcom_configuration_descriptor_data:0000000000000000 $d
-     /tmp/ccckRWEp.s:493    .rodata.vcom_device_descriptor:0000000000000000 $d
-     /tmp/ccckRWEp.s:497    .rodata.vcom_device_descriptor:0000000000000000 vcom_device_descriptor
-     /tmp/ccckRWEp.s:504    .rodata.vcom_device_descriptor_data:0000000000000000 vcom_device_descriptor_data
-     /tmp/ccckRWEp.s:501    .rodata.vcom_device_descriptor_data:0000000000000000 $d
-     /tmp/ccckRWEp.s:524    .rodata.vcom_string0:0000000000000000 $d
-     /tmp/ccckRWEp.s:527    .rodata.vcom_string0:0000000000000000 vcom_string0
-     /tmp/ccckRWEp.s:533    .rodata.vcom_string1:0000000000000000 $d
-     /tmp/ccckRWEp.s:536    .rodata.vcom_string1:0000000000000000 vcom_string1
-     /tmp/ccckRWEp.s:576    .rodata.vcom_string2:0000000000000000 $d
-     /tmp/ccckRWEp.s:579    .rodata.vcom_string2:0000000000000000 vcom_string2
-     /tmp/ccckRWEp.s:637    .rodata.vcom_string3:0000000000000000 $d
-     /tmp/ccckRWEp.s:640    .rodata.vcom_string3:0000000000000000 vcom_string3
-     /tmp/ccckRWEp.s:650    .rodata.vcom_strings:0000000000000000 $d
-     /tmp/ccckRWEp.s:654    .rodata.vcom_strings:0000000000000000 vcom_strings
+     /tmp/cclvYvlo.s:18     .text.get_descriptor:0000000000000000 $t
+     /tmp/cclvYvlo.s:25     .text.get_descriptor:0000000000000000 get_descriptor
+     /tmp/cclvYvlo.s:68     .text.get_descriptor:0000000000000024 $d
+     /tmp/cclvYvlo.s:75     .text.usb_event:0000000000000000 $t
+     /tmp/cclvYvlo.s:82     .text.usb_event:0000000000000000 usb_event
+     /tmp/cclvYvlo.s:175    .text.usb_event:0000000000000034 $d
+     /tmp/cclvYvlo.s:183    .text.comm_usb_serial_init:0000000000000000 $t
+     /tmp/cclvYvlo.s:191    .text.comm_usb_serial_init:0000000000000000 comm_usb_serial_init
+     /tmp/cclvYvlo.s:254    .text.comm_usb_serial_init:0000000000000058 $d
+     /tmp/cclvYvlo.s:263    .text.comm_usb_serial_is_active:0000000000000000 $t
+     /tmp/cclvYvlo.s:271    .text.comm_usb_serial_is_active:0000000000000000 comm_usb_serial_is_active
+     /tmp/cclvYvlo.s:291    .text.comm_usb_serial_is_active:0000000000000018 $d
+     /tmp/cclvYvlo.s:296    .text.comm_usb_serial_configured_cnt:0000000000000000 $t
+     /tmp/cclvYvlo.s:304    .text.comm_usb_serial_configured_cnt:0000000000000000 comm_usb_serial_configured_cnt
+     /tmp/cclvYvlo.s:319    .text.comm_usb_serial_configured_cnt:0000000000000008 $d
+     /tmp/cclvYvlo.s:396    .rodata.serusbcfg:0000000000000000 serusbcfg
+     /tmp/cclvYvlo.s:330    .bss.SDU1:0000000000000000 SDU1
+     /tmp/cclvYvlo.s:326    .bss.SDU1:0000000000000000 $d
+     /tmp/cclvYvlo.s:333    .bss.configured_cnt:0000000000000000 $d
+     /tmp/cclvYvlo.s:337    .bss.configured_cnt:0000000000000000 configured_cnt
+     /tmp/cclvYvlo.s:340    .bss.ep1instate:0000000000000000 $d
+     /tmp/cclvYvlo.s:343    .bss.ep1instate:0000000000000000 ep1instate
+     /tmp/cclvYvlo.s:346    .bss.ep1outstate:0000000000000000 $d
+     /tmp/cclvYvlo.s:349    .bss.ep1outstate:0000000000000000 ep1outstate
+     /tmp/cclvYvlo.s:352    .bss.ep2instate:0000000000000000 $d
+     /tmp/cclvYvlo.s:355    .bss.ep2instate:0000000000000000 ep2instate
+     /tmp/cclvYvlo.s:358    .rodata.ep1config:0000000000000000 $d
+     /tmp/cclvYvlo.s:362    .rodata.ep1config:0000000000000000 ep1config
+     /tmp/cclvYvlo.s:375    .rodata.ep2config:0000000000000000 $d
+     /tmp/cclvYvlo.s:379    .rodata.ep2config:0000000000000000 ep2config
+     /tmp/cclvYvlo.s:392    .rodata.serusbcfg:0000000000000000 $d
+     /tmp/cclvYvlo.s:403    .rodata.usbcfg:0000000000000000 $d
+     /tmp/cclvYvlo.s:407    .rodata.usbcfg:0000000000000000 usbcfg
+     /tmp/cclvYvlo.s:413    .rodata.vcom_configuration_descriptor:0000000000000000 $d
+     /tmp/cclvYvlo.s:417    .rodata.vcom_configuration_descriptor:0000000000000000 vcom_configuration_descriptor
+     /tmp/cclvYvlo.s:424    .rodata.vcom_configuration_descriptor_data:0000000000000000 vcom_configuration_descriptor_data
+     /tmp/cclvYvlo.s:421    .rodata.vcom_configuration_descriptor_data:0000000000000000 $d
+     /tmp/cclvYvlo.s:493    .rodata.vcom_device_descriptor:0000000000000000 $d
+     /tmp/cclvYvlo.s:497    .rodata.vcom_device_descriptor:0000000000000000 vcom_device_descriptor
+     /tmp/cclvYvlo.s:504    .rodata.vcom_device_descriptor_data:0000000000000000 vcom_device_descriptor_data
+     /tmp/cclvYvlo.s:501    .rodata.vcom_device_descriptor_data:0000000000000000 $d
+     /tmp/cclvYvlo.s:524    .rodata.vcom_string0:0000000000000000 $d
+     /tmp/cclvYvlo.s:527    .rodata.vcom_string0:0000000000000000 vcom_string0
+     /tmp/cclvYvlo.s:533    .rodata.vcom_string1:0000000000000000 $d
+     /tmp/cclvYvlo.s:536    .rodata.vcom_string1:0000000000000000 vcom_string1
+     /tmp/cclvYvlo.s:576    .rodata.vcom_string2:0000000000000000 $d
+     /tmp/cclvYvlo.s:579    .rodata.vcom_string2:0000000000000000 vcom_string2
+     /tmp/cclvYvlo.s:637    .rodata.vcom_string3:0000000000000000 $d
+     /tmp/cclvYvlo.s:640    .rodata.vcom_string3:0000000000000000 vcom_string3
+     /tmp/cclvYvlo.s:650    .rodata.vcom_strings:0000000000000000 $d
+     /tmp/cclvYvlo.s:654    .rodata.vcom_strings:0000000000000000 vcom_strings
 
 UNDEFINED SYMBOLS
 usbInitEndpointI
 sduConfigureHookI
-ARM GAS  /tmp/ccckRWEp.s 			page 166
+ARM GAS  /tmp/cclvYvlo.s 			page 166
 
 
 _pal_lld_setgroupmode

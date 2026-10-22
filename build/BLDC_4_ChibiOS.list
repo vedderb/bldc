@@ -18951,7 +18951,7 @@ static THD_FUNCTION(timer_thread, arg) {
  801359c:	551184e7 	.word	0x551184e7
  80135a0:	3f99999a 	.word	0x3f99999a
  80135a4:	3a534067 	.word	0x3a534067
- 80135a8:	4195d174 	.word	0x4195d174
+ 80135a8:	41b23678 	.word	0x41b23678
  80135ac:	20005c38 	.word	0x20005c38
  80135b0:	20005d10 	.word	0x20005d10
  80135b4:	20006340 	.word	0x20006340
@@ -19798,7 +19798,7 @@ void mcpwm_init(volatile mc_configuration *configuration) {
  8013bfc:	00010060 	.word	0x00010060
  8013c00:	02000100 	.word	0x02000100
  8013c04:	4d2037a0 	.word	0x4d2037a0
- 8013c08:	43b40000 	.word	0x43b40000
+ 8013c08:	43a00000 	.word	0x43a00000
  8013c0c:	04000800 	.word	0x04000800
  8013c10:	00400005 	.word	0x00400005
  8013c14:	080150b1 	.word	0x080150b1
@@ -20889,7 +20889,7 @@ void mcpwm_adc_inj_int_handler(void) {
  80144a4:	200068f0 	.word	0x200068f0
  80144a8:	20005d0c 	.word	0x20005d0c
  80144ac:	20005c34 	.word	0x20005c34
- 80144b0:	3da50a50 	.word	0x3da50a50
+ 80144b0:	3c040841 	.word	0x3c040841
  80144b4:	20006254 	.word	0x20006254
  80144b8:	3f99999a 	.word	0x3f99999a
  80144bc:	20005ca0 	.word	0x20005ca0
@@ -22885,14 +22885,14 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
  8015590:	20006288 	.word	0x20006288
  8015594:	447a0000 	.word	0x447a0000
  8015598:	3a534067 	.word	0x3a534067
- 801559c:	4195d174 	.word	0x4195d174
+ 801559c:	41b23678 	.word	0x41b23678
  80155a0:	3dcccccd 	.word	0x3dcccccd
  80155a4:	20005d14 	.word	0x20005d14
  80155a8:	20005e38 	.word	0x20005e38
  80155ac:	40020800 	.word	0x40020800
  80155b0:	20005d18 	.word	0x20005d18
  80155b4:	20006320 	.word	0x20006320
- 80155b8:	39dff7bb 	.word	0x39dff7bb
+ 80155b8:	39bc4872 	.word	0x39bc4872
  80155bc:	20005cf4 	.word	0x20005cf4
  80155c0:	200068e8 	.word	0x200068e8
  80155c4:	20005ce8 	.word	0x20005ce8
@@ -23542,7 +23542,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
  8015bfc:	20005cfc 	.word	0x20005cfc
  8015c00:	20005ce4 	.word	0x20005ce4
  8015c04:	20005d10 	.word	0x20005d10
- 8015c08:	39dff7bb 	.word	0x39dff7bb
+ 8015c08:	39bc4872 	.word	0x39bc4872
  8015c0c:	20006280 	.word	0x20006280
  8015c10:	20006310 	.word	0x20006310
 			const float error = -fabsf(current_set) - current_nofilter;
@@ -23699,7 +23699,7 @@ void mcpwm_adc_int_handler(void *p, uint32_t flags) {
  8015d80:	20005d14 	.word	0x20005d14
  8015d84:	20005cf0 	.word	0x20005cf0
  8015d88:	20005ce8 	.word	0x20005ce8
- 8015d8c:	45124e8b 	.word	0x45124e8b
+ 8015d8c:	452e0931 	.word	0x452e0931
  8015d90:	20005cec 	.word	0x20005cec
 	...
 
@@ -27011,7 +27011,7 @@ void terminal_process_string(char *str) {
  8017648:	08049c5c 	.word	0x08049c5c
  801764c:	2000d1dc 	.word	0x2000d1dc
  8017650:	3a534067 	.word	0x3a534067
- 8017654:	4195d174 	.word	0x4195d174
+ 8017654:	41b23678 	.word	0x41b23678
  8017658:	0804988c 	.word	0x0804988c
  801765c:	bf800000 	.word	0xbf800000
  8017660:	080498b4 	.word	0x080498b4
@@ -32025,7 +32025,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
  801a014:	00000000 	.word	0x00000000
  801a018:	437a0000 	.word	0x437a0000
  801a01c:	3a534067 	.word	0x3a534067
- 801a020:	4195d174 	.word	0x4195d174
+ 801a020:	41b23678 	.word	0x41b23678
  801a024:	42700000 	.word	0x42700000
  801a028:	412e1fef 	.word	0x412e1fef
  801a02c:	41a00000 	.word	0x41a00000
@@ -38868,7 +38868,7 @@ void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
  801d678:	461c4000 	.word	0x461c4000
  801d67c:	2000d1dc 	.word	0x2000d1dc
  801d680:	3a534067 	.word	0x3a534067
- 801d684:	4195d174 	.word	0x4195d174
+ 801d684:	41b23678 	.word	0x41b23678
  801d688:	447a0000 	.word	0x447a0000
  801d68c:	42c80000 	.word	0x42c80000
 			buffer_append_float16(send_buffer, mc_interface_temp_motor_filtered(), 1e1, &ind);
@@ -39966,7 +39966,7 @@ static THD_FUNCTION(cancom_status_thread, arg) {
  801dec0:	2000d1dc 	.word	0x2000d1dc
  801dec4:	42480000 	.word	0x42480000
  801dec8:	3a534067 	.word	0x3a534067
- 801decc:	4195d174 	.word	0x4195d174
+ 801decc:	41b23678 	.word	0x41b23678
  801ded0:	461c4000 	.word	0x461c4000
  801ded4:	447a0000 	.word	0x447a0000
 	...
@@ -45421,11 +45421,11 @@ static THD_FUNCTION(sample_send_thread, arg) {
  8020638:	2000dc10 	.word	0x2000dc10
  802063c:	0804b710 	.word	0x0804b710
  8020640:	10000000 	.word	0x10000000
- 8020644:	3da50a50 	.word	0x3da50a50
+ 8020644:	3c040841 	.word	0x3c040841
  8020648:	39800000 	.word	0x39800000
  802064c:	40533333 	.word	0x40533333
- 8020650:	4195d174 	.word	0x4195d174
- 8020654:	42c68ba4 	.word	0x42c68ba4
+ 8020650:	41b23678 	.word	0x41b23678
+ 8020654:	44782e8b 	.word	0x44782e8b
  8020658:	2000d869 	.word	0x2000d869
  802065c:	2000d864 	.word	0x2000d864
  8020660:	100032e8 	.word	0x100032e8
@@ -46042,7 +46042,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
  8020bb4:	2000d1dc 	.word	0x2000d1dc
  8020bb8:	2000d5c4 	.word	0x2000d5c4
  8020bbc:	3a534067 	.word	0x3a534067
- 8020bc0:	4195d174 	.word	0x4195d174
+ 8020bc0:	41b23678 	.word	0x41b23678
  8020bc4:	4c1c363c 	.word	0x4c1c363c
  8020bc8:	45534000 	.word	0x45534000
  8020bcc:	3dcccccd 	.word	0x3dcccccd
@@ -46944,7 +46944,7 @@ static THD_FUNCTION(timer_thread, arg) {
  8021438:	2000d5b8 	.word	0x2000d5b8
  802143c:	3d4ccccd 	.word	0x3d4ccccd
  8021440:	3d23d70a 	.word	0x3d23d70a
- 8021444:	42250a50 	.word	0x42250a50
+ 8021444:	40840841 	.word	0x40840841
  8021448:	3e99999a 	.word	0x3e99999a
  802144c:	3a83126f 	.word	0x3a83126f
  8021450:	00000000 	.word	0x00000000
@@ -47575,7 +47575,7 @@ static THD_FUNCTION(fault_stop_thread, arg) {
  8021934:	2000d5bc 	.word	0x2000d5bc
  8021938:	2000d1dc 	.word	0x2000d1dc
  802193c:	3a534067 	.word	0x3a534067
- 8021940:	4195d174 	.word	0x4195d174
+ 8021940:	41b23678 	.word	0x41b23678
  8021944:	4c1c363c 	.word	0x4c1c363c
  8021948:	461c4000 	.word	0x461c4000
  802194c:	45534000 	.word	0x45534000
@@ -48051,7 +48051,7 @@ float mc_interface_get_battery_level(float *wh_left) {
  8021d0c:	2000d1dc 	.word	0x2000d1dc
  8021d10:	2000d5c4 	.word	0x2000d5c4
  8021d14:	3a534067 	.word	0x3a534067
- 8021d18:	4195d174 	.word	0x4195d174
+ 8021d18:	41b23678 	.word	0x41b23678
  8021d1c:	00000000 	.word	0x00000000
  8021d20:	40066666 	.word	0x40066666
  8021d24:	400eb852 	.word	0x400eb852
@@ -49213,7 +49213,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
  8022764:	2000d1dc 	.word	0x2000d1dc
  8022768:	2000d5c4 	.word	0x2000d5c4
  802276c:	3a534067 	.word	0x3a534067
- 8022770:	4195d174 	.word	0x4195d174
+ 8022770:	41b23678 	.word	0x41b23678
  8022774:	2000e1b0 	.word	0x2000e1b0
  8022778:	2000d874 	.word	0x2000d874
  802277c:	40020400 	.word	0x40020400
@@ -49633,7 +49633,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor) {
  8022b14:	100043e0 	.word	0x100043e0
  8022b18:	100054d8 	.word	0x100054d8
  8022b1c:	100065d0 	.word	0x100065d0
- 8022b20:	42c68ba4 	.word	0x42c68ba4
+ 8022b20:	44782e8b 	.word	0x44782e8b
  8022b24:	2000d5c0 	.word	0x2000d5c0
  8022b28:	aaaaaaab 	.word	0xaaaaaaab
  8022b2c:	43b40000 	.word	0x43b40000
@@ -51998,7 +51998,7 @@ void mcpwm_foc_init(volatile mc_configuration *conf_m1, volatile mc_configuratio
  8023ee8:	00010060 	.word	0x00010060
  8023eec:	02000100 	.word	0x02000100
  8023ef0:	4d2037a0 	.word	0x4d2037a0
- 8023ef4:	43b40000 	.word	0x43b40000
+ 8023ef4:	43a00000 	.word	0x43a00000
  8023ef8:	04000800 	.word	0x04000800
  8023efc:	2000e759 	.word	0x2000e759
  8023f00:	40010400 	.word	0x40010400
@@ -52999,7 +52999,7 @@ void mcpwm_foc_set_openloop_phase(float current, float phase) {
  80246ee:	ee20 0a27 	vmul.f32	s0, s0, s15
  80246f2:	4770      	bx	lr
  80246f4:	2000e764 	.word	0x2000e764
- 80246f8:	3da50a50 	.word	0x3da50a50
+ 80246f8:	3c040841 	.word	0x3c040841
  80246fc:	00000000 	.word	0x00000000
 
 08024700 <mcpwm_foc_get_tot_current_directional>:
@@ -54418,7 +54418,7 @@ float mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *
  80252e4:	2000e764 	.word	0x2000e764
  80252e8:	2000d1dc 	.word	0x2000d1dc
  80252ec:	3a534067 	.word	0x3a534067
- 80252f0:	4195d174 	.word	0x4195d174
+ 80252f0:	41b23678 	.word	0x41b23678
  80252f4:	3f2aaaab 	.word	0x3f2aaaab
  80252f8:	cccccccd 	.word	0xcccccccd
  80252fc:	00000000 	.word	0x00000000
@@ -55821,7 +55821,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
  8025f1e:	bf00      	nop
  8025f20:	40010000 	.word	0x40010000
  8025f24:	3a534067 	.word	0x3a534067
- 8025f28:	4195d174 	.word	0x4195d174
+ 8025f28:	41b23678 	.word	0x41b23678
  8025f2c:	3dcccccd 	.word	0x3dcccccd
  8025f30:	39800000 	.word	0x39800000
  8025f34:	40533333 	.word	0x40533333
@@ -56531,7 +56531,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
  80265f4:	43b40000 	.word	0x43b40000
  80265f8:	3c8efa35 	.word	0x3c8efa35
  80265fc:	42652ee0 	.word	0x42652ee0
- 8026600:	3da50a50 	.word	0x3da50a50
+ 8026600:	3c040841 	.word	0x3c040841
  8026604:	3f93cd3a 	.word	0x3f93cd3a
  8026608:	3f13cd3a 	.word	0x3f13cd3a
  802660c:	3dcccccd 	.word	0x3dcccccd
@@ -57638,7 +57638,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
  8027104:	40c90fdb 	.word	0x40c90fdb
  8027108:	3fe66666 	.word	0x3fe66666
  802710c:	3a534067 	.word	0x3a534067
- 8027110:	4195d174 	.word	0x4195d174
+ 8027110:	41b23678 	.word	0x41b23678
  8027114:	2000e9c0 	.word	0x2000e9c0
  8027118:	2000e764 	.word	0x2000e764
  802711c:	2000e800 	.word	0x2000e800
@@ -58813,7 +58813,7 @@ void gpdrive_init(volatile mc_configuration *configuration) {
  8027b00:	0a037a00 	.word	0x0a037a00
  8027b04:	02000100 	.word	0x02000100
  8027b08:	4d2037a0 	.word	0x4d2037a0
- 8027b0c:	43b40000 	.word	0x43b40000
+ 8027b0c:	43a00000 	.word	0x43a00000
  8027b10:	04000800 	.word	0x04000800
  8027b14:	00400005 	.word	0x00400005
  8027b18:	08027d71 	.word	0x08027d71
@@ -59111,7 +59111,7 @@ void gpdrive_output_sample(float sample) {
  8027d54:	2000f018 	.word	0x2000f018
  8027d58:	2000d1dc 	.word	0x2000d1dc
  8027d5c:	3a534067 	.word	0x3a534067
- 8027d60:	4195d174 	.word	0x4195d174
+ 8027d60:	41b23678 	.word	0x41b23678
  8027d64:	2000eff8 	.word	0x2000eff8
  8027d68:	2000f00d 	.word	0x2000f00d
  8027d6c:	00000000 	.word	0x00000000
@@ -59537,9 +59537,9 @@ static void adc_int_handler(void *p, uint32_t flags) {
  8028048:	2000efe4 	.word	0x2000efe4
  802804c:	2000efec 	.word	0x2000efec
  8028050:	2000eff4 	.word	0x2000eff4
- 8028054:	3da50a50 	.word	0x3da50a50
+ 8028054:	3c040841 	.word	0x3c040841
  8028058:	3a534067 	.word	0x3a534067
- 802805c:	4195d174 	.word	0x4195d174
+ 802805c:	41b23678 	.word	0x41b23678
  8028060:	200119c8 	.word	0x200119c8
  8028064:	2000efc8 	.word	0x2000efc8
  8028068:	2000f020 	.word	0x2000f020
@@ -65548,7 +65548,7 @@ static void terminal_cmd_connect_virtual_motor(int argc, const char **argv) {
  802ac04:	200119dc 	.word	0x200119dc
  802ac08:	2000d1dc 	.word	0x2000d1dc
  802ac0c:	3a534067 	.word	0x3a534067
- 802ac10:	4195d174 	.word	0x4195d174
+ 802ac10:	41b23678 	.word	0x41b23678
  802ac14:	0804bd40 	.word	0x0804bd40
  802ac18:	00000000 	.word	0x00000000
  802ac1c:	40012000 	.word	0x40012000
@@ -66032,16 +66032,16 @@ void virtual_motor_int_handler(float v_alpha, float v_beta){
  802b0c6:	bf00      	nop
  802b0c8:	200119dc 	.word	0x200119dc
  802b0cc:	200119cc 	.word	0x200119cc
- 802b0d0:	43250a50 	.word	0x43250a50
+ 802b0d0:	41840841 	.word	0x41840841
  802b0d4:	40490fdb 	.word	0x40490fdb
  802b0d8:	40c90fdb 	.word	0x40c90fdb
  802b0dc:	c0490fdb 	.word	0xc0490fdb
  802b0e0:	20011a14 	.word	0x20011a14
  802b0e4:	3f5db3d7 	.word	0x3f5db3d7
- 802b0e8:	3da50a50 	.word	0x3da50a50
+ 802b0e8:	3c040841 	.word	0x3c040841
  802b0ec:	45000000 	.word	0x45000000
  802b0f0:	2000d1dc 	.word	0x2000d1dc
- 802b0f4:	3d5ab7ec 	.word	0x3d5ab7ec
+ 802b0f4:	3d37debf 	.word	0x3d37debf
  802b0f8:	449b26ca 	.word	0x449b26ca
  802b0fc:	00000000 	.word	0x00000000
 
@@ -75100,7 +75100,7 @@ void calculate_setpoint_target(void){
  802f9e4:	3d4ccccd 	.word	0x3d4ccccd
  802f9e8:	2000d1dc 	.word	0x2000d1dc
  802f9ec:	3a534067 	.word	0x3a534067
- 802f9f0:	4195d174 	.word	0x4195d174
+ 802f9f0:	41b23678 	.word	0x41b23678
  802f9f4:	20016804 	.word	0x20016804
 	...
 
@@ -83556,7 +83556,7 @@ static THD_FUNCTION(canard_thread, arg) {
  8033694:	200197c9 	.word	0x200197c9
  8033698:	2000d1dc 	.word	0x2000d1dc
  803369c:	3a534067 	.word	0x3a534067
- 80336a0:	4195d174 	.word	0x4195d174
+ 80336a0:	41b23678 	.word	0x41b23678
  80336a4:	200197c8 	.word	0x200197c8
 	...
 

@@ -1,4 +1,4 @@
-ARM GAS  /tmp/ccq29trl.s 			page 1
+ARM GAS  /tmp/ccHCio9P.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
   55              	.L4:
   56 0018 00200140 		.word	1073815552
   57              		.cfi_endproc
-ARM GAS  /tmp/ccq29trl.s 			page 2
+ARM GAS  /tmp/ccHCio9P.s 			page 2
 
 
   58              	.LFE256:
@@ -118,7 +118,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  112              	VectorB4:
  113              	.LFB258:
  114              		.loc 1 45 0
-ARM GAS  /tmp/ccq29trl.s 			page 3
+ARM GAS  /tmp/ccHCio9P.s 			page 3
 
 
  115              		.cfi_startproc
@@ -178,7 +178,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  169              		.cfi_offset 3, -8
  170              		.cfi_offset 14, -4
  171              		.loc 1 55 0
-ARM GAS  /tmp/ccq29trl.s 			page 4
+ARM GAS  /tmp/ccHCio9P.s 			page 4
 
 
  172 0002 0421     		movs	r1, #4
@@ -238,7 +238,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  226              	.L25:
  227              		.loc 1 68 0
  228 000e 0122     		movs	r2, #1
-ARM GAS  /tmp/ccq29trl.s 			page 5
+ARM GAS  /tmp/ccHCio9P.s 			page 5
 
 
  229 0010 0021     		movs	r1, #0
@@ -298,7 +298,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  283              		.file 33 "ChibiOS_3.0.5/os/hal/include/spi.h"
  284              		.file 34 "ChibiOS_3.0.5/os/hal/ports/STM32/LLD/SPIv1/spi_lld.h"
  285              		.file 35 "ChibiOS_3.0.5/os/hal/include/usb.h"
-ARM GAS  /tmp/ccq29trl.s 			page 6
+ARM GAS  /tmp/ccHCio9P.s 			page 6
 
 
  286              		.file 36 "ChibiOS_3.0.5/os/hal/ports/STM32/LLD/OTGv1/usb_lld.h"
@@ -358,7 +358,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  340 0063 05       		.byte	0x5
  341 0064 46190000 		.4byte	.LASF5
  342 0068 04       		.uleb128 0x4
-ARM GAS  /tmp/ccq29trl.s 			page 7
+ARM GAS  /tmp/ccHCio9P.s 			page 7
 
 
  343 0069 BE050000 		.4byte	.LASF6
@@ -418,7 +418,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  397 00d8 89020000 		.4byte	.LASF17
  398 00dc 04       		.byte	0x4
  399 00dd 2C       		.byte	0x2c
-ARM GAS  /tmp/ccq29trl.s 			page 8
+ARM GAS  /tmp/ccHCio9P.s 			page 8
 
 
  400 00de 7A000000 		.4byte	0x7a
@@ -478,7 +478,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  454 0156 E7000000 		.4byte	0xe7
  455 015a 04       		.uleb128 0x4
  456 015b E5170000 		.4byte	.LASF28
-ARM GAS  /tmp/ccq29trl.s 			page 9
+ARM GAS  /tmp/ccHCio9P.s 			page 9
 
 
  457 015f 05       		.byte	0x5
@@ -538,7 +538,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  511 01ce A8020000 		.4byte	0x2a8
  512 01d2 10       		.byte	0x10
  513 01d3 08       		.uleb128 0x8
-ARM GAS  /tmp/ccq29trl.s 			page 10
+ARM GAS  /tmp/ccHCio9P.s 			page 10
 
 
  514 01d4 32180000 		.4byte	.LASF37
@@ -598,7 +598,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  568 0242 A60F0000 		.4byte	.LASF45
  569 0246 07       		.byte	0x7
  570 0247 3C01     		.2byte	0x13c
-ARM GAS  /tmp/ccq29trl.s 			page 11
+ARM GAS  /tmp/ccHCio9P.s 			page 11
 
 
  571 0249 D2020000 		.4byte	0x2d2
@@ -658,7 +658,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  625 02be 04       		.byte	0x4
  626 02bf 07       		.byte	0x7
  627 02c0 B0       		.byte	0xb0
-ARM GAS  /tmp/ccq29trl.s 			page 12
+ARM GAS  /tmp/ccHCio9P.s 			page 12
 
 
  628 02c1 D2020000 		.4byte	0x2d2
@@ -718,7 +718,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  682 0333 08       		.byte	0x8
  683 0334 0A       		.uleb128 0xa
  684 0335 0B0A0000 		.4byte	.LASF62
-ARM GAS  /tmp/ccq29trl.s 			page 13
+ARM GAS  /tmp/ccHCio9P.s 			page 13
 
 
  685 0339 07       		.byte	0x7
@@ -778,7 +778,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  739 03ab 00       		.byte	0
  740 03ac 0A       		.uleb128 0xa
  741 03ad CA060000 		.4byte	.LASF70
-ARM GAS  /tmp/ccq29trl.s 			page 14
+ARM GAS  /tmp/ccHCio9P.s 			page 14
 
 
  742 03b1 07       		.byte	0x7
@@ -838,7 +838,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  796 0425 07       		.byte	0x7
  797 0426 8201     		.2byte	0x182
  798 0428 7B010000 		.4byte	0x17b
-ARM GAS  /tmp/ccq29trl.s 			page 15
+ARM GAS  /tmp/ccHCio9P.s 			page 15
 
 
  799 042c 0C       		.byte	0xc
@@ -898,7 +898,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  853 04a0 30       		.byte	0x30
  854 04a1 09       		.uleb128 0x9
  855 04a2 746D00   		.ascii	"tm\000"
-ARM GAS  /tmp/ccq29trl.s 			page 16
+ARM GAS  /tmp/ccHCio9P.s 			page 16
 
 
  856 04a5 07       		.byte	0x7
@@ -958,7 +958,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  910 0513 C9       		.byte	0xc9
  911 0514 F2000000 		.4byte	0xf2
  912 0518 0C       		.byte	0xc
-ARM GAS  /tmp/ccq29trl.s 			page 17
+ARM GAS  /tmp/ccHCio9P.s 			page 17
 
 
  913 0519 08       		.uleb128 0x8
@@ -1018,7 +1018,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  967 0585 08       		.uleb128 0x8
  968 0586 C00D0000 		.4byte	.LASF96
  969 058a 0A       		.byte	0xa
-ARM GAS  /tmp/ccq29trl.s 			page 18
+ARM GAS  /tmp/ccHCio9P.s 			page 18
 
 
  970 058b D3       		.byte	0xd3
@@ -1078,7 +1078,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1024 05f3 F2000000 		.4byte	0xf2
  1025 05f7 00       		.byte	0
  1026 05f8 08       		.uleb128 0x8
-ARM GAS  /tmp/ccq29trl.s 			page 19
+ARM GAS  /tmp/ccHCio9P.s 			page 19
 
 
  1027 05f9 760C0000 		.4byte	.LASF103
@@ -1138,7 +1138,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1081 0662 AE130000 		.4byte	.LASF110
  1082 0666 0A       		.byte	0xa
  1083 0667 FB       		.byte	0xfb
-ARM GAS  /tmp/ccq29trl.s 			page 20
+ARM GAS  /tmp/ccHCio9P.s 			page 20
 
 
  1084 0668 28060000 		.4byte	0x628
@@ -1198,7 +1198,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1138 06db CC0B0000 		.4byte	.LASF113
  1139 06df 0A       		.byte	0xa
  1140 06e0 1101     		.2byte	0x111
-ARM GAS  /tmp/ccq29trl.s 			page 21
+ARM GAS  /tmp/ccHCio9P.s 			page 21
 
 
  1141 06e2 F2000000 		.4byte	0xf2
@@ -1258,7 +1258,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1195 075b F2000000 		.4byte	0xf2
  1196 075f 0402     		.2byte	0x204
  1197 0761 1A       		.uleb128 0x1a
-ARM GAS  /tmp/ccq29trl.s 			page 22
+ARM GAS  /tmp/ccHCio9P.s 			page 22
 
 
  1198 0762 FE140000 		.4byte	.LASF119
@@ -1318,7 +1318,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1252 07e1 00       		.byte	0
  1253 07e2 11       		.uleb128 0x11
  1254 07e3 1D060000 		.4byte	0x61d
-ARM GAS  /tmp/ccq29trl.s 			page 23
+ARM GAS  /tmp/ccHCio9P.s 			page 23
 
 
  1255 07e7 F2070000 		.4byte	0x7f2
@@ -1378,7 +1378,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1309 085d 0A       		.uleb128 0xa
  1310 085e C1020000 		.4byte	.LASF129
  1311 0862 0A       		.byte	0xa
-ARM GAS  /tmp/ccq29trl.s 			page 24
+ARM GAS  /tmp/ccHCio9P.s 			page 24
 
 
  1312 0863 7001     		.2byte	0x170
@@ -1438,7 +1438,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1366 08d9 F2000000 		.4byte	0xf2
  1367 08dd 04       		.byte	0x4
  1368 08de 0A       		.uleb128 0xa
-ARM GAS  /tmp/ccq29trl.s 			page 25
+ARM GAS  /tmp/ccHCio9P.s 			page 25
 
 
  1369 08df CC190000 		.4byte	.LASF132
@@ -1498,7 +1498,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1423 0953 24       		.byte	0x24
  1424 0954 0A       		.byte	0xa
  1425 0955 DB02     		.2byte	0x2db
-ARM GAS  /tmp/ccq29trl.s 			page 26
+ARM GAS  /tmp/ccHCio9P.s 			page 26
 
 
  1426 0957 CF090000 		.4byte	0x9cf
@@ -1558,7 +1558,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1480 09cd 20       		.byte	0x20
  1481 09ce 00       		.byte	0
  1482 09cf 18       		.uleb128 0x18
-ARM GAS  /tmp/ccq29trl.s 			page 27
+ARM GAS  /tmp/ccHCio9P.s 			page 27
 
 
  1483 09d0 65160000 		.4byte	.LASF142
@@ -1618,7 +1618,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1537 0a44 F502     		.2byte	0x2f5
  1538 0a46 F2000000 		.4byte	0xf2
  1539 0a4a 1C       		.byte	0x1c
-ARM GAS  /tmp/ccq29trl.s 			page 28
+ARM GAS  /tmp/ccHCio9P.s 			page 28
 
 
  1540 0a4b 0A       		.uleb128 0xa
@@ -1678,7 +1678,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1594 0ac0 0A       		.uleb128 0xa
  1595 0ac1 02010000 		.4byte	.LASF152
  1596 0ac5 0A       		.byte	0xa
-ARM GAS  /tmp/ccq29trl.s 			page 29
+ARM GAS  /tmp/ccHCio9P.s 			page 29
 
 
  1597 0ac6 FF02     		.2byte	0x2ff
@@ -1738,7 +1738,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1651 0b36 F2000000 		.4byte	0xf2
  1652 0b3a 0C       		.byte	0xc
  1653 0b3b 09       		.uleb128 0x9
-ARM GAS  /tmp/ccq29trl.s 			page 30
+ARM GAS  /tmp/ccHCio9P.s 			page 30
 
 
  1654 0b3c 43523200 		.ascii	"CR2\000"
@@ -1798,7 +1798,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1708 0baf 6D       		.byte	0x6d
  1709 0bb0 F7000000 		.4byte	0xf7
  1710 0bb4 07       		.uleb128 0x7
-ARM GAS  /tmp/ccq29trl.s 			page 31
+ARM GAS  /tmp/ccHCio9P.s 			page 31
 
 
  1711 0bb5 DF100000 		.4byte	.LASF160
@@ -1858,7 +1858,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1765 0c21 16       		.uleb128 0x16
  1766 0c22 73323200 		.ascii	"s22\000"
  1767 0c26 0C       		.byte	0xc
-ARM GAS  /tmp/ccq29trl.s 			page 32
+ARM GAS  /tmp/ccHCio9P.s 			page 32
 
 
  1768 0c27 FC       		.byte	0xfc
@@ -1918,7 +1918,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1822 0c98 0501     		.2byte	0x105
  1823 0c9a 9E0B0000 		.4byte	0xb9e
  1824 0c9e 3C       		.byte	0x3c
-ARM GAS  /tmp/ccq29trl.s 			page 33
+ARM GAS  /tmp/ccHCio9P.s 			page 33
 
 
  1825 0c9f 09       		.uleb128 0x9
@@ -1978,7 +1978,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1879 0d0d 00       		.byte	0
  1880 0d0e 0B       		.uleb128 0xb
  1881 0d0f 04       		.byte	0x4
-ARM GAS  /tmp/ccq29trl.s 			page 34
+ARM GAS  /tmp/ccHCio9P.s 			page 34
 
 
  1882 0d10 CD0B0000 		.4byte	0xbcd
@@ -2038,7 +2038,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1936 0d85 9F160000 		.4byte	.LASF170
  1937 0d89 07       		.byte	0x7
  1938 0d8a 2F01     		.2byte	0x12f
-ARM GAS  /tmp/ccq29trl.s 			page 35
+ARM GAS  /tmp/ccHCio9P.s 			page 35
 
 
  1939 0d8c 4F010000 		.4byte	0x14f
@@ -2098,7 +2098,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  1993 0df5 C20D0000 		.4byte	0xdc2
  1994 0df9 0B       		.uleb128 0xb
  1995 0dfa 04       		.byte	0x4
-ARM GAS  /tmp/ccq29trl.s 			page 36
+ARM GAS  /tmp/ccHCio9P.s 			page 36
 
 
  1996 0dfb 0B0E0000 		.4byte	0xe0b
@@ -2158,7 +2158,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2050 0e6a 1B000000 		.4byte	.LASF183
  2051 0e6e 10       		.byte	0x10
  2052 0e6f 39       		.byte	0x39
-ARM GAS  /tmp/ccq29trl.s 			page 37
+ARM GAS  /tmp/ccHCio9P.s 			page 37
 
 
  2053 0e70 B7000000 		.4byte	0xb7
@@ -2218,7 +2218,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2107 0edc B7000000 		.4byte	0xb7
  2108 0ee0 11       		.byte	0x11
  2109 0ee1 08       		.uleb128 0x8
-ARM GAS  /tmp/ccq29trl.s 			page 38
+ARM GAS  /tmp/ccHCio9P.s 			page 38
 
 
  2110 0ee2 79010000 		.4byte	.LASF193
@@ -2278,7 +2278,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2164 0f54 34       		.byte	0x34
  2165 0f55 590F0000 		.4byte	0xf59
  2166 0f59 07       		.uleb128 0x7
-ARM GAS  /tmp/ccq29trl.s 			page 39
+ARM GAS  /tmp/ccHCio9P.s 			page 39
 
 
  2167 0f5a F0060000 		.4byte	.LASF201
@@ -2338,7 +2338,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2221 0fc6 11       		.byte	0x11
  2222 0fc7 4E       		.byte	0x4e
  2223 0fc8 A80F0000 		.4byte	0xfa8
-ARM GAS  /tmp/ccq29trl.s 			page 40
+ARM GAS  /tmp/ccHCio9P.s 			page 40
 
 
  2224 0fcc 04       		.uleb128 0x4
@@ -2398,7 +2398,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2278 1038 5B120000 		.4byte	.LASF219
  2279 103c 12       		.byte	0x12
  2280 103d 56       		.byte	0x56
-ARM GAS  /tmp/ccq29trl.s 			page 41
+ARM GAS  /tmp/ccHCio9P.s 			page 41
 
 
  2281 103e 85030000 		.4byte	0x385
@@ -2458,7 +2458,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2335 10b6 66100000 		.4byte	0x1066
  2336 10ba 0E       		.uleb128 0xe
  2337 10bb 31000000 		.4byte	0x31
-ARM GAS  /tmp/ccq29trl.s 			page 42
+ARM GAS  /tmp/ccHCio9P.s 			page 42
 
 
  2338 10bf 00       		.byte	0
@@ -2518,7 +2518,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2392 1131 07       		.byte	0x7
  2393 1132 1D       		.uleb128 0x1d
  2394 1133 B1140000 		.4byte	.LASF231
-ARM GAS  /tmp/ccq29trl.s 			page 43
+ARM GAS  /tmp/ccHCio9P.s 			page 43
 
 
  2395 1137 08       		.byte	0x8
@@ -2578,7 +2578,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2449 11a0 04       		.byte	0x4
  2450 11a1 04       		.byte	0x4
  2451 11a2 48070000 		.4byte	.LASF249
-ARM GAS  /tmp/ccq29trl.s 			page 44
+ARM GAS  /tmp/ccHCio9P.s 			page 44
 
 
  2452 11a6 05       		.uleb128 0x5
@@ -2595,7 +2595,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2463 11bd 13       		.uleb128 0x13
  2464 11be 1A110000 		.4byte	.LASF251
  2465 11c2 15       		.byte	0x15
- 2466 11c3 4101     		.2byte	0x141
+ 2466 11c3 4201     		.2byte	0x142
  2467 11c5 A6110000 		.4byte	0x11a6
  2468 11c9 15       		.uleb128 0x15
  2469 11ca 0C       		.byte	0xc
@@ -2638,7 +2638,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2506 1210 85080000 		.4byte	0x885
  2507 1214 0B       		.uleb128 0xb
  2508 1215 04       		.byte	0x4
-ARM GAS  /tmp/ccq29trl.s 			page 45
+ARM GAS  /tmp/ccHCio9P.s 			page 45
 
 
  2509 1216 F2000000 		.4byte	0xf2
@@ -2698,7 +2698,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2563 1298 31000000 		.4byte	0x31
  2564 129c 0E       		.uleb128 0xe
  2565 129d 70010000 		.4byte	0x170
-ARM GAS  /tmp/ccq29trl.s 			page 46
+ARM GAS  /tmp/ccHCio9P.s 			page 46
 
 
  2566 12a1 00       		.byte	0
@@ -2758,7 +2758,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2620 1309 ED120000 		.4byte	0x12ed
  2621 130d 15       		.uleb128 0x15
  2622 130e 2C       		.byte	0x2c
-ARM GAS  /tmp/ccq29trl.s 			page 47
+ARM GAS  /tmp/ccHCio9P.s 			page 47
 
 
  2623 130f 17       		.byte	0x17
@@ -2818,7 +2818,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2677 137b B9       		.byte	0xb9
  2678 137c F2000000 		.4byte	0xf2
  2679 1380 20       		.byte	0x20
-ARM GAS  /tmp/ccq29trl.s 			page 48
+ARM GAS  /tmp/ccHCio9P.s 			page 48
 
 
  2680 1381 08       		.uleb128 0x8
@@ -2878,7 +2878,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2734 13ea 80140000 		.4byte	.LASF273
  2735 13ee 17       		.byte	0x17
  2736 13ef CD       		.byte	0xcd
-ARM GAS  /tmp/ccq29trl.s 			page 49
+ARM GAS  /tmp/ccHCio9P.s 			page 49
 
 
  2737 13f0 E7000000 		.4byte	0xe7
@@ -2938,7 +2938,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2791 145c 8C       		.byte	0x8c
  2792 145d 08       		.uleb128 0x8
  2793 145e 7E080000 		.4byte	.LASF282
-ARM GAS  /tmp/ccq29trl.s 			page 50
+ARM GAS  /tmp/ccHCio9P.s 			page 50
 
 
  2794 1462 17       		.byte	0x17
@@ -2998,7 +2998,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2848 14d0 4D040000 		.4byte	.LASF291
  2849 14d4 03       		.byte	0x3
  2850 14d5 1D       		.uleb128 0x1d
-ARM GAS  /tmp/ccq29trl.s 			page 51
+ARM GAS  /tmp/ccHCio9P.s 			page 51
 
 
  2851 14d6 4E070000 		.4byte	.LASF292
@@ -3058,7 +3058,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2905 1545 D2020000 		.4byte	0x2d2
  2906 1549 08       		.byte	0x8
  2907 154a 0A       		.uleb128 0xa
-ARM GAS  /tmp/ccq29trl.s 			page 52
+ARM GAS  /tmp/ccHCio9P.s 			page 52
 
 
  2908 154b 38150000 		.4byte	.LASF298
@@ -3118,7 +3118,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  2962 15bf DF160000 		.4byte	.LASF305
  2963 15c3 19       		.byte	0x19
  2964 15c4 4B01     		.2byte	0x14b
-ARM GAS  /tmp/ccq29trl.s 			page 53
+ARM GAS  /tmp/ccHCio9P.s 			page 53
 
 
  2965 15c6 B2150000 		.4byte	0x15b2
@@ -3178,7 +3178,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3019 1638 02       		.byte	0x2
  3020 1639 1D       		.uleb128 0x1d
  3021 163a 24070000 		.4byte	.LASF317
-ARM GAS  /tmp/ccq29trl.s 			page 54
+ARM GAS  /tmp/ccHCio9P.s 			page 54
 
 
  3022 163e 03       		.byte	0x3
@@ -3238,7 +3238,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3076 16ab 07010000 		.4byte	.LASF326
  3077 16af 1B       		.byte	0x1b
  3078 16b0 8E01     		.2byte	0x18e
-ARM GAS  /tmp/ccq29trl.s 			page 55
+ARM GAS  /tmp/ccHCio9P.s 			page 55
 
 
  3079 16b2 79160000 		.4byte	0x1679
@@ -3298,7 +3298,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3133 172a E7000000 		.4byte	0xe7
  3134 172e 24       		.byte	0x24
  3135 172f 0A       		.uleb128 0xa
-ARM GAS  /tmp/ccq29trl.s 			page 56
+ARM GAS  /tmp/ccHCio9P.s 			page 56
 
 
  3136 1730 6F060000 		.4byte	.LASF333
@@ -3358,7 +3358,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3190 17a1 1D       		.uleb128 0x1d
  3191 17a2 800E0000 		.4byte	.LASF340
  3192 17a6 03       		.byte	0x3
-ARM GAS  /tmp/ccq29trl.s 			page 57
+ARM GAS  /tmp/ccHCio9P.s 			page 57
 
 
  3193 17a7 1D       		.uleb128 0x1d
@@ -3418,7 +3418,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3247 181a 14120000 		.4byte	0x1214
  3248 181e 14       		.byte	0x14
  3249 181f 00       		.byte	0
-ARM GAS  /tmp/ccq29trl.s 			page 58
+ARM GAS  /tmp/ccHCio9P.s 			page 58
 
 
  3250 1820 04       		.uleb128 0x4
@@ -3478,7 +3478,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3304 1891 A401     		.2byte	0x1a4
  3305 1893 F2000000 		.4byte	0xf2
  3306 1897 14       		.byte	0x14
-ARM GAS  /tmp/ccq29trl.s 			page 59
+ARM GAS  /tmp/ccHCio9P.s 			page 59
 
 
  3307 1898 0A       		.uleb128 0xa
@@ -3538,7 +3538,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3361 190d 09       		.uleb128 0x9
  3362 190e 44435200 		.ascii	"DCR\000"
  3363 1912 1E       		.byte	0x1e
-ARM GAS  /tmp/ccq29trl.s 			page 60
+ARM GAS  /tmp/ccHCio9P.s 			page 60
 
 
  3364 1913 AE01     		.2byte	0x1ae
@@ -3598,7 +3598,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3418 1984 1D       		.byte	0x1d
  3419 1985 F6       		.byte	0xf6
  3420 1986 E7000000 		.4byte	0xe7
-ARM GAS  /tmp/ccq29trl.s 			page 61
+ARM GAS  /tmp/ccHCio9P.s 			page 61
 
 
  3421 198a 1C       		.uleb128 0x1c
@@ -3658,7 +3658,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3475 19f9 0A       		.uleb128 0xa
  3476 19fa 6D0D0000 		.4byte	.LASF363
  3477 19fe 1D       		.byte	0x1d
-ARM GAS  /tmp/ccq29trl.s 			page 62
+ARM GAS  /tmp/ccHCio9P.s 			page 62
 
 
  3478 19ff 2501     		.2byte	0x125
@@ -3718,7 +3718,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3532 1a70 491A0000 		.4byte	0x1a49
  3533 1a74 04       		.uleb128 0x4
  3534 1a75 27170000 		.4byte	.LASF372
-ARM GAS  /tmp/ccq29trl.s 			page 63
+ARM GAS  /tmp/ccHCio9P.s 			page 63
 
 
  3535 1a79 1F       		.byte	0x1f
@@ -3778,7 +3778,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3589 1ae4 7B       		.byte	0x7b
  3590 1ae5 B01B0000 		.4byte	0x1bb0
  3591 1ae9 5401     		.2byte	0x154
-ARM GAS  /tmp/ccq29trl.s 			page 64
+ARM GAS  /tmp/ccHCio9P.s 			page 64
 
 
  3592 1aeb 00       		.byte	0
@@ -3838,7 +3838,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3646 1b5f EF100000 		.4byte	0x10ef
  3647 1b63 0C       		.byte	0xc
  3648 1b64 08       		.uleb128 0x8
-ARM GAS  /tmp/ccq29trl.s 			page 65
+ARM GAS  /tmp/ccHCio9P.s 			page 65
 
 
  3649 1b65 A80E0000 		.4byte	.LASF380
@@ -3898,7 +3898,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3703 1bd4 02       		.byte	0x2
  3704 1bd5 1D       		.uleb128 0x1d
  3705 1bd6 280D0000 		.4byte	.LASF387
-ARM GAS  /tmp/ccq29trl.s 			page 66
+ARM GAS  /tmp/ccHCio9P.s 			page 66
 
 
  3706 1bda 03       		.byte	0x3
@@ -3958,7 +3958,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3760 1c4d DA01     		.2byte	0x1da
  3761 1c4f 6A170000 		.4byte	0x176a
  3762 1c53 20       		.byte	0x20
-ARM GAS  /tmp/ccq29trl.s 			page 67
+ARM GAS  /tmp/ccHCio9P.s 			page 67
 
 
  3763 1c54 0A       		.uleb128 0xa
@@ -4018,7 +4018,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3817 1cc7 22       		.byte	0x22
  3818 1cc8 B001     		.2byte	0x1b0
  3819 1cca C7000000 		.4byte	0xc7
-ARM GAS  /tmp/ccq29trl.s 			page 68
+ARM GAS  /tmp/ccHCio9P.s 			page 68
 
 
  3820 1cce 08       		.byte	0x8
@@ -4078,7 +4078,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3874 1d45 0A       		.uleb128 0xa
  3875 1d46 13170000 		.4byte	.LASF399
  3876 1d4a 24       		.byte	0x24
-ARM GAS  /tmp/ccq29trl.s 			page 69
+ARM GAS  /tmp/ccHCio9P.s 			page 69
 
 
  3877 1d4b 8301     		.2byte	0x183
@@ -4138,7 +4138,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3931 1dc0 AD01     		.2byte	0x1ad
  3932 1dc2 AD110000 		.4byte	0x11ad
  3933 1dc6 44       		.byte	0x44
-ARM GAS  /tmp/ccq29trl.s 			page 70
+ARM GAS  /tmp/ccHCio9P.s 			page 70
 
 
  3934 1dc7 0A       		.uleb128 0xa
@@ -4198,7 +4198,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  3988 1e3b 0A       		.uleb128 0xa
  3989 1e3c E70E0000 		.4byte	.LASF415
  3990 1e40 24       		.byte	0x24
-ARM GAS  /tmp/ccq29trl.s 			page 71
+ARM GAS  /tmp/ccHCio9P.s 			page 71
 
 
  3991 1e41 DA01     		.2byte	0x1da
@@ -4258,7 +4258,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4045 1eae 2B130000 		.4byte	.LASF426
  4046 1eb2 02       		.byte	0x2
  4047 1eb3 1D       		.uleb128 0x1d
-ARM GAS  /tmp/ccq29trl.s 			page 72
+ARM GAS  /tmp/ccHCio9P.s 			page 72
 
 
  4048 1eb4 FD0F0000 		.4byte	.LASF427
@@ -4318,7 +4318,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4102 1f21 9A190000 		.4byte	.LASF439
  4103 1f25 23       		.byte	0x23
  4104 1f26 3601     		.2byte	0x136
-ARM GAS  /tmp/ccq29trl.s 			page 73
+ARM GAS  /tmp/ccHCio9P.s 			page 73
 
 
  4105 1f28 31000000 		.4byte	0x31
@@ -4378,7 +4378,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4159 1f9f A31F0000 		.4byte	0x1fa3
  4160 1fa3 0D       		.uleb128 0xd
  4161 1fa4 B31F0000 		.4byte	0x1fb3
-ARM GAS  /tmp/ccq29trl.s 			page 74
+ARM GAS  /tmp/ccHCio9P.s 			page 74
 
 
  4162 1fa8 0E       		.uleb128 0xe
@@ -4438,7 +4438,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4216 201f 790A0000 		.4byte	.LASF448
  4217 2023 25       		.byte	0x25
  4218 2024 38       		.byte	0x38
-ARM GAS  /tmp/ccq29trl.s 			page 75
+ARM GAS  /tmp/ccHCio9P.s 			page 75
 
 
  4219 2025 F2000000 		.4byte	0xf2
@@ -4498,7 +4498,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4273 2091 00       		.byte	0
  4274 2092 08       		.uleb128 0x8
  4275 2093 6A0A0000 		.4byte	.LASF457
-ARM GAS  /tmp/ccq29trl.s 			page 76
+ARM GAS  /tmp/ccHCio9P.s 			page 76
 
 
  4276 2097 25       		.byte	0x25
@@ -4558,7 +4558,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4330 2100 59       		.byte	0x59
  4331 2101 F2000000 		.4byte	0xf2
  4332 2105 00       		.byte	0
-ARM GAS  /tmp/ccq29trl.s 			page 77
+ARM GAS  /tmp/ccHCio9P.s 			page 77
 
 
  4333 2106 08       		.uleb128 0x8
@@ -4618,7 +4618,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4387 2172 61030000 		.4byte	.LASF468
  4388 2176 25       		.byte	0x25
  4389 2177 6A       		.byte	0x6a
-ARM GAS  /tmp/ccq29trl.s 			page 78
+ARM GAS  /tmp/ccHCio9P.s 			page 78
 
 
  4390 2178 F2000000 		.4byte	0xf2
@@ -4678,7 +4678,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4444 21e4 F2000000 		.4byte	0xf2
  4445 21e8 24       		.byte	0x24
  4446 21e9 08       		.uleb128 0x8
-ARM GAS  /tmp/ccq29trl.s 			page 79
+ARM GAS  /tmp/ccHCio9P.s 			page 79
 
 
  4447 21ea 53000000 		.4byte	.LASF478
@@ -4738,7 +4738,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4501 2258 FE0E0000 		.4byte	.LASF486
  4502 225c 25       		.byte	0x25
  4503 225d 83       		.byte	0x83
-ARM GAS  /tmp/ccq29trl.s 			page 80
+ARM GAS  /tmp/ccHCio9P.s 			page 80
 
 
  4504 225e 68240000 		.4byte	0x2468
@@ -4798,7 +4798,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4558 22d3 F2000000 		.4byte	0xf2
  4559 22d7 4004     		.2byte	0x440
  4560 22d9 26       		.uleb128 0x26
-ARM GAS  /tmp/ccq29trl.s 			page 81
+ARM GAS  /tmp/ccHCio9P.s 			page 81
 
 
  4561 22da 5D150000 		.4byte	.LASF496
@@ -4858,7 +4858,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4615 234e FD160000 		.4byte	.LASF504
  4616 2352 25       		.byte	0x25
  4617 2353 9D       		.byte	0x9d
-ARM GAS  /tmp/ccq29trl.s 			page 82
+ARM GAS  /tmp/ccHCio9P.s 			page 82
 
 
  4618 2354 F2000000 		.4byte	0xf2
@@ -4918,7 +4918,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4672 23c9 F2000000 		.4byte	0xf2
  4673 23cd 3C08     		.2byte	0x83c
  4674 23cf 26       		.uleb128 0x26
-ARM GAS  /tmp/ccq29trl.s 			page 83
+ARM GAS  /tmp/ccHCio9P.s 			page 83
 
 
  4675 23d0 AF050000 		.4byte	.LASF514
@@ -4978,7 +4978,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4729 2443 11       		.uleb128 0x11
  4730 2444 F2000000 		.4byte	0xf2
  4731 2448 53240000 		.4byte	0x2453
-ARM GAS  /tmp/ccq29trl.s 			page 84
+ARM GAS  /tmp/ccHCio9P.s 			page 84
 
 
  4732 244c 12       		.uleb128 0x12
@@ -5038,7 +5038,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4786 24ca 0F       		.byte	0xf
  4787 24cb 00       		.byte	0
  4788 24cc 03       		.uleb128 0x3
-ARM GAS  /tmp/ccq29trl.s 			page 85
+ARM GAS  /tmp/ccHCio9P.s 			page 85
 
 
  4789 24cd BC240000 		.4byte	0x24bc
@@ -5098,7 +5098,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4843 2546 24       		.byte	0x24
  4844 2547 C8       		.byte	0xc8
  4845 2548 E7000000 		.4byte	0xe7
-ARM GAS  /tmp/ccq29trl.s 			page 86
+ARM GAS  /tmp/ccHCio9P.s 			page 86
 
 
  4846 254c 04       		.byte	0x4
@@ -5158,7 +5158,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4900 25b2 24       		.byte	0x24
  4901 25b3 E8       		.byte	0xe8
  4902 25b4 7F250000 		.4byte	0x257f
-ARM GAS  /tmp/ccq29trl.s 			page 87
+ARM GAS  /tmp/ccHCio9P.s 			page 87
 
 
  4903 25b8 00       		.byte	0
@@ -5218,7 +5218,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  4957 2620 17       		.uleb128 0x17
  4958 2621 04       		.byte	0x4
  4959 2622 24       		.byte	0x24
-ARM GAS  /tmp/ccq29trl.s 			page 88
+ARM GAS  /tmp/ccHCio9P.s 			page 88
 
 
  4960 2623 0701     		.2byte	0x107
@@ -5278,7 +5278,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5014 2691 0D01     		.2byte	0x10d
  5015 2693 3D260000 		.4byte	0x263d
  5016 2697 0C       		.byte	0xc
-ARM GAS  /tmp/ccq29trl.s 			page 89
+ARM GAS  /tmp/ccHCio9P.s 			page 89
 
 
  5017 2698 0A       		.uleb128 0xa
@@ -5338,7 +5338,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5071 270a C9180000 		.4byte	.LASF545
  5072 270e 24       		.byte	0x24
  5073 270f 4401     		.2byte	0x144
-ARM GAS  /tmp/ccq29trl.s 			page 90
+ARM GAS  /tmp/ccHCio9P.s 			page 90
 
 
  5074 2711 3E270000 		.4byte	0x273e
@@ -5398,7 +5398,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5128 2784 6C01     		.2byte	0x16c
  5129 2786 B31F0000 		.4byte	0x1fb3
  5130 278a 08       		.byte	0x8
-ARM GAS  /tmp/ccq29trl.s 			page 91
+ARM GAS  /tmp/ccHCio9P.s 			page 91
 
 
  5131 278b 0A       		.uleb128 0xa
@@ -5458,7 +5458,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5185 2803 09280000 		.4byte	0x2809
  5186 2807 2C       		.uleb128 0x2c
  5187 2808 00       		.byte	0
-ARM GAS  /tmp/ccq29trl.s 			page 92
+ARM GAS  /tmp/ccHCio9P.s 			page 92
 
 
  5188 2809 03       		.uleb128 0x3
@@ -5518,7 +5518,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5242 2875 2F       		.uleb128 0x2f
  5243 2876 01       		.uleb128 0x1
  5244 2877 52       		.byte	0x52
-ARM GAS  /tmp/ccq29trl.s 			page 93
+ARM GAS  /tmp/ccHCio9P.s 			page 93
 
 
  5245 2878 01       		.uleb128 0x1
@@ -5578,7 +5578,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5299 28d2 12000000 		.4byte	.LVL10
  5300 28d6 212A0000 		.4byte	0x2a21
  5301 28da 2E       		.uleb128 0x2e
-ARM GAS  /tmp/ccq29trl.s 			page 94
+ARM GAS  /tmp/ccHCio9P.s 			page 94
 
 
  5302 28db 1C000000 		.4byte	.LVL11
@@ -5638,7 +5638,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5356 2938 51       		.byte	0x51
  5357 2939 01       		.uleb128 0x1
  5358 293a 31       		.byte	0x31
-ARM GAS  /tmp/ccq29trl.s 			page 95
+ARM GAS  /tmp/ccHCio9P.s 			page 95
 
 
  5359 293b 00       		.byte	0
@@ -5698,7 +5698,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5413 29a3 2D       		.uleb128 0x2d
  5414 29a4 CC160000 		.4byte	.LASF562
  5415 29a8 01       		.byte	0x1
-ARM GAS  /tmp/ccq29trl.s 			page 96
+ARM GAS  /tmp/ccHCio9P.s 			page 96
 
 
  5416 29a9 1D       		.byte	0x1d
@@ -5758,7 +5758,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5470 2a1f 5004     		.2byte	0x450
  5471 2a21 33       		.uleb128 0x33
  5472 2a22 9D120000 		.4byte	.LASF568
-ARM GAS  /tmp/ccq29trl.s 			page 97
+ARM GAS  /tmp/ccHCio9P.s 			page 97
 
 
  5473 2a26 9D120000 		.4byte	.LASF568
@@ -5818,7 +5818,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5527 0012 00       		.byte	0
  5528 0013 02       		.uleb128 0x2
  5529 0014 24       		.uleb128 0x24
-ARM GAS  /tmp/ccq29trl.s 			page 98
+ARM GAS  /tmp/ccHCio9P.s 			page 98
 
 
  5530 0015 00       		.byte	0
@@ -5878,7 +5878,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5584 004b 3A       		.uleb128 0x3a
  5585 004c 0B       		.uleb128 0xb
  5586 004d 3B       		.uleb128 0x3b
-ARM GAS  /tmp/ccq29trl.s 			page 99
+ARM GAS  /tmp/ccHCio9P.s 			page 99
 
 
  5587 004e 0B       		.uleb128 0xb
@@ -5938,7 +5938,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5641 0084 0B       		.uleb128 0xb
  5642 0085 49       		.uleb128 0x49
  5643 0086 13       		.uleb128 0x13
-ARM GAS  /tmp/ccq29trl.s 			page 100
+ARM GAS  /tmp/ccHCio9P.s 			page 100
 
 
  5644 0087 00       		.byte	0
@@ -5998,7 +5998,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5698 00bd 00       		.byte	0
  5699 00be 11       		.uleb128 0x11
  5700 00bf 01       		.uleb128 0x1
-ARM GAS  /tmp/ccq29trl.s 			page 101
+ARM GAS  /tmp/ccHCio9P.s 			page 101
 
 
  5701 00c0 01       		.byte	0x1
@@ -6058,7 +6058,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5755 00f6 0B       		.uleb128 0xb
  5756 00f7 3A       		.uleb128 0x3a
  5757 00f8 0B       		.uleb128 0xb
-ARM GAS  /tmp/ccq29trl.s 			page 102
+ARM GAS  /tmp/ccHCio9P.s 			page 102
 
 
  5758 00f9 3B       		.uleb128 0x3b
@@ -6118,7 +6118,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5812 012f 3B       		.uleb128 0x3b
  5813 0130 05       		.uleb128 0x5
  5814 0131 01       		.uleb128 0x1
-ARM GAS  /tmp/ccq29trl.s 			page 103
+ARM GAS  /tmp/ccHCio9P.s 			page 103
 
 
  5815 0132 13       		.uleb128 0x13
@@ -6178,7 +6178,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5869 0168 0E       		.uleb128 0xe
  5870 0169 1C       		.uleb128 0x1c
  5871 016a 0B       		.uleb128 0xb
-ARM GAS  /tmp/ccq29trl.s 			page 104
+ARM GAS  /tmp/ccHCio9P.s 			page 104
 
 
  5872 016b 00       		.byte	0
@@ -6238,7 +6238,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5926 01a1 22       		.uleb128 0x22
  5927 01a2 15       		.uleb128 0x15
  5928 01a3 01       		.byte	0x1
-ARM GAS  /tmp/ccq29trl.s 			page 105
+ARM GAS  /tmp/ccHCio9P.s 			page 105
 
 
  5929 01a4 27       		.uleb128 0x27
@@ -6298,7 +6298,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  5983 01da 0D       		.uleb128 0xd
  5984 01db 00       		.byte	0
  5985 01dc 03       		.uleb128 0x3
-ARM GAS  /tmp/ccq29trl.s 			page 106
+ARM GAS  /tmp/ccHCio9P.s 			page 106
 
 
  5986 01dd 0E       		.uleb128 0xe
@@ -6358,7 +6358,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6040 0213 0B       		.uleb128 0xb
  6041 0214 3B       		.uleb128 0x3b
  6042 0215 0B       		.uleb128 0xb
-ARM GAS  /tmp/ccq29trl.s 			page 107
+ARM GAS  /tmp/ccHCio9P.s 			page 107
 
 
  6043 0216 49       		.uleb128 0x49
@@ -6418,7 +6418,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6097 024f 01       		.uleb128 0x1
  6098 0250 13       		.uleb128 0x13
  6099 0251 00       		.byte	0
-ARM GAS  /tmp/ccq29trl.s 			page 108
+ARM GAS  /tmp/ccHCio9P.s 			page 108
 
 
  6100 0252 00       		.byte	0
@@ -6478,7 +6478,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6154 0293 3B       		.uleb128 0x3b
  6155 0294 0B       		.uleb128 0xb
  6156 0295 00       		.byte	0
-ARM GAS  /tmp/ccq29trl.s 			page 109
+ARM GAS  /tmp/ccHCio9P.s 			page 109
 
 
  6157 0296 00       		.byte	0
@@ -6538,7 +6538,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6211              	.Ldebug_line0:
  6212 0000 27060000 		.section	.debug_str,"MS",%progbits,1
  6212      0200B505 
-ARM GAS  /tmp/ccq29trl.s 			page 110
+ARM GAS  /tmp/ccHCio9P.s 			page 110
 
 
  6212      00000201 
@@ -6598,7 +6598,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6239              	.LASF3:
  6240 0083 5F5F7569 		.ascii	"__uint8_t\000"
  6240      6E74385F 
-ARM GAS  /tmp/ccq29trl.s 			page 111
+ARM GAS  /tmp/ccHCio9P.s 			page 111
 
 
  6240      7400
@@ -6658,7 +6658,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6272 0107 49324343 		.ascii	"I2CConfig\000"
  6272      6F6E6669 
  6272      6700
-ARM GAS  /tmp/ccq29trl.s 			page 112
+ARM GAS  /tmp/ccHCio9P.s 			page 112
 
 
  6273              	.LASF16:
@@ -6718,7 +6718,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6304 018f 50424461 		.ascii	"PBData\000"
  6304      746100
  6305              	.LASF181:
-ARM GAS  /tmp/ccq29trl.s 			page 113
+ARM GAS  /tmp/ccHCio9P.s 			page 113
 
 
  6306 0196 63685F73 		.ascii	"ch_size\000"
@@ -6778,7 +6778,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6332 026b 63685F76 		.ascii	"ch_virtual_timers_list\000"
  6332      69727475 
  6332      616C5F74 
-ARM GAS  /tmp/ccq29trl.s 			page 114
+ARM GAS  /tmp/ccHCio9P.s 			page 114
 
 
  6332      696D6572 
@@ -6838,7 +6838,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6361              	.LASF254:
  6362 030d 69736869 		.ascii	"ishift\000"
  6362      667400
-ARM GAS  /tmp/ccq29trl.s 			page 115
+ARM GAS  /tmp/ccHCio9P.s 			page 115
 
 
  6363              	.LASF215:
@@ -6898,7 +6898,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6390      545F434F 
  6390      44455F52 
  6390      45534F4C 
-ARM GAS  /tmp/ccq29trl.s 			page 116
+ARM GAS  /tmp/ccHCio9P.s 			page 116
 
 
  6390      5645525F 
@@ -6958,7 +6958,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6416      5F435943 
  6416      4C4500
  6417              	.LASF291:
-ARM GAS  /tmp/ccq29trl.s 			page 117
+ARM GAS  /tmp/ccHCio9P.s 			page 117
 
 
  6418 044d 43414E5F 		.ascii	"CAN_READY\000"
@@ -7018,7 +7018,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6442 04e2 54494D5F 		.ascii	"TIM_ClearITPendingBit\000"
  6442      436C6561 
  6442      72495450 
-ARM GAS  /tmp/ccq29trl.s 			page 118
+ARM GAS  /tmp/ccHCio9P.s 			page 118
 
 
  6442      656E6469 
@@ -7078,7 +7078,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6469              	.LASF147:
  6470 059c 43434552 		.ascii	"CCER\000"
  6470      00
-ARM GAS  /tmp/ccq29trl.s 			page 119
+ARM GAS  /tmp/ccHCio9P.s 			page 119
 
 
  6471              	.LASF141:
@@ -7138,7 +7138,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6500      675F696E 
  6500      5F65705F 
  6500      7400
-ARM GAS  /tmp/ccq29trl.s 			page 120
+ARM GAS  /tmp/ccHCio9P.s 			page 120
 
 
  6501              	.LASF537:
@@ -7198,7 +7198,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6526 06ca 76745F70 		.ascii	"vt_prev\000"
  6526      72657600 
  6527              	.LASF392:
-ARM GAS  /tmp/ccq29trl.s 			page 121
+ARM GAS  /tmp/ccHCio9P.s 			page 121
 
 
  6528 06d2 656E645F 		.ascii	"end_cb\000"
@@ -7258,7 +7258,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6554      554E494E 
  6554      495400
  6555              	.LASF77:
-ARM GAS  /tmp/ccq29trl.s 			page 122
+ARM GAS  /tmp/ccHCio9P.s 			page 122
 
 
  6556 0763 73797374 		.ascii	"system_debug_t\000"
@@ -7318,7 +7318,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6584      65627567 
  6584      00
  6585              	.LASF118:
-ARM GAS  /tmp/ccq29trl.s 			page 123
+ARM GAS  /tmp/ccHCio9P.s 			page 123
 
 
  6586 07fc 464D3152 		.ascii	"FM1R\000"
@@ -7378,7 +7378,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6612 0885 474E5520 		.ascii	"GNU C99 7.3.1 20180622 (release) [ARM/embedded-7-br"
  6612      43393920 
  6612      372E332E 
-ARM GAS  /tmp/ccq29trl.s 			page 124
+ARM GAS  /tmp/ccHCio9P.s 			page 124
 
 
  6612      31203230 
@@ -7438,7 +7438,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6633      00
  6634              	.LASF490:
  6635 09eb 72657376 		.ascii	"resvd40C\000"
-ARM GAS  /tmp/ccq29trl.s 			page 125
+ARM GAS  /tmp/ccHCio9P.s 			page 125
 
 
  6635      64343043 
@@ -7498,7 +7498,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6666              	.LASF2:
  6667 0a80 73697A65 		.ascii	"size_t\000"
  6667      5F7400
-ARM GAS  /tmp/ccq29trl.s 			page 126
+ARM GAS  /tmp/ccHCio9P.s 			page 126
 
 
  6668              	.LASF515:
@@ -7558,7 +7558,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6699 0b0f 4932435F 		.ascii	"I2C_STOP\000"
  6699      53544F50 
  6699      00
-ARM GAS  /tmp/ccq29trl.s 			page 127
+ARM GAS  /tmp/ccHCio9P.s 			page 127
 
 
  6700              	.LASF331:
@@ -7618,7 +7618,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6728              	.LASF430:
  6729 0bbe 5553425F 		.ascii	"USB_EP0_ERROR\000"
  6729      4550305F 
-ARM GAS  /tmp/ccq29trl.s 			page 128
+ARM GAS  /tmp/ccHCio9P.s 			page 128
 
 
  6729      4552524F 
@@ -7678,7 +7678,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6756              	.LASF544:
  6757 0c56 6F75745F 		.ascii	"out_maxsize\000"
  6757      6D617873 
-ARM GAS  /tmp/ccq29trl.s 			page 129
+ARM GAS  /tmp/ccHCio9P.s 			page 129
 
 
  6757      697A6500 
@@ -7738,7 +7738,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6783 0cfa 70657269 		.ascii	"period_cb\000"
  6783      6F645F63 
  6783      6200
-ARM GAS  /tmp/ccq29trl.s 			page 130
+ARM GAS  /tmp/ccHCio9P.s 			page 130
 
 
  6784              	.LASF312:
@@ -7798,7 +7798,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6812              	.LASF23:
  6813 0d90 74726566 		.ascii	"trefs_t\000"
  6813      735F7400 
-ARM GAS  /tmp/ccq29trl.s 			page 131
+ARM GAS  /tmp/ccHCio9P.s 			page 131
 
 
  6814              	.LASF50:
@@ -7858,7 +7858,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6844              	.LASF79:
  6845 0e1a 70616E69 		.ascii	"panic_msg\000"
  6845      635F6D73 
-ARM GAS  /tmp/ccq29trl.s 			page 132
+ARM GAS  /tmp/ccHCio9P.s 			page 132
 
 
  6845      6700
@@ -7918,7 +7918,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6870              	.LASF184:
  6871 0edb 63685F74 		.ascii	"ch_timesize\000"
  6871      696D6573 
-ARM GAS  /tmp/ccq29trl.s 			page 133
+ARM GAS  /tmp/ccHCio9P.s 			page 133
 
 
  6871      697A6500 
@@ -7978,7 +7978,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6898              	.LASF441:
  6899 0f75 55534244 		.ascii	"USBDescriptor\000"
  6899      65736372 
-ARM GAS  /tmp/ccq29trl.s 			page 134
+ARM GAS  /tmp/ccHCio9P.s 			page 134
 
 
  6899      6970746F 
@@ -8038,7 +8038,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6925 1022 444D4152 		.ascii	"DMAR\000"
  6925      00
  6926              	.LASF81:
-ARM GAS  /tmp/ccq29trl.s 			page 135
+ARM GAS  /tmp/ccHCio9P.s 			page 135
 
 
  6927 1027 63685F73 		.ascii	"ch_system\000"
@@ -8098,7 +8098,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6955 10b0 696F706F 		.ascii	"ioportid_t\000"
  6955      72746964 
  6955      5F7400
-ARM GAS  /tmp/ccq29trl.s 			page 136
+ARM GAS  /tmp/ccHCio9P.s 			page 136
 
 
  6956              	.LASF487:
@@ -8158,7 +8158,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  6987      725F7400 
  6988              	.LASF108:
  6989 114b 52444C52 		.ascii	"RDLR\000"
-ARM GAS  /tmp/ccq29trl.s 			page 137
+ARM GAS  /tmp/ccHCio9P.s 			page 137
 
 
  6989      00
@@ -8218,7 +8218,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  7013      76656E74 
  7013      00
  7014              	.LASF438:
-ARM GAS  /tmp/ccq29trl.s 			page 138
+ARM GAS  /tmp/ccHCio9P.s 			page 138
 
 
  7015 1203 75736265 		.ascii	"usbevent_t\000"
@@ -8278,7 +8278,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  7043 129d 6D637077 		.ascii	"mcpwm_foc_tim_sample_int_handler\000"
  7043      6D5F666F 
  7043      635F7469 
-ARM GAS  /tmp/ccq29trl.s 			page 139
+ARM GAS  /tmp/ccHCio9P.s 			page 139
 
 
  7043      6D5F7361 
@@ -8338,7 +8338,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  7064              	.LASF267:
  7065 1364 41465248 		.ascii	"AFRH\000"
  7065      00
-ARM GAS  /tmp/ccq29trl.s 			page 140
+ARM GAS  /tmp/ccHCio9P.s 			page 140
 
 
  7066              	.LASF266:
@@ -8398,7 +8398,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  7093      61746500 
  7094              	.LASF494:
  7095 13fc 72657376 		.ascii	"resvd41C\000"
-ARM GAS  /tmp/ccq29trl.s 			page 141
+ARM GAS  /tmp/ccHCio9P.s 			page 141
 
 
  7095      64343143 
@@ -8458,7 +8458,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  7123 1485 71756575 		.ascii	"queue\000"
  7123      6500
  7124              	.LASF406:
-ARM GAS  /tmp/ccq29trl.s 			page 142
+ARM GAS  /tmp/ccHCio9P.s 			page 142
 
 
  7125 148b 65703065 		.ascii	"ep0endcb\000"
@@ -8518,7 +8518,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  7151      6E64706F 
  7151      696E7443 
  7151      6F6E6669 
-ARM GAS  /tmp/ccq29trl.s 			page 143
+ARM GAS  /tmp/ccHCio9P.s 			page 143
 
 
  7151      6700
@@ -8578,7 +8578,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  7177      6B737061 
  7177      6365732F 
  7177      626C6463 
-ARM GAS  /tmp/ccq29trl.s 			page 144
+ARM GAS  /tmp/ccHCio9P.s 			page 144
 
 
  7177      00
@@ -8638,7 +8638,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  7205      4D534B00 
  7206              	.LASF68:
  7207 1686 63685F76 		.ascii	"ch_virtual_timer\000"
-ARM GAS  /tmp/ccq29trl.s 			page 145
+ARM GAS  /tmp/ccHCio9P.s 			page 145
 
 
  7207      69727475 
@@ -8698,7 +8698,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  7235 170d 70757064 		.ascii	"pupdr\000"
  7235      7200
  7236              	.LASF399:
-ARM GAS  /tmp/ccq29trl.s 			page 146
+ARM GAS  /tmp/ccHCio9P.s 			page 146
 
 
  7237 1713 7472616E 		.ascii	"transmitting\000"
@@ -8758,7 +8758,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  7265 1799 77726974 		.ascii	"writet\000"
  7265      657400
  7266              	.LASF12:
-ARM GAS  /tmp/ccq29trl.s 			page 147
+ARM GAS  /tmp/ccHCio9P.s 			page 147
 
 
  7267 17a0 6C6F6E67 		.ascii	"long long int\000"
@@ -8818,7 +8818,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  7293      545F5741 
  7293      4B455550 
  7293      00
-ARM GAS  /tmp/ccq29trl.s 			page 148
+ARM GAS  /tmp/ccHCio9P.s 			page 148
 
 
  7294              	.LASF37:
@@ -8878,7 +8878,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  7319 18d7 63685F7A 		.ascii	"ch_zero\000"
  7319      65726F00 
  7320              	.LASF320:
-ARM GAS  /tmp/ccq29trl.s 			page 149
+ARM GAS  /tmp/ccHCio9P.s 			page 149
 
 
  7321 18df 46415354 		.ascii	"FAST_DUTY_CYCLE_2\000"
@@ -8938,7 +8938,7 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  7349 1966 55534152 		.ascii	"USART_TypeDef\000"
  7349      545F5479 
  7349      70654465 
-ARM GAS  /tmp/ccq29trl.s 			page 150
+ARM GAS  /tmp/ccHCio9P.s 			page 150
 
 
  7349      6600
@@ -8988,23 +8988,23 @@ ARM GAS  /tmp/ccq29trl.s 			page 1
  7373      74617465 
  7373      5F7400
  7374              		.ident	"GCC: (GNU Tools for Arm Embedded Processors 7-2018-q2-update) 7.3.1 20180622 (release) [AR
-ARM GAS  /tmp/ccq29trl.s 			page 151
+ARM GAS  /tmp/ccHCio9P.s 			page 151
 
 
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 irq_handlers.c
-     /tmp/ccq29trl.s:18     .text.Vector88:0000000000000000 $t
-     /tmp/ccq29trl.s:26     .text.Vector88:0000000000000000 Vector88
-     /tmp/ccq29trl.s:56     .text.Vector88:0000000000000018 $d
-     /tmp/ccq29trl.s:61     .text.Vector9C:0000000000000000 $t
-     /tmp/ccq29trl.s:69     .text.Vector9C:0000000000000000 Vector9C
-     /tmp/ccq29trl.s:104    .text.VectorB4:0000000000000000 $t
-     /tmp/ccq29trl.s:112    .text.VectorB4:0000000000000000 VectorB4
-     /tmp/ccq29trl.s:148    .text.VectorB4:0000000000000020 $d
-     /tmp/ccq29trl.s:153    .text.VectorB0:0000000000000000 $t
-     /tmp/ccq29trl.s:161    .text.VectorB0:0000000000000000 VectorB0
-     /tmp/ccq29trl.s:201    .text.Vector44:0000000000000000 $t
-     /tmp/ccq29trl.s:209    .text.Vector44:0000000000000000 Vector44
+     /tmp/ccHCio9P.s:18     .text.Vector88:0000000000000000 $t
+     /tmp/ccHCio9P.s:26     .text.Vector88:0000000000000000 Vector88
+     /tmp/ccHCio9P.s:56     .text.Vector88:0000000000000018 $d
+     /tmp/ccHCio9P.s:61     .text.Vector9C:0000000000000000 $t
+     /tmp/ccHCio9P.s:69     .text.Vector9C:0000000000000000 Vector9C
+     /tmp/ccHCio9P.s:104    .text.VectorB4:0000000000000000 $t
+     /tmp/ccHCio9P.s:112    .text.VectorB4:0000000000000000 VectorB4
+     /tmp/ccHCio9P.s:148    .text.VectorB4:0000000000000020 $d
+     /tmp/ccHCio9P.s:153    .text.VectorB0:0000000000000000 $t
+     /tmp/ccHCio9P.s:161    .text.VectorB0:0000000000000000 VectorB0
+     /tmp/ccHCio9P.s:201    .text.Vector44:0000000000000000 $t
+     /tmp/ccHCio9P.s:209    .text.Vector44:0000000000000000 Vector44
 
 UNDEFINED SYMBOLS
 ADC_ClearITPendingBit

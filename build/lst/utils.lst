@@ -1,4 +1,4 @@
-ARM GAS  /tmp/cciLB1st.s 			page 1
+ARM GAS  /tmp/ccGMcOud.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
   55              		.loc 1 32 0
   56              		.cfi_startproc
   57              		@ args = 0, pretend = 0, frame = 0
-ARM GAS  /tmp/cciLB1st.s 			page 2
+ARM GAS  /tmp/ccGMcOud.s 			page 2
 
 
   58              		@ frame_needed = 0, uses_anonymous_args = 0
@@ -118,7 +118,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  112 0004 30EEC00A 		vsub.f32	s0, s1, s0
  113              	.LVL5:
  114              		.loc 1 50 0
-ARM GAS  /tmp/cciLB1st.s 			page 3
+ARM GAS  /tmp/ccGMcOud.s 			page 3
 
 
  115 0008 81EE000A 		vdiv.f32	s0, s2, s0
@@ -178,7 +178,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  169              	.L24:
  170              		.align	2
  171              	.L23:
-ARM GAS  /tmp/cciLB1st.s 			page 4
+ARM GAS  /tmp/ccGMcOud.s 			page 4
 
 
  172 0030 0000B443 		.word	1135869952
@@ -238,7 +238,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  226              	.L35:
  227 004e 00BF     		.align	2
  228              	.L34:
-ARM GAS  /tmp/cciLB1st.s 			page 5
+ARM GAS  /tmp/ccGMcOud.s 			page 5
 
 
  229 0050 DB0F49C0 		.word	3226013659
@@ -298,7 +298,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  283              		.size	utils_truncate_number, .-utils_truncate_number
  284              		.section	.text.utils_truncate_number_int,"ax",%progbits
  285              		.align	1
-ARM GAS  /tmp/cciLB1st.s 			page 6
+ARM GAS  /tmp/ccGMcOud.s 			page 6
 
 
  286              		.p2align 4,,15
@@ -358,7 +358,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  340              	utils_truncate_number_abs:
  341              	.LFB262:
  342              		.loc 1 113 0
-ARM GAS  /tmp/cciLB1st.s 			page 7
+ARM GAS  /tmp/ccGMcOud.s 			page 7
 
 
  343              		.cfi_startproc
@@ -418,7 +418,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  397 0004 32EE612A 		vsub.f32	s4, s4, s3
  398              	.LVL32:
  399 0008 31EE601A 		vsub.f32	s2, s2, s1
-ARM GAS  /tmp/cciLB1st.s 			page 8
+ARM GAS  /tmp/ccGMcOud.s 			page 8
 
 
  400              	.LVL33:
@@ -478,7 +478,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  454              		.thumb
  455              		.thumb_func
  456              		.fpu fpv4-sp-d16
-ARM GAS  /tmp/cciLB1st.s 			page 9
+ARM GAS  /tmp/ccGMcOud.s 			page 9
 
 
  457              		.type	utils_deadband, %function
@@ -538,7 +538,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  511              		.fpu fpv4-sp-d16
  512              		.type	utils_angle_difference, %function
  513              	utils_angle_difference:
-ARM GAS  /tmp/cciLB1st.s 			page 10
+ARM GAS  /tmp/ccGMcOud.s 			page 10
 
 
  514              	.LFB266:
@@ -598,7 +598,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  568              		.thumb
  569              		.thumb_func
  570              		.fpu fpv4-sp-d16
-ARM GAS  /tmp/cciLB1st.s 			page 11
+ARM GAS  /tmp/ccGMcOud.s 			page 11
 
 
  571              		.type	utils_angle_difference_rad, %function
@@ -658,7 +658,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  625              		.global	utils_middle_of_3
  626              		.syntax unified
  627              		.thumb
-ARM GAS  /tmp/cciLB1st.s 			page 12
+ARM GAS  /tmp/ccGMcOud.s 			page 12
 
 
  628              		.thumb_func
@@ -718,7 +718,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  682              	.L125:
  683              		.loc 1 247 0
  684 0054 B4EEE00A 		vcmpe.f32	s0, s1
-ARM GAS  /tmp/cciLB1st.s 			page 13
+ARM GAS  /tmp/ccGMcOud.s 			page 13
 
 
  685 0058 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
@@ -778,7 +778,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  739              	.LVL60:
  740              		.loc 1 281 0
  741 001e 7047     		bx	lr
-ARM GAS  /tmp/cciLB1st.s 			page 14
+ARM GAS  /tmp/ccGMcOud.s 			page 14
 
 
  742              	.LVL61:
@@ -838,7 +838,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  796 001a 27EE277A 		vmul.f32	s14, s14, s15
  797              	.LVL70:
  798 001e A7EEC70A 		vfms.f32	s0, s15, s14
-ARM GAS  /tmp/cciLB1st.s 			page 15
+ARM GAS  /tmp/ccGMcOud.s 			page 15
 
 
  799              		.loc 1 296 0
@@ -898,7 +898,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  853              	.LBB28:
  854              		.loc 1 322 0
  855 0032 66EE067A 		vmul.f32	s15, s12, s12
-ARM GAS  /tmp/cciLB1st.s 			page 16
+ARM GAS  /tmp/ccGMcOud.s 			page 16
 
 
  856              	.LVL76:
@@ -958,7 +958,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  910              		.thumb_func
  911              		.fpu fpv4-sp-d16
  912              		.type	utils_saturate_vector_2d, %function
-ARM GAS  /tmp/cciLB1st.s 			page 17
+ARM GAS  /tmp/ccGMcOud.s 			page 17
 
 
  913              	utils_saturate_vector_2d:
@@ -1018,7 +1018,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  967 004c C0EE086A 		vdiv.f32	s13, s0, s16
  968              	.LVL86:
  969              		.loc 1 361 0
-ARM GAS  /tmp/cciLB1st.s 			page 18
+ARM GAS  /tmp/ccGMcOud.s 			page 18
 
 
  970 0050 0120     		movs	r0, #1
@@ -1078,7 +1078,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1024              		.cfi_endproc
  1025              	.LFE273:
  1026              		.size	utils_saturate_vector_2d, .-utils_saturate_vector_2d
-ARM GAS  /tmp/cciLB1st.s 			page 19
+ARM GAS  /tmp/ccGMcOud.s 			page 19
 
 
  1027              		.section	.text.utils_fast_sincos,"ax",%progbits
@@ -1138,7 +1138,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1081 0058 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
  1082              		.loc 1 394 0
  1083 005c 4CBF     		ite	mi
-ARM GAS  /tmp/cciLB1st.s 			page 20
+ARM GAS  /tmp/ccGMcOud.s 			page 20
 
 
  1084 005e 77EE877A 		vaddmi.f32	s15, s15, s14
@@ -1198,7 +1198,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1138              		.fpu fpv4-sp-d16
  1139              		.type	utils_fast_sincos_better, %function
  1140              	utils_fast_sincos_better:
-ARM GAS  /tmp/cciLB1st.s 			page 21
+ARM GAS  /tmp/ccGMcOud.s 			page 21
 
 
  1141              	.LFB275:
@@ -1258,7 +1258,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1195              		.loc 1 450 0
  1196 006e F5EEC07A 		vcmpe.f32	s15, #0
  1197 0072 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
-ARM GAS  /tmp/cciLB1st.s 			page 22
+ARM GAS  /tmp/ccGMcOud.s 			page 22
 
 
  1198              		.loc 1 451 0
@@ -1318,7 +1318,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1252 00f6 7047     		bx	lr
  1253              	.L234:
  1254              		.align	2
-ARM GAS  /tmp/cciLB1st.s 			page 23
+ARM GAS  /tmp/ccGMcOud.s 			page 23
 
 
  1255              	.L233:
@@ -1378,7 +1378,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1309 0018 B3EC010A 		vldmia.32	r3!, {s0}
  1310 001c 01A9     		add	r1, sp, #4
  1311 001e 6846     		mov	r0, sp
-ARM GAS  /tmp/cciLB1st.s 			page 24
+ARM GAS  /tmp/ccGMcOud.s 			page 24
 
 
  1312 0020 FFF7FEFF 		bl	utils_fast_sincos_better
@@ -1438,7 +1438,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1366              	.L241:
  1367 005c 00000000 		.word	0
  1368              		.cfi_endproc
-ARM GAS  /tmp/cciLB1st.s 			page 25
+ARM GAS  /tmp/ccGMcOud.s 			page 25
 
 
  1369              	.LFE268:
@@ -1498,7 +1498,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1423              		.loc 1 526 0
  1424 0010 D8BF     		it	le
  1425 0012 B0EE600A 		vmovle.f32	s0, s1
-ARM GAS  /tmp/cciLB1st.s 			page 26
+ARM GAS  /tmp/ccGMcOud.s 			page 26
 
 
  1426              	.LVL115:
@@ -1558,7 +1558,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1480 0024 FFF7FEFF 		bl	strlen
  1481              	.LVL119:
  1482 0028 3B88     		ldrh	r3, [r7]
-ARM GAS  /tmp/cciLB1st.s 			page 27
+ARM GAS  /tmp/ccGMcOud.s 			page 27
 
 
  1483 002a 3352     		strh	r3, [r6, r0]	@ unaligned
@@ -1618,7 +1618,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1537              		.loc 1 553 0
  1538 001a B7EE000A 		vmov.f32	s0, #1.0e+0
  1539              	.LVL123:
-ARM GAS  /tmp/cciLB1st.s 			page 28
+ARM GAS  /tmp/ccGMcOud.s 			page 28
 
 
  1540 001e B4EEC08A 		vcmpe.f32	s16, s0
@@ -1678,7 +1678,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1594 006e 5DF804FB 		ldr	pc, [sp], #4
  1595              	.LVL132:
  1596              	.L271:
-ARM GAS  /tmp/cciLB1st.s 			page 29
+ARM GAS  /tmp/ccGMcOud.s 			page 29
 
 
  1597              		.cfi_restore_state
@@ -1738,7 +1738,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1651 00e8 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
  1652 00ec 37EEC07A 		vsub.f32	s14, s15, s0
  1653 00f0 08DB     		blt	.L280
-ARM GAS  /tmp/cciLB1st.s 			page 30
+ARM GAS  /tmp/ccGMcOud.s 			page 30
 
 
  1654              		.loc 1 586 0
@@ -1798,7 +1798,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1708              		.syntax unified
  1709              		.thumb
  1710              		.thumb_func
-ARM GAS  /tmp/cciLB1st.s 			page 31
+ARM GAS  /tmp/ccGMcOud.s 			page 31
 
 
  1711              		.fpu fpv4-sp-d16
@@ -1858,7 +1858,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1765              		.loc 1 620 0
  1766              		.cfi_startproc
  1767              		@ args = 0, pretend = 0, frame = 0
-ARM GAS  /tmp/cciLB1st.s 			page 32
+ARM GAS  /tmp/ccGMcOud.s 			page 32
 
 
  1768              		@ frame_needed = 0, uses_anonymous_args = 0
@@ -1918,7 +1918,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1822              		@ frame_needed = 0, uses_anonymous_args = 0
  1823              		@ link register save eliminated.
  1824              	.LVL153:
-ARM GAS  /tmp/cciLB1st.s 			page 33
+ARM GAS  /tmp/ccGMcOud.s 			page 33
 
 
  1825              	.LBB47:
@@ -1978,7 +1978,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1879              	.LBE53:
  1880              	.LBE54:
  1881              		.loc 1 632 0 discriminator 2
-ARM GAS  /tmp/cciLB1st.s 			page 34
+ARM GAS  /tmp/ccGMcOud.s 			page 34
 
 
  1882 0024 A942     		cmp	r1, r5
@@ -2038,7 +2038,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1936              	.L311:
  1937              	.LBB58:
  1938              		.loc 1 651 0 discriminator 3
-ARM GAS  /tmp/cciLB1st.s 			page 35
+ARM GAS  /tmp/ccGMcOud.s 			page 35
 
 
  1939 000e B0EC017A 		vldmia.32	r0!, {s14}
@@ -2098,7 +2098,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  1993 001a B7EE007A 		vmov.f32	s14, #1.0e+0
  1994 001e 03E0     		b	.L317
  1995              	.LVL170:
-ARM GAS  /tmp/cciLB1st.s 			page 36
+ARM GAS  /tmp/ccGMcOud.s 			page 36
 
 
  1996              	.L320:
@@ -2158,7 +2158,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2050              		.thumb_func
  2051              		.fpu fpv4-sp-d16
  2052              		.type	utils_fft32_bin2, %function
-ARM GAS  /tmp/cciLB1st.s 			page 37
+ARM GAS  /tmp/ccGMcOud.s 			page 37
 
 
  2053              	utils_fft32_bin2:
@@ -2218,7 +2218,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2107              		.cfi_restore 4
  2108              		.cfi_def_cfa_offset 0
  2109              		.loc 1 675 0
-ARM GAS  /tmp/cciLB1st.s 			page 38
+ARM GAS  /tmp/ccGMcOud.s 			page 38
 
 
  2110 005a 81ED007A 		vstr.32	s14, [r1]
@@ -2278,7 +2278,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2164              	.LBE61:
  2165              		.loc 1 687 0
  2166 001e 9FED037A 		vldr.32	s14, .L334
-ARM GAS  /tmp/cciLB1st.s 			page 39
+ARM GAS  /tmp/ccGMcOud.s 			page 39
 
 
  2167 0022 67EE877A 		vmul.f32	s15, s15, s14
@@ -2338,7 +2338,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2221 0030 E7EE267A 		vfma.f32	s15, s14, s13
  2222 0034 0833     		adds	r3, r3, #8
  2223              		.loc 1 693 0 discriminator 3
-ARM GAS  /tmp/cciLB1st.s 			page 40
+ARM GAS  /tmp/ccGMcOud.s 			page 40
 
 
  2224 0036 9D42     		cmp	r5, r3
@@ -2398,7 +2398,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2278              		@ link register save eliminated.
  2279              	.LVL180:
  2280              		.loc 1 702 0
-ARM GAS  /tmp/cciLB1st.s 			page 41
+ARM GAS  /tmp/ccGMcOud.s 			page 41
 
 
  2281 0000 DFED1C7A 		vldr.32	s15, .L350
@@ -2458,7 +2458,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2335 006c C2ED007A 		vstr.32	s15, [r2]
  2336              		.loc 1 710 0
  2337 0070 7047     		bx	lr
-ARM GAS  /tmp/cciLB1st.s 			page 42
+ARM GAS  /tmp/ccGMcOud.s 			page 42
 
 
  2338              	.L351:
@@ -2518,7 +2518,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2392              		.cfi_endproc
  2393              	.LFE289:
  2394              		.size	utils_fft8_bin0, .-utils_fft8_bin0
-ARM GAS  /tmp/cciLB1st.s 			page 43
+ARM GAS  /tmp/ccGMcOud.s 			page 43
 
 
  2395              		.section	.text.utils_fft8_bin1,"ax",%progbits
@@ -2578,7 +2578,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2449 004a C2ED007A 		vstr.32	s15, [r2]
  2450              		.loc 1 726 0 discriminator 3
  2451 004e E7D1     		bne	.L360
-ARM GAS  /tmp/cciLB1st.s 			page 44
+ARM GAS  /tmp/ccGMcOud.s 			page 44
 
 
  2452              	.LBE65:
@@ -2638,7 +2638,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2506              		.loc 1 736 0
  2507 000c F0EE676A 		vmov.f32	s13, s15
  2508 0010 194C     		ldr	r4, .L369+8
-ARM GAS  /tmp/cciLB1st.s 			page 45
+ARM GAS  /tmp/ccGMcOud.s 			page 45
 
 
  2509 0012 C2ED007A 		vstr.32	s15, [r2]
@@ -2698,7 +2698,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2563              	.LFE291:
  2564              		.size	utils_fft8_bin2, .-utils_fft8_bin2
  2565              		.section	.text.utils_second_motor_id,"ax",%progbits
-ARM GAS  /tmp/cciLB1st.s 			page 46
+ARM GAS  /tmp/ccGMcOud.s 			page 46
 
 
  2566              		.align	1
@@ -2758,7 +2758,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2620 000a 7F10     		asrs	r7, r7, #1
  2621              	.LVL198:
  2622              		.loc 1 782 0
-ARM GAS  /tmp/cciLB1st.s 			page 47
+ARM GAS  /tmp/ccGMcOud.s 			page 47
 
 
  2623 000c 20B3     		cbz	r0, .L378
@@ -2818,7 +2818,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2677              		.cfi_restore 7
  2678              		.cfi_restore 6
  2679              		.cfi_restore 5
-ARM GAS  /tmp/cciLB1st.s 			page 48
+ARM GAS  /tmp/ccGMcOud.s 			page 48
 
 
  2680              		.cfi_restore 4
@@ -2878,7 +2878,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2734              		.syntax unified
  2735              		.thumb
  2736              		.thumb_func
-ARM GAS  /tmp/cciLB1st.s 			page 49
+ARM GAS  /tmp/ccGMcOud.s 			page 49
 
 
  2737              		.fpu fpv4-sp-d16
@@ -2938,7 +2938,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2791 0064 F0E47F3F 		.word	1065346288
  2792 0068 249CAF40 		.word	1085250596
  2793 006c 81B43EC0 		.word	3225334913
-ARM GAS  /tmp/cciLB1st.s 			page 50
+ARM GAS  /tmp/ccGMcOud.s 			page 50
 
 
  2794 0070 121560C0 		.word	3227522322
@@ -2998,7 +2998,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2848 0020 21F81C30 		strh	r3, [r1, ip, lsl #1]	@ movhi
  2849              		.loc 1 822 0
  2850 0024 B0FBF4F3 		udiv	r3, r0, r4
-ARM GAS  /tmp/cciLB1st.s 			page 51
+ARM GAS  /tmp/ccGMcOud.s 			page 51
 
 
  2851              	.LVL222:
@@ -3058,7 +3058,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2905 0002 9ABF     		itte	ls
  2906 0004 024B     		ldrls	r3, .L398
  2907 0006 53F82000 		ldrls	r0, [r3, r0, lsl #2]
-ARM GAS  /tmp/cciLB1st.s 			page 52
+ARM GAS  /tmp/ccGMcOud.s 			page 52
 
 
  2908              	.LVL229:
@@ -3118,7 +3118,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  2951              		.section	.rodata.utils_byte_to_binary.str1.4,"aMS",%progbits,1
  2952              		.align	2
  2953              	.LC0:
-ARM GAS  /tmp/cciLB1st.s 			page 53
+ARM GAS  /tmp/ccGMcOud.s 			page 53
 
 
  2954 0000 3100     		.ascii	"1\000"
@@ -3178,7 +3178,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3005              	utils_tab_cos_32_2:
  3006 0000 0000803F 		.word	1065353216
  3007 0004 66836C3F 		.word	1064076134
-ARM GAS  /tmp/cciLB1st.s 			page 54
+ARM GAS  /tmp/ccGMcOud.s 			page 54
 
 
  3008 0008 F704353F 		.word	1060439287
@@ -3238,7 +3238,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3062 0048 07EFC3BE 		.word	3200511751
  3063 004c D6390EBF 		.word	3205380566
  3064 0050 F70435BF 		.word	3207922935
-ARM GAS  /tmp/cciLB1st.s 			page 55
+ARM GAS  /tmp/ccGMcOud.s 			page 55
 
 
  3065 0054 38DB54BF 		.word	3210009400
@@ -3298,7 +3298,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3119              		.file 6 "ChibiOS_3.0.5/os/rt/ports/ARMCMx/compilers/GCC/chtypes.h"
  3120              		.file 7 "ChibiOS_3.0.5/os/rt/include/chsystypes.h"
  3121              		.file 8 "ChibiOS_3.0.5/os/rt/include/chschd.h"
-ARM GAS  /tmp/cciLB1st.s 			page 56
+ARM GAS  /tmp/ccGMcOud.s 			page 56
 
 
  3122              		.file 9 "ChibiOS_3.0.5/os/ext/CMSIS/include/core_cm4.h"
@@ -3358,7 +3358,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3176 0028 65080000 		.4byte	.LASF0
  3177 002c 02       		.uleb128 0x2
  3178 002d 01       		.byte	0x1
-ARM GAS  /tmp/cciLB1st.s 			page 57
+ARM GAS  /tmp/ccGMcOud.s 			page 57
 
 
  3179 002e 06       		.byte	0x6
@@ -3418,7 +3418,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3233 0097 171A0000 		.4byte	.LASF13
  3234 009b 04       		.uleb128 0x4
  3235 009c 04       		.byte	0x4
-ARM GAS  /tmp/cciLB1st.s 			page 58
+ARM GAS  /tmp/ccGMcOud.s 			page 58
 
 
  3236 009d 05       		.byte	0x5
@@ -3478,7 +3478,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3290 0115 48       		.byte	0x48
  3291 0116 AE000000 		.4byte	0xae
  3292 011a 03       		.uleb128 0x3
-ARM GAS  /tmp/cciLB1st.s 			page 59
+ARM GAS  /tmp/ccGMcOud.s 			page 59
 
 
  3293 011b 291B0000 		.4byte	.LASF23
@@ -3538,7 +3538,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3347 0193 08       		.byte	0x8
  3348 0194 C2       		.byte	0xc2
  3349 0195 9F020000 		.4byte	0x29f
-ARM GAS  /tmp/cciLB1st.s 			page 60
+ARM GAS  /tmp/ccGMcOud.s 			page 60
 
 
  3350 0199 08       		.uleb128 0x8
@@ -3598,7 +3598,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3404 0205 08       		.uleb128 0x8
  3405 0206 70130000 		.4byte	.LASF42
  3406 020a 08       		.byte	0x8
-ARM GAS  /tmp/cciLB1st.s 			page 61
+ARM GAS  /tmp/ccGMcOud.s 			page 61
 
 
  3407 020b E6       		.byte	0xe6
@@ -3658,7 +3658,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3461 027d 5101     		.2byte	0x151
  3462 027f 3B010000 		.4byte	0x13b
  3463 0283 40       		.byte	0x40
-ARM GAS  /tmp/cciLB1st.s 			page 62
+ARM GAS  /tmp/ccGMcOud.s 			page 62
 
 
  3464 0284 0A       		.uleb128 0xa
@@ -3718,7 +3718,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3518 02f2 AA020000 		.4byte	0x2aa
  3519 02f6 00       		.byte	0
  3520 02f7 08       		.uleb128 0x8
-ARM GAS  /tmp/cciLB1st.s 			page 63
+ARM GAS  /tmp/ccGMcOud.s 			page 63
 
 
  3521 02f8 9E0C0000 		.4byte	.LASF34
@@ -3778,7 +3778,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3575 036b 03       		.uleb128 0x3
  3576 036c 13170000 		.4byte	.LASF67
  3577 0370 07       		.byte	0x7
-ARM GAS  /tmp/cciLB1st.s 			page 64
+ARM GAS  /tmp/ccGMcOud.s 			page 64
 
 
  3578 0371 5C       		.byte	0x5c
@@ -3838,7 +3838,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3632 03e3 03       		.uleb128 0x3
  3633 03e4 C31B0000 		.4byte	.LASF75
  3634 03e8 07       		.byte	0x7
-ARM GAS  /tmp/cciLB1st.s 			page 65
+ARM GAS  /tmp/ccGMcOud.s 			page 65
 
 
  3635 03e9 66       		.byte	0x66
@@ -3898,7 +3898,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3689 045c 70       		.byte	0x70
  3690 045d 61040000 		.4byte	0x461
  3691 0461 10       		.uleb128 0x10
-ARM GAS  /tmp/cciLB1st.s 			page 66
+ARM GAS  /tmp/ccGMcOud.s 			page 66
 
 
  3692 0462 C7120000 		.4byte	.LASF82
@@ -3958,7 +3958,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3746 04d9 14       		.uleb128 0x14
  3747 04da 5B120000 		.4byte	.LASF88
  3748 04de 0A       		.byte	0xa
-ARM GAS  /tmp/cciLB1st.s 			page 67
+ARM GAS  /tmp/ccGMcOud.s 			page 67
 
 
  3749 04df 4C       		.byte	0x4c
@@ -4018,7 +4018,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3803 0548 08       		.uleb128 0x8
  3804 0549 93140000 		.4byte	.LASF94
  3805 054d 0B       		.byte	0xb
-ARM GAS  /tmp/cciLB1st.s 			page 68
+ARM GAS  /tmp/ccGMcOud.s 			page 68
 
 
  3806 054e F9       		.byte	0xf9
@@ -4078,7 +4078,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3860 05bf 04       		.byte	0x4
  3861 05c0 09       		.uleb128 0x9
  3862 05c1 54535200 		.ascii	"TSR\000"
-ARM GAS  /tmp/cciLB1st.s 			page 69
+ARM GAS  /tmp/ccGMcOud.s 			page 69
 
 
  3863 05c5 0B       		.byte	0xb
@@ -4138,7 +4138,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3917 063c 0B       		.byte	0xb
  3918 063d 1801     		.2byte	0x118
  3919 063f 02070000 		.4byte	0x702
-ARM GAS  /tmp/cciLB1st.s 			page 70
+ARM GAS  /tmp/ccGMcOud.s 			page 70
 
 
  3920 0643 D001     		.2byte	0x1d0
@@ -4198,7 +4198,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  3974 06c1 2002     		.2byte	0x220
  3975 06c3 1A       		.uleb128 0x1a
  3976 06c4 54050000 		.4byte	.LASF112
-ARM GAS  /tmp/cciLB1st.s 			page 71
+ARM GAS  /tmp/ccGMcOud.s 			page 71
 
 
  3977 06c8 0B       		.byte	0xb
@@ -4258,7 +4258,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4031 073e E4000000 		.4byte	0xe4
  4032 0742 00       		.byte	0
  4033 0743 0A       		.uleb128 0xa
-ARM GAS  /tmp/cciLB1st.s 			page 72
+ARM GAS  /tmp/ccGMcOud.s 			page 72
 
 
  4034 0744 651A0000 		.4byte	.LASF114
@@ -4318,7 +4318,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4088 07bc 28       		.byte	0x28
  4089 07bd 0B       		.byte	0xb
  4090 07be 3F02     		.2byte	0x23f
-ARM GAS  /tmp/cciLB1st.s 			page 73
+ARM GAS  /tmp/ccGMcOud.s 			page 73
 
 
  4091 07c0 46080000 		.4byte	0x846
@@ -4378,7 +4378,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4145 0837 20       		.byte	0x20
  4146 0838 0A       		.uleb128 0xa
  4147 0839 BF1D0000 		.4byte	.LASF121
-ARM GAS  /tmp/cciLB1st.s 			page 74
+ARM GAS  /tmp/ccGMcOud.s 			page 74
 
 
  4148 083d 0B       		.byte	0xb
@@ -4438,7 +4438,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4202 08ad E302     		.2byte	0x2e3
  4203 08af E4000000 		.4byte	0xe4
  4204 08b3 18       		.byte	0x18
-ARM GAS  /tmp/cciLB1st.s 			page 75
+ARM GAS  /tmp/ccGMcOud.s 			page 75
 
 
  4205 08b4 0A       		.uleb128 0xa
@@ -4498,7 +4498,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4259 0924 43523300 		.ascii	"CR3\000"
  4260 0928 0B       		.byte	0xb
  4261 0929 1003     		.2byte	0x310
-ARM GAS  /tmp/cciLB1st.s 			page 76
+ARM GAS  /tmp/ccGMcOud.s 			page 76
 
 
  4262 092b E4000000 		.4byte	0xe4
@@ -4558,7 +4558,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4316 099f 0D       		.byte	0xd
  4317 09a0 F6       		.byte	0xf6
  4318 09a1 5F090000 		.4byte	0x95f
-ARM GAS  /tmp/cciLB1st.s 			page 77
+ARM GAS  /tmp/ccGMcOud.s 			page 77
 
 
  4319 09a5 00       		.byte	0
@@ -4618,7 +4618,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4373 0a11 24       		.byte	0x24
  4374 0a12 09       		.uleb128 0x9
  4375 0a13 73323600 		.ascii	"s26\000"
-ARM GAS  /tmp/cciLB1st.s 			page 78
+ARM GAS  /tmp/ccGMcOud.s 			page 78
 
 
  4376 0a17 0D       		.byte	0xd
@@ -4678,7 +4678,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4430 0a88 0D       		.byte	0xd
  4431 0a89 0A01     		.2byte	0x10a
  4432 0a8b 5F090000 		.4byte	0x95f
-ARM GAS  /tmp/cciLB1st.s 			page 79
+ARM GAS  /tmp/ccGMcOud.s 			page 79
 
 
  4433 0a8f 4C       		.byte	0x4c
@@ -4738,7 +4738,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4487 0af7 08       		.byte	0x8
  4488 0af8 FA       		.byte	0xfa
  4489 0af9 520B0000 		.4byte	0xb52
-ARM GAS  /tmp/cciLB1st.s 			page 80
+ARM GAS  /tmp/ccGMcOud.s 			page 80
 
 
  4490 0afd 1D       		.uleb128 0x1d
@@ -4798,7 +4798,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4544 0b76 37       		.byte	0x37
  4545 0b77 67010000 		.4byte	0x167
  4546 0b7b 08       		.byte	0x8
-ARM GAS  /tmp/cciLB1st.s 			page 81
+ARM GAS  /tmp/ccGMcOud.s 			page 81
 
 
  4547 0b7c 00       		.byte	0
@@ -4858,7 +4858,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4601 0be8 636800   		.ascii	"ch\000"
  4602 0beb 08       		.byte	0x8
  4603 0bec 0902     		.2byte	0x209
-ARM GAS  /tmp/cciLB1st.s 			page 82
+ARM GAS  /tmp/ccGMcOud.s 			page 82
 
 
  4604 0bee 56040000 		.4byte	0x456
@@ -4918,7 +4918,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4658 0c5a 08       		.uleb128 0x8
  4659 0c5b BB040000 		.4byte	.LASF160
  4660 0c5f 11       		.byte	0x11
-ARM GAS  /tmp/cciLB1st.s 			page 83
+ARM GAS  /tmp/ccGMcOud.s 			page 83
 
 
  4661 0c60 3D       		.byte	0x3d
@@ -4978,7 +4978,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4715 0ccc 48       		.byte	0x48
  4716 0ccd AE000000 		.4byte	0xae
  4717 0cd1 15       		.byte	0x15
-ARM GAS  /tmp/cciLB1st.s 			page 84
+ARM GAS  /tmp/ccGMcOud.s 			page 84
 
 
  4718 0cd2 00       		.byte	0
@@ -5038,7 +5038,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4772 0d44 3F       		.byte	0x3f
  4773 0d45 51010000 		.4byte	0x151
  4774 0d49 08       		.byte	0x8
-ARM GAS  /tmp/cciLB1st.s 			page 85
+ARM GAS  /tmp/ccGMcOud.s 			page 85
 
 
  4775 0d4a 08       		.uleb128 0x8
@@ -5098,7 +5098,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4829 0db6 4F       		.byte	0x4f
  4830 0db7 FF000000 		.4byte	0xff
  4831 0dbb 08       		.byte	0x8
-ARM GAS  /tmp/cciLB1st.s 			page 86
+ARM GAS  /tmp/ccGMcOud.s 			page 86
 
 
  4832 0dbc 08       		.uleb128 0x8
@@ -5158,7 +5158,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4886 0e28 04       		.byte	0x4
  4887 0e29 AE000000 		.4byte	0xae
  4888 0e2d 03       		.uleb128 0x3
-ARM GAS  /tmp/cciLB1st.s 			page 87
+ARM GAS  /tmp/ccGMcOud.s 			page 87
 
 
  4889 0e2e C6040000 		.4byte	.LASF194
@@ -5218,7 +5218,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  4943 0eaf 00       		.byte	0
  4944 0eb0 0B       		.uleb128 0xb
  4945 0eb1 04       		.byte	0x4
-ARM GAS  /tmp/cciLB1st.s 			page 88
+ARM GAS  /tmp/ccGMcOud.s 			page 88
 
 
  4946 0eb2 A10E0000 		.4byte	0xea1
@@ -5278,7 +5278,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5000 0f24 180F0000 		.4byte	0xf18
  5001 0f28 14       		.uleb128 0x14
  5002 0f29 73040000 		.4byte	.LASF202
-ARM GAS  /tmp/cciLB1st.s 			page 89
+ARM GAS  /tmp/ccGMcOud.s 			page 89
 
 
  5003 0f2d 15       		.byte	0x15
@@ -5297,7 +5297,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5016 0f49 13       		.uleb128 0x13
  5017 0f4a 5A140000 		.4byte	.LASF205
  5018 0f4e 16       		.byte	0x16
- 5019 0f4f 4101     		.2byte	0x141
+ 5019 0f4f 4201     		.2byte	0x142
  5020 0f51 E60E0000 		.4byte	0xee6
  5021 0f55 15       		.uleb128 0x15
  5022 0f56 0C       		.byte	0xc
@@ -5338,7 +5338,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5057 0f9a 0B       		.uleb128 0xb
  5058 0f9b 04       		.byte	0x4
  5059 0f9c 85070000 		.4byte	0x785
-ARM GAS  /tmp/cciLB1st.s 			page 90
+ARM GAS  /tmp/ccGMcOud.s 			page 90
 
 
  5060 0fa0 0B       		.uleb128 0xb
@@ -5398,7 +5398,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5114 101f 5C0E0000 		.4byte	0xe5c
  5115 1023 0E       		.uleb128 0xe
  5116 1024 F4000000 		.4byte	0xf4
-ARM GAS  /tmp/cciLB1st.s 			page 91
+ARM GAS  /tmp/ccGMcOud.s 			page 91
 
 
  5117 1028 0E       		.uleb128 0xe
@@ -5458,7 +5458,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5171 1093 00       		.byte	0
  5172 1094 05       		.uleb128 0x5
  5173 1095 79100000 		.4byte	0x1079
-ARM GAS  /tmp/cciLB1st.s 			page 92
+ARM GAS  /tmp/ccGMcOud.s 			page 92
 
 
  5174 1099 15       		.uleb128 0x15
@@ -5518,7 +5518,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5228 1102 9F160000 		.4byte	.LASF220
  5229 1106 18       		.byte	0x18
  5230 1107 B9       		.byte	0xb9
-ARM GAS  /tmp/cciLB1st.s 			page 93
+ARM GAS  /tmp/ccGMcOud.s 			page 93
 
 
  5231 1108 E4000000 		.4byte	0xe4
@@ -5578,7 +5578,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5285 1174 10       		.byte	0x10
  5286 1175 08       		.uleb128 0x8
  5287 1176 A9180000 		.4byte	.LASF227
-ARM GAS  /tmp/cciLB1st.s 			page 94
+ARM GAS  /tmp/ccGMcOud.s 			page 94
 
 
  5288 117a 18       		.byte	0x18
@@ -5638,7 +5638,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5342 11e3 F0       		.byte	0xf0
  5343 11e4 8E110000 		.4byte	0x118e
  5344 11e8 8C       		.byte	0x8c
-ARM GAS  /tmp/cciLB1st.s 			page 95
+ARM GAS  /tmp/ccGMcOud.s 			page 95
 
 
  5345 11e9 08       		.uleb128 0x8
@@ -5698,7 +5698,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5399 125a 02       		.byte	0x2
  5400 125b 21       		.uleb128 0x21
  5401 125c EA040000 		.4byte	.LASF245
-ARM GAS  /tmp/cciLB1st.s 			page 96
+ARM GAS  /tmp/ccGMcOud.s 			page 96
 
 
  5402 1260 03       		.byte	0x3
@@ -5758,7 +5758,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5456 12ce 1A       		.byte	0x1a
  5457 12cf 1201     		.2byte	0x112
  5458 12d1 D4020000 		.4byte	0x2d4
-ARM GAS  /tmp/cciLB1st.s 			page 97
+ARM GAS  /tmp/ccGMcOud.s 			page 97
 
 
  5459 12d5 08       		.byte	0x8
@@ -5818,7 +5818,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5513 1346 A6120000 		.4byte	0x12a6
  5514 134a 13       		.uleb128 0x13
  5515 134b 0C1B0000 		.4byte	.LASF259
-ARM GAS  /tmp/cciLB1st.s 			page 98
+ARM GAS  /tmp/ccGMcOud.s 			page 98
 
 
  5516 134f 1A       		.byte	0x1a
@@ -5878,7 +5878,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5570 13bf 21       		.uleb128 0x21
  5571 13c0 71000000 		.4byte	.LASF270
  5572 13c4 02       		.byte	0x2
-ARM GAS  /tmp/cciLB1st.s 			page 99
+ARM GAS  /tmp/ccGMcOud.s 			page 99
 
 
  5573 13c5 21       		.uleb128 0x21
@@ -5938,7 +5938,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5627 1435 00       		.byte	0
  5628 1436 18       		.uleb128 0x18
  5629 1437 8E010000 		.4byte	.LASF280
-ARM GAS  /tmp/cciLB1st.s 			page 100
+ARM GAS  /tmp/ccGMcOud.s 			page 100
 
 
  5630 143b 1C       		.byte	0x1c
@@ -5998,7 +5998,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5684 14b3 1C       		.byte	0x1c
  5685 14b4 BA01     		.2byte	0x1ba
  5686 14b6 D9000000 		.4byte	0xd9
-ARM GAS  /tmp/cciLB1st.s 			page 101
+ARM GAS  /tmp/ccGMcOud.s 			page 101
 
 
  5687 14ba 24       		.byte	0x24
@@ -6058,7 +6058,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5741 1528 37040000 		.4byte	.LASF293
  5742 152c 02       		.byte	0x2
  5743 152d 21       		.uleb128 0x21
-ARM GAS  /tmp/cciLB1st.s 			page 102
+ARM GAS  /tmp/ccGMcOud.s 			page 102
 
 
  5744 152e FE100000 		.4byte	.LASF294
@@ -6118,7 +6118,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5798 15a3 1E       		.byte	0x1e
  5799 15a4 4D01     		.2byte	0x14d
  5800 15a6 A00F0000 		.4byte	0xfa0
-ARM GAS  /tmp/cciLB1st.s 			page 103
+ARM GAS  /tmp/ccGMcOud.s 			page 103
 
 
  5801 15aa 14       		.byte	0x14
@@ -6178,7 +6178,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5855 1618 45475200 		.ascii	"EGR\000"
  5856 161c 1F       		.byte	0x1f
  5857 161d A401     		.2byte	0x1a4
-ARM GAS  /tmp/cciLB1st.s 			page 104
+ARM GAS  /tmp/ccGMcOud.s 			page 104
 
 
  5858 161f E4000000 		.4byte	0xe4
@@ -6238,7 +6238,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5912 1694 E4000000 		.4byte	0xe4
  5913 1698 44       		.byte	0x44
  5914 1699 09       		.uleb128 0x9
-ARM GAS  /tmp/cciLB1st.s 			page 105
+ARM GAS  /tmp/ccGMcOud.s 			page 105
 
 
  5915 169a 44435200 		.ascii	"DCR\000"
@@ -6298,7 +6298,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  5969 170b 03       		.uleb128 0x3
  5970 170c 47160000 		.4byte	.LASF315
  5971 1710 1E       		.byte	0x1e
-ARM GAS  /tmp/cciLB1st.s 			page 106
+ARM GAS  /tmp/ccGMcOud.s 			page 106
 
 
  5972 1711 F6       		.byte	0xf6
@@ -6358,7 +6358,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6026 1780 AC150000 		.4byte	0x15ac
  6027 1784 10       		.byte	0x10
  6028 1785 0A       		.uleb128 0xa
-ARM GAS  /tmp/cciLB1st.s 			page 107
+ARM GAS  /tmp/ccGMcOud.s 			page 107
 
 
  6029 1786 850F0000 		.4byte	.LASF324
@@ -6418,7 +6418,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6083 17fa 20       		.byte	0x20
  6084 17fb 59       		.byte	0x59
  6085 17fc D5170000 		.4byte	0x17d5
-ARM GAS  /tmp/cciLB1st.s 			page 108
+ARM GAS  /tmp/ccGMcOud.s 			page 108
 
 
  6086 1800 03       		.uleb128 0x3
@@ -6478,7 +6478,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6140 186b 7F150000 		.4byte	.LASF337
  6141 186f 20       		.byte	0x20
  6142 1870 7B       		.byte	0x7b
-ARM GAS  /tmp/cciLB1st.s 			page 109
+ARM GAS  /tmp/ccGMcOud.s 			page 109
 
 
  6143 1871 3C190000 		.4byte	0x193c
@@ -6538,7 +6538,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6197 18e9 20       		.byte	0x20
  6198 18ea 6E       		.byte	0x6e
  6199 18eb B00E0000 		.4byte	0xeb0
-ARM GAS  /tmp/cciLB1st.s 			page 110
+ARM GAS  /tmp/ccGMcOud.s 			page 110
 
 
  6200 18ef 0C       		.byte	0xc
@@ -6598,7 +6598,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6254 195b 21       		.uleb128 0x21
  6255 195c 961C0000 		.4byte	.LASF347
  6256 1960 02       		.byte	0x2
-ARM GAS  /tmp/cciLB1st.s 			page 111
+ARM GAS  /tmp/ccGMcOud.s 			page 111
 
 
  6257 1961 21       		.uleb128 0x21
@@ -6658,7 +6658,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6311 19d4 CC000000 		.4byte	.LASF288
  6312 19d8 23       		.byte	0x23
  6313 19d9 DA01     		.2byte	0x1da
-ARM GAS  /tmp/cciLB1st.s 			page 112
+ARM GAS  /tmp/ccGMcOud.s 			page 112
 
 
  6314 19db F6140000 		.4byte	0x14f6
@@ -6718,7 +6718,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6368 1a4e 0A       		.uleb128 0xa
  6369 1a4f 72070000 		.4byte	.LASF355
  6370 1a53 23       		.byte	0x23
-ARM GAS  /tmp/cciLB1st.s 			page 113
+ARM GAS  /tmp/ccGMcOud.s 			page 113
 
 
  6371 1a54 B001     		.2byte	0x1b0
@@ -6778,7 +6778,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6425 1acc 36250000 		.4byte	0x2536
  6426 1ad0 04       		.byte	0x4
  6427 1ad1 0A       		.uleb128 0xa
-ARM GAS  /tmp/cciLB1st.s 			page 114
+ARM GAS  /tmp/ccGMcOud.s 			page 114
 
 
  6428 1ad2 6B1B0000 		.4byte	.LASF360
@@ -6838,7 +6838,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6482 1b47 18060000 		.4byte	.LASF368
  6483 1b4b 25       		.byte	0x25
  6484 1b4c AD01     		.2byte	0x1ad
-ARM GAS  /tmp/cciLB1st.s 			page 115
+ARM GAS  /tmp/ccGMcOud.s 			page 115
 
 
  6485 1b4e ED0E0000 		.4byte	0xeed
@@ -6898,7 +6898,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6539 1bc2 9F020000 		.4byte	0x29f
  6540 1bc6 64       		.byte	0x64
  6541 1bc7 0A       		.uleb128 0xa
-ARM GAS  /tmp/cciLB1st.s 			page 116
+ARM GAS  /tmp/ccGMcOud.s 			page 116
 
 
  6542 1bc8 57110000 		.4byte	.LASF376
@@ -6958,7 +6958,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6596 1c38 01       		.byte	0x1
  6597 1c39 21       		.uleb128 0x21
  6598 1c3a 69160000 		.4byte	.LASF387
-ARM GAS  /tmp/cciLB1st.s 			page 117
+ARM GAS  /tmp/ccGMcOud.s 			page 117
 
 
  6599 1c3e 02       		.byte	0x2
@@ -7018,7 +7018,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6653 1ca8 C71C0000 		.4byte	0x1cc7
  6654 1cac 0A       		.uleb128 0xa
  6655 1cad BF1E0000 		.4byte	.LASF400
-ARM GAS  /tmp/cciLB1st.s 			page 118
+ARM GAS  /tmp/ccGMcOud.s 			page 118
 
 
  6656 1cb1 24       		.byte	0x24
@@ -7078,7 +7078,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6710 1d29 0B       		.uleb128 0xb
  6711 1d2a 04       		.byte	0x4
  6712 1d2b 2F1D0000 		.4byte	0x1d2f
-ARM GAS  /tmp/cciLB1st.s 			page 119
+ARM GAS  /tmp/ccGMcOud.s 			page 119
 
 
  6713 1d2f 0D       		.uleb128 0xd
@@ -7138,7 +7138,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6767 1da9 00       		.byte	0
  6768 1daa 08       		.uleb128 0x8
  6769 1dab 3F0C0000 		.4byte	.LASF409
-ARM GAS  /tmp/cciLB1st.s 			page 120
+ARM GAS  /tmp/ccGMcOud.s 			page 120
 
 
  6770 1daf 26       		.byte	0x26
@@ -7198,7 +7198,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6824 1e18 47       		.byte	0x47
  6825 1e19 E4000000 		.4byte	0xe4
  6826 1e1d 00       		.byte	0
-ARM GAS  /tmp/cciLB1st.s 			page 121
+ARM GAS  /tmp/ccGMcOud.s 			page 121
 
 
  6827 1e1e 08       		.uleb128 0x8
@@ -7258,7 +7258,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6881 1e87 BF160000 		.4byte	.LASF425
  6882 1e8b 26       		.byte	0x26
  6883 1e8c 59       		.byte	0x59
-ARM GAS  /tmp/cciLB1st.s 			page 122
+ARM GAS  /tmp/ccGMcOud.s 			page 122
 
 
  6884 1e8d E4000000 		.4byte	0xe4
@@ -7318,7 +7318,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6938 1ef9 CF210000 		.4byte	0x21cf
  6939 1efd 08       		.uleb128 0x8
  6940 1efe F4030000 		.4byte	.LASF429
-ARM GAS  /tmp/cciLB1st.s 			page 123
+ARM GAS  /tmp/ccGMcOud.s 			page 123
 
 
  6941 1f02 26       		.byte	0x26
@@ -7378,7 +7378,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  6995 1f6e 26       		.byte	0x26
  6996 1f6f 75       		.byte	0x75
  6997 1f70 E4000000 		.4byte	0xe4
-ARM GAS  /tmp/cciLB1st.s 			page 124
+ARM GAS  /tmp/ccGMcOud.s 			page 124
 
 
  6998 1f74 24       		.byte	0x24
@@ -7438,7 +7438,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7052 1fe1 0401     		.2byte	0x104
  7053 1fe3 26       		.uleb128 0x26
  7054 1fe4 6E110000 		.4byte	.LASF447
-ARM GAS  /tmp/cciLB1st.s 			page 125
+ARM GAS  /tmp/ccGMcOud.s 			page 125
 
 
  7055 1fe8 26       		.byte	0x26
@@ -7498,7 +7498,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7109 205d 26       		.byte	0x26
  7110 205e 90       		.byte	0x90
  7111 205f E4000000 		.4byte	0xe4
-ARM GAS  /tmp/cciLB1st.s 			page 126
+ARM GAS  /tmp/ccGMcOud.s 			page 126
 
 
  7112 2063 4004     		.2byte	0x440
@@ -7558,7 +7558,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7166 20d7 1408     		.2byte	0x814
  7167 20d9 26       		.uleb128 0x26
  7168 20da 3C1B0000 		.4byte	.LASF465
-ARM GAS  /tmp/cciLB1st.s 			page 127
+ARM GAS  /tmp/ccGMcOud.s 			page 127
 
 
  7169 20de 26       		.byte	0x26
@@ -7618,7 +7618,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7223 2153 26       		.byte	0x26
  7224 2154 AB       		.byte	0xab
  7225 2155 E4000000 		.4byte	0xe4
-ARM GAS  /tmp/cciLB1st.s 			page 128
+ARM GAS  /tmp/ccGMcOud.s 			page 128
 
 
  7226 2159 3C08     		.2byte	0x83c
@@ -7678,7 +7678,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7280 21cc 0010     		.2byte	0x1000
  7281 21ce 00       		.byte	0
  7282 21cf 11       		.uleb128 0x11
-ARM GAS  /tmp/cciLB1st.s 			page 129
+ARM GAS  /tmp/ccGMcOud.s 			page 129
 
 
  7283 21d0 E4000000 		.4byte	0xe4
@@ -7738,7 +7738,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7337 2251 12       		.uleb128 0x12
  7338 2252 A7000000 		.4byte	0xa7
  7339 2256 0F       		.byte	0xf
-ARM GAS  /tmp/cciLB1st.s 			page 130
+ARM GAS  /tmp/ccGMcOud.s 			page 130
 
 
  7340 2257 00       		.byte	0
@@ -7798,7 +7798,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7394 22cd 08       		.uleb128 0x8
  7395 22ce 86090000 		.4byte	.LASF484
  7396 22d2 25       		.byte	0x25
-ARM GAS  /tmp/cciLB1st.s 			page 131
+ARM GAS  /tmp/ccGMcOud.s 			page 131
 
 
  7397 22d3 C8       		.byte	0xc8
@@ -7858,7 +7858,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7451 2339 2A       		.uleb128 0x2a
  7452 233a AE180000 		.4byte	.LASF489
  7453 233e 25       		.byte	0x25
-ARM GAS  /tmp/cciLB1st.s 			page 132
+ARM GAS  /tmp/ccGMcOud.s 			page 132
 
 
  7454 233f E8       		.byte	0xe8
@@ -7918,7 +7918,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7508 23aa 00       		.byte	0
  7509 23ab 00       		.byte	0
  7510 23ac 17       		.uleb128 0x17
-ARM GAS  /tmp/cciLB1st.s 			page 133
+ARM GAS  /tmp/ccGMcOud.s 			page 133
 
 
  7511 23ad 04       		.byte	0x4
@@ -7978,7 +7978,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7565 2418 29070000 		.4byte	.LASF319
  7566 241c 25       		.byte	0x25
  7567 241d 0D01     		.2byte	0x10d
-ARM GAS  /tmp/cciLB1st.s 			page 134
+ARM GAS  /tmp/ccGMcOud.s 			page 134
 
 
  7568 241f C9230000 		.4byte	0x23c9
@@ -8038,7 +8038,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7622 2494 12       		.byte	0x12
  7623 2495 0A       		.uleb128 0xa
  7624 2496 831D0000 		.4byte	.LASF506
-ARM GAS  /tmp/cciLB1st.s 			page 135
+ARM GAS  /tmp/ccGMcOud.s 			page 135
 
 
  7625 249a 25       		.byte	0x25
@@ -8098,7 +8098,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7679 250b 31100000 		.4byte	.LASF513
  7680 250f 25       		.byte	0x25
  7681 2510 6C01     		.2byte	0x16c
-ARM GAS  /tmp/cciLB1st.s 			page 136
+ARM GAS  /tmp/ccGMcOud.s 			page 136
 
 
  7682 2512 3F1D0000 		.4byte	0x1d3f
@@ -8158,7 +8158,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7736 258a 03       		.uleb128 0x3
  7737 258b 71060000 		.4byte	.LASF517
  7738 258f 27       		.byte	0x27
-ARM GAS  /tmp/cciLB1st.s 			page 137
+ARM GAS  /tmp/ccGMcOud.s 			page 137
 
 
  7739 2590 22       		.byte	0x22
@@ -8218,7 +8218,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7793 2600 9B000000 		.4byte	0x9b
  7794 2604 00       		.byte	0
  7795 2605 08       		.uleb128 0x8
-ARM GAS  /tmp/cciLB1st.s 			page 138
+ARM GAS  /tmp/ccGMcOud.s 			page 138
 
 
  7796 2606 FB120000 		.4byte	.LASF524
@@ -8278,7 +8278,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7850 2674 08       		.uleb128 0x8
  7851 2675 60080000 		.4byte	.LASF532
  7852 2679 29       		.byte	0x29
-ARM GAS  /tmp/cciLB1st.s 			page 139
+ARM GAS  /tmp/ccGMcOud.s 			page 139
 
 
  7853 267a 32       		.byte	0x32
@@ -8338,7 +8338,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7907 26e5 9B000000 		.4byte	0x9b
  7908 26e9 10       		.byte	0x10
  7909 26ea 08       		.uleb128 0x8
-ARM GAS  /tmp/cciLB1st.s 			page 140
+ARM GAS  /tmp/ccGMcOud.s 			page 140
 
 
  7910 26eb 62090000 		.4byte	.LASF539
@@ -8398,7 +8398,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  7964 275a 00       		.byte	0
  7965 275b 11       		.uleb128 0x11
  7966 275c 87030000 		.4byte	0x387
-ARM GAS  /tmp/cciLB1st.s 			page 141
+ARM GAS  /tmp/ccGMcOud.s 			page 141
 
 
  7967 2760 6B270000 		.4byte	0x276b
@@ -8458,7 +8458,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8021 27cd 75       		.byte	0x75
  8022 27ce EB270000 		.4byte	0x27eb
  8023 27d2 08       		.uleb128 0x8
-ARM GAS  /tmp/cciLB1st.s 			page 142
+ARM GAS  /tmp/ccGMcOud.s 			page 142
 
 
  8024 27d3 0E100000 		.4byte	.LASF552
@@ -8518,7 +8518,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8078 283c BB       		.byte	0xbb
  8079 283d C6270000 		.4byte	0x27c6
  8080 2841 10       		.byte	0x10
-ARM GAS  /tmp/cciLB1st.s 			page 143
+ARM GAS  /tmp/ccGMcOud.s 			page 143
 
 
  8081 2842 08       		.uleb128 0x8
@@ -8578,7 +8578,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8135 28ae 08       		.uleb128 0x8
  8136 28af D0160000 		.4byte	.LASF563
  8137 28b3 29       		.byte	0x29
-ARM GAS  /tmp/cciLB1st.s 			page 144
+ARM GAS  /tmp/ccGMcOud.s 			page 144
 
 
  8138 28b4 D3       		.byte	0xd3
@@ -8638,7 +8638,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8192 2920 39290000 		.4byte	0x2939
  8193 2924 0E       		.uleb128 0xe
  8194 2925 39290000 		.4byte	0x2939
-ARM GAS  /tmp/cciLB1st.s 			page 145
+ARM GAS  /tmp/ccGMcOud.s 			page 145
 
 
  8195 2929 0E       		.uleb128 0xe
@@ -8698,7 +8698,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8249 29a0 0A       		.uleb128 0xa
  8250 29a1 4C1B0000 		.4byte	.LASF578
  8251 29a5 29       		.byte	0x29
-ARM GAS  /tmp/cciLB1st.s 			page 146
+ARM GAS  /tmp/ccGMcOud.s 			page 146
 
 
  8252 29a6 6D02     		.2byte	0x26d
@@ -8758,7 +8758,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8306 2a1b 7C02     		.2byte	0x27c
  8307 2a1d 28260000 		.4byte	0x2628
  8308 2a21 54       		.byte	0x54
-ARM GAS  /tmp/cciLB1st.s 			page 147
+ARM GAS  /tmp/ccGMcOud.s 			page 147
 
 
  8309 2a22 0A       		.uleb128 0xa
@@ -8818,7 +8818,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8363 2a9c 7C2A0000 		.4byte	0x2a7c
  8364 2aa0 1F       		.uleb128 0x1f
  8365 2aa1 AB250000 		.4byte	0x25ab
-ARM GAS  /tmp/cciLB1st.s 			page 148
+ARM GAS  /tmp/ccGMcOud.s 			page 148
 
 
  8366 2aa5 BE2A0000 		.4byte	0x2abe
@@ -8878,7 +8878,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8420 2b21 0A       		.uleb128 0xa
  8421 2b22 E2130000 		.4byte	.LASF596
  8422 2b26 29       		.byte	0x29
-ARM GAS  /tmp/cciLB1st.s 			page 149
+ARM GAS  /tmp/ccGMcOud.s 			page 149
 
 
  8423 2b27 2701     		.2byte	0x127
@@ -8938,7 +8938,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8477 2b97 3E110000 		.4byte	.LASF602
  8478 2b9b 29       		.byte	0x29
  8479 2b9c 8302     		.2byte	0x283
-ARM GAS  /tmp/cciLB1st.s 			page 150
+ARM GAS  /tmp/ccGMcOud.s 			page 150
 
 
  8480 2b9e 28260000 		.4byte	0x2628
@@ -8998,7 +8998,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8534 2c13 912C0000 		.4byte	0x2c91
  8535 2c17 80       		.byte	0x80
  8536 2c18 0A       		.uleb128 0xa
-ARM GAS  /tmp/cciLB1st.s 			page 151
+ARM GAS  /tmp/ccGMcOud.s 			page 151
 
 
  8537 2c19 E80E0000 		.4byte	.LASF612
@@ -9058,7 +9058,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8591 2c90 00       		.byte	0
  8592 2c91 11       		.uleb128 0x11
  8593 2c92 C50B0000 		.4byte	0xbc5
-ARM GAS  /tmp/cciLB1st.s 			page 152
+ARM GAS  /tmp/ccGMcOud.s 			page 152
 
 
  8594 2c96 A12C0000 		.4byte	0x2ca1
@@ -9118,7 +9118,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8648 2d0a 1D       		.uleb128 0x1d
  8649 2d0b 53020000 		.4byte	.LASF622
  8650 2d0f 29       		.byte	0x29
-ARM GAS  /tmp/cciLB1st.s 			page 153
+ARM GAS  /tmp/ccGMcOud.s 			page 153
 
 
  8651 2d10 9E02     		.2byte	0x29e
@@ -9178,7 +9178,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8705 2d88 02       		.uleb128 0x2
  8706 2d89 08       		.byte	0x8
  8707 2d8a 04       		.byte	0x4
-ARM GAS  /tmp/cciLB1st.s 			page 154
+ARM GAS  /tmp/ccGMcOud.s 			page 154
 
 
  8708 2d8b 86170000 		.4byte	.LASF627
@@ -9238,7 +9238,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8762 2dfd 4C03     		.2byte	0x34c
  8763 2dff 05       		.uleb128 0x5
  8764 2e00 03       		.byte	0x3
-ARM GAS  /tmp/cciLB1st.s 			page 155
+ARM GAS  /tmp/ccGMcOud.s 			page 155
 
 
  8765 2e01 00000000 		.4byte	utils_tab_sin_32_2
@@ -9298,7 +9298,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8819 2e85 35       		.uleb128 0x35
  8820 2e86 221C0000 		.4byte	.LASF638
  8821 2e8a 01       		.byte	0x1
-ARM GAS  /tmp/cciLB1st.s 			page 156
+ARM GAS  /tmp/ccGMcOud.s 			page 156
 
 
  8822 2e8b 3403     		.2byte	0x334
@@ -9358,7 +9358,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8876 2ef1 01       		.uleb128 0x1
  8877 2ef2 51       		.byte	0x51
  8878 2ef3 03       		.uleb128 0x3
-ARM GAS  /tmp/cciLB1st.s 			page 157
+ARM GAS  /tmp/ccGMcOud.s 			page 157
 
 
  8879 2ef4 F3       		.byte	0xf3
@@ -9418,7 +9418,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8933 2f5c 351A0000 		.4byte	.LASF642
  8934 2f60 01       		.byte	0x1
  8935 2f61 2103     		.2byte	0x321
-ARM GAS  /tmp/cciLB1st.s 			page 158
+ARM GAS  /tmp/ccGMcOud.s 			page 158
 
 
  8936 2f63 25000000 		.4byte	0x25
@@ -9478,7 +9478,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  8990 2fc8 763500   		.ascii	"v5\000"
  8991 2fcb 01       		.byte	0x1
  8992 2fcc 2903     		.2byte	0x329
-ARM GAS  /tmp/cciLB1st.s 			page 159
+ARM GAS  /tmp/ccGMcOud.s 			page 159
 
 
  8993 2fce 25000000 		.4byte	0x25
@@ -9538,7 +9538,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9047 3059 35       		.uleb128 0x35
  9048 305a 69010000 		.4byte	.LASF648
  9049 305e 01       		.byte	0x1
-ARM GAS  /tmp/cciLB1st.s 			page 160
+ARM GAS  /tmp/ccGMcOud.s 			page 160
 
 
  9050 305f 0803     		.2byte	0x308
@@ -9598,7 +9598,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9104 30e8 01       		.byte	0x1
  9105 30e9 DE02     		.2byte	0x2de
  9106 30eb 18310000 		.4byte	0x3118
-ARM GAS  /tmp/cciLB1st.s 			page 161
+ARM GAS  /tmp/ccGMcOud.s 			page 161
 
 
  9107 30ef 01       		.uleb128 0x1
@@ -9658,7 +9658,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9161 3165 28000000 		.4byte	.LBE65-.LBB65
  9162 3169 45       		.uleb128 0x45
  9163 316a 6900     		.ascii	"i\000"
-ARM GAS  /tmp/cciLB1st.s 			page 162
+ARM GAS  /tmp/ccGMcOud.s 			page 162
 
 
  9164 316c 01       		.byte	0x1
@@ -9718,7 +9718,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9218 31e6 2F320000 		.4byte	0x322f
  9219 31ea 35       		.uleb128 0x35
  9220 31eb C90B0000 		.4byte	.LASF650
-ARM GAS  /tmp/cciLB1st.s 			page 163
+ARM GAS  /tmp/ccGMcOud.s 			page 163
 
 
  9221 31ef 01       		.byte	0x1
@@ -9778,7 +9778,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9275 3269 B202     		.2byte	0x2b2
  9276 326b 18310000 		.4byte	0x3118
  9277 326f 01       		.uleb128 0x1
-ARM GAS  /tmp/cciLB1st.s 			page 164
+ARM GAS  /tmp/ccGMcOud.s 			page 164
 
 
  9278 3270 52       		.byte	0x52
@@ -9838,7 +9838,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9332 32ea 01       		.byte	0x1
  9333 32eb 9C02     		.2byte	0x29c
  9334 32ed 00000000 		.4byte	.LFB285
-ARM GAS  /tmp/cciLB1st.s 			page 165
+ARM GAS  /tmp/ccGMcOud.s 			page 165
 
 
  9335 32f1 7C000000 		.4byte	.LFE285-.LFB285
@@ -9898,7 +9898,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9389 336e 18310000 		.4byte	0x3118
  9390 3372 01       		.uleb128 0x1
  9391 3373 51       		.byte	0x51
-ARM GAS  /tmp/cciLB1st.s 			page 166
+ARM GAS  /tmp/ccGMcOud.s 			page 166
 
 
  9392 3374 48       		.uleb128 0x48
@@ -9958,7 +9958,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9446 33ec 9B000000 		.4byte	0x9b
  9447 33f0 77050000 		.4byte	.LLST66
  9448 33f4 00       		.byte	0
-ARM GAS  /tmp/cciLB1st.s 			page 167
+ARM GAS  /tmp/ccGMcOud.s 			page 167
 
 
  9449 33f5 00       		.byte	0
@@ -10018,7 +10018,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9503 347c B8000000 		.4byte	.Ldebug_ranges0+0xb8
  9504 3480 36       		.uleb128 0x36
  9505 3481 1F030000 		.4byte	.LASF665
-ARM GAS  /tmp/cciLB1st.s 			page 168
+ARM GAS  /tmp/ccGMcOud.s 			page 168
 
 
  9506 3485 01       		.byte	0x1
@@ -10078,7 +10078,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9560 3503 06000000 		.4byte	.LBB38
  9561 3507 02000000 		.4byte	.LBE38-.LBB38
  9562 350b 01       		.byte	0x1
-ARM GAS  /tmp/cciLB1st.s 			page 169
+ARM GAS  /tmp/ccGMcOud.s 			page 169
 
 
  9563 350c 6102     		.2byte	0x261
@@ -10138,7 +10138,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9617 3593 25000000 		.4byte	0x25
  9618 3597 CB080000 		.4byte	.LLST56
  9619 359b 4B       		.uleb128 0x4b
-ARM GAS  /tmp/cciLB1st.s 			page 170
+ARM GAS  /tmp/ccGMcOud.s 			page 170
 
 
  9620 359c EF120000 		.4byte	.LASF671
@@ -10198,7 +10198,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9674 3616 9B000000 		.4byte	0x9b
  9675 361a EB090000 		.4byte	.LLST49
  9676 361e 34       		.uleb128 0x34
-ARM GAS  /tmp/cciLB1st.s 			page 171
+ARM GAS  /tmp/ccGMcOud.s 			page 171
 
 
  9677 361f 6200     		.ascii	"b\000"
@@ -10258,7 +10258,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9731 3694 01       		.byte	0x1
  9732 3695 EE01     		.2byte	0x1ee
  9733 3697 25000000 		.4byte	0x25
-ARM GAS  /tmp/cciLB1st.s 			page 172
+ARM GAS  /tmp/ccGMcOud.s 			page 172
 
 
  9734 369b 00000000 		.4byte	.LFB276
@@ -10318,7 +10318,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9788 3715 00       		.byte	0
  9789 3716 47       		.uleb128 0x47
  9790 3717 E2030000 		.4byte	.LASF678
-ARM GAS  /tmp/cciLB1st.s 			page 173
+ARM GAS  /tmp/ccGMcOud.s 			page 173
 
 
  9791 371b 01       		.byte	0x1
@@ -10378,7 +10378,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9845 3797 25000000 		.4byte	0x25
  9846 379b 570B0000 		.4byte	.LLST35
  9847 379f 36       		.uleb128 0x36
-ARM GAS  /tmp/cciLB1st.s 			page 174
+ARM GAS  /tmp/ccGMcOud.s 			page 174
 
 
  9848 37a0 F51B0000 		.4byte	.LASF680
@@ -10438,7 +10438,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9902 3822 25000000 		.4byte	0x25
  9903 3826 3D0C0000 		.4byte	.LLST29
  9904 382a 36       		.uleb128 0x36
-ARM GAS  /tmp/cciLB1st.s 			page 175
+ARM GAS  /tmp/ccGMcOud.s 			page 175
 
 
  9905 382b 41010000 		.4byte	.LASF677
@@ -10498,7 +10498,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  9959 38ad 01       		.byte	0x1
  9960 38ae 1E01     		.2byte	0x11e
  9961 38b0 CD380000 		.4byte	0x38cd
-ARM GAS  /tmp/cciLB1st.s 			page 176
+ARM GAS  /tmp/ccGMcOud.s 			page 176
 
 
  9962 38b4 1D       		.uleb128 0x1d
@@ -10558,7 +10558,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10016 3930 AE010000 		.4byte	.LASF688
  10017 3934 01       		.byte	0x1
  10018 3935 0F01     		.2byte	0x10f
-ARM GAS  /tmp/cciLB1st.s 			page 177
+ARM GAS  /tmp/ccGMcOud.s 			page 177
 
 
  10019 3937 9B000000 		.4byte	0x9b
@@ -10618,7 +10618,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10073 39a6 51       		.uleb128 0x51
  10074 39a7 01050000 		.4byte	.LASF691
  10075 39ab 01       		.byte	0x1
-ARM GAS  /tmp/cciLB1st.s 			page 178
+ARM GAS  /tmp/ccGMcOud.s 			page 178
 
 
  10076 39ac D5       		.byte	0xd5
@@ -10678,7 +10678,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10130 3a24 3A       		.uleb128 0x3a
  10131 3a25 24000000 		.4byte	.LVL107
  10132 3a29 D3360000 		.4byte	0x36d3
-ARM GAS  /tmp/cciLB1st.s 			page 179
+ARM GAS  /tmp/ccGMcOud.s 			page 179
 
 
  10133 3a2d 39       		.uleb128 0x39
@@ -10738,7 +10738,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10187 3a78 00000000 		.4byte	.LFB267
  10188 3a7c 54000000 		.4byte	.LFE267-.LFB267
  10189 3a80 01       		.uleb128 0x1
-ARM GAS  /tmp/cciLB1st.s 			page 180
+ARM GAS  /tmp/ccGMcOud.s 			page 180
 
 
  10190 3a81 9C       		.byte	0x9c
@@ -10798,7 +10798,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10244 3af3 02       		.uleb128 0x2
  10245 3af4 90       		.byte	0x90
  10246 3af5 40       		.uleb128 0x40
-ARM GAS  /tmp/cciLB1st.s 			page 181
+ARM GAS  /tmp/ccGMcOud.s 			page 181
 
 
  10247 3af6 00       		.byte	0
@@ -10858,7 +10858,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10301 3b6a 01       		.byte	0x1
  10302 3b6b 83       		.byte	0x83
  10303 3b6c 9B000000 		.4byte	0x9b
-ARM GAS  /tmp/cciLB1st.s 			page 182
+ARM GAS  /tmp/ccGMcOud.s 			page 182
 
 
  10304 3b70 76100000 		.4byte	.LLST14
@@ -10918,7 +10918,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10358 3be6 01       		.byte	0x1
  10359 3be7 7F       		.byte	0x7f
  10360 3be8 25000000 		.4byte	0x25
-ARM GAS  /tmp/cciLB1st.s 			page 183
+ARM GAS  /tmp/ccGMcOud.s 			page 183
 
 
  10361 3bec FC100000 		.4byte	.LLST12
@@ -10978,7 +10978,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10415 3c6a A73C0000 		.4byte	0x3ca7
  10416 3c6e 51       		.uleb128 0x51
  10417 3c6f 22090000 		.4byte	.LASF710
-ARM GAS  /tmp/cciLB1st.s 			page 184
+ARM GAS  /tmp/ccGMcOud.s 			page 184
 
 
  10418 3c73 01       		.byte	0x1
@@ -11038,7 +11038,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10472 3ce5 9B000000 		.4byte	0x9b
  10473 3ce9 00       		.byte	0
  10474 3cea 59       		.uleb128 0x59
-ARM GAS  /tmp/cciLB1st.s 			page 185
+ARM GAS  /tmp/ccGMcOud.s 			page 185
 
 
  10475 3ceb 27050000 		.4byte	.LASF713
@@ -11098,7 +11098,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10529 3d5d 4F       		.uleb128 0x4f
  10530 3d5e 6C6F7700 		.ascii	"low\000"
  10531 3d62 01       		.byte	0x1
-ARM GAS  /tmp/cciLB1st.s 			page 186
+ARM GAS  /tmp/ccGMcOud.s 			page 186
 
 
  10532 3d63 30       		.byte	0x30
@@ -11158,7 +11158,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10586 3dcf 6601     		.2byte	0x166
  10587 3dd1 03       		.byte	0x3
  10588 3dd2 E43D0000 		.4byte	0x3de4
-ARM GAS  /tmp/cciLB1st.s 			page 187
+ARM GAS  /tmp/ccGMcOud.s 			page 187
 
 
  10589 3dd6 5F       		.uleb128 0x5f
@@ -11218,7 +11218,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10643 3e4a 62       		.uleb128 0x62
  10644 3e4b D33C0000 		.4byte	0x3cd3
  10645 3e4f 02       		.uleb128 0x2
-ARM GAS  /tmp/cciLB1st.s 			page 188
+ARM GAS  /tmp/ccGMcOud.s 			page 188
 
 
  10646 3e50 90       		.byte	0x90
@@ -11278,7 +11278,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10700 0008 0E       		.uleb128 0xe
  10701 0009 1B       		.uleb128 0x1b
  10702 000a 0E       		.uleb128 0xe
-ARM GAS  /tmp/cciLB1st.s 			page 189
+ARM GAS  /tmp/ccGMcOud.s 			page 189
 
 
  10703 000b 55       		.uleb128 0x55
@@ -11338,7 +11338,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10757 0041 13       		.uleb128 0x13
  10758 0042 00       		.byte	0
  10759 0043 00       		.byte	0
-ARM GAS  /tmp/cciLB1st.s 			page 190
+ARM GAS  /tmp/ccGMcOud.s 			page 190
 
 
  10760 0044 07       		.uleb128 0x7
@@ -11398,7 +11398,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10814 007a 49       		.uleb128 0x49
  10815 007b 13       		.uleb128 0x13
  10816 007c 38       		.uleb128 0x38
-ARM GAS  /tmp/cciLB1st.s 			page 191
+ARM GAS  /tmp/ccGMcOud.s 			page 191
 
 
  10817 007d 0B       		.uleb128 0xb
@@ -11458,7 +11458,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10871 00b3 0E       		.uleb128 0xe
  10872 00b4 0B       		.uleb128 0xb
  10873 00b5 05       		.uleb128 0x5
-ARM GAS  /tmp/cciLB1st.s 			page 192
+ARM GAS  /tmp/ccGMcOud.s 			page 192
 
 
  10874 00b6 3A       		.uleb128 0x3a
@@ -11518,7 +11518,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10928 00ec 3F       		.uleb128 0x3f
  10929 00ed 19       		.uleb128 0x19
  10930 00ee 3C       		.uleb128 0x3c
-ARM GAS  /tmp/cciLB1st.s 			page 193
+ARM GAS  /tmp/ccGMcOud.s 			page 193
 
 
  10931 00ef 19       		.uleb128 0x19
@@ -11578,7 +11578,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  10985 0125 13       		.uleb128 0x13
  10986 0126 00       		.byte	0
  10987 0127 00       		.byte	0
-ARM GAS  /tmp/cciLB1st.s 			page 194
+ARM GAS  /tmp/ccGMcOud.s 			page 194
 
 
  10988 0128 19       		.uleb128 0x19
@@ -11638,7 +11638,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11042 015e 00       		.byte	0
  11043 015f 00       		.byte	0
  11044 0160 1D       		.uleb128 0x1d
-ARM GAS  /tmp/cciLB1st.s 			page 195
+ARM GAS  /tmp/ccGMcOud.s 			page 195
 
 
  11045 0161 0D       		.uleb128 0xd
@@ -11698,7 +11698,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11099 0197 13       		.uleb128 0x13
  11100 0198 00       		.byte	0
  11101 0199 00       		.byte	0
-ARM GAS  /tmp/cciLB1st.s 			page 196
+ARM GAS  /tmp/ccGMcOud.s 			page 196
 
 
  11102 019a 21       		.uleb128 0x21
@@ -11758,7 +11758,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11156 01d0 0B       		.uleb128 0xb
  11157 01d1 01       		.uleb128 0x1
  11158 01d2 13       		.uleb128 0x13
-ARM GAS  /tmp/cciLB1st.s 			page 197
+ARM GAS  /tmp/ccGMcOud.s 			page 197
 
 
  11159 01d3 00       		.byte	0
@@ -11818,7 +11818,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11213 0209 2A       		.uleb128 0x2a
  11214 020a 0D       		.uleb128 0xd
  11215 020b 00       		.byte	0
-ARM GAS  /tmp/cciLB1st.s 			page 198
+ARM GAS  /tmp/ccGMcOud.s 			page 198
 
 
  11216 020c 03       		.uleb128 0x3
@@ -11878,7 +11878,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11270 0242 01       		.uleb128 0x1
  11271 0243 13       		.uleb128 0x13
  11272 0244 00       		.byte	0
-ARM GAS  /tmp/cciLB1st.s 			page 199
+ARM GAS  /tmp/ccGMcOud.s 			page 199
 
 
  11273 0245 00       		.byte	0
@@ -11938,7 +11938,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11327 027b 27       		.uleb128 0x27
  11328 027c 19       		.uleb128 0x19
  11329 027d 49       		.uleb128 0x49
-ARM GAS  /tmp/cciLB1st.s 			page 200
+ARM GAS  /tmp/ccGMcOud.s 			page 200
 
 
  11330 027e 13       		.uleb128 0x13
@@ -11998,7 +11998,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11384 02b5 02       		.uleb128 0x2
  11385 02b6 17       		.uleb128 0x17
  11386 02b7 00       		.byte	0
-ARM GAS  /tmp/cciLB1st.s 			page 201
+ARM GAS  /tmp/ccGMcOud.s 			page 201
 
 
  11387 02b8 00       		.byte	0
@@ -12058,7 +12058,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11441 02f5 0E       		.uleb128 0xe
  11442 02f6 3A       		.uleb128 0x3a
  11443 02f7 0B       		.uleb128 0xb
-ARM GAS  /tmp/cciLB1st.s 			page 202
+ARM GAS  /tmp/ccGMcOud.s 			page 202
 
 
  11444 02f8 3B       		.uleb128 0x3b
@@ -12118,7 +12118,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11498 032f 0B       		.uleb128 0xb
  11499 0330 3B       		.uleb128 0x3b
  11500 0331 05       		.uleb128 0x5
-ARM GAS  /tmp/cciLB1st.s 			page 203
+ARM GAS  /tmp/ccGMcOud.s 			page 203
 
 
  11501 0332 49       		.uleb128 0x49
@@ -12178,7 +12178,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11555 0368 13       		.uleb128 0x13
  11556 0369 00       		.byte	0
  11557 036a 00       		.byte	0
-ARM GAS  /tmp/cciLB1st.s 			page 204
+ARM GAS  /tmp/ccGMcOud.s 			page 204
 
 
  11558 036b 45       		.uleb128 0x45
@@ -12238,7 +12238,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11612 03a2 01       		.uleb128 0x1
  11613 03a3 12       		.uleb128 0x12
  11614 03a4 06       		.uleb128 0x6
-ARM GAS  /tmp/cciLB1st.s 			page 205
+ARM GAS  /tmp/ccGMcOud.s 			page 205
 
 
  11615 03a5 40       		.uleb128 0x40
@@ -12298,7 +12298,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11669 03dc 49       		.uleb128 0x49
  11670 03dd 13       		.uleb128 0x13
  11671 03de 02       		.uleb128 0x2
-ARM GAS  /tmp/cciLB1st.s 			page 206
+ARM GAS  /tmp/ccGMcOud.s 			page 206
 
 
  11672 03df 18       		.uleb128 0x18
@@ -12358,7 +12358,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11726 0418 08       		.uleb128 0x8
  11727 0419 3A       		.uleb128 0x3a
  11728 041a 0B       		.uleb128 0xb
-ARM GAS  /tmp/cciLB1st.s 			page 207
+ARM GAS  /tmp/ccGMcOud.s 			page 207
 
 
  11729 041b 3B       		.uleb128 0x3b
@@ -12418,7 +12418,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11783 0451 0B       		.uleb128 0xb
  11784 0452 01       		.byte	0x1
  11785 0453 55       		.uleb128 0x55
-ARM GAS  /tmp/cciLB1st.s 			page 208
+ARM GAS  /tmp/ccGMcOud.s 			page 208
 
 
  11786 0454 17       		.uleb128 0x17
@@ -12478,7 +12478,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11840 0490 19       		.uleb128 0x19
  11841 0491 31       		.uleb128 0x31
  11842 0492 13       		.uleb128 0x13
-ARM GAS  /tmp/cciLB1st.s 			page 209
+ARM GAS  /tmp/ccGMcOud.s 			page 209
 
 
  11843 0493 00       		.byte	0
@@ -12538,7 +12538,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11897 04ca 19       		.uleb128 0x19
  11898 04cb 49       		.uleb128 0x49
  11899 04cc 13       		.uleb128 0x13
-ARM GAS  /tmp/cciLB1st.s 			page 210
+ARM GAS  /tmp/ccGMcOud.s 			page 210
 
 
  11900 04cd 20       		.uleb128 0x20
@@ -12598,7 +12598,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  11954 0503 27       		.uleb128 0x27
  11955 0504 19       		.uleb128 0x19
  11956 0505 20       		.uleb128 0x20
-ARM GAS  /tmp/cciLB1st.s 			page 211
+ARM GAS  /tmp/ccGMcOud.s 			page 211
 
 
  11957 0506 0B       		.uleb128 0xb
@@ -12658,7 +12658,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12011 053d 13       		.uleb128 0x13
  12012 053e 02       		.uleb128 0x2
  12013 053f 18       		.uleb128 0x18
-ARM GAS  /tmp/cciLB1st.s 			page 212
+ARM GAS  /tmp/ccGMcOud.s 			page 212
 
 
  12014 0540 00       		.byte	0
@@ -12718,7 +12718,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12068 0576 6E       		.uleb128 0x6e
  12069 0577 0E       		.uleb128 0xe
  12070 0578 03       		.uleb128 0x3
-ARM GAS  /tmp/cciLB1st.s 			page 213
+ARM GAS  /tmp/ccGMcOud.s 			page 213
 
 
  12071 0579 0E       		.uleb128 0xe
@@ -12778,7 +12778,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12125 006d F3       		.byte	0xf3
  12126 006e 01       		.uleb128 0x1
  12127 006f 51       		.byte	0x51
-ARM GAS  /tmp/cciLB1st.s 			page 214
+ARM GAS  /tmp/ccGMcOud.s 			page 214
 
 
  12128 0070 9F       		.byte	0x9f
@@ -12838,7 +12838,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12182 00ed 00       		.sleb128 0
  12183 00ee 00000000 		.4byte	0
  12184 00f2 00000000 		.4byte	0
-ARM GAS  /tmp/cciLB1st.s 			page 215
+ARM GAS  /tmp/ccGMcOud.s 			page 215
 
 
  12185              	.LLST94:
@@ -12898,7 +12898,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12239 0169 5A000000 		.4byte	.LVL215
  12240 016d 0200     		.2byte	0x2
  12241 016f 90       		.byte	0x90
-ARM GAS  /tmp/cciLB1st.s 			page 216
+ARM GAS  /tmp/ccGMcOud.s 			page 216
 
 
  12242 0170 40       		.uleb128 0x40
@@ -12958,7 +12958,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12296 01f4 50       		.byte	0x50
  12297 01f5 9F       		.byte	0x9f
  12298 01f6 58000000 		.4byte	.LVL206
-ARM GAS  /tmp/cciLB1st.s 			page 217
+ARM GAS  /tmp/ccGMcOud.s 			page 217
 
 
  12299 01fa 60000000 		.4byte	.LVL207
@@ -13018,7 +13018,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12353 027b 6E000000 		.4byte	.LVL208
  12354 027f 0100     		.2byte	0x1
  12355 0281 51       		.byte	0x51
-ARM GAS  /tmp/cciLB1st.s 			page 218
+ARM GAS  /tmp/ccGMcOud.s 			page 218
 
 
  12356 0282 6E000000 		.4byte	.LVL208
@@ -13078,7 +13078,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12410 030e 0100     		.2byte	0x1
  12411 0310 52       		.byte	0x52
  12412 0311 00000000 		.4byte	0
-ARM GAS  /tmp/cciLB1st.s 			page 219
+ARM GAS  /tmp/ccGMcOud.s 			page 219
 
 
  12413 0315 00000000 		.4byte	0
@@ -13138,7 +13138,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12467 0383 58000000 		.4byte	.LVL206
  12468 0387 8C000000 		.4byte	.LFE293
  12469 038b 0100     		.2byte	0x1
-ARM GAS  /tmp/cciLB1st.s 			page 220
+ARM GAS  /tmp/ccGMcOud.s 			page 220
 
 
  12470 038d 57       		.byte	0x57
@@ -13198,7 +13198,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12524 040e 0200     		.2byte	0x2
  12525 0410 30       		.byte	0x30
  12526 0411 9F       		.byte	0x9f
-ARM GAS  /tmp/cciLB1st.s 			page 221
+ARM GAS  /tmp/ccGMcOud.s 			page 221
 
 
  12527 0412 00000000 		.4byte	0
@@ -13258,7 +13258,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12581 0499 01       		.uleb128 0x1
  12582 049a 50       		.byte	0x50
  12583 049b 9F       		.byte	0x9f
-ARM GAS  /tmp/cciLB1st.s 			page 222
+ARM GAS  /tmp/ccGMcOud.s 			page 222
 
 
  12584 049c 00000000 		.4byte	0
@@ -13318,7 +13318,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12638 0521 00000000 		.4byte	.LVL168
  12639 0525 20000000 		.4byte	.LVL170
  12640 0529 0100     		.2byte	0x1
-ARM GAS  /tmp/cciLB1st.s 			page 223
+ARM GAS  /tmp/ccGMcOud.s 			page 223
 
 
  12641 052b 50       		.byte	0x50
@@ -13378,7 +13378,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12695 05ae 50       		.byte	0x50
  12696 05af 30000000 		.4byte	.LVL164
  12697 05b3 38000000 		.4byte	.LFE282
-ARM GAS  /tmp/cciLB1st.s 			page 224
+ARM GAS  /tmp/ccGMcOud.s 			page 224
 
 
  12698 05b7 0400     		.2byte	0x4
@@ -13438,7 +13438,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12752 0634 0200     		.2byte	0x2
  12753 0636 30       		.byte	0x30
  12754 0637 9F       		.byte	0x9f
-ARM GAS  /tmp/cciLB1st.s 			page 225
+ARM GAS  /tmp/ccGMcOud.s 			page 225
 
 
  12755 0638 0E000000 		.4byte	.LVL155
@@ -13498,7 +13498,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12809 0699 2C000000 		.4byte	.LVL162
  12810 069d 0800     		.2byte	0x8
  12811 069f 75       		.byte	0x75
-ARM GAS  /tmp/cciLB1st.s 			page 226
+ARM GAS  /tmp/ccGMcOud.s 			page 226
 
 
  12812 06a0 7F       		.sleb128 -1
@@ -13558,7 +13558,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12866 070f 72000000 		.4byte	.LVL132
  12867 0713 7E000000 		.4byte	.LVL134
  12868 0717 0200     		.2byte	0x2
-ARM GAS  /tmp/cciLB1st.s 			page 227
+ARM GAS  /tmp/ccGMcOud.s 			page 227
 
 
  12869 0719 90       		.byte	0x90
@@ -13618,7 +13618,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12923 078b 0600     		.2byte	0x6
  12924 078d F3       		.byte	0xf3
  12925 078e 03       		.uleb128 0x3
-ARM GAS  /tmp/cciLB1st.s 			page 228
+ARM GAS  /tmp/ccGMcOud.s 			page 228
 
 
  12926 078f F5       		.byte	0xf5
@@ -13678,7 +13678,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  12980 07fb BD000000 		.4byte	.LVL139-1
  12981 07ff E0000000 		.4byte	.LVL142
  12982 0803 0600     		.2byte	0x6
-ARM GAS  /tmp/cciLB1st.s 			page 229
+ARM GAS  /tmp/ccGMcOud.s 			page 229
 
 
  12983 0805 F3       		.byte	0xf3
@@ -13738,7 +13738,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13037 0878 8B000000 		.4byte	.LVL137-1
  13038 087c 8E000000 		.4byte	.LVL138
  13039 0880 0400     		.2byte	0x4
-ARM GAS  /tmp/cciLB1st.s 			page 230
+ARM GAS  /tmp/ccGMcOud.s 			page 230
 
 
  13040 0882 F3       		.byte	0xf3
@@ -13798,7 +13798,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13094 0902 40       		.uleb128 0x40
  13095 0903 72000000 		.4byte	.LVL132
  13096 0907 8C000000 		.4byte	.LVL137
-ARM GAS  /tmp/cciLB1st.s 			page 231
+ARM GAS  /tmp/ccGMcOud.s 			page 231
 
 
  13097 090b 0600     		.2byte	0x6
@@ -13858,7 +13858,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13151 0993 50010000 		.4byte	.LFE279
  13152 0997 0600     		.2byte	0x6
  13153 0999 9E       		.byte	0x9e
-ARM GAS  /tmp/cciLB1st.s 			page 232
+ARM GAS  /tmp/ccGMcOud.s 			page 232
 
 
  13154 099a 04       		.uleb128 0x4
@@ -13918,7 +13918,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13208 0a21 51       		.byte	0x51
  13209 0a22 18000000 		.4byte	.LVL118
  13210 0a26 38000000 		.4byte	.LVL121
-ARM GAS  /tmp/cciLB1st.s 			page 233
+ARM GAS  /tmp/ccGMcOud.s 			page 233
 
 
  13211 0a2a 0100     		.2byte	0x1
@@ -13978,7 +13978,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13265 0aa1 25       		.uleb128 0x25
  13266 0aa2 9F       		.byte	0x9f
  13267 0aa3 00000000 		.4byte	0
-ARM GAS  /tmp/cciLB1st.s 			page 234
+ARM GAS  /tmp/ccGMcOud.s 			page 234
 
 
  13268 0aa7 00000000 		.4byte	0
@@ -14038,7 +14038,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13322 0b34 F3       		.byte	0xf3
  13323 0b35 01       		.uleb128 0x1
  13324 0b36 51       		.byte	0x51
-ARM GAS  /tmp/cciLB1st.s 			page 235
+ARM GAS  /tmp/ccGMcOud.s 			page 235
 
 
  13325 0b37 9F       		.byte	0x9f
@@ -14098,7 +14098,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13379 0bbd 7C000000 		.4byte	.LVL92
  13380 0bc1 90000000 		.4byte	.LFE273
  13381 0bc5 0200     		.2byte	0x2
-ARM GAS  /tmp/cciLB1st.s 			page 236
+ARM GAS  /tmp/ccGMcOud.s 			page 236
 
 
  13382 0bc7 30       		.byte	0x30
@@ -14158,7 +14158,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13436 0c49 22000000 		.4byte	.LVL73
  13437 0c4d 2E000000 		.4byte	.LVL74
  13438 0c51 0900     		.2byte	0x9
-ARM GAS  /tmp/cciLB1st.s 			page 237
+ARM GAS  /tmp/ccGMcOud.s 			page 237
 
 
  13439 0c53 F5       		.byte	0xf5
@@ -14218,7 +14218,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13493 0cb1 0D00     		.2byte	0xd
  13494 0cb3 F5       		.byte	0xf5
  13495 0cb4 40       		.uleb128 0x40
-ARM GAS  /tmp/cciLB1st.s 			page 238
+ARM GAS  /tmp/ccGMcOud.s 			page 238
 
 
  13496 0cb5 25       		.uleb128 0x25
@@ -14278,7 +14278,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13550 0d2c 90       		.byte	0x90
  13551 0d2d 40       		.uleb128 0x40
  13552 0d2e 1A000000 		.4byte	.LVL69
-ARM GAS  /tmp/cciLB1st.s 			page 239
+ARM GAS  /tmp/ccGMcOud.s 			page 239
 
 
  13553 0d32 2C000000 		.4byte	.LFE271
@@ -14338,7 +14338,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13607 0d9f F3       		.byte	0xf3
  13608 0da0 03       		.uleb128 0x3
  13609 0da1 F5       		.byte	0xf5
-ARM GAS  /tmp/cciLB1st.s 			page 240
+ARM GAS  /tmp/ccGMcOud.s 			page 240
 
 
  13610 0da2 40       		.uleb128 0x40
@@ -14398,7 +14398,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13664 0e18 9F       		.byte	0x9f
  13665 0e19 00000000 		.4byte	0
  13666 0e1d 00000000 		.4byte	0
-ARM GAS  /tmp/cciLB1st.s 			page 241
+ARM GAS  /tmp/ccGMcOud.s 			page 241
 
 
  13667              	.LLST23:
@@ -14458,7 +14458,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13721 0ea2 44000000 		.4byte	.LVL54
  13722 0ea6 0600     		.2byte	0x6
  13723 0ea8 F3       		.byte	0xf3
-ARM GAS  /tmp/cciLB1st.s 			page 242
+ARM GAS  /tmp/ccGMcOud.s 			page 242
 
 
  13724 0ea9 03       		.uleb128 0x3
@@ -14518,7 +14518,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13778 0f21 51       		.byte	0x51
  13779 0f22 9F       		.byte	0x9f
  13780 0f23 4A000000 		.4byte	.LVL110
-ARM GAS  /tmp/cciLB1st.s 			page 243
+ARM GAS  /tmp/ccGMcOud.s 			page 243
 
 
  13781 0f27 60000000 		.4byte	.LFE268
@@ -14578,7 +14578,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13835 0fb1 41       		.uleb128 0x41
  13836 0fb2 4A000000 		.4byte	.LVL110
  13837 0fb6 60000000 		.4byte	.LFE268
-ARM GAS  /tmp/cciLB1st.s 			page 244
+ARM GAS  /tmp/ccGMcOud.s 			page 244
 
 
  13838 0fba 0600     		.2byte	0x6
@@ -14638,7 +14638,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13892 1032 00000000 		.4byte	.LVL38
  13893 1036 16000000 		.4byte	.LVL39
  13894 103a 0200     		.2byte	0x2
-ARM GAS  /tmp/cciLB1st.s 			page 245
+ARM GAS  /tmp/ccGMcOud.s 			page 245
 
 
  13895 103c 90       		.byte	0x90
@@ -14698,7 +14698,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  13949              	.LLST16:
  13950 10b8 00000000 		.4byte	.LVL34
  13951 10bc 16000000 		.4byte	.LVL37
-ARM GAS  /tmp/cciLB1st.s 			page 246
+ARM GAS  /tmp/ccGMcOud.s 			page 246
 
 
  13952 10c0 0200     		.2byte	0x2
@@ -14758,7 +14758,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14006 1137 03       		.uleb128 0x3
  14007 1138 F5       		.byte	0xf5
  14008 1139 44       		.uleb128 0x44
-ARM GAS  /tmp/cciLB1st.s 			page 247
+ARM GAS  /tmp/ccGMcOud.s 			page 247
 
 
  14009 113a 25       		.uleb128 0x25
@@ -14818,7 +14818,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14063 11b6 0200     		.2byte	0x2
  14064 11b8 31       		.byte	0x31
  14065 11b9 9F       		.byte	0x9f
-ARM GAS  /tmp/cciLB1st.s 			page 248
+ARM GAS  /tmp/ccGMcOud.s 			page 248
 
 
  14066 11ba 24000000 		.4byte	.LVL28
@@ -14878,7 +14878,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14120 123c 00000000 		.4byte	0
  14121              	.LLST3:
  14122 1240 00000000 		.4byte	.LVL6
-ARM GAS  /tmp/cciLB1st.s 			page 249
+ARM GAS  /tmp/ccGMcOud.s 			page 249
 
 
  14123 1244 17000000 		.4byte	.LVL7-1
@@ -14938,7 +14938,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14177 12be 50       		.byte	0x50
  14178 12bf 1E000000 		.4byte	.LVL12
  14179 12c3 22000000 		.4byte	.LVL14
-ARM GAS  /tmp/cciLB1st.s 			page 250
+ARM GAS  /tmp/ccGMcOud.s 			page 250
 
 
  14180 12c7 0400     		.2byte	0x4
@@ -14998,7 +14998,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14234 0024 0E000000 		.4byte	.LFE257-.LFB257
  14235 0028 00000000 		.4byte	.LFB258
  14236 002c 34000000 		.4byte	.LFE258-.LFB258
-ARM GAS  /tmp/cciLB1st.s 			page 251
+ARM GAS  /tmp/ccGMcOud.s 			page 251
 
 
  14237 0030 00000000 		.4byte	.LFB259
@@ -15058,7 +15058,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14291 0108 00000000 		.4byte	.LFB286
  14292 010c 30000000 		.4byte	.LFE286-.LFB286
  14293 0110 00000000 		.4byte	.LFB287
-ARM GAS  /tmp/cciLB1st.s 			page 252
+ARM GAS  /tmp/ccGMcOud.s 			page 252
 
 
  14294 0114 84000000 		.4byte	.LFE287-.LFB287
@@ -15118,7 +15118,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14348 007c 30000000 		.4byte	.LBE57
  14349 0080 00000000 		.4byte	0
  14350 0084 00000000 		.4byte	0
-ARM GAS  /tmp/cciLB1st.s 			page 253
+ARM GAS  /tmp/ccGMcOud.s 			page 253
 
 
  14351 0088 06000000 		.4byte	.LBB48
@@ -15178,7 +15178,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14405 0160 00000000 		.4byte	.LFB273
  14406 0164 90000000 		.4byte	.LFE273
  14407 0168 00000000 		.4byte	.LFB274
-ARM GAS  /tmp/cciLB1st.s 			page 254
+ARM GAS  /tmp/ccGMcOud.s 			page 254
 
 
  14408 016c CC000000 		.4byte	.LFE274
@@ -15238,7 +15238,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14459      FB0E0D00 
  14459      01010101 
  14460              	.LASF379:
-ARM GAS  /tmp/cciLB1st.s 			page 255
+ARM GAS  /tmp/ccGMcOud.s 			page 255
 
 
  14461 0000 5553425F 		.ascii	"USB_STOP\000"
@@ -15298,7 +15298,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14485 0094 43414E5F 		.ascii	"CAN_STOP\000"
  14485      53544F50 
  14485      00
-ARM GAS  /tmp/cciLB1st.s 			page 256
+ARM GAS  /tmp/ccGMcOud.s 			page 256
 
 
  14486              	.LASF169:
@@ -15358,7 +15358,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14515      6D6500
  14516              	.LASF377:
  14517 0127 75736265 		.ascii	"usbep_t\000"
-ARM GAS  /tmp/cciLB1st.s 			page 257
+ARM GAS  /tmp/ccGMcOud.s 			page 257
 
 
  14517      705F7400 
@@ -15418,7 +15418,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14549      00
  14550              	.LASF289:
  14551 01a1 646D6174 		.ascii	"dmatx\000"
-ARM GAS  /tmp/cciLB1st.s 			page 258
+ARM GAS  /tmp/ccGMcOud.s 			page 258
 
 
  14551      7800
@@ -15478,7 +15478,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14582              	.LASF410:
  14583 022b 4843494E 		.ascii	"HCINT\000"
  14583      5400
-ARM GAS  /tmp/cciLB1st.s 			page 259
+ARM GAS  /tmp/ccGMcOud.s 			page 259
 
 
  14584              	.LASF166:
@@ -15538,7 +15538,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14615 02b5 656C5F65 		.ascii	"el_events\000"
  14615      76656E74 
  14615      7300
-ARM GAS  /tmp/cciLB1st.s 			page 260
+ARM GAS  /tmp/ccGMcOud.s 			page 260
 
 
  14616              	.LASF256:
@@ -15598,7 +15598,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14644              	.LASF110:
  14645 0352 46413152 		.ascii	"FA1R\000"
  14645      00
-ARM GAS  /tmp/cciLB1st.s 			page 261
+ARM GAS  /tmp/ccGMcOud.s 			page 261
 
 
  14646              	.LASF729:
@@ -15658,7 +15658,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14674              	.LASF664:
  14675 03dd 62797465 		.ascii	"byte\000"
  14675      00
-ARM GAS  /tmp/cciLB1st.s 			page 262
+ARM GAS  /tmp/ccGMcOud.s 			page 262
 
 
  14676              	.LASF678:
@@ -15718,7 +15718,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14703      5F3100
  14704              	.LASF202:
  14705 0473 7574696C 		.ascii	"utils_tab_sin_32_2\000"
-ARM GAS  /tmp/cciLB1st.s 			page 263
+ARM GAS  /tmp/ccGMcOud.s 			page 263
 
 
  14705      735F7461 
@@ -15778,7 +15778,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14729      00
  14730              	.LASF740:
  14731 0511 7574696C 		.ascii	"utils_second_motor_id\000"
-ARM GAS  /tmp/cciLB1st.s 			page 264
+ARM GAS  /tmp/ccGMcOud.s 			page 264
 
 
  14731      735F7365 
@@ -15838,7 +15838,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14755      4E494E49 
  14755      5400
  14756              	.LASF26:
-ARM GAS  /tmp/cciLB1st.s 			page 265
+ARM GAS  /tmp/ccGMcOud.s 			page 265
 
 
  14757 05b7 74707269 		.ascii	"tprio_t\000"
@@ -15898,7 +15898,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14783      7900
  14784              	.LASF306:
  14785 064a 43434552 		.ascii	"CCER\000"
-ARM GAS  /tmp/cciLB1st.s 			page 266
+ARM GAS  /tmp/ccGMcOud.s 			page 266
 
 
  14785      00
@@ -15958,7 +15958,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14817 06c9 444D415F 		.ascii	"DMA_Stream_TypeDef\000"
  14817      53747265 
  14817      616D5F54 
-ARM GAS  /tmp/cciLB1st.s 			page 267
+ARM GAS  /tmp/ccGMcOud.s 			page 267
 
 
  14817      79706544 
@@ -16018,7 +16018,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14843      66665F73 
  14843      74617465 
  14843      00
-ARM GAS  /tmp/cciLB1st.s 			page 268
+ARM GAS  /tmp/ccGMcOud.s 			page 268
 
 
  14844              	.LASF355:
@@ -16078,7 +16078,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14871 0801 5F737464 		.ascii	"_stdout\000"
  14871      6F757400 
  14872              	.LASF174:
-ARM GAS  /tmp/cciLB1st.s 			page 269
+ARM GAS  /tmp/ccGMcOud.s 			page 269
 
 
  14873 0809 6576656E 		.ascii	"event_listener\000"
@@ -16138,7 +16138,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14899 0894 7574696C 		.ascii	"utils_truncate_number\000"
  14899      735F7472 
  14899      756E6361 
-ARM GAS  /tmp/cciLB1st.s 			page 270
+ARM GAS  /tmp/ccGMcOud.s 			page 270
 
 
  14899      74655F6E 
@@ -16198,7 +16198,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14927      65627567 
  14927      00
  14928              	.LASF718:
-ARM GAS  /tmp/cciLB1st.s 			page 271
+ARM GAS  /tmp/ccGMcOud.s 			page 271
 
 
  14929 0938 676F616C 		.ascii	"goal\000"
@@ -16258,7 +16258,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14955 09bc 47494E54 		.ascii	"GINTSTS\000"
  14955      53545300 
  14956              	.LASF655:
-ARM GAS  /tmp/cciLB1st.s 			page 272
+ARM GAS  /tmp/ccGMcOud.s 			page 272
 
 
  14957 09c4 7574696C 		.ascii	"utils_fft8_bin0\000"
@@ -16318,7 +16318,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  14974      652D7072 
  14975              	.LASF614:
  14976 0b2c 5F6D6272 		.ascii	"_mbrlen_state\000"
-ARM GAS  /tmp/cciLB1st.s 			page 273
+ARM GAS  /tmp/ccGMcOud.s 			page 273
 
 
  14976      6C656E5F 
@@ -16378,7 +16378,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15006 0bb1 76745F6E 		.ascii	"vt_next\000"
  15006      65787400 
  15007              	.LASF21:
-ARM GAS  /tmp/cciLB1st.s 			page 274
+ARM GAS  /tmp/ccGMcOud.s 			page 274
 
 
  15008 0bb9 7274636E 		.ascii	"rtcnt_t\000"
@@ -16438,7 +16438,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15039              	.LASF604:
  15040 0c4d 5F6C6F63 		.ascii	"_localtime_buf\000"
  15040      616C7469 
-ARM GAS  /tmp/cciLB1st.s 			page 275
+ARM GAS  /tmp/ccGMcOud.s 			page 275
 
 
  15040      6D655F62 
@@ -16498,7 +16498,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15070 0ce1 50444461 		.ascii	"PDData\000"
  15070      746100
  15071              	.LASF587:
-ARM GAS  /tmp/cciLB1st.s 			page 276
+ARM GAS  /tmp/ccGMcOud.s 			page 276
 
 
  15072 0ce8 5F637674 		.ascii	"_cvtbuf\000"
@@ -16558,7 +16558,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15102      564D5400 
  15103              	.LASF391:
  15104 0d74 5553425F 		.ascii	"USB_EP0_ERROR\000"
-ARM GAS  /tmp/cciLB1st.s 			page 277
+ARM GAS  /tmp/ccGMcOud.s 			page 277
 
 
  15104      4550305F 
@@ -16618,7 +16618,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15132      6D617873 
  15132      697A6500 
  15133              	.LASF222:
-ARM GAS  /tmp/cciLB1st.s 			page 278
+ARM GAS  /tmp/ccGMcOud.s 			page 278
 
 
  15134 0e07 73746D33 		.ascii	"stm32_gpio_t\000"
@@ -16678,7 +16678,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15160 0e9f 7574696C 		.ascii	"utils_fast_atan2\000"
  15160      735F6661 
  15160      73745F61 
-ARM GAS  /tmp/cciLB1st.s 			page 279
+ARM GAS  /tmp/ccGMcOud.s 			page 279
 
 
  15160      74616E32 
@@ -16738,7 +16738,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15186      6F7800
  15187              	.LASF348:
  15188 0f40 5350495F 		.ascii	"SPI_ACTIVE\000"
-ARM GAS  /tmp/cciLB1st.s 			page 280
+ARM GAS  /tmp/ccGMcOud.s 			page 280
 
 
  15188      41435449 
@@ -16798,7 +16798,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15218 0fc9 7574696C 		.ascii	"utils_fft32_bin0\000"
  15218      735F6666 
  15218      7433325F 
-ARM GAS  /tmp/cciLB1st.s 			page 281
+ARM GAS  /tmp/ccGMcOud.s 			page 281
 
 
  15218      62696E30 
@@ -16858,7 +16858,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15242      6E765F73 
  15242      71727400 
  15243              	.LASF265:
-ARM GAS  /tmp/cciLB1st.s 			page 282
+ARM GAS  /tmp/ccGMcOud.s 			page 282
 
 
  15244 106c 4932435F 		.ascii	"I2C_LOCKED\000"
@@ -16918,7 +16918,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15271              	.LASF294:
  15272 10fe 4943555F 		.ascii	"ICU_WAITING\000"
  15272      57414954 
-ARM GAS  /tmp/cciLB1st.s 			page 283
+ARM GAS  /tmp/ccGMcOud.s 			page 283
 
 
  15272      494E4700 
@@ -16978,7 +16978,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15300      4556454E 
  15300      545F5355 
  15300      5350454E 
-ARM GAS  /tmp/cciLB1st.s 			page 284
+ARM GAS  /tmp/ccGMcOud.s 			page 284
 
 
  15300      4400
@@ -17038,7 +17038,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15328      65737300 
  15329              	.LASF46:
  15330 122c 705F6D73 		.ascii	"p_msgqueue\000"
-ARM GAS  /tmp/cciLB1st.s 			page 285
+ARM GAS  /tmp/ccGMcOud.s 			page 285
 
 
  15330      67717565 
@@ -17098,7 +17098,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15359              	.LASF308:
  15360 12c2 444D4152 		.ascii	"DMAR\000"
  15360      00
-ARM GAS  /tmp/cciLB1st.s 			page 286
+ARM GAS  /tmp/ccGMcOud.s 			page 286
 
 
  15361              	.LASF82:
@@ -17158,7 +17158,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15386      655F7400 
  15387              	.LASF738:
  15388 135f 5F5F6664 		.ascii	"__fdlibm_version\000"
-ARM GAS  /tmp/cciLB1st.s 			page 287
+ARM GAS  /tmp/ccGMcOud.s 			page 287
 
 
  15388      6C69626D 
@@ -17218,7 +17218,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15416      3100
  15417              	.LASF342:
  15418 13ee 67657474 		.ascii	"gett\000"
-ARM GAS  /tmp/cciLB1st.s 			page 288
+ARM GAS  /tmp/ccGMcOud.s 			page 288
 
 
  15418      00
@@ -17278,7 +17278,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15449              	.LASF406:
  15450 1483 75736272 		.ascii	"usbreqhandler_t\000"
  15450      65716861 
-ARM GAS  /tmp/cciLB1st.s 			page 289
+ARM GAS  /tmp/ccGMcOud.s 			page 289
 
 
  15450      6E646C65 
@@ -17338,7 +17338,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15477              	.LASF326:
  15478 1518 49435543 		.ascii	"ICUConfig\000"
  15478      6F6E6669 
-ARM GAS  /tmp/cciLB1st.s 			page 290
+ARM GAS  /tmp/ccGMcOud.s 			page 290
 
 
  15478      6700
@@ -17398,7 +17398,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15508      696E7400 
  15509              	.LASF435:
  15510 15aa 47494E54 		.ascii	"GINTMSK\000"
-ARM GAS  /tmp/cciLB1st.s 			page 291
+ARM GAS  /tmp/ccGMcOud.s 			page 291
 
 
  15510      4D534B00 
@@ -17458,7 +17458,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15533              	.LASF315:
  15534 1647 69637566 		.ascii	"icufreq_t\000"
  15534      7265715F 
-ARM GAS  /tmp/cciLB1st.s 			page 292
+ARM GAS  /tmp/ccGMcOud.s 			page 292
 
 
  15534      7400
@@ -17518,7 +17518,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15562      696700
  15563              	.LASF608:
  15564 16dd 5F6D626C 		.ascii	"_mblen_state\000"
-ARM GAS  /tmp/cciLB1st.s 			page 293
+ARM GAS  /tmp/ccGMcOud.s 			page 293
 
 
  15564      656E5F73 
@@ -17578,7 +17578,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15592 176e 715F6E6F 		.ascii	"q_notify\000"
  15592      74696679 
  15592      00
-ARM GAS  /tmp/cciLB1st.s 			page 294
+ARM GAS  /tmp/ccGMcOud.s 			page 294
 
 
  15593              	.LASF142:
@@ -17638,7 +17638,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15620      6600
  15621              	.LASF643:
  15622 180a 6E6F726D 		.ascii	"norm_v\000"
-ARM GAS  /tmp/cciLB1st.s 			page 295
+ARM GAS  /tmp/ccGMcOud.s 			page 295
 
 
  15622      5F7600
@@ -17698,7 +17698,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15650 189b 61667268 		.ascii	"afrh\000"
  15650      00
  15651              	.LASF292:
-ARM GAS  /tmp/cciLB1st.s 			page 296
+ARM GAS  /tmp/ccGMcOud.s 			page 296
 
 
  15652 18a0 4943555F 		.ascii	"ICU_STOP\000"
@@ -17758,7 +17758,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15678      3100
  15679              	.LASF105:
  15680 1932 52455345 		.ascii	"RESERVED2\000"
-ARM GAS  /tmp/cciLB1st.s 			page 297
+ARM GAS  /tmp/ccGMcOud.s 			page 297
 
 
  15680      52564544 
@@ -17818,7 +17818,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15706 19c9 706D6E65 		.ascii	"pmnext\000"
  15706      787400
  15707              	.LASF696:
-ARM GAS  /tmp/cciLB1st.s 			page 298
+ARM GAS  /tmp/ccGMcOud.s 			page 298
 
 
  15708 19d0 7574696C 		.ascii	"utils_angle_difference_rad\000"
@@ -17878,7 +17878,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15731              	.LASF86:
  15732 1a89 69646C65 		.ascii	"idle_thread_wa\000"
  15732      5F746872 
-ARM GAS  /tmp/cciLB1st.s 			page 299
+ARM GAS  /tmp/ccGMcOud.s 			page 299
 
 
  15732      6561645F 
@@ -17938,7 +17938,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15762 1b17 7574696C 		.ascii	"utils_middle_of_3\000"
  15762      735F6D69 
  15762      64646C65 
-ARM GAS  /tmp/cciLB1st.s 			page 300
+ARM GAS  /tmp/ccGMcOud.s 			page 300
 
 
  15762      5F6F665F 
@@ -17998,7 +17998,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15788      5453495A 
  15788      00
  15789              	.LASF526:
-ARM GAS  /tmp/cciLB1st.s 			page 301
+ARM GAS  /tmp/ccGMcOud.s 			page 301
 
 
  15790 1bba 5F666C6F 		.ascii	"_flock_t\000"
@@ -18058,7 +18058,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15816      72696F00 
  15817              	.LASF570:
  15818 1c50 5F666C61 		.ascii	"_flags2\000"
-ARM GAS  /tmp/cciLB1st.s 			page 302
+ARM GAS  /tmp/ccGMcOud.s 			page 302
 
 
  15818      67733200 
@@ -18118,7 +18118,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15846      735F6877 
  15846      5F747970 
  15846      655F746F 
-ARM GAS  /tmp/cciLB1st.s 			page 303
+ARM GAS  /tmp/ccGMcOud.s 			page 303
 
 
  15846      5F737472 
@@ -18178,7 +18178,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15872 1d83 696E5F73 		.ascii	"in_state\000"
  15872      74617465 
  15872      00
-ARM GAS  /tmp/cciLB1st.s 			page 304
+ARM GAS  /tmp/ccGMcOud.s 			page 304
 
 
  15873              	.LASF129:
@@ -18238,7 +18238,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15901              	.LASF378:
  15902 1e14 5553425F 		.ascii	"USB_UNINIT\000"
  15902      554E494E 
-ARM GAS  /tmp/cciLB1st.s 			page 305
+ARM GAS  /tmp/ccGMcOud.s 			page 305
 
 
  15902      495400
@@ -18298,7 +18298,7 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15930      325F6F74 
  15930      675F7400 
  15931              	.LASF279:
-ARM GAS  /tmp/cciLB1st.s 			page 306
+ARM GAS  /tmp/ccGMcOud.s 			page 306
 
 
  15932 1eb4 64757479 		.ascii	"duty_cycle\000"
@@ -18339,143 +18339,143 @@ ARM GAS  /tmp/cciLB1st.s 			page 1
  15950      45414459 
  15950      00
  15951              		.ident	"GCC: (GNU Tools for Arm Embedded Processors 7-2018-q2-update) 7.3.1 20180622 (release) [AR
-ARM GAS  /tmp/cciLB1st.s 			page 307
+ARM GAS  /tmp/ccGMcOud.s 			page 307
 
 
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 utils.c
-     /tmp/cciLB1st.s:18     .text.uint16_cmp_func:0000000000000000 $t
-     /tmp/cciLB1st.s:25     .text.uint16_cmp_func:0000000000000000 uint16_cmp_func
-     /tmp/cciLB1st.s:45     .text.utils_step_towards:0000000000000000 $t
-     /tmp/cciLB1st.s:53     .text.utils_step_towards:0000000000000000 utils_step_towards
-     /tmp/cciLB1st.s:93     .text.utils_calc_ratio:0000000000000000 $t
-     /tmp/cciLB1st.s:101    .text.utils_calc_ratio:0000000000000000 utils_calc_ratio
-     /tmp/cciLB1st.s:121    .text.utils_norm_angle:0000000000000000 $t
-     /tmp/cciLB1st.s:129    .text.utils_norm_angle:0000000000000000 utils_norm_angle
-     /tmp/cciLB1st.s:172    .text.utils_norm_angle:0000000000000030 $d
-     /tmp/cciLB1st.s:177    .text.utils_norm_angle_rad:0000000000000000 $t
-     /tmp/cciLB1st.s:185    .text.utils_norm_angle_rad:0000000000000000 utils_norm_angle_rad
-     /tmp/cciLB1st.s:229    .text.utils_norm_angle_rad:0000000000000050 $d
-     /tmp/cciLB1st.s:236    .text.utils_truncate_number:0000000000000000 $t
-     /tmp/cciLB1st.s:244    .text.utils_truncate_number:0000000000000000 utils_truncate_number
-     /tmp/cciLB1st.s:285    .text.utils_truncate_number_int:0000000000000000 $t
-     /tmp/cciLB1st.s:293    .text.utils_truncate_number_int:0000000000000000 utils_truncate_number_int
-     /tmp/cciLB1st.s:332    .text.utils_truncate_number_abs:0000000000000000 $t
-     /tmp/cciLB1st.s:340    .text.utils_truncate_number_abs:0000000000000000 utils_truncate_number_abs
-     /tmp/cciLB1st.s:378    .text.utils_map:0000000000000000 $t
-     /tmp/cciLB1st.s:386    .text.utils_map:0000000000000000 utils_map
-     /tmp/cciLB1st.s:410    .text.utils_map_int:0000000000000000 $t
-     /tmp/cciLB1st.s:418    .text.utils_map_int:0000000000000000 utils_map_int
-     /tmp/cciLB1st.s:450    .text.utils_deadband:0000000000000000 $t
-     /tmp/cciLB1st.s:458    .text.utils_deadband:0000000000000000 utils_deadband
-     /tmp/cciLB1st.s:505    .text.utils_angle_difference:0000000000000000 $t
-     /tmp/cciLB1st.s:513    .text.utils_angle_difference:0000000000000000 utils_angle_difference
-     /tmp/cciLB1st.s:557    .text.utils_angle_difference:0000000000000048 $d
-     /tmp/cciLB1st.s:564    .text.utils_angle_difference_rad:0000000000000000 $t
-     /tmp/cciLB1st.s:572    .text.utils_angle_difference_rad:0000000000000000 utils_angle_difference_rad
-     /tmp/cciLB1st.s:616    .text.utils_angle_difference_rad:0000000000000048 $d
-     /tmp/cciLB1st.s:623    .text.utils_middle_of_3:0000000000000000 $t
-     /tmp/cciLB1st.s:631    .text.utils_middle_of_3:0000000000000000 utils_middle_of_3
-     /tmp/cciLB1st.s:697    .text.utils_middle_of_3_int:0000000000000000 $t
-     /tmp/cciLB1st.s:705    .text.utils_middle_of_3_int:0000000000000000 utils_middle_of_3_int
-     /tmp/cciLB1st.s:764    .text.utils_fast_inv_sqrt:0000000000000000 $t
-     /tmp/cciLB1st.s:772    .text.utils_fast_inv_sqrt:0000000000000000 utils_fast_inv_sqrt
-     /tmp/cciLB1st.s:805    .text.utils_fast_inv_sqrt:0000000000000028 $d
-     /tmp/cciLB1st.s:810    .text.utils_fast_atan2:0000000000000000 $t
-     /tmp/cciLB1st.s:818    .text.utils_fast_atan2:0000000000000000 utils_fast_atan2
-     /tmp/cciLB1st.s:895    .text.utils_fast_atan2:0000000000000068 $d
-     /tmp/cciLB1st.s:905    .text.utils_saturate_vector_2d:0000000000000000 $t
-     /tmp/cciLB1st.s:913    .text.utils_saturate_vector_2d:0000000000000000 utils_saturate_vector_2d
-     /tmp/cciLB1st.s:1023   .text.utils_saturate_vector_2d:000000000000008c $d
-     /tmp/cciLB1st.s:1028   .text.utils_fast_sincos:0000000000000000 $t
-     /tmp/cciLB1st.s:1036   .text.utils_fast_sincos:0000000000000000 utils_fast_sincos
-     /tmp/cciLB1st.s:1122   .text.utils_fast_sincos:00000000000000b4 $d
-     /tmp/cciLB1st.s:1132   .text.utils_fast_sincos_better:0000000000000000 $t
-     /tmp/cciLB1st.s:1140   .text.utils_fast_sincos_better:0000000000000000 utils_fast_sincos_better
-     /tmp/cciLB1st.s:1256   .text.utils_fast_sincos_better:00000000000000f8 $d
-     /tmp/cciLB1st.s:1267   .text.utils_avg_angles_rad_fast:0000000000000000 $t
-     /tmp/cciLB1st.s:1275   .text.utils_avg_angles_rad_fast:0000000000000000 utils_avg_angles_rad_fast
-     /tmp/cciLB1st.s:1367   .text.utils_avg_angles_rad_fast:000000000000005c $d
-     /tmp/cciLB1st.s:1372   .text.utils_min_abs:0000000000000000 $t
-     /tmp/cciLB1st.s:1380   .text.utils_min_abs:0000000000000000 utils_min_abs
-     /tmp/cciLB1st.s:1402   .text.utils_max_abs:0000000000000000 $t
-ARM GAS  /tmp/cciLB1st.s 			page 308
+     /tmp/ccGMcOud.s:18     .text.uint16_cmp_func:0000000000000000 $t
+     /tmp/ccGMcOud.s:25     .text.uint16_cmp_func:0000000000000000 uint16_cmp_func
+     /tmp/ccGMcOud.s:45     .text.utils_step_towards:0000000000000000 $t
+     /tmp/ccGMcOud.s:53     .text.utils_step_towards:0000000000000000 utils_step_towards
+     /tmp/ccGMcOud.s:93     .text.utils_calc_ratio:0000000000000000 $t
+     /tmp/ccGMcOud.s:101    .text.utils_calc_ratio:0000000000000000 utils_calc_ratio
+     /tmp/ccGMcOud.s:121    .text.utils_norm_angle:0000000000000000 $t
+     /tmp/ccGMcOud.s:129    .text.utils_norm_angle:0000000000000000 utils_norm_angle
+     /tmp/ccGMcOud.s:172    .text.utils_norm_angle:0000000000000030 $d
+     /tmp/ccGMcOud.s:177    .text.utils_norm_angle_rad:0000000000000000 $t
+     /tmp/ccGMcOud.s:185    .text.utils_norm_angle_rad:0000000000000000 utils_norm_angle_rad
+     /tmp/ccGMcOud.s:229    .text.utils_norm_angle_rad:0000000000000050 $d
+     /tmp/ccGMcOud.s:236    .text.utils_truncate_number:0000000000000000 $t
+     /tmp/ccGMcOud.s:244    .text.utils_truncate_number:0000000000000000 utils_truncate_number
+     /tmp/ccGMcOud.s:285    .text.utils_truncate_number_int:0000000000000000 $t
+     /tmp/ccGMcOud.s:293    .text.utils_truncate_number_int:0000000000000000 utils_truncate_number_int
+     /tmp/ccGMcOud.s:332    .text.utils_truncate_number_abs:0000000000000000 $t
+     /tmp/ccGMcOud.s:340    .text.utils_truncate_number_abs:0000000000000000 utils_truncate_number_abs
+     /tmp/ccGMcOud.s:378    .text.utils_map:0000000000000000 $t
+     /tmp/ccGMcOud.s:386    .text.utils_map:0000000000000000 utils_map
+     /tmp/ccGMcOud.s:410    .text.utils_map_int:0000000000000000 $t
+     /tmp/ccGMcOud.s:418    .text.utils_map_int:0000000000000000 utils_map_int
+     /tmp/ccGMcOud.s:450    .text.utils_deadband:0000000000000000 $t
+     /tmp/ccGMcOud.s:458    .text.utils_deadband:0000000000000000 utils_deadband
+     /tmp/ccGMcOud.s:505    .text.utils_angle_difference:0000000000000000 $t
+     /tmp/ccGMcOud.s:513    .text.utils_angle_difference:0000000000000000 utils_angle_difference
+     /tmp/ccGMcOud.s:557    .text.utils_angle_difference:0000000000000048 $d
+     /tmp/ccGMcOud.s:564    .text.utils_angle_difference_rad:0000000000000000 $t
+     /tmp/ccGMcOud.s:572    .text.utils_angle_difference_rad:0000000000000000 utils_angle_difference_rad
+     /tmp/ccGMcOud.s:616    .text.utils_angle_difference_rad:0000000000000048 $d
+     /tmp/ccGMcOud.s:623    .text.utils_middle_of_3:0000000000000000 $t
+     /tmp/ccGMcOud.s:631    .text.utils_middle_of_3:0000000000000000 utils_middle_of_3
+     /tmp/ccGMcOud.s:697    .text.utils_middle_of_3_int:0000000000000000 $t
+     /tmp/ccGMcOud.s:705    .text.utils_middle_of_3_int:0000000000000000 utils_middle_of_3_int
+     /tmp/ccGMcOud.s:764    .text.utils_fast_inv_sqrt:0000000000000000 $t
+     /tmp/ccGMcOud.s:772    .text.utils_fast_inv_sqrt:0000000000000000 utils_fast_inv_sqrt
+     /tmp/ccGMcOud.s:805    .text.utils_fast_inv_sqrt:0000000000000028 $d
+     /tmp/ccGMcOud.s:810    .text.utils_fast_atan2:0000000000000000 $t
+     /tmp/ccGMcOud.s:818    .text.utils_fast_atan2:0000000000000000 utils_fast_atan2
+     /tmp/ccGMcOud.s:895    .text.utils_fast_atan2:0000000000000068 $d
+     /tmp/ccGMcOud.s:905    .text.utils_saturate_vector_2d:0000000000000000 $t
+     /tmp/ccGMcOud.s:913    .text.utils_saturate_vector_2d:0000000000000000 utils_saturate_vector_2d
+     /tmp/ccGMcOud.s:1023   .text.utils_saturate_vector_2d:000000000000008c $d
+     /tmp/ccGMcOud.s:1028   .text.utils_fast_sincos:0000000000000000 $t
+     /tmp/ccGMcOud.s:1036   .text.utils_fast_sincos:0000000000000000 utils_fast_sincos
+     /tmp/ccGMcOud.s:1122   .text.utils_fast_sincos:00000000000000b4 $d
+     /tmp/ccGMcOud.s:1132   .text.utils_fast_sincos_better:0000000000000000 $t
+     /tmp/ccGMcOud.s:1140   .text.utils_fast_sincos_better:0000000000000000 utils_fast_sincos_better
+     /tmp/ccGMcOud.s:1256   .text.utils_fast_sincos_better:00000000000000f8 $d
+     /tmp/ccGMcOud.s:1267   .text.utils_avg_angles_rad_fast:0000000000000000 $t
+     /tmp/ccGMcOud.s:1275   .text.utils_avg_angles_rad_fast:0000000000000000 utils_avg_angles_rad_fast
+     /tmp/ccGMcOud.s:1367   .text.utils_avg_angles_rad_fast:000000000000005c $d
+     /tmp/ccGMcOud.s:1372   .text.utils_min_abs:0000000000000000 $t
+     /tmp/ccGMcOud.s:1380   .text.utils_min_abs:0000000000000000 utils_min_abs
+     /tmp/ccGMcOud.s:1402   .text.utils_max_abs:0000000000000000 $t
+ARM GAS  /tmp/ccGMcOud.s 			page 308
 
 
-     /tmp/cciLB1st.s:1410   .text.utils_max_abs:0000000000000000 utils_max_abs
-     /tmp/cciLB1st.s:1432   .text.utils_byte_to_binary:0000000000000000 $t
-     /tmp/cciLB1st.s:1440   .text.utils_byte_to_binary:0000000000000000 utils_byte_to_binary
-     /tmp/cciLB1st.s:1495   .text.utils_byte_to_binary:0000000000000038 $d
-     /tmp/cciLB1st.s:1501   .text.utils_throttle_curve:0000000000000000 $t
-     /tmp/cciLB1st.s:1509   .text.utils_throttle_curve:0000000000000000 utils_throttle_curve
-     /tmp/cciLB1st.s:1700   .text.utils_throttle_curve:000000000000014c $d
-     /tmp/cciLB1st.s:1705   .text.utils_sys_lock_cnt:0000000000000000 $t
-     /tmp/cciLB1st.s:1713   .text.utils_sys_lock_cnt:0000000000000000 utils_sys_lock_cnt
-     /tmp/cciLB1st.s:1750   .text.utils_sys_lock_cnt:0000000000000010 $d
-     /tmp/cciLB1st.s:1755   .text.utils_sys_unlock_cnt:0000000000000000 $t
-     /tmp/cciLB1st.s:1763   .text.utils_sys_unlock_cnt:0000000000000000 utils_sys_unlock_cnt
-     /tmp/cciLB1st.s:1804   .text.utils_sys_unlock_cnt:0000000000000014 $d
-     /tmp/cciLB1st.s:1809   .text.utils_crc32c:0000000000000000 $t
-     /tmp/cciLB1st.s:1817   .text.utils_crc32c:0000000000000000 utils_crc32c
-     /tmp/cciLB1st.s:1906   .text.utils_crc32c:0000000000000034 $d
-     /tmp/cciLB1st.s:1911   .text.utils_fft32_bin0:0000000000000000 $t
-     /tmp/cciLB1st.s:1919   .text.utils_fft32_bin0:0000000000000000 utils_fft32_bin0
-     /tmp/cciLB1st.s:1957   .text.utils_fft32_bin0:000000000000002c $d
-     /tmp/cciLB1st.s:1962   .text.utils_fft32_bin1:0000000000000000 $t
-     /tmp/cciLB1st.s:1970   .text.utils_fft32_bin1:0000000000000000 utils_fft32_bin1
-     /tmp/cciLB1st.s:2037   .text.utils_fft32_bin1:000000000000006c $d
-     /tmp/cciLB1st.s:2045   .text.utils_fft32_bin2:0000000000000000 $t
-     /tmp/cciLB1st.s:2053   .text.utils_fft32_bin2:0000000000000000 utils_fft32_bin2
-     /tmp/cciLB1st.s:2120   .text.utils_fft32_bin2:000000000000006c $d
-     /tmp/cciLB1st.s:2128   .text.utils_fft16_bin0:0000000000000000 $t
-     /tmp/cciLB1st.s:2136   .text.utils_fft16_bin0:0000000000000000 utils_fft16_bin0
-     /tmp/cciLB1st.s:2174   .text.utils_fft16_bin0:000000000000002c $d
-     /tmp/cciLB1st.s:2179   .text.utils_fft16_bin1:0000000000000000 $t
-     /tmp/cciLB1st.s:2187   .text.utils_fft16_bin1:0000000000000000 utils_fft16_bin1
-     /tmp/cciLB1st.s:2256   .text.utils_fft16_bin1:0000000000000074 $d
-     /tmp/cciLB1st.s:2264   .text.utils_fft16_bin2:0000000000000000 $t
-     /tmp/cciLB1st.s:2272   .text.utils_fft16_bin2:0000000000000000 utils_fft16_bin2
-     /tmp/cciLB1st.s:2341   .text.utils_fft16_bin2:0000000000000074 $d
-     /tmp/cciLB1st.s:2349   .text.utils_fft8_bin0:0000000000000000 $t
-     /tmp/cciLB1st.s:2357   .text.utils_fft8_bin0:0000000000000000 utils_fft8_bin0
-     /tmp/cciLB1st.s:2396   .text.utils_fft8_bin1:0000000000000000 $t
-     /tmp/cciLB1st.s:2404   .text.utils_fft8_bin1:0000000000000000 utils_fft8_bin1
-     /tmp/cciLB1st.s:2474   .text.utils_fft8_bin1:0000000000000070 $d
-     /tmp/cciLB1st.s:2481   .text.utils_fft8_bin2:0000000000000000 $t
-     /tmp/cciLB1st.s:2489   .text.utils_fft8_bin2:0000000000000000 utils_fft8_bin2
-     /tmp/cciLB1st.s:2559   .text.utils_fft8_bin2:0000000000000070 $d
-     /tmp/cciLB1st.s:2566   .text.utils_second_motor_id:0000000000000000 $t
-     /tmp/cciLB1st.s:2574   .text.utils_second_motor_id:0000000000000000 utils_second_motor_id
-     /tmp/cciLB1st.s:2588   .text.utils_read_hall:0000000000000000 $t
-     /tmp/cciLB1st.s:2596   .text.utils_read_hall:0000000000000000 utils_read_hall
-     /tmp/cciLB1st.s:2726   .text.utils_read_hall:0000000000000088 $d
-     /tmp/cciLB1st.s:2731   .text.utils_batt_liion_norm_v_to_capacity:0000000000000000 $t
-     /tmp/cciLB1st.s:2739   .text.utils_batt_liion_norm_v_to_capacity:0000000000000000 utils_batt_liion_norm_v_to_capacity
-     /tmp/cciLB1st.s:2791   .text.utils_batt_liion_norm_v_to_capacity:0000000000000064 $d
-     /tmp/cciLB1st.s:2802   .text.utils_median_filter_uint16_run:0000000000000000 $t
-     /tmp/cciLB1st.s:2810   .text.utils_median_filter_uint16_run:0000000000000000 utils_median_filter_uint16_run
-     /tmp/cciLB1st.s:2883   .text.utils_median_filter_uint16_run:000000000000004c $d
-     /tmp/cciLB1st.s:2888   .text.utils_hw_type_to_string:0000000000000000 $t
-     /tmp/cciLB1st.s:2896   .text.utils_hw_type_to_string:0000000000000000 utils_hw_type_to_string
-     /tmp/cciLB1st.s:2916   .text.utils_hw_type_to_string:0000000000000010 $d
-     /tmp/cciLB1st.s:3005   .rodata.utils_tab_cos_32_2:0000000000000000 utils_tab_cos_32_2
-ARM GAS  /tmp/cciLB1st.s 			page 309
+     /tmp/ccGMcOud.s:1410   .text.utils_max_abs:0000000000000000 utils_max_abs
+     /tmp/ccGMcOud.s:1432   .text.utils_byte_to_binary:0000000000000000 $t
+     /tmp/ccGMcOud.s:1440   .text.utils_byte_to_binary:0000000000000000 utils_byte_to_binary
+     /tmp/ccGMcOud.s:1495   .text.utils_byte_to_binary:0000000000000038 $d
+     /tmp/ccGMcOud.s:1501   .text.utils_throttle_curve:0000000000000000 $t
+     /tmp/ccGMcOud.s:1509   .text.utils_throttle_curve:0000000000000000 utils_throttle_curve
+     /tmp/ccGMcOud.s:1700   .text.utils_throttle_curve:000000000000014c $d
+     /tmp/ccGMcOud.s:1705   .text.utils_sys_lock_cnt:0000000000000000 $t
+     /tmp/ccGMcOud.s:1713   .text.utils_sys_lock_cnt:0000000000000000 utils_sys_lock_cnt
+     /tmp/ccGMcOud.s:1750   .text.utils_sys_lock_cnt:0000000000000010 $d
+     /tmp/ccGMcOud.s:1755   .text.utils_sys_unlock_cnt:0000000000000000 $t
+     /tmp/ccGMcOud.s:1763   .text.utils_sys_unlock_cnt:0000000000000000 utils_sys_unlock_cnt
+     /tmp/ccGMcOud.s:1804   .text.utils_sys_unlock_cnt:0000000000000014 $d
+     /tmp/ccGMcOud.s:1809   .text.utils_crc32c:0000000000000000 $t
+     /tmp/ccGMcOud.s:1817   .text.utils_crc32c:0000000000000000 utils_crc32c
+     /tmp/ccGMcOud.s:1906   .text.utils_crc32c:0000000000000034 $d
+     /tmp/ccGMcOud.s:1911   .text.utils_fft32_bin0:0000000000000000 $t
+     /tmp/ccGMcOud.s:1919   .text.utils_fft32_bin0:0000000000000000 utils_fft32_bin0
+     /tmp/ccGMcOud.s:1957   .text.utils_fft32_bin0:000000000000002c $d
+     /tmp/ccGMcOud.s:1962   .text.utils_fft32_bin1:0000000000000000 $t
+     /tmp/ccGMcOud.s:1970   .text.utils_fft32_bin1:0000000000000000 utils_fft32_bin1
+     /tmp/ccGMcOud.s:2037   .text.utils_fft32_bin1:000000000000006c $d
+     /tmp/ccGMcOud.s:2045   .text.utils_fft32_bin2:0000000000000000 $t
+     /tmp/ccGMcOud.s:2053   .text.utils_fft32_bin2:0000000000000000 utils_fft32_bin2
+     /tmp/ccGMcOud.s:2120   .text.utils_fft32_bin2:000000000000006c $d
+     /tmp/ccGMcOud.s:2128   .text.utils_fft16_bin0:0000000000000000 $t
+     /tmp/ccGMcOud.s:2136   .text.utils_fft16_bin0:0000000000000000 utils_fft16_bin0
+     /tmp/ccGMcOud.s:2174   .text.utils_fft16_bin0:000000000000002c $d
+     /tmp/ccGMcOud.s:2179   .text.utils_fft16_bin1:0000000000000000 $t
+     /tmp/ccGMcOud.s:2187   .text.utils_fft16_bin1:0000000000000000 utils_fft16_bin1
+     /tmp/ccGMcOud.s:2256   .text.utils_fft16_bin1:0000000000000074 $d
+     /tmp/ccGMcOud.s:2264   .text.utils_fft16_bin2:0000000000000000 $t
+     /tmp/ccGMcOud.s:2272   .text.utils_fft16_bin2:0000000000000000 utils_fft16_bin2
+     /tmp/ccGMcOud.s:2341   .text.utils_fft16_bin2:0000000000000074 $d
+     /tmp/ccGMcOud.s:2349   .text.utils_fft8_bin0:0000000000000000 $t
+     /tmp/ccGMcOud.s:2357   .text.utils_fft8_bin0:0000000000000000 utils_fft8_bin0
+     /tmp/ccGMcOud.s:2396   .text.utils_fft8_bin1:0000000000000000 $t
+     /tmp/ccGMcOud.s:2404   .text.utils_fft8_bin1:0000000000000000 utils_fft8_bin1
+     /tmp/ccGMcOud.s:2474   .text.utils_fft8_bin1:0000000000000070 $d
+     /tmp/ccGMcOud.s:2481   .text.utils_fft8_bin2:0000000000000000 $t
+     /tmp/ccGMcOud.s:2489   .text.utils_fft8_bin2:0000000000000000 utils_fft8_bin2
+     /tmp/ccGMcOud.s:2559   .text.utils_fft8_bin2:0000000000000070 $d
+     /tmp/ccGMcOud.s:2566   .text.utils_second_motor_id:0000000000000000 $t
+     /tmp/ccGMcOud.s:2574   .text.utils_second_motor_id:0000000000000000 utils_second_motor_id
+     /tmp/ccGMcOud.s:2588   .text.utils_read_hall:0000000000000000 $t
+     /tmp/ccGMcOud.s:2596   .text.utils_read_hall:0000000000000000 utils_read_hall
+     /tmp/ccGMcOud.s:2726   .text.utils_read_hall:0000000000000088 $d
+     /tmp/ccGMcOud.s:2731   .text.utils_batt_liion_norm_v_to_capacity:0000000000000000 $t
+     /tmp/ccGMcOud.s:2739   .text.utils_batt_liion_norm_v_to_capacity:0000000000000000 utils_batt_liion_norm_v_to_capacity
+     /tmp/ccGMcOud.s:2791   .text.utils_batt_liion_norm_v_to_capacity:0000000000000064 $d
+     /tmp/ccGMcOud.s:2802   .text.utils_median_filter_uint16_run:0000000000000000 $t
+     /tmp/ccGMcOud.s:2810   .text.utils_median_filter_uint16_run:0000000000000000 utils_median_filter_uint16_run
+     /tmp/ccGMcOud.s:2883   .text.utils_median_filter_uint16_run:000000000000004c $d
+     /tmp/ccGMcOud.s:2888   .text.utils_hw_type_to_string:0000000000000000 $t
+     /tmp/ccGMcOud.s:2896   .text.utils_hw_type_to_string:0000000000000000 utils_hw_type_to_string
+     /tmp/ccGMcOud.s:2916   .text.utils_hw_type_to_string:0000000000000010 $d
+     /tmp/ccGMcOud.s:3005   .rodata.utils_tab_cos_32_2:0000000000000000 utils_tab_cos_32_2
+ARM GAS  /tmp/ccGMcOud.s 			page 309
 
 
-     /tmp/cciLB1st.s:2967   .rodata.utils_tab_cos_32_1:0000000000000000 utils_tab_cos_32_1
-     /tmp/cciLB1st.s:3081   .rodata.utils_tab_sin_32_2:0000000000000000 utils_tab_sin_32_2
-     /tmp/cciLB1st.s:3043   .rodata.utils_tab_sin_32_1:0000000000000000 utils_tab_sin_32_1
-     /tmp/cciLB1st.s:2926   .bss.sys_lock_cnt:0000000000000000 $d
-     /tmp/cciLB1st.s:2930   .bss.sys_lock_cnt:0000000000000000 sys_lock_cnt
-     /tmp/cciLB1st.s:2933   .rodata.CSWTCH.100:0000000000000000 $d
-     /tmp/cciLB1st.s:2937   .rodata.CSWTCH.100:0000000000000000 CSWTCH.100
-     /tmp/cciLB1st.s:2942   .rodata.str1.4:0000000000000000 $d
-     /tmp/cciLB1st.s:2952   .rodata.utils_byte_to_binary.str1.4:0000000000000000 $d
-     /tmp/cciLB1st.s:2959   .rodata.utils_hw_type_to_string.str1.4:0000000000000000 $d
-     /tmp/cciLB1st.s:2963   .rodata.utils_tab_cos_32_1:0000000000000000 $d
-     /tmp/cciLB1st.s:3001   .rodata.utils_tab_cos_32_2:0000000000000000 $d
-     /tmp/cciLB1st.s:3039   .rodata.utils_tab_sin_32_1:0000000000000000 $d
-     /tmp/cciLB1st.s:3077   .rodata.utils_tab_sin_32_2:0000000000000000 $d
+     /tmp/ccGMcOud.s:2967   .rodata.utils_tab_cos_32_1:0000000000000000 utils_tab_cos_32_1
+     /tmp/ccGMcOud.s:3081   .rodata.utils_tab_sin_32_2:0000000000000000 utils_tab_sin_32_2
+     /tmp/ccGMcOud.s:3043   .rodata.utils_tab_sin_32_1:0000000000000000 utils_tab_sin_32_1
+     /tmp/ccGMcOud.s:2926   .bss.sys_lock_cnt:0000000000000000 $d
+     /tmp/ccGMcOud.s:2930   .bss.sys_lock_cnt:0000000000000000 sys_lock_cnt
+     /tmp/ccGMcOud.s:2933   .rodata.CSWTCH.100:0000000000000000 $d
+     /tmp/ccGMcOud.s:2937   .rodata.CSWTCH.100:0000000000000000 CSWTCH.100
+     /tmp/ccGMcOud.s:2942   .rodata.str1.4:0000000000000000 $d
+     /tmp/ccGMcOud.s:2952   .rodata.utils_byte_to_binary.str1.4:0000000000000000 $d
+     /tmp/ccGMcOud.s:2959   .rodata.utils_hw_type_to_string.str1.4:0000000000000000 $d
+     /tmp/ccGMcOud.s:2963   .rodata.utils_tab_cos_32_1:0000000000000000 $d
+     /tmp/ccGMcOud.s:3001   .rodata.utils_tab_cos_32_2:0000000000000000 $d
+     /tmp/ccGMcOud.s:3039   .rodata.utils_tab_sin_32_1:0000000000000000 $d
+     /tmp/ccGMcOud.s:3077   .rodata.utils_tab_sin_32_2:0000000000000000 $d
 
 UNDEFINED SYMBOLS
 fmodf

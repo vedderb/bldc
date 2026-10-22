@@ -1,4 +1,4 @@
-ARM GAS  /tmp/ccwedgnD.s 			page 1
+ARM GAS  /tmp/ccmDjlud.s 			page 1
 
 
    1              		.cpu cortex-m4
@@ -58,7 +58,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
   55              	.LBE11:
   56              	.LBE13:
   57              		.loc 1 442 0
-ARM GAS  /tmp/ccwedgnD.s 			page 2
+ARM GAS  /tmp/ccmDjlud.s 			page 2
 
 
   58 000c 2948     		ldr	r0, .L15+4
@@ -118,7 +118,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  112              		.loc 1 268 0
  113 0054 8DF80550 		strb	r5, [sp, #5]
  114              		.loc 1 271 0
-ARM GAS  /tmp/ccwedgnD.s 			page 3
+ARM GAS  /tmp/ccmDjlud.s 			page 3
 
 
  115 0058 0495     		str	r5, [sp, #16]
@@ -178,7 +178,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  169 00b4 00000000 		.word	.LC0
  170 00b8 1C000000 		.word	.LC1
  171 00bc 00000000 		.word	0
-ARM GAS  /tmp/ccwedgnD.s 			page 4
+ARM GAS  /tmp/ccmDjlud.s 			page 4
 
 
  172 00c0 00000000 		.word	.LANCHOR3
@@ -238,7 +238,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  226              		@ sp needed
  227 0016 BDEC028B 		vldm	sp!, {d8}
  228              		.cfi_restore 80
-ARM GAS  /tmp/ccwedgnD.s 			page 5
+ARM GAS  /tmp/ccmDjlud.s 			page 5
 
 
  229              		.cfi_restore 81
@@ -298,7 +298,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  283 0056 444D     		ldr	r5, .L27+12
  284              	.LVL23:
  285              	.L19:
-ARM GAS  /tmp/ccwedgnD.s 			page 6
+ARM GAS  /tmp/ccmDjlud.s 			page 6
 
 
  286              		.loc 1 229 0
@@ -358,7 +358,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  340 00c4 84F83C30 		strb	r3, [r4, #60]
  341              	.LVL27:
  342              	.LBE28:
-ARM GAS  /tmp/ccwedgnD.s 			page 7
+ARM GAS  /tmp/ccmDjlud.s 			page 7
 
 
  343              	.LBE32:
@@ -418,7 +418,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  397              		.loc 1 197 0
  398 0100 3346     		mov	r3, r6
  399 0102 1F4A     		ldr	r2, .L27+36
-ARM GAS  /tmp/ccwedgnD.s 			page 8
+ARM GAS  /tmp/ccmDjlud.s 			page 8
 
 
  400 0104 1F49     		ldr	r1, .L27+40
@@ -472,13 +472,13 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  448 0164 00000000 		.word	.LANCHOR0
  449 0168 00000000 		.word	ADC_Value
  450 016c 6740533A 		.word	978534503
- 451 0170 74D19541 		.word	1100337524
+ 451 0170 7836B241 		.word	1102198392
  452 0174 04000000 		.word	.LC3
  453 0178 00000000 		.word	0
  454 017c 00200140 		.word	1073815552
  455 0180 00000000 		.word	.LANCHOR3
  456 0184 00000000 		.word	.LANCHOR2
-ARM GAS  /tmp/ccwedgnD.s 			page 9
+ARM GAS  /tmp/ccmDjlud.s 			page 9
 
 
  457 0188 00000000 		.word	.LANCHOR1
@@ -538,7 +538,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  511              		.loc 1 138 0
  512 0038 D0ED397A 		vldr.32	s15, [r0, #228]
  513 003c F5EEC07A 		vcmpe.f32	s15, #0
-ARM GAS  /tmp/ccwedgnD.s 			page 10
+ARM GAS  /tmp/ccmDjlud.s 			page 10
 
 
  514 0040 F1EE10FA 		vmrs	APSR_nzcv, FPSCR
@@ -598,7 +598,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  568              		.syntax unified
  569              		.thumb
  570              		.thumb_func
-ARM GAS  /tmp/ccwedgnD.s 			page 11
+ARM GAS  /tmp/ccmDjlud.s 			page 11
 
 
  571              		.fpu fpv4-sp-d16
@@ -658,7 +658,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  625              		.loc 1 104 0
  626 002e A566     		str	r5, [r4, #104]	@ float
  627              		.loc 1 105 0
-ARM GAS  /tmp/ccwedgnD.s 			page 12
+ARM GAS  /tmp/ccmDjlud.s 			page 12
 
 
  628 0030 2562     		str	r5, [r4, #32]	@ float
@@ -718,7 +718,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  682              		.cfi_offset 4, -12
  683              		.cfi_offset 5, -8
  684              		.cfi_offset 14, -4
-ARM GAS  /tmp/ccwedgnD.s 			page 13
+ARM GAS  /tmp/ccmDjlud.s 			page 13
 
 
  685              		.loc 1 151 0
@@ -778,7 +778,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  739 0052 94ED0B3A 		vldr.32	s6, [r4, #44]
  740              		.loc 1 331 0
  741 0056 94ED037A 		vldr.32	s14, [r4, #12]	@ int
-ARM GAS  /tmp/ccwedgnD.s 			page 14
+ARM GAS  /tmp/ccmDjlud.s 			page 14
 
 
  742              		.loc 1 332 0
@@ -838,7 +838,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  796 00e2 F8EEE66A 		vcvt.f32.s32	s13, s13
  797              		.loc 1 338 0
  798 00e6 66EE666A 		vnmul.f32	s13, s12, s13
-ARM GAS  /tmp/ccwedgnD.s 			page 15
+ARM GAS  /tmp/ccmDjlud.s 			page 15
 
 
  799 00ea E6EE877A 		vfma.f32	s15, s13, s14
@@ -898,7 +898,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  853 016c E6EE267A 		vfma.f32	s15, s12, s13
  854 0170 C4ED0C7A 		vstr.32	s15, [r4, #48]
  855              		.loc 1 365 0
-ARM GAS  /tmp/ccwedgnD.s 			page 16
+ARM GAS  /tmp/ccmDjlud.s 			page 16
 
 
  856 0174 D4ED0C7A 		vldr.32	s15, [r4, #48]
@@ -958,7 +958,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  910 01f0 9FED655A 		vldr.32	s10, .L56+32
  911 01f4 DFED657A 		vldr.32	s15, .L56+36
  912 01f8 654A     		ldr	r2, .L56+40
-ARM GAS  /tmp/ccwedgnD.s 			page 17
+ARM GAS  /tmp/ccmDjlud.s 			page 17
 
 
  913              		.loc 1 408 0
@@ -1018,7 +1018,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  967 026e 94ED194A 		vldr.32	s8, [r4, #100]
  968 0272 D4ED1A6A 		vldr.32	s13, [r4, #104]
  969 0276 66EE876A 		vmul.f32	s13, s13, s14
-ARM GAS  /tmp/ccwedgnD.s 			page 18
+ARM GAS  /tmp/ccmDjlud.s 			page 18
 
 
  970 027a E4EE246A 		vfma.f32	s13, s8, s9
@@ -1078,7 +1078,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1024 02fa 86EE857A 		vdiv.f32	s14, s13, s10
  1025              		.loc 1 408 0
  1026 02fe F0EE676A 		vmov.f32	s13, s15
-ARM GAS  /tmp/ccwedgnD.s 			page 19
+ARM GAS  /tmp/ccmDjlud.s 			page 19
 
 
  1027              		.loc 1 405 0
@@ -1133,19 +1133,19 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1076              	.L56:
  1077 0368 00000000 		.word	.LANCHOR0
  1078 036c 00000000 		.word	.LANCHOR4
- 1079 0370 500A2543 		.word	1126500944
+ 1079 0370 41088441 		.word	1099171905
  1080 0374 DB0F4940 		.word	1078530011
  1081 0378 DB0FC940 		.word	1086918619
  1082 037c DB0F49C0 		.word	3226013659
  1083 0380 38000000 		.word	.LANCHOR0+56
-ARM GAS  /tmp/ccwedgnD.s 			page 20
+ARM GAS  /tmp/ccmDjlud.s 			page 20
 
 
  1084 0384 D7B35D3F 		.word	1063105495
- 1085 0388 500AA53D 		.word	1034226256
+ 1085 0388 4108043C 		.word	1006897217
  1086 038c 00000045 		.word	1157627904
  1087 0390 00000000 		.word	ADC_Value
- 1088 0394 ECB75A3D 		.word	1029355500
+ 1088 0394 BFDE373D 		.word	1027071679
  1089 0398 CA269B44 		.word	1151018698
  1090              		.cfi_endproc
  1091              	.LFE224:
@@ -1198,7 +1198,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1138 0000 054B     		ldr	r3, .L62
  1139 0002 9FED067A 		vldr.32	s14, .L62+4
  1140 0006 D3ED0C7A 		vldr.32	s15, [r3, #48]
-ARM GAS  /tmp/ccwedgnD.s 			page 21
+ARM GAS  /tmp/ccmDjlud.s 			page 21
 
 
  1141 000a 9FED050A 		vldr.32	s0, .L62+8
@@ -1258,7 +1258,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1191              		.align	2
  1192              	.LC2:
  1193 0000 256600   		.ascii	"%f\000"
-ARM GAS  /tmp/ccwedgnD.s 			page 22
+ARM GAS  /tmp/ccmDjlud.s 			page 22
 
 
  1194 0003 00       		.space	1
@@ -1318,7 +1318,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1221 005c 64697363 		.ascii	"disconnect_virtual_motor\000"
  1221      6F6E6E65 
  1221      63745F76 
-ARM GAS  /tmp/ccwedgnD.s 			page 23
+ARM GAS  /tmp/ccmDjlud.s 			page 23
 
 
  1221      69727475 
@@ -1378,7 +1378,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1274 002e 07       		.byte	0x7
  1275 002f 3F110000 		.4byte	.LASF1
  1276 0033 03       		.uleb128 0x3
-ARM GAS  /tmp/ccwedgnD.s 			page 24
+ARM GAS  /tmp/ccmDjlud.s 			page 24
 
 
  1277 0034 851D0000 		.4byte	.LASF3
@@ -1438,7 +1438,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1331 00a0 08       		.byte	0x8
  1332 00a1 07       		.byte	0x7
  1333 00a2 C7190000 		.4byte	.LASF14
-ARM GAS  /tmp/ccwedgnD.s 			page 25
+ARM GAS  /tmp/ccmDjlud.s 			page 25
 
 
  1334 00a6 04       		.uleb128 0x4
@@ -1498,7 +1498,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1388 011b 45       		.byte	0x45
  1389 011c EF000000 		.4byte	0xef
  1390 0120 03       		.uleb128 0x3
-ARM GAS  /tmp/ccwedgnD.s 			page 26
+ARM GAS  /tmp/ccmDjlud.s 			page 26
 
 
  1391 0121 D70E0000 		.4byte	.LASF24
@@ -1558,7 +1558,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1445 0199 07       		.byte	0x7
  1446 019a C2       		.byte	0xc2
  1447 019b A5020000 		.4byte	0x2a5
-ARM GAS  /tmp/ccwedgnD.s 			page 27
+ARM GAS  /tmp/ccmDjlud.s 			page 27
 
 
  1448 019f 07       		.uleb128 0x7
@@ -1618,7 +1618,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1502 020b 07       		.uleb128 0x7
  1503 020c 97130000 		.4byte	.LASF43
  1504 0210 07       		.byte	0x7
-ARM GAS  /tmp/ccwedgnD.s 			page 28
+ARM GAS  /tmp/ccmDjlud.s 			page 28
 
 
  1505 0211 E6       		.byte	0xe6
@@ -1678,7 +1678,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1559 0283 5101     		.2byte	0x151
  1560 0285 4C010000 		.4byte	0x14c
  1561 0289 40       		.byte	0x40
-ARM GAS  /tmp/ccwedgnD.s 			page 29
+ARM GAS  /tmp/ccmDjlud.s 			page 29
 
 
  1562 028a 09       		.uleb128 0x9
@@ -1738,7 +1738,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1616 02f8 B0020000 		.4byte	0x2b0
  1617 02fc 00       		.byte	0
  1618 02fd 07       		.uleb128 0x7
-ARM GAS  /tmp/ccwedgnD.s 			page 30
+ARM GAS  /tmp/ccmDjlud.s 			page 30
 
 
  1619 02fe DF0B0000 		.4byte	.LASF35
@@ -1798,7 +1798,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1673 0371 03       		.uleb128 0x3
  1674 0372 7D170000 		.4byte	.LASF68
  1675 0376 06       		.byte	0x6
-ARM GAS  /tmp/ccwedgnD.s 			page 31
+ARM GAS  /tmp/ccmDjlud.s 			page 31
 
 
  1676 0377 5C       		.byte	0x5c
@@ -1858,7 +1858,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1730 03e9 03       		.uleb128 0x3
  1731 03ea 7D1B0000 		.4byte	.LASF76
  1732 03ee 06       		.byte	0x6
-ARM GAS  /tmp/ccwedgnD.s 			page 32
+ARM GAS  /tmp/ccmDjlud.s 			page 32
 
 
  1733 03ef 66       		.byte	0x66
@@ -1918,7 +1918,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1787 0462 70       		.byte	0x70
  1788 0463 67040000 		.4byte	0x467
  1789 0467 0F       		.uleb128 0xf
-ARM GAS  /tmp/ccwedgnD.s 			page 33
+ARM GAS  /tmp/ccmDjlud.s 			page 33
 
 
  1790 0468 AE120000 		.4byte	.LASF83
@@ -1978,7 +1978,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1844 04dc 0A       		.byte	0xa
  1845 04dd C4       		.byte	0xc4
  1846 04de D1050000 		.4byte	0x5d1
-ARM GAS  /tmp/ccwedgnD.s 			page 34
+ARM GAS  /tmp/ccmDjlud.s 			page 34
 
 
  1847 04e2 13       		.uleb128 0x13
@@ -2038,7 +2038,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1901 054d 13       		.uleb128 0x13
  1902 054e 48545200 		.ascii	"HTR\000"
  1903 0552 0A       		.byte	0xa
-ARM GAS  /tmp/ccwedgnD.s 			page 35
+ARM GAS  /tmp/ccmDjlud.s 			page 35
 
 
  1904 0553 CF       		.byte	0xcf
@@ -2098,7 +2098,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  1958 05bf D8       		.byte	0xd8
  1959 05c0 FA000000 		.4byte	0xfa
  1960 05c4 48       		.byte	0x48
-ARM GAS  /tmp/ccwedgnD.s 			page 36
+ARM GAS  /tmp/ccmDjlud.s 			page 36
 
 
  1961 05c5 13       		.uleb128 0x13
@@ -2158,7 +2158,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2015 0630 06       		.uleb128 0x6
  2016 0631 00000000 		.4byte	.LASF111
  2017 0635 64       		.byte	0x64
-ARM GAS  /tmp/ccwedgnD.s 			page 37
+ARM GAS  /tmp/ccmDjlud.s 			page 37
 
 
  2018 0636 0D       		.byte	0xd
@@ -2218,7 +2218,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2072 06a2 FE       		.byte	0xfe
  2073 06a3 01060000 		.4byte	0x601
  2074 06a7 20       		.byte	0x20
-ARM GAS  /tmp/ccwedgnD.s 			page 38
+ARM GAS  /tmp/ccmDjlud.s 			page 38
 
 
  2075 06a8 13       		.uleb128 0x13
@@ -2278,7 +2278,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2129 071a 08       		.uleb128 0x8
  2130 071b 723600   		.ascii	"r6\000"
  2131 071e 0D       		.byte	0xd
-ARM GAS  /tmp/ccwedgnD.s 			page 39
+ARM GAS  /tmp/ccmDjlud.s 			page 39
 
 
  2132 071f 0901     		.2byte	0x109
@@ -2338,7 +2338,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2186 078b 00       		.byte	0
  2187 078c 03       		.uleb128 0x3
  2188 078d 741D0000 		.4byte	.LASF113
-ARM GAS  /tmp/ccwedgnD.s 			page 40
+ARM GAS  /tmp/ccmDjlud.s 			page 40
 
 
  2189 0791 0E       		.byte	0xe
@@ -2398,7 +2398,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2243 0807 DD1B0000 		.4byte	.LASF122
  2244 080b 0F       		.byte	0xf
  2245 080c 35       		.byte	0x35
-ARM GAS  /tmp/ccwedgnD.s 			page 41
+ARM GAS  /tmp/ccmDjlud.s 			page 41
 
 
  2246 080d DA020000 		.4byte	0x2da
@@ -2458,7 +2458,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2300 0879 19       		.uleb128 0x19
  2301 087a 0C060000 		.4byte	0x60c
  2302 087e 89080000 		.4byte	0x889
-ARM GAS  /tmp/ccwedgnD.s 			page 42
+ARM GAS  /tmp/ccmDjlud.s 			page 42
 
 
  2303 0882 1A       		.uleb128 0x1a
@@ -2518,7 +2518,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2357 08eb C4000000 		.4byte	0xc4
  2358 08ef 0A       		.byte	0xa
  2359 08f0 07       		.uleb128 0x7
-ARM GAS  /tmp/ccwedgnD.s 			page 43
+ARM GAS  /tmp/ccmDjlud.s 			page 43
 
 
  2360 08f1 4D1C0000 		.4byte	.LASF136
@@ -2578,7 +2578,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2414 095d FF160000 		.4byte	.LASF145
  2415 0961 11       		.byte	0x11
  2416 0962 46       		.byte	0x46
-ARM GAS  /tmp/ccwedgnD.s 			page 44
+ARM GAS  /tmp/ccmDjlud.s 			page 44
 
 
  2417 0963 C4000000 		.4byte	0xc4
@@ -2638,7 +2638,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2471 09d2 CC030000 		.4byte	.LASF153
  2472 09d6 12       		.byte	0x12
  2473 09d7 2D       		.byte	0x2d
-ARM GAS  /tmp/ccwedgnD.s 			page 45
+ARM GAS  /tmp/ccmDjlud.s 			page 45
 
 
  2474 09d8 B1090000 		.4byte	0x9b1
@@ -2698,7 +2698,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2528 0a44 01       		.byte	0x1
  2529 0a45 15       		.uleb128 0x15
  2530 0a46 B2190000 		.4byte	.LASF163
-ARM GAS  /tmp/ccwedgnD.s 			page 46
+ARM GAS  /tmp/ccmDjlud.s 			page 46
 
 
  2531 0a4a 02       		.byte	0x2
@@ -2758,7 +2758,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2585 0ab3 15       		.uleb128 0x15
  2586 0ab4 04100000 		.4byte	.LASF175
  2587 0ab8 03       		.byte	0x3
-ARM GAS  /tmp/ccwedgnD.s 			page 47
+ARM GAS  /tmp/ccmDjlud.s 			page 47
 
 
  2588 0ab9 00       		.byte	0
@@ -2818,7 +2818,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2642 0b22 67       		.byte	0x67
  2643 0b23 F60A0000 		.4byte	0xaf6
  2644 0b27 14       		.uleb128 0x14
-ARM GAS  /tmp/ccwedgnD.s 			page 48
+ARM GAS  /tmp/ccmDjlud.s 			page 48
 
 
  2645 0b28 07       		.byte	0x7
@@ -2878,7 +2878,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2699 0b91 4C0B0000 		.4byte	0xb4c
  2700 0b95 18       		.uleb128 0x18
  2701 0b96 25000000 		.4byte	0x25
-ARM GAS  /tmp/ccwedgnD.s 			page 49
+ARM GAS  /tmp/ccmDjlud.s 			page 49
 
 
  2702 0b9a 14       		.uleb128 0x14
@@ -2938,7 +2938,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2756 0c03 15       		.uleb128 0x15
  2757 0c04 8E0B0000 		.4byte	.LASF208
  2758 0c08 00       		.byte	0
-ARM GAS  /tmp/ccwedgnD.s 			page 50
+ARM GAS  /tmp/ccmDjlud.s 			page 50
 
 
  2759 0c09 15       		.uleb128 0x15
@@ -2998,7 +2998,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2813 0c72 07       		.uleb128 0x7
  2814 0c73 52050000 		.4byte	.LASF218
  2815 0c77 12       		.byte	0x12
-ARM GAS  /tmp/ccwedgnD.s 			page 51
+ARM GAS  /tmp/ccmDjlud.s 			page 51
 
 
  2816 0c78 EB       		.byte	0xeb
@@ -3058,7 +3058,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2870 0ce8 09       		.uleb128 0x9
  2871 0ce9 FC010000 		.4byte	.LASF227
  2872 0ced 12       		.byte	0x12
-ARM GAS  /tmp/ccwedgnD.s 			page 52
+ARM GAS  /tmp/ccmDjlud.s 			page 52
 
 
  2873 0cee 1901     		.2byte	0x119
@@ -3118,7 +3118,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2927 0d63 2201     		.2byte	0x122
  2928 0d65 960C0000 		.4byte	0xc96
  2929 0d69 38       		.byte	0x38
-ARM GAS  /tmp/ccwedgnD.s 			page 53
+ARM GAS  /tmp/ccmDjlud.s 			page 53
 
 
  2930 0d6a 09       		.uleb128 0x9
@@ -3178,7 +3178,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  2984 0ddf 09       		.uleb128 0x9
  2985 0de0 5E110000 		.4byte	.LASF246
  2986 0de4 12       		.byte	0x12
-ARM GAS  /tmp/ccwedgnD.s 			page 54
+ARM GAS  /tmp/ccmDjlud.s 			page 54
 
 
  2987 0de5 2C01     		.2byte	0x12c
@@ -3238,7 +3238,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3041 0e5a 3801     		.2byte	0x138
  3042 0e5c D1090000 		.4byte	0x9d1
  3043 0e60 84       		.byte	0x84
-ARM GAS  /tmp/ccwedgnD.s 			page 55
+ARM GAS  /tmp/ccmDjlud.s 			page 55
 
 
  3044 0e61 09       		.uleb128 0x9
@@ -3298,7 +3298,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3098 0ed6 09       		.uleb128 0x9
  3099 0ed7 A6150000 		.4byte	.LASF265
  3100 0edb 12       		.byte	0x12
-ARM GAS  /tmp/ccwedgnD.s 			page 56
+ARM GAS  /tmp/ccmDjlud.s 			page 56
 
 
  3101 0edc 4401     		.2byte	0x144
@@ -3358,7 +3358,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3155 0f51 5001     		.2byte	0x150
  3156 0f53 25000000 		.4byte	0x25
  3157 0f57 C8       		.byte	0xc8
-ARM GAS  /tmp/ccwedgnD.s 			page 57
+ARM GAS  /tmp/ccmDjlud.s 			page 57
 
 
  3158 0f58 09       		.uleb128 0x9
@@ -3418,7 +3418,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3212 0fcd 09       		.uleb128 0x9
  3213 0fce 1E080000 		.4byte	.LASF284
  3214 0fd2 12       		.byte	0x12
-ARM GAS  /tmp/ccwedgnD.s 			page 58
+ARM GAS  /tmp/ccmDjlud.s 			page 58
 
 
  3215 0fd3 5A01     		.2byte	0x15a
@@ -3478,7 +3478,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3269 104d 6301     		.2byte	0x163
  3270 104f 25000000 		.4byte	0x25
  3271 1053 1401     		.2byte	0x114
-ARM GAS  /tmp/ccwedgnD.s 			page 59
+ARM GAS  /tmp/ccmDjlud.s 			page 59
 
 
  3272 1055 1D       		.uleb128 0x1d
@@ -3538,7 +3538,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3326 10d3 1D       		.uleb128 0x1d
  3327 10d4 061B0000 		.4byte	.LASF303
  3328 10d8 12       		.byte	0x12
-ARM GAS  /tmp/ccwedgnD.s 			page 60
+ARM GAS  /tmp/ccmDjlud.s 			page 60
 
 
  3329 10d9 6D01     		.2byte	0x16d
@@ -3598,7 +3598,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3383 1157 7601     		.2byte	0x176
  3384 1159 25000000 		.4byte	0x25
  3385 115d 5C01     		.2byte	0x15c
-ARM GAS  /tmp/ccwedgnD.s 			page 61
+ARM GAS  /tmp/ccmDjlud.s 			page 61
 
 
  3386 115f 1D       		.uleb128 0x1d
@@ -3658,7 +3658,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3440 11dd 1D       		.uleb128 0x1d
  3441 11de D1160000 		.4byte	.LASF321
  3442 11e2 12       		.byte	0x12
-ARM GAS  /tmp/ccwedgnD.s 			page 62
+ARM GAS  /tmp/ccmDjlud.s 			page 62
 
 
  3443 11e3 8401     		.2byte	0x184
@@ -3718,7 +3718,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3497 1261 8F01     		.2byte	0x18f
  3498 1263 25000000 		.4byte	0x25
  3499 1267 A801     		.2byte	0x1a8
-ARM GAS  /tmp/ccwedgnD.s 			page 63
+ARM GAS  /tmp/ccmDjlud.s 			page 63
 
 
  3500 1269 1D       		.uleb128 0x1d
@@ -3778,7 +3778,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3554 12e7 1D       		.uleb128 0x1d
  3555 12e8 1B1F0000 		.4byte	.LASF340
  3556 12ec 12       		.byte	0x12
-ARM GAS  /tmp/ccwedgnD.s 			page 64
+ARM GAS  /tmp/ccmDjlud.s 			page 64
 
 
  3557 12ed 9D01     		.2byte	0x19d
@@ -3838,7 +3838,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3611 136b A601     		.2byte	0x1a6
  3612 136d 890A0000 		.4byte	0xa89
  3613 1371 EC01     		.2byte	0x1ec
-ARM GAS  /tmp/ccwedgnD.s 			page 65
+ARM GAS  /tmp/ccmDjlud.s 			page 65
 
 
  3614 1373 1D       		.uleb128 0x1d
@@ -3898,7 +3898,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3668 13f1 1E       		.uleb128 0x1e
  3669 13f2 626D7300 		.ascii	"bms\000"
  3670 13f6 12       		.byte	0x12
-ARM GAS  /tmp/ccwedgnD.s 			page 66
+ARM GAS  /tmp/ccmDjlud.s 			page 66
 
 
  3671 13f7 B301     		.2byte	0x1b3
@@ -3958,7 +3958,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3725 146e 04       		.byte	0x4
  3726 146f 07       		.uleb128 0x7
  3727 1470 FB180000 		.4byte	.LASF362
-ARM GAS  /tmp/ccwedgnD.s 			page 67
+ARM GAS  /tmp/ccmDjlud.s 			page 67
 
 
  3728 1474 13       		.byte	0x13
@@ -3998,7 +3998,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3762 14b7 10       		.uleb128 0x10
  3763 14b8 80140000 		.4byte	.LASF368
  3764 14bc 14       		.byte	0x14
- 3765 14bd 4101     		.2byte	0x141
+ 3765 14bd 4201     		.2byte	0x142
  3766 14bf 960C0000 		.4byte	0xc96
  3767 14c3 19       		.uleb128 0x19
  3768 14c4 DA000000 		.4byte	0xda
@@ -4018,7 +4018,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3782 14e7 20       		.uleb128 0x20
  3783 14e8 00       		.byte	0
  3784 14e9 05       		.uleb128 0x5
-ARM GAS  /tmp/ccwedgnD.s 			page 68
+ARM GAS  /tmp/ccmDjlud.s 			page 68
 
 
  3785 14ea DE140000 		.4byte	0x14de
@@ -4078,7 +4078,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3839 1562 B30C0000 		.4byte	.LASF378
  3840 1566 04       		.byte	0x4
  3841 1567 6501     		.2byte	0x165
-ARM GAS  /tmp/ccwedgnD.s 			page 69
+ARM GAS  /tmp/ccmDjlud.s 			page 69
 
 
  3842 1569 B2000000 		.4byte	0xb2
@@ -4138,7 +4138,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3896 15d5 67080000 		.4byte	0x867
  3897 15d9 03       		.uleb128 0x3
  3898 15da 1D100000 		.4byte	.LASF385
-ARM GAS  /tmp/ccwedgnD.s 			page 70
+ARM GAS  /tmp/ccmDjlud.s 			page 70
 
 
  3899 15de 19       		.byte	0x19
@@ -4198,7 +4198,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  3953 164b 00       		.byte	0
  3954 164c 00       		.byte	0
  3955 164d 06       		.uleb128 0x6
-ARM GAS  /tmp/ccwedgnD.s 			page 71
+ARM GAS  /tmp/ccmDjlud.s 			page 71
 
 
  3956 164e 34050000 		.4byte	.LASF391
@@ -4258,7 +4258,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4010 16ba BE060000 		.4byte	.LASF400
  4011 16be 19       		.byte	0x19
  4012 16bf 41       		.byte	0x41
-ARM GAS  /tmp/ccwedgnD.s 			page 72
+ARM GAS  /tmp/ccmDjlud.s 			page 72
 
 
  4013 16c0 A6000000 		.4byte	0xa6
@@ -4318,7 +4318,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4067 1730 69010000 		.4byte	.LASF407
  4068 1734 19       		.byte	0x19
  4069 1735 5F       		.byte	0x5f
-ARM GAS  /tmp/ccwedgnD.s 			page 73
+ARM GAS  /tmp/ccmDjlud.s 			page 73
 
 
  4070 1736 A6000000 		.4byte	0xa6
@@ -4378,7 +4378,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4124 17a2 19       		.byte	0x19
  4125 17a3 B5       		.byte	0xb5
  4126 17a4 C6180000 		.4byte	0x18c6
-ARM GAS  /tmp/ccwedgnD.s 			page 74
+ARM GAS  /tmp/ccmDjlud.s 			page 74
 
 
  4127 17a8 13       		.uleb128 0x13
@@ -4438,7 +4438,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4181 1811 07       		.uleb128 0x7
  4182 1812 0D080000 		.4byte	.LASF418
  4183 1816 19       		.byte	0x19
-ARM GAS  /tmp/ccwedgnD.s 			page 75
+ARM GAS  /tmp/ccmDjlud.s 			page 75
 
 
  4184 1817 C7       		.byte	0xc7
@@ -4498,7 +4498,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4238 1883 DA       		.byte	0xda
  4239 1884 A6000000 		.4byte	0xa6
  4240 1888 4C       		.byte	0x4c
-ARM GAS  /tmp/ccwedgnD.s 			page 76
+ARM GAS  /tmp/ccmDjlud.s 			page 76
 
 
  4241 1889 07       		.uleb128 0x7
@@ -4558,7 +4558,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4295 18fd 09       		.uleb128 0x9
  4296 18fe 290D0000 		.4byte	.LASF430
  4297 1902 19       		.byte	0x19
-ARM GAS  /tmp/ccwedgnD.s 			page 77
+ARM GAS  /tmp/ccmDjlud.s 			page 77
 
 
  4298 1903 6202     		.2byte	0x262
@@ -4618,7 +4618,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4352 1978 7202     		.2byte	0x272
  4353 197a E81C0000 		.4byte	0x1ce8
  4354 197e 3C       		.byte	0x3c
-ARM GAS  /tmp/ccwedgnD.s 			page 78
+ARM GAS  /tmp/ccmDjlud.s 			page 78
 
 
  4355 197f 09       		.uleb128 0x9
@@ -4678,7 +4678,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4409 19f6 1D       		.uleb128 0x1d
  4410 19f7 F2010000 		.4byte	.LASF448
  4411 19fb 19       		.byte	0x19
-ARM GAS  /tmp/ccwedgnD.s 			page 79
+ARM GAS  /tmp/ccmDjlud.s 			page 79
 
 
  4412 19fc A802     		.2byte	0x2a8
@@ -4738,7 +4738,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4466 1a7d 0D       		.uleb128 0xd
  4467 1a7e 8D030000 		.4byte	0x38d
  4468 1a82 00       		.byte	0
-ARM GAS  /tmp/ccwedgnD.s 			page 80
+ARM GAS  /tmp/ccmDjlud.s 			page 80
 
 
  4469 1a83 0A       		.uleb128 0xa
@@ -4798,7 +4798,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4523 1af8 19       		.byte	0x19
  4524 1af9 4001     		.2byte	0x140
  4525 1afb 1B1B0000 		.4byte	0x1b1b
-ARM GAS  /tmp/ccwedgnD.s 			page 81
+ARM GAS  /tmp/ccmDjlud.s 			page 81
 
 
  4526 1aff 00       		.byte	0
@@ -4858,7 +4858,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4580 1b70 A6000000 		.4byte	0xa6
  4581 1b74 48       		.byte	0x48
  4582 1b75 09       		.uleb128 0x9
-ARM GAS  /tmp/ccwedgnD.s 			page 82
+ARM GAS  /tmp/ccmDjlud.s 			page 82
 
 
  4583 1b76 2E140000 		.4byte	.LASF464
@@ -4918,7 +4918,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4637 1beb 6A0C0000 		.4byte	.LASF473
  4638 1bef 19       		.byte	0x19
  4639 1bf0 9002     		.2byte	0x290
-ARM GAS  /tmp/ccwedgnD.s 			page 83
+ARM GAS  /tmp/ccmDjlud.s 			page 83
 
 
  4640 1bf2 BD150000 		.4byte	0x15bd
@@ -4978,7 +4978,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4694 1c66 611C0000 		.4byte	.LASF478
  4695 1c6a 19       		.byte	0x19
  4696 1c6b 9C02     		.2byte	0x29c
-ARM GAS  /tmp/ccwedgnD.s 			page 84
+ARM GAS  /tmp/ccmDjlud.s 			page 84
 
 
  4697 1c6d 801C0000 		.4byte	0x1c80
@@ -5038,7 +5038,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4751 1ce3 E4180000 		.4byte	0x18e4
  4752 1ce7 00       		.byte	0
  4753 1ce8 0A       		.uleb128 0xa
-ARM GAS  /tmp/ccwedgnD.s 			page 85
+ARM GAS  /tmp/ccmDjlud.s 			page 85
 
 
  4754 1ce9 04       		.byte	0x4
@@ -5098,7 +5098,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4808 1d5e 15       		.uleb128 0x15
  4809 1d5f AF060000 		.4byte	.LASF489
  4810 1d63 02       		.byte	0x2
-ARM GAS  /tmp/ccwedgnD.s 			page 86
+ARM GAS  /tmp/ccmDjlud.s 			page 86
 
 
  4811 1d64 00       		.byte	0
@@ -5158,7 +5158,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4865 1dc8 696400   		.ascii	"id\000"
  4866 1dcb 01       		.byte	0x1
  4867 1dcc 28       		.byte	0x28
-ARM GAS  /tmp/ccwedgnD.s 			page 87
+ARM GAS  /tmp/ccmDjlud.s 			page 87
 
 
  4868 1dcd 25000000 		.4byte	0x25
@@ -5218,7 +5218,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4922 1e36 25000000 		.4byte	0x25
  4923 1e3a 40       		.byte	0x40
  4924 1e3b 13       		.uleb128 0x13
-ARM GAS  /tmp/ccwedgnD.s 			page 88
+ARM GAS  /tmp/ccmDjlud.s 			page 88
 
 
  4925 1e3c 6D6C00   		.ascii	"ml\000"
@@ -5278,7 +5278,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  4979 1ea2 4C190000 		.4byte	.LASF500
  4980 1ea6 01       		.byte	0x1
  4981 1ea7 3B       		.byte	0x3b
-ARM GAS  /tmp/ccwedgnD.s 			page 89
+ARM GAS  /tmp/ccmDjlud.s 			page 89
 
 
  4982 1ea8 25000000 		.4byte	0x25
@@ -5338,7 +5338,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5036 1f17 01       		.byte	0x1
  5037 1f18 44       		.byte	0x44
  5038 1f19 AD000000 		.4byte	0xad
-ARM GAS  /tmp/ccwedgnD.s 			page 90
+ARM GAS  /tmp/ccmDjlud.s 			page 90
 
 
  5039 1f1d 05       		.uleb128 0x5
@@ -5398,7 +5398,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5093 1fa2 B31F0000 		.4byte	0x1fb3
  5094 1fa6 32       		.uleb128 0x32
  5095 1fa7 02       		.uleb128 0x2
-ARM GAS  /tmp/ccwedgnD.s 			page 91
+ARM GAS  /tmp/ccmDjlud.s 			page 91
 
 
  5096 1fa8 90       		.byte	0x90
@@ -5458,7 +5458,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5150 2017 18000000 		.4byte	.LVL3
  5151 201b B8250000 		.4byte	0x25b8
  5152 201f 32       		.uleb128 0x32
-ARM GAS  /tmp/ccwedgnD.s 			page 92
+ARM GAS  /tmp/ccmDjlud.s 			page 92
 
 
  5153 2020 01       		.uleb128 0x1
@@ -5518,7 +5518,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5207 208b 9B200000 		.4byte	0x209b
  5208 208f 3B       		.uleb128 0x3b
  5209 2090 6D6C00   		.ascii	"ml\000"
-ARM GAS  /tmp/ccwedgnD.s 			page 93
+ARM GAS  /tmp/ccmDjlud.s 			page 93
 
 
  5210 2093 01       		.byte	0x1
@@ -5578,7 +5578,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5264 2107 AC140000 		.4byte	0x14ac
  5265 210b 00       		.byte	0
  5266 210c 00       		.byte	0
-ARM GAS  /tmp/ccwedgnD.s 			page 94
+ARM GAS  /tmp/ccmDjlud.s 			page 94
 
 
  5267 210d 3C       		.uleb128 0x3c
@@ -5638,7 +5638,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5321 217f 01       		.byte	0x1
  5322 2180 96       		.byte	0x96
  5323 2181 00000000 		.4byte	.LFB224
-ARM GAS  /tmp/ccwedgnD.s 			page 95
+ARM GAS  /tmp/ccmDjlud.s 			page 95
 
 
  5324 2185 9C030000 		.4byte	.LFE224-.LFB224
@@ -5698,7 +5698,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5378 2213 24       		.sleb128 36
  5379 2214 32       		.uleb128 0x32
  5380 2215 02       		.uleb128 0x2
-ARM GAS  /tmp/ccwedgnD.s 			page 96
+ARM GAS  /tmp/ccmDjlud.s 			page 96
 
 
  5381 2216 90       		.byte	0x90
@@ -5707,7 +5707,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5384 2219 F4       		.byte	0xf4
  5385 221a 25       		.uleb128 0x25
  5386 221b 04       		.byte	0x4
- 5387 221c 500A2543 		.4byte	0x43250a50
+ 5387 221c 41088441 		.4byte	0x41840841
  5388 2220 00       		.byte	0
  5389 2221 34       		.uleb128 0x34
  5390 2222 16010000 		.4byte	.LVL50
@@ -5726,7 +5726,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5403 2235 F4       		.byte	0xf4
  5404 2236 25       		.uleb128 0x25
  5405 2237 04       		.byte	0x4
- 5406 2238 500A2543 		.4byte	0x43250a50
+ 5406 2238 41088441 		.4byte	0x41840841
  5407 223c 00       		.byte	0
  5408 223d 00       		.byte	0
  5409 223e 45       		.uleb128 0x45
@@ -5758,7 +5758,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5435 227e 32       		.uleb128 0x32
  5436 227f 01       		.uleb128 0x1
  5437 2280 51       		.byte	0x51
-ARM GAS  /tmp/ccwedgnD.s 			page 97
+ARM GAS  /tmp/ccmDjlud.s 			page 97
 
 
  5438 2281 05       		.uleb128 0x5
@@ -5818,7 +5818,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5492 22ea 50       		.byte	0x50
  5493 22eb 02       		.uleb128 0x2
  5494 22ec 70       		.byte	0x70
-ARM GAS  /tmp/ccwedgnD.s 			page 98
+ARM GAS  /tmp/ccmDjlud.s 			page 98
 
 
  5495 22ed 00       		.sleb128 0
@@ -5878,7 +5878,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5549 2344 05       		.uleb128 0x5
  5550 2345 03       		.byte	0x3
  5551 2346 00000000 		.4byte	terminal_cmd_disconnect_virtual_motor
-ARM GAS  /tmp/ccwedgnD.s 			page 99
+ARM GAS  /tmp/ccmDjlud.s 			page 99
 
 
  5552 234a 00       		.byte	0
@@ -5938,7 +5938,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5606 23cd 23210000 		.4byte	0x2123
  5607 23d1 93020000 		.4byte	.LLST6
  5608 23d5 44       		.uleb128 0x44
-ARM GAS  /tmp/ccwedgnD.s 			page 100
+ARM GAS  /tmp/ccmDjlud.s 			page 100
 
 
  5609 23d6 19210000 		.4byte	0x2119
@@ -5998,7 +5998,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5663 2448 05       		.uleb128 0x5
  5664 2449 03       		.byte	0x3
  5665 244a 00000000 		.4byte	.LANCHOR1
-ARM GAS  /tmp/ccwedgnD.s 			page 101
+ARM GAS  /tmp/ccmDjlud.s 			page 101
 
 
  5666 244e 32       		.uleb128 0x32
@@ -6058,7 +6058,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5720 24a5 34       		.sleb128 52
  5721 24a6 32       		.uleb128 0x32
  5722 24a7 01       		.uleb128 0x1
-ARM GAS  /tmp/ccwedgnD.s 			page 102
+ARM GAS  /tmp/ccmDjlud.s 			page 102
 
 
  5723 24a8 51       		.byte	0x51
@@ -6118,7 +6118,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5777 2506 00000000 		.4byte	.LC2
  5778 250a 32       		.uleb128 0x32
  5779 250b 01       		.uleb128 0x1
-ARM GAS  /tmp/ccwedgnD.s 			page 103
+ARM GAS  /tmp/ccmDjlud.s 			page 103
 
 
  5780 250c 52       		.byte	0x52
@@ -6178,7 +6178,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5834 2575 50       		.uleb128 0x50
  5835 2576 EB090000 		.4byte	.LASF524
  5836 257a EB090000 		.4byte	.LASF524
-ARM GAS  /tmp/ccwedgnD.s 			page 104
+ARM GAS  /tmp/ccmDjlud.s 			page 104
 
 
  5837 257e 1B       		.byte	0x1b
@@ -6238,7 +6238,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5891 25f4 1A010000 		.4byte	.LASF535
  5892 25f8 1B       		.byte	0x1b
  5893 25f9 54       		.byte	0x54
-ARM GAS  /tmp/ccwedgnD.s 			page 105
+ARM GAS  /tmp/ccmDjlud.s 			page 105
 
 
  5894 25fa 50       		.uleb128 0x50
@@ -6298,7 +6298,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  5948 0024 0B       		.uleb128 0xb
  5949 0025 3B       		.uleb128 0x3b
  5950 0026 0B       		.uleb128 0xb
-ARM GAS  /tmp/ccwedgnD.s 			page 106
+ARM GAS  /tmp/ccmDjlud.s 			page 106
 
 
  5951 0027 49       		.uleb128 0x49
@@ -6358,7 +6358,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6005 005d 00       		.byte	0
  6006 005e 03       		.uleb128 0x3
  6007 005f 08       		.uleb128 0x8
-ARM GAS  /tmp/ccwedgnD.s 			page 107
+ARM GAS  /tmp/ccmDjlud.s 			page 107
 
 
  6008 0060 3A       		.uleb128 0x3a
@@ -6418,7 +6418,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6062 0096 01       		.uleb128 0x1
  6063 0097 13       		.uleb128 0x13
  6064 0098 00       		.byte	0
-ARM GAS  /tmp/ccwedgnD.s 			page 108
+ARM GAS  /tmp/ccmDjlud.s 			page 108
 
 
  6065 0099 00       		.byte	0
@@ -6478,7 +6478,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6119 00cf 3B       		.uleb128 0x3b
  6120 00d0 0B       		.uleb128 0xb
  6121 00d1 49       		.uleb128 0x49
-ARM GAS  /tmp/ccwedgnD.s 			page 109
+ARM GAS  /tmp/ccmDjlud.s 			page 109
 
 
  6122 00d2 13       		.uleb128 0x13
@@ -6538,7 +6538,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6176 0108 00       		.byte	0
  6177 0109 03       		.uleb128 0x3
  6178 010a 0E       		.uleb128 0xe
-ARM GAS  /tmp/ccwedgnD.s 			page 110
+ARM GAS  /tmp/ccmDjlud.s 			page 110
 
 
  6179 010b 1C       		.uleb128 0x1c
@@ -6598,7 +6598,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6233 0141 00       		.byte	0
  6234 0142 1B       		.uleb128 0x1b
  6235 0143 34       		.uleb128 0x34
-ARM GAS  /tmp/ccwedgnD.s 			page 111
+ARM GAS  /tmp/ccmDjlud.s 			page 111
 
 
  6236 0144 00       		.byte	0
@@ -6658,7 +6658,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6290 017a 38       		.uleb128 0x38
  6291 017b 05       		.uleb128 0x5
  6292 017c 00       		.byte	0
-ARM GAS  /tmp/ccwedgnD.s 			page 112
+ARM GAS  /tmp/ccmDjlud.s 			page 112
 
 
  6293 017d 00       		.byte	0
@@ -6718,7 +6718,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6347 01b3 00       		.byte	0
  6348 01b4 00       		.byte	0
  6349 01b5 24       		.uleb128 0x24
-ARM GAS  /tmp/ccwedgnD.s 			page 113
+ARM GAS  /tmp/ccmDjlud.s 			page 113
 
 
  6350 01b6 0D       		.uleb128 0xd
@@ -6778,7 +6778,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6404 01ec 01       		.uleb128 0x1
  6405 01ed 13       		.uleb128 0x13
  6406 01ee 00       		.byte	0
-ARM GAS  /tmp/ccwedgnD.s 			page 114
+ARM GAS  /tmp/ccmDjlud.s 			page 114
 
 
  6407 01ef 00       		.byte	0
@@ -6838,7 +6838,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6461 0225 19       		.uleb128 0x19
  6462 0226 11       		.uleb128 0x11
  6463 0227 01       		.uleb128 0x1
-ARM GAS  /tmp/ccwedgnD.s 			page 115
+ARM GAS  /tmp/ccmDjlud.s 			page 115
 
 
  6464 0228 12       		.uleb128 0x12
@@ -6898,7 +6898,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6518 025f 34       		.uleb128 0x34
  6519 0260 00       		.byte	0
  6520 0261 31       		.uleb128 0x31
-ARM GAS  /tmp/ccwedgnD.s 			page 116
+ARM GAS  /tmp/ccmDjlud.s 			page 116
 
 
  6521 0262 13       		.uleb128 0x13
@@ -6958,7 +6958,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6575 02a1 20       		.uleb128 0x20
  6576 02a2 0B       		.uleb128 0xb
  6577 02a3 01       		.uleb128 0x1
-ARM GAS  /tmp/ccwedgnD.s 			page 117
+ARM GAS  /tmp/ccmDjlud.s 			page 117
 
 
  6578 02a4 13       		.uleb128 0x13
@@ -7018,7 +7018,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6632 02da 3B       		.uleb128 0x3b
  6633 02db 05       		.uleb128 0x5
  6634 02dc 27       		.uleb128 0x27
-ARM GAS  /tmp/ccwedgnD.s 			page 118
+ARM GAS  /tmp/ccmDjlud.s 			page 118
 
 
  6635 02dd 19       		.uleb128 0x19
@@ -7078,7 +7078,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6689 0313 0B       		.uleb128 0xb
  6690 0314 3B       		.uleb128 0x3b
  6691 0315 0B       		.uleb128 0xb
-ARM GAS  /tmp/ccwedgnD.s 			page 119
+ARM GAS  /tmp/ccmDjlud.s 			page 119
 
 
  6692 0316 49       		.uleb128 0x49
@@ -7138,7 +7138,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6746 034d 19       		.uleb128 0x19
  6747 034e 11       		.uleb128 0x11
  6748 034f 01       		.uleb128 0x1
-ARM GAS  /tmp/ccwedgnD.s 			page 120
+ARM GAS  /tmp/ccmDjlud.s 			page 120
 
 
  6749 0350 12       		.uleb128 0x12
@@ -7198,7 +7198,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6803 0387 31       		.uleb128 0x31
  6804 0388 13       		.uleb128 0x13
  6805 0389 11       		.uleb128 0x11
-ARM GAS  /tmp/ccwedgnD.s 			page 121
+ARM GAS  /tmp/ccmDjlud.s 			page 121
 
 
  6806 038a 01       		.uleb128 0x1
@@ -7258,7 +7258,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6860 03c3 00       		.byte	0
  6861 03c4 00       		.byte	0
  6862 03c5 49       		.uleb128 0x49
-ARM GAS  /tmp/ccwedgnD.s 			page 122
+ARM GAS  /tmp/ccmDjlud.s 			page 122
 
 
  6863 03c6 2E       		.uleb128 0x2e
@@ -7318,7 +7318,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6917 03fd 00       		.byte	0
  6918 03fe 31       		.uleb128 0x31
  6919 03ff 13       		.uleb128 0x13
-ARM GAS  /tmp/ccwedgnD.s 			page 123
+ARM GAS  /tmp/ccmDjlud.s 			page 123
 
 
  6920 0400 02       		.uleb128 0x2
@@ -7378,7 +7378,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  6974 000a 50       		.byte	0x50
  6975 000b 0C000000 		.4byte	.LVL1
  6976 000f 1C000000 		.4byte	.LVL4
-ARM GAS  /tmp/ccwedgnD.s 			page 124
+ARM GAS  /tmp/ccmDjlud.s 			page 124
 
 
  6977 0013 0400     		.2byte	0x4
@@ -7438,7 +7438,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7031 008c 46000000 		.4byte	.LVL48
  7032 0090 9C030000 		.4byte	.LFE224
  7033 0094 0600     		.2byte	0x6
-ARM GAS  /tmp/ccwedgnD.s 			page 125
+ARM GAS  /tmp/ccmDjlud.s 			page 125
 
 
  7034 0096 F3       		.byte	0xf3
@@ -7498,7 +7498,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7088 010a 90       		.byte	0x90
  7089 010b 4F       		.uleb128 0x4f
  7090 010c 46000000 		.4byte	.LVL48
-ARM GAS  /tmp/ccwedgnD.s 			page 126
+ARM GAS  /tmp/ccmDjlud.s 			page 126
 
 
  7091 0110 5E030000 		.4byte	.LVL54
@@ -7558,7 +7558,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7145 0184 14000000 		.4byte	.LVL42
  7146 0188 0100     		.2byte	0x1
  7147 018a 50       		.byte	0x50
-ARM GAS  /tmp/ccwedgnD.s 			page 127
+ARM GAS  /tmp/ccmDjlud.s 			page 127
 
 
  7148 018b 14000000 		.4byte	.LVL42
@@ -7618,7 +7618,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7202 020a 58000000 		.4byte	.LVL23
  7203 020e D6000000 		.4byte	.LVL29
  7204 0212 0400     		.2byte	0x4
-ARM GAS  /tmp/ccwedgnD.s 			page 128
+ARM GAS  /tmp/ccmDjlud.s 			page 128
 
 
  7205 0214 F3       		.byte	0xf3
@@ -7678,7 +7678,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7259 028f 00000000 		.4byte	0
  7260              	.LLST6:
  7261 0293 4E000000 		.4byte	.LVL22
-ARM GAS  /tmp/ccwedgnD.s 			page 129
+ARM GAS  /tmp/ccmDjlud.s 			page 129
 
 
  7262 0297 C8000000 		.4byte	.LVL27
@@ -7719,7 +7719,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7297 02e7 F4       		.byte	0xf4
  7298 02e8 25       		.uleb128 0x25
  7299 02e9 04       		.byte	0x4
- 7300 02ea 74D19541 		.4byte	0x4195d174
+ 7300 02ea 7836B241 		.4byte	0x41b23678
  7301 02ee 1E       		.byte	0x1e
  7302 02ef 9F       		.byte	0x9f
  7303 02f0 00000000 		.4byte	0
@@ -7738,7 +7738,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7316 001c 98010000 		.4byte	.LFE233-.LFB233
  7317 0020 00000000 		.4byte	.LFB223
  7318 0024 A8000000 		.4byte	.LFE223-.LFB223
-ARM GAS  /tmp/ccwedgnD.s 			page 130
+ARM GAS  /tmp/ccmDjlud.s 			page 130
 
 
  7319 0028 00000000 		.4byte	.LFB222
@@ -7798,7 +7798,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7373 00a8 00000000 		.4byte	.LFB234
  7374 00ac D4000000 		.4byte	.LFE234
  7375 00b0 00000000 		.4byte	.LFB233
-ARM GAS  /tmp/ccwedgnD.s 			page 131
+ARM GAS  /tmp/ccmDjlud.s 			page 131
 
 
  7376 00b4 98010000 		.4byte	.LFE233
@@ -7858,7 +7858,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7406              	.LASF195:
  7407 0064 53454E53 		.ascii	"SENSOR_PORT_MODE_TS5700N8501\000"
  7407      4F525F50 
-ARM GAS  /tmp/ccwedgnD.s 			page 132
+ARM GAS  /tmp/ccmDjlud.s 			page 132
 
 
  7407      4F52545F 
@@ -7918,7 +7918,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7433      315F6F63 
  7433      5F61646A 
  7433      00
-ARM GAS  /tmp/ccwedgnD.s 			page 133
+ARM GAS  /tmp/ccmDjlud.s 			page 133
 
 
  7434              	.LASF535:
@@ -7978,7 +7978,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7458              	.LASF333:
  7459 01b5 63635F73 		.ascii	"cc_startup_boost_duty\000"
  7459      74617274 
-ARM GAS  /tmp/ccwedgnD.s 			page 134
+ARM GAS  /tmp/ccmDjlud.s 			page 134
 
 
  7459      75705F62 
@@ -8038,7 +8038,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7482              	.LASF91:
  7483 0260 534D5052 		.ascii	"SMPR2\000"
  7483      3200
-ARM GAS  /tmp/ccwedgnD.s 			page 135
+ARM GAS  /tmp/ccmDjlud.s 			page 135
 
 
  7484              	.LASF143:
@@ -8098,7 +8098,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7507      6800
  7508              	.LASF403:
  7509 030e 5F64736F 		.ascii	"_dso_handle\000"
-ARM GAS  /tmp/ccwedgnD.s 			page 136
+ARM GAS  /tmp/ccmDjlud.s 			page 136
 
 
  7509      5F68616E 
@@ -8158,7 +8158,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7531 03cc 6D635F70 		.ascii	"mc_pwm_mode\000"
  7531      776D5F6D 
  7531      6F646500 
-ARM GAS  /tmp/ccwedgnD.s 			page 137
+ARM GAS  /tmp/ccmDjlud.s 			page 137
 
 
  7532              	.LASF517:
@@ -8218,7 +8218,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7557      747800
  7558              	.LASF481:
  7559 0469 5F5F6C6F 		.ascii	"__lock\000"
-ARM GAS  /tmp/ccwedgnD.s 			page 138
+ARM GAS  /tmp/ccmDjlud.s 			page 138
 
 
  7559      636B00
@@ -8278,7 +8278,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7582              	.LASF363:
  7583 051b 4144435F 		.ascii	"ADC_ExternalTrigConvEdge\000"
  7583      45787465 
-ARM GAS  /tmp/ccwedgnD.s 			page 139
+ARM GAS  /tmp/ccmDjlud.s 			page 139
 
 
  7583      726E616C 
@@ -8338,7 +8338,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7606              	.LASF503:
  7607 05d7 6D5F6375 		.ascii	"m_curr0_offset_backup\000"
  7607      7272305F 
-ARM GAS  /tmp/ccwedgnD.s 			page 140
+ARM GAS  /tmp/ccmDjlud.s 			page 140
 
 
  7607      6F666673 
@@ -8398,7 +8398,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7631 0682 666F635F 		.ascii	"foc_d_gain_scale_start\000"
  7631      645F6761 
  7631      696E5F73 
-ARM GAS  /tmp/ccwedgnD.s 			page 141
+ARM GAS  /tmp/ccmDjlud.s 			page 141
 
 
  7631      63616C65 
@@ -8458,7 +8458,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7657      7400
  7658              	.LASF60:
  7659 0738 72656164 		.ascii	"ready_list_t\000"
-ARM GAS  /tmp/ccwedgnD.s 			page 142
+ARM GAS  /tmp/ccmDjlud.s 			page 142
 
 
  7659      795F6C69 
@@ -8518,7 +8518,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7683      00
  7684              	.LASF341:
  7685 07cb 6D5F7365 		.ascii	"m_sensor_port_mode\000"
-ARM GAS  /tmp/ccwedgnD.s 			page 143
+ARM GAS  /tmp/ccmDjlud.s 			page 143
 
 
  7685      6E736F72 
@@ -8578,7 +8578,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7713 0859 44495341 		.ascii	"DISABLE\000"
  7713      424C4500 
  7714              	.LASF397:
-ARM GAS  /tmp/ccwedgnD.s 			page 144
+ARM GAS  /tmp/ccmDjlud.s 			page 144
 
 
  7715 0861 5F5F746D 		.ascii	"__tm_year\000"
@@ -8638,7 +8638,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7732      4F525F4D 
  7732      4F44455F 
  7732      53454E53 
-ARM GAS  /tmp/ccwedgnD.s 			page 145
+ARM GAS  /tmp/ccmDjlud.s 			page 145
 
 
  7732      4F524544 
@@ -8698,7 +8698,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7755              	.LASF217:
  7756 0a7b 745F6C69 		.ascii	"t_limit_end\000"
  7756      6D69745F 
-ARM GAS  /tmp/ccwedgnD.s 			page 146
+ARM GAS  /tmp/ccmDjlud.s 			page 146
 
 
  7756      656E6400 
@@ -8758,7 +8758,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7778      6E7400
  7779              	.LASF214:
  7780 0b34 424D535F 		.ascii	"BMS_TYPE\000"
-ARM GAS  /tmp/ccwedgnD.s 			page 147
+ARM GAS  /tmp/ccmDjlud.s 			page 147
 
 
  7780      54595045 
@@ -8818,7 +8818,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7805              	.LASF140:
  7806 0be6 63665F6F 		.ascii	"cf_off_name\000"
  7806      66665F6E 
-ARM GAS  /tmp/ccwedgnD.s 			page 148
+ARM GAS  /tmp/ccmDjlud.s 			page 148
 
 
  7806      616D6500 
@@ -8878,7 +8878,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7831              	.LASF235:
  7832 0c97 6C5F6261 		.ascii	"l_battery_cut_end\000"
  7832      74746572 
-ARM GAS  /tmp/ccwedgnD.s 			page 149
+ARM GAS  /tmp/ccmDjlud.s 			page 149
 
 
  7832      795F6375 
@@ -8938,7 +8938,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7856      7900
  7857              	.LASF342:
  7858 0d51 6D5F696E 		.ascii	"m_invert_direction\000"
-ARM GAS  /tmp/ccwedgnD.s 			page 150
+ARM GAS  /tmp/ccmDjlud.s 			page 150
 
 
  7858      76657274 
@@ -8998,7 +8998,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7884 0df2 5F736967 		.ascii	"_signal_buf\000"
  7884      6E616C5F 
  7884      62756600 
-ARM GAS  /tmp/ccwedgnD.s 			page 151
+ARM GAS  /tmp/ccmDjlud.s 			page 151
 
 
  7885              	.LASF416:
@@ -9058,7 +9058,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7910      65786974 
  7910      5F617267 
  7910      7300
-ARM GAS  /tmp/ccwedgnD.s 			page 152
+ARM GAS  /tmp/ccmDjlud.s 			page 152
 
 
  7911              	.LASF462:
@@ -9118,7 +9118,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7936      50455F44 
  7936      4300
  7937              	.LASF283:
-ARM GAS  /tmp/ccwedgnD.s 			page 153
+ARM GAS  /tmp/ccmDjlud.s 			page 153
 
 
  7938 0f6f 666F635F 		.ascii	"foc_motor_flux_linkage\000"
@@ -9178,7 +9178,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7958      4F525F4D 
  7958      4F44455F 
  7958      48464900 
-ARM GAS  /tmp/ccwedgnD.s 			page 154
+ARM GAS  /tmp/ccmDjlud.s 			page 154
 
 
  7959              	.LASF65:
@@ -9238,7 +9238,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  7984 10e8 76697274 		.ascii	"virtual_motor_init\000"
  7984      75616C5F 
  7984      6D6F746F 
-ARM GAS  /tmp/ccwedgnD.s 			page 155
+ARM GAS  /tmp/ccmDjlud.s 			page 155
 
 
  7984      725F696E 
@@ -9298,7 +9298,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8006      6500
  8007              	.LASF523:
  8008 11ac 6D637077 		.ascii	"mcpwm_foc_set_current\000"
-ARM GAS  /tmp/ccwedgnD.s 			page 156
+ARM GAS  /tmp/ccmDjlud.s 			page 156
 
 
  8008      6D5F666F 
@@ -9358,7 +9358,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8032      656D436F 
  8032      7265436C 
  8032      6F636B00 
-ARM GAS  /tmp/ccwedgnD.s 			page 157
+ARM GAS  /tmp/ccmDjlud.s 			page 157
 
 
  8033              	.LASF132:
@@ -9418,7 +9418,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8057              	.LASF476:
  8058 12fa 5F776373 		.ascii	"_wcsrtombs_state\000"
  8058      72746F6D 
-ARM GAS  /tmp/ccwedgnD.s 			page 158
+ARM GAS  /tmp/ccmDjlud.s 			page 158
 
 
  8058      62735F73 
@@ -9478,7 +9478,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8079              	.LASF350:
  8080 13b6 6D5F6D6F 		.ascii	"m_motor_temp_sens_type\000"
  8080      746F725F 
-ARM GAS  /tmp/ccwedgnD.s 			page 159
+ARM GAS  /tmp/ccmDjlud.s 			page 159
 
 
  8080      74656D70 
@@ -9538,7 +9538,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8106 1465 666F635F 		.ascii	"foc_encoder_ratio\000"
  8106      656E636F 
  8106      6465725F 
-ARM GAS  /tmp/ccwedgnD.s 			page 160
+ARM GAS  /tmp/ccmDjlud.s 			page 160
 
 
  8106      72617469 
@@ -9598,7 +9598,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8130      645F6B70 
  8130      00
  8131              	.LASF196:
-ARM GAS  /tmp/ccwedgnD.s 			page 161
+ARM GAS  /tmp/ccmDjlud.s 			page 161
 
 
  8132 1517 53454E53 		.ascii	"SENSOR_PORT_MODE_TS5700N8501_MULTITURN\000"
@@ -9658,7 +9658,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8155              	.LASF386:
  8156 15ca 5F426967 		.ascii	"_Bigint\000"
  8156      696E7400 
-ARM GAS  /tmp/ccwedgnD.s 			page 162
+ARM GAS  /tmp/ccmDjlud.s 			page 162
 
 
  8157              	.LASF239:
@@ -9718,7 +9718,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8176      30343770 
  8177              	.LASF31:
  8178 1682 636E745F 		.ascii	"cnt_t\000"
-ARM GAS  /tmp/ccwedgnD.s 			page 163
+ARM GAS  /tmp/ccmDjlud.s 			page 163
 
 
  8178      7400
@@ -9778,7 +9778,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8202 1726 5F756275 		.ascii	"_ubuf\000"
  8202      6600
  8203              	.LASF290:
-ARM GAS  /tmp/ccwedgnD.s 			page 164
+ARM GAS  /tmp/ccmDjlud.s 			page 164
 
 
  8204 172c 666F635F 		.ascii	"foc_openloop_rpm\000"
@@ -9838,7 +9838,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8230      787000
  8231              	.LASF181:
  8232 17c7 6D635F6D 		.ascii	"mc_motor_type\000"
-ARM GAS  /tmp/ccwedgnD.s 			page 165
+ARM GAS  /tmp/ccmDjlud.s 			page 165
 
 
  8232      6F746F72 
@@ -9898,7 +9898,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8257              	.LASF61:
  8258 1871 63685F72 		.ascii	"ch_ready_list\000"
  8258      65616479 
-ARM GAS  /tmp/ccwedgnD.s 			page 166
+ARM GAS  /tmp/ccmDjlud.s 			page 166
 
 
  8258      5F6C6973 
@@ -9958,7 +9958,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8284 191d 666F635F 		.ascii	"foc_sl_openloop_time_lock\000"
  8284      736C5F6F 
  8284      70656E6C 
-ARM GAS  /tmp/ccwedgnD.s 			page 167
+ARM GAS  /tmp/ccmDjlud.s 			page 167
 
 
  8284      6F6F705F 
@@ -10018,7 +10018,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8306      7369676E 
  8306      65642069 
  8307              	.LASF112:
-ARM GAS  /tmp/ccwedgnD.s 			page 168
+ARM GAS  /tmp/ccmDjlud.s 			page 168
 
 
  8308 19de 6F666673 		.ascii	"offset\000"
@@ -10078,7 +10078,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8332 1a7e 42415454 		.ascii	"BATTERY_TYPE_LIION_3_0__4_2\000"
  8332      4552595F 
  8332      54595045 
-ARM GAS  /tmp/ccwedgnD.s 			page 169
+ARM GAS  /tmp/ccmDjlud.s 			page 169
 
 
  8332      5F4C4949 
@@ -10138,7 +10138,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8354      6F6D6D5F 
  8354      6D6F6465 
  8354      00
-ARM GAS  /tmp/ccwedgnD.s 			page 170
+ARM GAS  /tmp/ccmDjlud.s 			page 170
 
 
  8355              	.LASF40:
@@ -10198,7 +10198,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8381              	.LASF338:
  8382 1be5 6D5F6475 		.ascii	"m_duty_ramp_step\000"
  8382      74795F72 
-ARM GAS  /tmp/ccwedgnD.s 			page 171
+ARM GAS  /tmp/ccmDjlud.s 			page 171
 
 
  8382      616D705F 
@@ -10258,7 +10258,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8406 1c90 6C5F696E 		.ascii	"l_in_current_max\000"
  8406      5F637572 
  8406      72656E74 
-ARM GAS  /tmp/ccwedgnD.s 			page 172
+ARM GAS  /tmp/ccmDjlud.s 			page 172
 
 
  8406      5F6D6178 
@@ -10318,7 +10318,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8426      475F4352 
  8427              	.LASF451:
  8428 1d58 5F5F4649 		.ascii	"__FILE\000"
-ARM GAS  /tmp/ccwedgnD.s 			page 173
+ARM GAS  /tmp/ccmDjlud.s 			page 173
 
 
  8428      4C4500
@@ -10378,7 +10378,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8450      76657273 
  8450      696F6E00 
  8451              	.LASF526:
-ARM GAS  /tmp/ccwedgnD.s 			page 174
+ARM GAS  /tmp/ccmDjlud.s 			page 174
 
 
  8452 1e05 656E636F 		.ascii	"encoder_init_sincos\000"
@@ -10438,7 +10438,7 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8474      645F6761 
  8474      696E5F73 
  8474      63616C65 
-ARM GAS  /tmp/ccwedgnD.s 			page 175
+ARM GAS  /tmp/ccmDjlud.s 			page 175
 
 
  8474      5F6D6178 
@@ -10479,47 +10479,47 @@ ARM GAS  /tmp/ccwedgnD.s 			page 1
  8488      756E7473 
  8488      00
  8489              		.ident	"GCC: (GNU Tools for Arm Embedded Processors 7-2018-q2-update) 7.3.1 20180622 (release) [AR
-ARM GAS  /tmp/ccwedgnD.s 			page 176
+ARM GAS  /tmp/ccmDjlud.s 			page 176
 
 
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 virtual_motor.c
-     /tmp/ccwedgnD.s:18     .text.terminal_cmd_disconnect_virtual_motor:0000000000000000 $t
-     /tmp/ccwedgnD.s:25     .text.terminal_cmd_disconnect_virtual_motor:0000000000000000 terminal_cmd_disconnect_virtual_motor
-     /tmp/ccwedgnD.s:134    .text.terminal_cmd_disconnect_virtual_motor:000000000000007c $d
-     /tmp/ccwedgnD.s:138    .text.terminal_cmd_disconnect_virtual_motor:0000000000000080 $t
-     /tmp/ccwedgnD.s:168    .text.terminal_cmd_disconnect_virtual_motor:00000000000000b0 $d
-     /tmp/ccwedgnD.s:184    .text.terminal_cmd_connect_virtual_motor:0000000000000000 $t
-     /tmp/ccwedgnD.s:191    .text.terminal_cmd_connect_virtual_motor:0000000000000000 terminal_cmd_connect_virtual_motor
-     /tmp/ccwedgnD.s:446    .text.terminal_cmd_connect_virtual_motor:000000000000015c $d
-     /tmp/ccwedgnD.s:470    .text.virtual_motor_set_configuration:0000000000000000 $t
-     /tmp/ccwedgnD.s:478    .text.virtual_motor_set_configuration:0000000000000000 virtual_motor_set_configuration
-     /tmp/ccwedgnD.s:559    .text.virtual_motor_set_configuration:00000000000000a0 $d
-     /tmp/ccwedgnD.s:565    .text.virtual_motor_init:0000000000000000 $t
-     /tmp/ccwedgnD.s:573    .text.virtual_motor_init:0000000000000000 virtual_motor_init
-     /tmp/ccwedgnD.s:652    .text.virtual_motor_init:0000000000000048 $d
-     /tmp/ccwedgnD.s:664    .text.virtual_motor_int_handler:0000000000000000 $t
-     /tmp/ccwedgnD.s:672    .text.virtual_motor_int_handler:0000000000000000 virtual_motor_int_handler
-     /tmp/ccwedgnD.s:1077   .text.virtual_motor_int_handler:0000000000000368 $d
-     /tmp/ccwedgnD.s:1094   .text.virtual_motor_is_connected:0000000000000000 $t
-     /tmp/ccwedgnD.s:1102   .text.virtual_motor_is_connected:0000000000000000 virtual_motor_is_connected
-     /tmp/ccwedgnD.s:1117   .text.virtual_motor_is_connected:0000000000000008 $d
-     /tmp/ccwedgnD.s:1122   .text.virtual_motor_get_angle_deg:0000000000000000 $t
-     /tmp/ccwedgnD.s:1130   .text.virtual_motor_get_angle_deg:0000000000000000 virtual_motor_get_angle_deg
-     /tmp/ccwedgnD.s:1149   .text.virtual_motor_get_angle_deg:0000000000000018 $d
-     /tmp/ccwedgnD.s:1156   .bss.m_conf:0000000000000000 $d
-     /tmp/ccwedgnD.s:1160   .bss.m_conf:0000000000000000 m_conf
-     /tmp/ccwedgnD.s:1163   .bss.m_curr0_offset_backup:0000000000000000 $d
-     /tmp/ccwedgnD.s:1167   .bss.m_curr0_offset_backup:0000000000000000 m_curr0_offset_backup
-     /tmp/ccwedgnD.s:1170   .bss.m_curr1_offset_backup:0000000000000000 $d
-     /tmp/ccwedgnD.s:1174   .bss.m_curr1_offset_backup:0000000000000000 m_curr1_offset_backup
-     /tmp/ccwedgnD.s:1177   .bss.m_curr2_offset_backup:0000000000000000 $d
-     /tmp/ccwedgnD.s:1181   .bss.m_curr2_offset_backup:0000000000000000 m_curr2_offset_backup
-     /tmp/ccwedgnD.s:1184   .bss.virtual_motor:0000000000000000 $d
-     /tmp/ccwedgnD.s:1188   .bss.virtual_motor:0000000000000000 virtual_motor
-     /tmp/ccwedgnD.s:1191   .rodata.terminal_cmd_connect_virtual_motor.str1.4:0000000000000000 $d
-     /tmp/ccwedgnD.s:1200   .rodata.terminal_cmd_disconnect_virtual_motor.str1.4:0000000000000000 $d
-     /tmp/ccwedgnD.s:1207   .rodata.virtual_motor_init.str1.4:0000000000000000 $d
+     /tmp/ccmDjlud.s:18     .text.terminal_cmd_disconnect_virtual_motor:0000000000000000 $t
+     /tmp/ccmDjlud.s:25     .text.terminal_cmd_disconnect_virtual_motor:0000000000000000 terminal_cmd_disconnect_virtual_motor
+     /tmp/ccmDjlud.s:134    .text.terminal_cmd_disconnect_virtual_motor:000000000000007c $d
+     /tmp/ccmDjlud.s:138    .text.terminal_cmd_disconnect_virtual_motor:0000000000000080 $t
+     /tmp/ccmDjlud.s:168    .text.terminal_cmd_disconnect_virtual_motor:00000000000000b0 $d
+     /tmp/ccmDjlud.s:184    .text.terminal_cmd_connect_virtual_motor:0000000000000000 $t
+     /tmp/ccmDjlud.s:191    .text.terminal_cmd_connect_virtual_motor:0000000000000000 terminal_cmd_connect_virtual_motor
+     /tmp/ccmDjlud.s:446    .text.terminal_cmd_connect_virtual_motor:000000000000015c $d
+     /tmp/ccmDjlud.s:470    .text.virtual_motor_set_configuration:0000000000000000 $t
+     /tmp/ccmDjlud.s:478    .text.virtual_motor_set_configuration:0000000000000000 virtual_motor_set_configuration
+     /tmp/ccmDjlud.s:559    .text.virtual_motor_set_configuration:00000000000000a0 $d
+     /tmp/ccmDjlud.s:565    .text.virtual_motor_init:0000000000000000 $t
+     /tmp/ccmDjlud.s:573    .text.virtual_motor_init:0000000000000000 virtual_motor_init
+     /tmp/ccmDjlud.s:652    .text.virtual_motor_init:0000000000000048 $d
+     /tmp/ccmDjlud.s:664    .text.virtual_motor_int_handler:0000000000000000 $t
+     /tmp/ccmDjlud.s:672    .text.virtual_motor_int_handler:0000000000000000 virtual_motor_int_handler
+     /tmp/ccmDjlud.s:1077   .text.virtual_motor_int_handler:0000000000000368 $d
+     /tmp/ccmDjlud.s:1094   .text.virtual_motor_is_connected:0000000000000000 $t
+     /tmp/ccmDjlud.s:1102   .text.virtual_motor_is_connected:0000000000000000 virtual_motor_is_connected
+     /tmp/ccmDjlud.s:1117   .text.virtual_motor_is_connected:0000000000000008 $d
+     /tmp/ccmDjlud.s:1122   .text.virtual_motor_get_angle_deg:0000000000000000 $t
+     /tmp/ccmDjlud.s:1130   .text.virtual_motor_get_angle_deg:0000000000000000 virtual_motor_get_angle_deg
+     /tmp/ccmDjlud.s:1149   .text.virtual_motor_get_angle_deg:0000000000000018 $d
+     /tmp/ccmDjlud.s:1156   .bss.m_conf:0000000000000000 $d
+     /tmp/ccmDjlud.s:1160   .bss.m_conf:0000000000000000 m_conf
+     /tmp/ccmDjlud.s:1163   .bss.m_curr0_offset_backup:0000000000000000 $d
+     /tmp/ccmDjlud.s:1167   .bss.m_curr0_offset_backup:0000000000000000 m_curr0_offset_backup
+     /tmp/ccmDjlud.s:1170   .bss.m_curr1_offset_backup:0000000000000000 $d
+     /tmp/ccmDjlud.s:1174   .bss.m_curr1_offset_backup:0000000000000000 m_curr1_offset_backup
+     /tmp/ccmDjlud.s:1177   .bss.m_curr2_offset_backup:0000000000000000 $d
+     /tmp/ccmDjlud.s:1181   .bss.m_curr2_offset_backup:0000000000000000 m_curr2_offset_backup
+     /tmp/ccmDjlud.s:1184   .bss.virtual_motor:0000000000000000 $d
+     /tmp/ccmDjlud.s:1188   .bss.virtual_motor:0000000000000000 virtual_motor
+     /tmp/ccmDjlud.s:1191   .rodata.terminal_cmd_connect_virtual_motor.str1.4:0000000000000000 $d
+     /tmp/ccmDjlud.s:1200   .rodata.terminal_cmd_disconnect_virtual_motor.str1.4:0000000000000000 $d
+     /tmp/ccmDjlud.s:1207   .rodata.virtual_motor_init.str1.4:0000000000000000 $d
 
 UNDEFINED SYMBOLS
 commands_printf
@@ -10539,6 +10539,6 @@ ADC_Value
 terminal_register_command_callback
 utils_truncate_number_abs
 mcpwm_foc_adc_int_handler
-ARM GAS  /tmp/ccwedgnD.s 			page 177
+ARM GAS  /tmp/ccmDjlud.s 			page 177
 
 
