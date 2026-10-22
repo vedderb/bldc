@@ -1,0 +1,3076 @@
+ARM GAS  /tmp/cckvvh0F.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.eabi_attribute 27, 1
+   3              		.eabi_attribute 28, 1
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 2
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"chmemcore.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.section	.text._core_init,"ax",%progbits
+  18              		.align	1
+  19              		.p2align 4,,15
+  20              		.global	_core_init
+  21              		.syntax unified
+  22              		.thumb
+  23              		.thumb_func
+  24              		.fpu fpv4-sp-d16
+  25              		.type	_core_init, %function
+  26              	_core_init:
+  27              	.LFB219:
+  28              		.file 1 "ChibiOS_3.0.5/os/rt/src/chmemcore.c"
+  29              		.loc 1 78 0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  34              		.loc 1 84 0
+  35 0000 054A     		ldr	r2, .L3
+  36              		.loc 1 85 0
+  37 0002 064B     		ldr	r3, .L3+4
+  38              		.loc 1 84 0
+  39 0004 0648     		ldr	r0, .L3+8
+  40              		.loc 1 85 0
+  41 0006 0749     		ldr	r1, .L3+12
+  42              		.loc 1 84 0
+  43 0008 22F00702 		bic	r2, r2, #7
+  44              		.loc 1 85 0
+  45 000c 23F00703 		bic	r3, r3, #7
+  46              		.loc 1 84 0
+  47 0010 0260     		str	r2, [r0]
+  48              		.loc 1 85 0
+  49 0012 0B60     		str	r3, [r1]
+  50              		.loc 1 95 0
+  51 0014 7047     		bx	lr
+  52              	.L4:
+  53 0016 00BF     		.align	2
+  54              	.L3:
+  55 0018 07000000 		.word	__heap_base__+7
+  56 001c 00000000 		.word	__heap_end__
+  57 0020 00000000 		.word	.LANCHOR0
+ARM GAS  /tmp/cckvvh0F.s 			page 2
+
+
+  58 0024 00000000 		.word	.LANCHOR1
+  59              		.cfi_endproc
+  60              	.LFE219:
+  61              		.size	_core_init, .-_core_init
+  62              		.section	.text.chCoreAlloc,"ax",%progbits
+  63              		.align	1
+  64              		.p2align 4,,15
+  65              		.global	chCoreAlloc
+  66              		.syntax unified
+  67              		.thumb
+  68              		.thumb_func
+  69              		.fpu fpv4-sp-d16
+  70              		.type	chCoreAlloc, %function
+  71              	chCoreAlloc:
+  72              	.LFB220:
+  73              		.loc 1 109 0
+  74              		.cfi_startproc
+  75              		@ args = 0, pretend = 0, frame = 0
+  76              		@ frame_needed = 0, uses_anonymous_args = 0
+  77              		@ link register save eliminated.
+  78              	.LVL0:
+  79              		.loc 1 109 0
+  80 0000 0346     		mov	r3, r0
+  81              	.LBB26:
+  82              	.LBB27:
+  83              	.LBB28:
+  84              	.LBB29:
+  85              		.file 2 "ChibiOS_3.0.5/os/ext/CMSIS/include/core_cmFunc.h"
+  86              		.loc 2 342 0
+  87              		.syntax unified
+  88              	@ 342 "ChibiOS_3.0.5/os/ext/CMSIS/include/core_cmFunc.h" 1
+  89 0002 72B6     		cpsid i
+  90              	@ 0 "" 2
+  91              	.LVL1:
+  92              		.thumb
+  93              		.syntax unified
+  94              	.LBE29:
+  95              	.LBE28:
+  96              	.LBE27:
+  97              	.LBE26:
+  98              	.LBB30:
+  99              	.LBB31:
+ 100              		.loc 1 138 0
+ 101 0004 0749     		ldr	r1, .L8
+ 102 0006 084A     		ldr	r2, .L8+4
+ 103 0008 0868     		ldr	r0, [r1]
+ 104              	.LVL2:
+ 105 000a 1268     		ldr	r2, [r2]
+ 106              		.loc 1 136 0
+ 107 000c 0733     		adds	r3, r3, #7
+ 108              	.LVL3:
+ 109 000e 23F00703 		bic	r3, r3, #7
+ 110              	.LVL4:
+ 111              		.loc 1 138 0
+ 112 0012 121A     		subs	r2, r2, r0
+ 113 0014 9342     		cmp	r3, r2
+ 114              	.LVL5:
+ARM GAS  /tmp/cckvvh0F.s 			page 3
+
+
+ 115              		.loc 1 143 0
+ 116 0016 9ABF     		itte	ls
+ 117 0018 1B18     		addls	r3, r3, r0
+ 118              	.LVL6:
+ 119 001a 0B60     		strls	r3, [r1]
+ 120              		.loc 1 140 0
+ 121 001c 0020     		movhi	r0, #0
+ 122              	.LVL7:
+ 123              	.LBE31:
+ 124              	.LBE30:
+ 125              	.LBB32:
+ 126              	.LBB33:
+ 127              	.LBB34:
+ 128              	.LBB35:
+ 129              	.LBB36:
+ 130              		.loc 2 331 0
+ 131              		.syntax unified
+ 132              	@ 331 "ChibiOS_3.0.5/os/ext/CMSIS/include/core_cmFunc.h" 1
+ 133 001e 62B6     		cpsie i
+ 134              	@ 0 "" 2
+ 135              		.thumb
+ 136              		.syntax unified
+ 137              	.LBE36:
+ 138              	.LBE35:
+ 139              	.LBE34:
+ 140              	.LBE33:
+ 141              	.LBE32:
+ 142              		.loc 1 117 0
+ 143 0020 7047     		bx	lr
+ 144              	.L9:
+ 145 0022 00BF     		.align	2
+ 146              	.L8:
+ 147 0024 00000000 		.word	.LANCHOR0
+ 148 0028 00000000 		.word	.LANCHOR1
+ 149              		.cfi_endproc
+ 150              	.LFE220:
+ 151              		.size	chCoreAlloc, .-chCoreAlloc
+ 152              		.section	.text.chCoreAllocI,"ax",%progbits
+ 153              		.align	1
+ 154              		.p2align 4,,15
+ 155              		.global	chCoreAllocI
+ 156              		.syntax unified
+ 157              		.thumb
+ 158              		.thumb_func
+ 159              		.fpu fpv4-sp-d16
+ 160              		.type	chCoreAllocI, %function
+ 161              	chCoreAllocI:
+ 162              	.LFB221:
+ 163              		.loc 1 131 0
+ 164              		.cfi_startproc
+ 165              		@ args = 0, pretend = 0, frame = 0
+ 166              		@ frame_needed = 0, uses_anonymous_args = 0
+ 167              		@ link register save eliminated.
+ 168              	.LVL8:
+ 169              		.loc 1 138 0
+ 170 0000 0749     		ldr	r1, .L13
+ 171 0002 084A     		ldr	r2, .L13+4
+ARM GAS  /tmp/cckvvh0F.s 			page 4
+
+
+ 172 0004 0B68     		ldr	r3, [r1]
+ 173 0006 1268     		ldr	r2, [r2]
+ 174              		.loc 1 136 0
+ 175 0008 0730     		adds	r0, r0, #7
+ 176              	.LVL9:
+ 177 000a 20F00700 		bic	r0, r0, #7
+ 178              	.LVL10:
+ 179              		.loc 1 138 0
+ 180 000e D21A     		subs	r2, r2, r3
+ 181 0010 8242     		cmp	r2, r0
+ 182              	.LVL11:
+ 183              		.loc 1 143 0
+ 184 0012 2ABF     		itet	cs
+ 185 0014 C018     		addcs	r0, r0, r3
+ 186              	.LVL12:
+ 187              		.loc 1 140 0
+ 188 0016 0023     		movcc	r3, #0
+ 189              	.LVL13:
+ 190              		.loc 1 143 0
+ 191 0018 0860     		strcs	r0, [r1]
+ 192              	.LVL14:
+ 193              		.loc 1 146 0
+ 194 001a 1846     		mov	r0, r3
+ 195 001c 7047     		bx	lr
+ 196              	.L14:
+ 197 001e 00BF     		.align	2
+ 198              	.L13:
+ 199 0020 00000000 		.word	.LANCHOR0
+ 200 0024 00000000 		.word	.LANCHOR1
+ 201              		.cfi_endproc
+ 202              	.LFE221:
+ 203              		.size	chCoreAllocI, .-chCoreAllocI
+ 204              		.section	.text.chCoreGetStatusX,"ax",%progbits
+ 205              		.align	1
+ 206              		.p2align 4,,15
+ 207              		.global	chCoreGetStatusX
+ 208              		.syntax unified
+ 209              		.thumb
+ 210              		.thumb_func
+ 211              		.fpu fpv4-sp-d16
+ 212              		.type	chCoreGetStatusX, %function
+ 213              	chCoreGetStatusX:
+ 214              	.LFB222:
+ 215              		.loc 1 155 0
+ 216              		.cfi_startproc
+ 217              		@ args = 0, pretend = 0, frame = 0
+ 218              		@ frame_needed = 0, uses_anonymous_args = 0
+ 219              		@ link register save eliminated.
+ 220              		.loc 1 158 0
+ 221 0000 024A     		ldr	r2, .L16
+ 222 0002 034B     		ldr	r3, .L16+4
+ 223 0004 1068     		ldr	r0, [r2]
+ 224 0006 1B68     		ldr	r3, [r3]
+ 225              		.loc 1 160 0
+ 226 0008 C01A     		subs	r0, r0, r3
+ 227 000a 7047     		bx	lr
+ 228              	.L17:
+ARM GAS  /tmp/cckvvh0F.s 			page 5
+
+
+ 229              		.align	2
+ 230              	.L16:
+ 231 000c 00000000 		.word	.LANCHOR1
+ 232 0010 00000000 		.word	.LANCHOR0
+ 233              		.cfi_endproc
+ 234              	.LFE222:
+ 235              		.size	chCoreGetStatusX, .-chCoreGetStatusX
+ 236              		.section	.bss.endmem,"aw",%nobits
+ 237              		.align	2
+ 238              		.set	.LANCHOR1,. + 0
+ 239              		.type	endmem, %object
+ 240              		.size	endmem, 4
+ 241              	endmem:
+ 242 0000 00000000 		.space	4
+ 243              		.section	.bss.nextmem,"aw",%nobits
+ 244              		.align	2
+ 245              		.set	.LANCHOR0,. + 0
+ 246              		.type	nextmem, %object
+ 247              		.size	nextmem, 4
+ 248              	nextmem:
+ 249 0000 00000000 		.space	4
+ 250              		.text
+ 251              	.Letext0:
+ 252              		.file 3 "/workspaces/bldc/gcc-arm-none-eabi-7-2018-q2-update/lib/gcc/arm-none-eabi/7.3.1/include/s
+ 253              		.file 4 "/workspaces/bldc/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/machine/_defaul
+ 254              		.file 5 "/workspaces/bldc/gcc-arm-none-eabi-7-2018-q2-update/arm-none-eabi/include/sys/_stdint.h"
+ 255              		.file 6 "ChibiOS_3.0.5/os/rt/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 256              		.file 7 "ChibiOS_3.0.5/os/rt/include/chsystypes.h"
+ 257              		.file 8 "ChibiOS_3.0.5/os/rt/include/chschd.h"
+ 258              		.file 9 "ChibiOS_3.0.5/os/ext/CMSIS/include/core_cm4.h"
+ 259              		.file 10 "ChibiOS_3.0.5/os/ext/CMSIS/ST/system_stm32f4xx.h"
+ 260              		.file 11 "ChibiOS_3.0.5/os/rt/ports/ARMCMx/chcore.h"
+ 261              		.file 12 "ChibiOS_3.0.5/os/rt/ports/ARMCMx/chcore_v7m.h"
+ 262              		.file 13 "ChibiOS_3.0.5/os/rt/include/chtm.h"
+ 263              		.file 14 "ChibiOS_3.0.5/os/rt/include/chsem.h"
+ 264              		.file 15 "ChibiOS_3.0.5/os/rt/include/chmtx.h"
+ 265              		.file 16 "ChibiOS_3.0.5/os/rt/include/chregistry.h"
+ 266              		.file 17 "ChibiOS_3.0.5/os/rt/include/chsys.h"
+ 267              		.section	.debug_info,"",%progbits
+ 268              	.Ldebug_info0:
+ 269 0000 450A0000 		.4byte	0xa45
+ 270 0004 0400     		.2byte	0x4
+ 271 0006 00000000 		.4byte	.Ldebug_abbrev0
+ 272 000a 04       		.byte	0x4
+ 273 000b 01       		.uleb128 0x1
+ 274 000c 5C000000 		.4byte	.LASF139
+ 275 0010 0C       		.byte	0xc
+ 276 0011 15050000 		.4byte	.LASF140
+ 277 0015 CB060000 		.4byte	.LASF141
+ 278 0019 00000000 		.4byte	.Ldebug_ranges0+0
+ 279 001d 00000000 		.4byte	0
+ 280 0021 00000000 		.4byte	.Ldebug_line0
+ 281 0025 02       		.uleb128 0x2
+ 282 0026 04       		.byte	0x4
+ 283 0027 05       		.byte	0x5
+ 284 0028 696E7400 		.ascii	"int\000"
+ 285 002c 03       		.uleb128 0x3
+ARM GAS  /tmp/cckvvh0F.s 			page 6
+
+
+ 286 002d 14000000 		.4byte	.LASF2
+ 287 0031 03       		.byte	0x3
+ 288 0032 D8       		.byte	0xd8
+ 289 0033 37000000 		.4byte	0x37
+ 290 0037 04       		.uleb128 0x4
+ 291 0038 04       		.byte	0x4
+ 292 0039 07       		.byte	0x7
+ 293 003a 06030000 		.4byte	.LASF0
+ 294 003e 04       		.uleb128 0x4
+ 295 003f 01       		.byte	0x1
+ 296 0040 06       		.byte	0x6
+ 297 0041 21020000 		.4byte	.LASF1
+ 298 0045 03       		.uleb128 0x3
+ 299 0046 37000000 		.4byte	.LASF3
+ 300 004a 04       		.byte	0x4
+ 301 004b 2B       		.byte	0x2b
+ 302 004c 50000000 		.4byte	0x50
+ 303 0050 04       		.uleb128 0x4
+ 304 0051 01       		.byte	0x1
+ 305 0052 08       		.byte	0x8
+ 306 0053 E0040000 		.4byte	.LASF4
+ 307 0057 04       		.uleb128 0x4
+ 308 0058 02       		.byte	0x2
+ 309 0059 05       		.byte	0x5
+ 310 005a 03050000 		.4byte	.LASF5
+ 311 005e 03       		.uleb128 0x3
+ 312 005f 30060000 		.4byte	.LASF6
+ 313 0063 04       		.byte	0x4
+ 314 0064 39       		.byte	0x39
+ 315 0065 69000000 		.4byte	0x69
+ 316 0069 04       		.uleb128 0x4
+ 317 006a 02       		.byte	0x2
+ 318 006b 07       		.byte	0x7
+ 319 006c 72030000 		.4byte	.LASF7
+ 320 0070 03       		.uleb128 0x3
+ 321 0071 C7030000 		.4byte	.LASF8
+ 322 0075 04       		.byte	0x4
+ 323 0076 4D       		.byte	0x4d
+ 324 0077 7B000000 		.4byte	0x7b
+ 325 007b 04       		.uleb128 0x4
+ 326 007c 04       		.byte	0x4
+ 327 007d 05       		.byte	0x5
+ 328 007e 87020000 		.4byte	.LASF9
+ 329 0082 03       		.uleb128 0x3
+ 330 0083 71060000 		.4byte	.LASF10
+ 331 0087 04       		.byte	0x4
+ 332 0088 4F       		.byte	0x4f
+ 333 0089 8D000000 		.4byte	0x8d
+ 334 008d 04       		.uleb128 0x4
+ 335 008e 04       		.byte	0x4
+ 336 008f 07       		.byte	0x7
+ 337 0090 12060000 		.4byte	.LASF11
+ 338 0094 04       		.uleb128 0x4
+ 339 0095 08       		.byte	0x8
+ 340 0096 05       		.byte	0x5
+ 341 0097 13020000 		.4byte	.LASF12
+ 342 009b 03       		.uleb128 0x3
+ARM GAS  /tmp/cckvvh0F.s 			page 7
+
+
+ 343 009c 84040000 		.4byte	.LASF13
+ 344 00a0 04       		.byte	0x4
+ 345 00a1 69       		.byte	0x69
+ 346 00a2 A6000000 		.4byte	0xa6
+ 347 00a6 04       		.uleb128 0x4
+ 348 00a7 08       		.byte	0x8
+ 349 00a8 07       		.byte	0x7
+ 350 00a9 8A010000 		.4byte	.LASF14
+ 351 00ad 03       		.uleb128 0x3
+ 352 00ae F1060000 		.4byte	.LASF15
+ 353 00b2 05       		.byte	0x5
+ 354 00b3 18       		.byte	0x18
+ 355 00b4 45000000 		.4byte	0x45
+ 356 00b8 03       		.uleb128 0x3
+ 357 00b9 1B030000 		.4byte	.LASF16
+ 358 00bd 05       		.byte	0x5
+ 359 00be 24       		.byte	0x24
+ 360 00bf 5E000000 		.4byte	0x5e
+ 361 00c3 03       		.uleb128 0x3
+ 362 00c4 D8040000 		.4byte	.LASF17
+ 363 00c8 05       		.byte	0x5
+ 364 00c9 2C       		.byte	0x2c
+ 365 00ca 70000000 		.4byte	0x70
+ 366 00ce 05       		.uleb128 0x5
+ 367 00cf C3000000 		.4byte	0xc3
+ 368 00d3 03       		.uleb128 0x3
+ 369 00d4 DD050000 		.4byte	.LASF18
+ 370 00d8 05       		.byte	0x5
+ 371 00d9 30       		.byte	0x30
+ 372 00da 82000000 		.4byte	0x82
+ 373 00de 03       		.uleb128 0x3
+ 374 00df 22000000 		.4byte	.LASF19
+ 375 00e3 05       		.byte	0x5
+ 376 00e4 3C       		.byte	0x3c
+ 377 00e5 9B000000 		.4byte	0x9b
+ 378 00e9 03       		.uleb128 0x3
+ 379 00ea 09040000 		.4byte	.LASF20
+ 380 00ee 06       		.byte	0x6
+ 381 00ef 45       		.byte	0x45
+ 382 00f0 D3000000 		.4byte	0xd3
+ 383 00f4 03       		.uleb128 0x3
+ 384 00f5 65050000 		.4byte	.LASF21
+ 385 00f9 06       		.byte	0x6
+ 386 00fa 48       		.byte	0x48
+ 387 00fb AD000000 		.4byte	0xad
+ 388 00ff 03       		.uleb128 0x3
+ 389 0100 90020000 		.4byte	.LASF22
+ 390 0104 06       		.byte	0x6
+ 391 0105 49       		.byte	0x49
+ 392 0106 AD000000 		.4byte	0xad
+ 393 010a 03       		.uleb128 0x3
+ 394 010b 0B020000 		.4byte	.LASF23
+ 395 010f 06       		.byte	0x6
+ 396 0110 4A       		.byte	0x4a
+ 397 0111 AD000000 		.4byte	0xad
+ 398 0115 03       		.uleb128 0x3
+ 399 0116 6D020000 		.4byte	.LASF24
+ARM GAS  /tmp/cckvvh0F.s 			page 8
+
+
+ 400 011a 06       		.byte	0x6
+ 401 011b 4B       		.byte	0x4b
+ 402 011c AD000000 		.4byte	0xad
+ 403 0120 03       		.uleb128 0x3
+ 404 0121 BF040000 		.4byte	.LASF25
+ 405 0125 06       		.byte	0x6
+ 406 0126 4C       		.byte	0x4c
+ 407 0127 D3000000 		.4byte	0xd3
+ 408 012b 03       		.uleb128 0x3
+ 409 012c 8F030000 		.4byte	.LASF26
+ 410 0130 06       		.byte	0x6
+ 411 0131 4D       		.byte	0x4d
+ 412 0132 C3000000 		.4byte	0xc3
+ 413 0136 03       		.uleb128 0x3
+ 414 0137 BB030000 		.4byte	.LASF27
+ 415 013b 06       		.byte	0x6
+ 416 013c 4F       		.byte	0x4f
+ 417 013d D3000000 		.4byte	0xd3
+ 418 0141 03       		.uleb128 0x3
+ 419 0142 00030000 		.4byte	.LASF28
+ 420 0146 06       		.byte	0x6
+ 421 0147 51       		.byte	0x51
+ 422 0148 C3000000 		.4byte	0xc3
+ 423 014c 03       		.uleb128 0x3
+ 424 014d 53060000 		.4byte	.LASF29
+ 425 0151 07       		.byte	0x7
+ 426 0152 33       		.byte	0x33
+ 427 0153 D3000000 		.4byte	0xd3
+ 428 0157 05       		.uleb128 0x5
+ 429 0158 4C010000 		.4byte	0x14c
+ 430 015c 03       		.uleb128 0x3
+ 431 015d 3B060000 		.4byte	.LASF30
+ 432 0161 07       		.byte	0x7
+ 433 0162 3F       		.byte	0x3f
+ 434 0163 67010000 		.4byte	0x167
+ 435 0167 06       		.uleb128 0x6
+ 436 0168 85030000 		.4byte	.LASF53
+ 437 016c 4C       		.byte	0x4c
+ 438 016d 08       		.byte	0x8
+ 439 016e C2       		.byte	0xc2
+ 440 016f 79020000 		.4byte	0x279
+ 441 0173 07       		.uleb128 0x7
+ 442 0174 5E050000 		.4byte	.LASF31
+ 443 0178 08       		.byte	0x8
+ 444 0179 C3       		.byte	0xc3
+ 445 017a 84020000 		.4byte	0x284
+ 446 017e 00       		.byte	0
+ 447 017f 07       		.uleb128 0x7
+ 448 0180 B8040000 		.4byte	.LASF32
+ 449 0184 08       		.byte	0x8
+ 450 0185 C5       		.byte	0xc5
+ 451 0186 84020000 		.4byte	0x284
+ 452 018a 04       		.byte	0x4
+ 453 018b 07       		.uleb128 0x7
+ 454 018c F7010000 		.4byte	.LASF33
+ 455 0190 08       		.byte	0x8
+ 456 0191 C7       		.byte	0xc7
+ARM GAS  /tmp/cckvvh0F.s 			page 9
+
+
+ 457 0192 20010000 		.4byte	0x120
+ 458 0196 08       		.byte	0x8
+ 459 0197 07       		.uleb128 0x7
+ 460 0198 4E040000 		.4byte	.LASF34
+ 461 019c 08       		.byte	0x8
+ 462 019d C8       		.byte	0xc8
+ 463 019e C4040000 		.4byte	0x4c4
+ 464 01a2 0C       		.byte	0xc
+ 465 01a3 07       		.uleb128 0x7
+ 466 01a4 A3020000 		.4byte	.LASF35
+ 467 01a8 08       		.byte	0x8
+ 468 01a9 CA       		.byte	0xca
+ 469 01aa 84020000 		.4byte	0x284
+ 470 01ae 10       		.byte	0x10
+ 471 01af 07       		.uleb128 0x7
+ 472 01b0 40040000 		.4byte	.LASF36
+ 473 01b4 08       		.byte	0x8
+ 474 01b5 CB       		.byte	0xcb
+ 475 01b6 84020000 		.4byte	0x284
+ 476 01ba 14       		.byte	0x14
+ 477 01bb 07       		.uleb128 0x7
+ 478 01bc 13070000 		.4byte	.LASF37
+ 479 01c0 08       		.byte	0x8
+ 480 01c1 D2       		.byte	0xd2
+ 481 01c2 09070000 		.4byte	0x709
+ 482 01c6 18       		.byte	0x18
+ 483 01c7 07       		.uleb128 0x7
+ 484 01c8 0D050000 		.4byte	.LASF38
+ 485 01cc 08       		.byte	0x8
+ 486 01cd DD       		.byte	0xdd
+ 487 01ce FF000000 		.4byte	0xff
+ 488 01d2 1C       		.byte	0x1c
+ 489 01d3 07       		.uleb128 0x7
+ 490 01d4 7C050000 		.4byte	.LASF39
+ 491 01d8 08       		.byte	0x8
+ 492 01d9 E1       		.byte	0xe1
+ 493 01da F4000000 		.4byte	0xf4
+ 494 01de 1D       		.byte	0x1d
+ 495 01df 07       		.uleb128 0x7
+ 496 01e0 C4060000 		.4byte	.LASF40
+ 497 01e4 08       		.byte	0x8
+ 498 01e5 E6       		.byte	0xe6
+ 499 01e6 0A010000 		.4byte	0x10a
+ 500 01ea 1E       		.byte	0x1e
+ 501 01eb 07       		.uleb128 0x7
+ 502 01ec 39050000 		.4byte	.LASF41
+ 503 01f0 08       		.byte	0x8
+ 504 01f1 EC       		.byte	0xec
+ 505 01f2 15010000 		.4byte	0x115
+ 506 01f6 1F       		.byte	0x1f
+ 507 01f7 07       		.uleb128 0x7
+ 508 01f8 34030000 		.4byte	.LASF42
+ 509 01fc 08       		.byte	0x8
+ 510 01fd F3       		.byte	0xf3
+ 511 01fe 57010000 		.4byte	0x157
+ 512 0202 20       		.byte	0x20
+ 513 0203 08       		.uleb128 0x8
+ARM GAS  /tmp/cckvvh0F.s 			page 10
+
+
+ 514 0204 705F7500 		.ascii	"p_u\000"
+ 515 0208 08       		.byte	0x8
+ 516 0209 3101     		.2byte	0x131
+ 517 020b 44060000 		.4byte	0x644
+ 518 020f 24       		.byte	0x24
+ 519 0210 09       		.uleb128 0x9
+ 520 0211 FF030000 		.4byte	.LASF43
+ 521 0215 08       		.byte	0x8
+ 522 0216 3601     		.2byte	0x136
+ 523 0218 8A020000 		.4byte	0x28a
+ 524 021c 28       		.byte	0x28
+ 525 021d 09       		.uleb128 0x9
+ 526 021e 58030000 		.4byte	.LASF44
+ 527 0222 08       		.byte	0x8
+ 528 0223 3C01     		.2byte	0x13c
+ 529 0225 AE020000 		.4byte	0x2ae
+ 530 0229 2C       		.byte	0x2c
+ 531 022a 09       		.uleb128 0x9
+ 532 022b 95060000 		.4byte	.LASF45
+ 533 022f 08       		.byte	0x8
+ 534 0230 4001     		.2byte	0x140
+ 535 0232 2B010000 		.4byte	0x12b
+ 536 0236 34       		.byte	0x34
+ 537 0237 09       		.uleb128 0x9
+ 538 0238 D2050000 		.4byte	.LASF46
+ 539 023c 08       		.byte	0x8
+ 540 023d 4601     		.2byte	0x146
+ 541 023f 36010000 		.4byte	0x136
+ 542 0243 38       		.byte	0x38
+ 543 0244 09       		.uleb128 0x9
+ 544 0245 F9040000 		.4byte	.LASF47
+ 545 0249 08       		.byte	0x8
+ 546 024a 4D01     		.2byte	0x14d
+ 547 024c 03070000 		.4byte	0x703
+ 548 0250 3C       		.byte	0x3c
+ 549 0251 09       		.uleb128 0x9
+ 550 0252 5D060000 		.4byte	.LASF48
+ 551 0256 08       		.byte	0x8
+ 552 0257 5101     		.2byte	0x151
+ 553 0259 20010000 		.4byte	0x120
+ 554 025d 40       		.byte	0x40
+ 555 025e 09       		.uleb128 0x9
+ 556 025f 4A020000 		.4byte	.LASF49
+ 557 0263 08       		.byte	0x8
+ 558 0264 5801     		.2byte	0x158
+ 559 0266 61030000 		.4byte	0x361
+ 560 026a 44       		.byte	0x44
+ 561 026b 09       		.uleb128 0x9
+ 562 026c DC060000 		.4byte	.LASF50
+ 563 0270 08       		.byte	0x8
+ 564 0271 6201     		.2byte	0x162
+ 565 0273 25000000 		.4byte	0x25
+ 566 0277 48       		.byte	0x48
+ 567 0278 00       		.byte	0
+ 568 0279 03       		.uleb128 0x3
+ 569 027a F9060000 		.4byte	.LASF51
+ 570 027e 07       		.byte	0x7
+ARM GAS  /tmp/cckvvh0F.s 			page 11
+
+
+ 571 027f 44       		.byte	0x44
+ 572 0280 84020000 		.4byte	0x284
+ 573 0284 0A       		.uleb128 0xa
+ 574 0285 04       		.byte	0x4
+ 575 0286 5C010000 		.4byte	0x15c
+ 576 028a 03       		.uleb128 0x3
+ 577 028b DC030000 		.4byte	.LASF52
+ 578 028f 07       		.byte	0x7
+ 579 0290 49       		.byte	0x49
+ 580 0291 95020000 		.4byte	0x295
+ 581 0295 06       		.uleb128 0x6
+ 582 0296 FA050000 		.4byte	.LASF54
+ 583 029a 04       		.byte	0x4
+ 584 029b 08       		.byte	0x8
+ 585 029c B0       		.byte	0xb0
+ 586 029d AE020000 		.4byte	0x2ae
+ 587 02a1 07       		.uleb128 0x7
+ 588 02a2 5E050000 		.4byte	.LASF31
+ 589 02a6 08       		.byte	0x8
+ 590 02a7 B1       		.byte	0xb1
+ 591 02a8 84020000 		.4byte	0x284
+ 592 02ac 00       		.byte	0
+ 593 02ad 00       		.byte	0
+ 594 02ae 03       		.uleb128 0x3
+ 595 02af 97050000 		.4byte	.LASF55
+ 596 02b3 07       		.byte	0x7
+ 597 02b4 50       		.byte	0x50
+ 598 02b5 B9020000 		.4byte	0x2b9
+ 599 02b9 06       		.uleb128 0x6
+ 600 02ba E6010000 		.4byte	.LASF56
+ 601 02be 08       		.byte	0x8
+ 602 02bf 08       		.byte	0x8
+ 603 02c0 B7       		.byte	0xb7
+ 604 02c1 DE020000 		.4byte	0x2de
+ 605 02c5 07       		.uleb128 0x7
+ 606 02c6 5E050000 		.4byte	.LASF31
+ 607 02ca 08       		.byte	0x8
+ 608 02cb B8       		.byte	0xb8
+ 609 02cc 84020000 		.4byte	0x284
+ 610 02d0 00       		.byte	0
+ 611 02d1 07       		.uleb128 0x7
+ 612 02d2 B8040000 		.4byte	.LASF32
+ 613 02d6 08       		.byte	0x8
+ 614 02d7 B9       		.byte	0xb9
+ 615 02d8 84020000 		.4byte	0x284
+ 616 02dc 04       		.byte	0x4
+ 617 02dd 00       		.byte	0
+ 618 02de 03       		.uleb128 0x3
+ 619 02df 07000000 		.4byte	.LASF57
+ 620 02e3 07       		.byte	0x7
+ 621 02e4 57       		.byte	0x57
+ 622 02e5 E9020000 		.4byte	0x2e9
+ 623 02e9 0B       		.uleb128 0xb
+ 624 02ea AD030000 		.4byte	.LASF58
+ 625 02ee 1C       		.byte	0x1c
+ 626 02ef 08       		.byte	0x8
+ 627 02f0 9001     		.2byte	0x190
+ARM GAS  /tmp/cckvvh0F.s 			page 12
+
+
+ 628 02f2 45030000 		.4byte	0x345
+ 629 02f6 09       		.uleb128 0x9
+ 630 02f7 F2050000 		.4byte	.LASF59
+ 631 02fb 08       		.byte	0x8
+ 632 02fc 9101     		.2byte	0x191
+ 633 02fe AE020000 		.4byte	0x2ae
+ 634 0302 00       		.byte	0
+ 635 0303 09       		.uleb128 0x9
+ 636 0304 50050000 		.4byte	.LASF60
+ 637 0308 08       		.byte	0x8
+ 638 0309 9201     		.2byte	0x192
+ 639 030b 20010000 		.4byte	0x120
+ 640 030f 08       		.byte	0x8
+ 641 0310 09       		.uleb128 0x9
+ 642 0311 48040000 		.4byte	.LASF61
+ 643 0315 08       		.byte	0x8
+ 644 0316 9401     		.2byte	0x194
+ 645 0318 C4040000 		.4byte	0x4c4
+ 646 031c 0C       		.byte	0xc
+ 647 031d 09       		.uleb128 0x9
+ 648 031e C0020000 		.4byte	.LASF62
+ 649 0322 08       		.byte	0x8
+ 650 0323 9701     		.2byte	0x197
+ 651 0325 84020000 		.4byte	0x284
+ 652 0329 10       		.byte	0x10
+ 653 032a 09       		.uleb128 0x9
+ 654 032b 6F040000 		.4byte	.LASF63
+ 655 032f 08       		.byte	0x8
+ 656 0330 9801     		.2byte	0x198
+ 657 0332 84020000 		.4byte	0x284
+ 658 0336 14       		.byte	0x14
+ 659 0337 09       		.uleb128 0x9
+ 660 0338 65040000 		.4byte	.LASF64
+ 661 033c 08       		.byte	0x8
+ 662 033d 9B01     		.2byte	0x19b
+ 663 033f 84020000 		.4byte	0x284
+ 664 0343 18       		.byte	0x18
+ 665 0344 00       		.byte	0
+ 666 0345 03       		.uleb128 0x3
+ 667 0346 68060000 		.4byte	.LASF65
+ 668 034a 07       		.byte	0x7
+ 669 034b 5C       		.byte	0x5c
+ 670 034c 50030000 		.4byte	0x350
+ 671 0350 0A       		.uleb128 0xa
+ 672 0351 04       		.byte	0x4
+ 673 0352 56030000 		.4byte	0x356
+ 674 0356 0C       		.uleb128 0xc
+ 675 0357 61030000 		.4byte	0x361
+ 676 035b 0D       		.uleb128 0xd
+ 677 035c 61030000 		.4byte	0x361
+ 678 0360 00       		.byte	0
+ 679 0361 0E       		.uleb128 0xe
+ 680 0362 04       		.byte	0x4
+ 681 0363 03       		.uleb128 0x3
+ 682 0364 A8040000 		.4byte	.LASF66
+ 683 0368 07       		.byte	0x7
+ 684 0369 61       		.byte	0x61
+ARM GAS  /tmp/cckvvh0F.s 			page 13
+
+
+ 685 036a 6E030000 		.4byte	0x36e
+ 686 036e 0B       		.uleb128 0xb
+ 687 036f A7050000 		.4byte	.LASF67
+ 688 0373 14       		.byte	0x14
+ 689 0374 08       		.byte	0x8
+ 690 0375 6B01     		.2byte	0x16b
+ 691 0377 BD030000 		.4byte	0x3bd
+ 692 037b 09       		.uleb128 0x9
+ 693 037c 13030000 		.4byte	.LASF68
+ 694 0380 08       		.byte	0x8
+ 695 0381 6C01     		.2byte	0x16c
+ 696 0383 20070000 		.4byte	0x720
+ 697 0387 00       		.byte	0
+ 698 0388 09       		.uleb128 0x9
+ 699 0389 D1020000 		.4byte	.LASF69
+ 700 038d 08       		.byte	0x8
+ 701 038e 6D01     		.2byte	0x16d
+ 702 0390 20070000 		.4byte	0x720
+ 703 0394 04       		.byte	0x4
+ 704 0395 09       		.uleb128 0x9
+ 705 0396 4F030000 		.4byte	.LASF70
+ 706 039a 08       		.byte	0x8
+ 707 039b 6E01     		.2byte	0x16e
+ 708 039d 4C010000 		.4byte	0x14c
+ 709 03a1 08       		.byte	0x8
+ 710 03a2 09       		.uleb128 0x9
+ 711 03a3 57070000 		.4byte	.LASF71
+ 712 03a7 08       		.byte	0x8
+ 713 03a8 6F01     		.2byte	0x16f
+ 714 03aa 45030000 		.4byte	0x345
+ 715 03ae 0C       		.byte	0xc
+ 716 03af 09       		.uleb128 0x9
+ 717 03b0 9B060000 		.4byte	.LASF72
+ 718 03b4 08       		.byte	0x8
+ 719 03b5 7101     		.2byte	0x171
+ 720 03b7 61030000 		.4byte	0x361
+ 721 03bb 10       		.byte	0x10
+ 722 03bc 00       		.byte	0
+ 723 03bd 03       		.uleb128 0x3
+ 724 03be C3010000 		.4byte	.LASF73
+ 725 03c2 07       		.byte	0x7
+ 726 03c3 66       		.byte	0x66
+ 727 03c4 C8030000 		.4byte	0x3c8
+ 728 03c8 0B       		.uleb128 0xb
+ 729 03c9 11040000 		.4byte	.LASF74
+ 730 03cd 10       		.byte	0x10
+ 731 03ce 08       		.byte	0x8
+ 732 03cf 7B01     		.2byte	0x17b
+ 733 03d1 0A040000 		.4byte	0x40a
+ 734 03d5 09       		.uleb128 0x9
+ 735 03d6 13030000 		.4byte	.LASF68
+ 736 03da 08       		.byte	0x8
+ 737 03db 7C01     		.2byte	0x17c
+ 738 03dd 20070000 		.4byte	0x720
+ 739 03e1 00       		.byte	0
+ 740 03e2 09       		.uleb128 0x9
+ 741 03e3 D1020000 		.4byte	.LASF69
+ARM GAS  /tmp/cckvvh0F.s 			page 14
+
+
+ 742 03e7 08       		.byte	0x8
+ 743 03e8 7E01     		.2byte	0x17e
+ 744 03ea 20070000 		.4byte	0x720
+ 745 03ee 04       		.byte	0x4
+ 746 03ef 09       		.uleb128 0x9
+ 747 03f0 4F030000 		.4byte	.LASF70
+ 748 03f4 08       		.byte	0x8
+ 749 03f5 8001     		.2byte	0x180
+ 750 03f7 4C010000 		.4byte	0x14c
+ 751 03fb 08       		.byte	0x8
+ 752 03fc 09       		.uleb128 0x9
+ 753 03fd 1F070000 		.4byte	.LASF75
+ 754 0401 08       		.byte	0x8
+ 755 0402 8201     		.2byte	0x182
+ 756 0404 57010000 		.4byte	0x157
+ 757 0408 0C       		.byte	0xc
+ 758 0409 00       		.byte	0
+ 759 040a 03       		.uleb128 0x3
+ 760 040b 4D000000 		.4byte	.LASF76
+ 761 040f 07       		.byte	0x7
+ 762 0410 6B       		.byte	0x6b
+ 763 0411 15040000 		.4byte	0x415
+ 764 0415 0B       		.uleb128 0xb
+ 765 0416 D9020000 		.4byte	.LASF77
+ 766 041a 04       		.byte	0x4
+ 767 041b 08       		.byte	0x8
+ 768 041c A201     		.2byte	0x1a2
+ 769 041e 30040000 		.4byte	0x430
+ 770 0422 09       		.uleb128 0x9
+ 771 0423 7C060000 		.4byte	.LASF78
+ 772 0427 08       		.byte	0x8
+ 773 0428 AA01     		.2byte	0x1aa
+ 774 042a 0F070000 		.4byte	0x70f
+ 775 042e 00       		.byte	0
+ 776 042f 00       		.byte	0
+ 777 0430 03       		.uleb128 0x3
+ 778 0431 95030000 		.4byte	.LASF79
+ 779 0435 07       		.byte	0x7
+ 780 0436 70       		.byte	0x70
+ 781 0437 3B040000 		.4byte	0x43b
+ 782 043b 0F       		.uleb128 0xf
+ 783 043c 7D020000 		.4byte	.LASF80
+ 784 0440 5802     		.2byte	0x258
+ 785 0442 08       		.byte	0x8
+ 786 0443 C201     		.2byte	0x1c2
+ 787 0445 97040000 		.4byte	0x497
+ 788 0449 09       		.uleb128 0x9
+ 789 044a EB060000 		.4byte	.LASF81
+ 790 044e 08       		.byte	0x8
+ 791 044f C601     		.2byte	0x1c6
+ 792 0451 DE020000 		.4byte	0x2de
+ 793 0455 00       		.byte	0
+ 794 0456 09       		.uleb128 0x9
+ 795 0457 5A020000 		.4byte	.LASF82
+ 796 045b 08       		.byte	0x8
+ 797 045c CA01     		.2byte	0x1ca
+ 798 045e BD030000 		.4byte	0x3bd
+ARM GAS  /tmp/cckvvh0F.s 			page 15
+
+
+ 799 0462 1C       		.byte	0x1c
+ 800 0463 08       		.uleb128 0x8
+ 801 0464 64626700 		.ascii	"dbg\000"
+ 802 0468 08       		.byte	0x8
+ 803 0469 CE01     		.2byte	0x1ce
+ 804 046b 0A040000 		.4byte	0x40a
+ 805 046f 2C       		.byte	0x2c
+ 806 0470 09       		.uleb128 0x9
+ 807 0471 B8010000 		.4byte	.LASF83
+ 808 0475 08       		.byte	0x8
+ 809 0476 D201     		.2byte	0x1d2
+ 810 0478 5C010000 		.4byte	0x15c
+ 811 047c 30       		.byte	0x30
+ 812 047d 08       		.uleb128 0x8
+ 813 047e 746D00   		.ascii	"tm\000"
+ 814 0481 08       		.byte	0x8
+ 815 0482 D701     		.2byte	0x1d7
+ 816 0484 39060000 		.4byte	0x639
+ 817 0488 7C       		.byte	0x7c
+ 818 0489 09       		.uleb128 0x9
+ 819 048a F1020000 		.4byte	.LASF84
+ 820 048e 08       		.byte	0x8
+ 821 048f E301     		.2byte	0x1e3
+ 822 0491 26070000 		.4byte	0x726
+ 823 0495 80       		.byte	0x80
+ 824 0496 00       		.byte	0
+ 825 0497 10       		.uleb128 0x10
+ 826 0498 D9010000 		.4byte	.LASF85
+ 827 049c 09       		.byte	0x9
+ 828 049d A706     		.2byte	0x6a7
+ 829 049f CE000000 		.4byte	0xce
+ 830 04a3 11       		.uleb128 0x11
+ 831 04a4 24030000 		.4byte	.LASF86
+ 832 04a8 0A       		.byte	0xa
+ 833 04a9 4C       		.byte	0x4c
+ 834 04aa D3000000 		.4byte	0xd3
+ 835 04ae 03       		.uleb128 0x3
+ 836 04af C8020000 		.4byte	.LASF87
+ 837 04b3 0B       		.byte	0xb
+ 838 04b4 65       		.byte	0x65
+ 839 04b5 61030000 		.4byte	0x361
+ 840 04b9 03       		.uleb128 0x3
+ 841 04ba D1030000 		.4byte	.LASF88
+ 842 04be 0B       		.byte	0xb
+ 843 04bf 6D       		.byte	0x6d
+ 844 04c0 DE000000 		.4byte	0xde
+ 845 04c4 06       		.uleb128 0x6
+ 846 04c5 8D060000 		.4byte	.LASF89
+ 847 04c9 04       		.byte	0x4
+ 848 04ca 0B       		.byte	0xb
+ 849 04cb 89       		.byte	0x89
+ 850 04cc DD040000 		.4byte	0x4dd
+ 851 04d0 12       		.uleb128 0x12
+ 852 04d1 72313300 		.ascii	"r13\000"
+ 853 04d5 0B       		.byte	0xb
+ 854 04d6 8A       		.byte	0x8a
+ 855 04d7 1E060000 		.4byte	0x61e
+ARM GAS  /tmp/cckvvh0F.s 			page 16
+
+
+ 856 04db 00       		.byte	0
+ 857 04dc 00       		.byte	0
+ 858 04dd 06       		.uleb128 0x6
+ 859 04de 41000000 		.4byte	.LASF90
+ 860 04e2 64       		.byte	0x64
+ 861 04e3 0C       		.byte	0xc
+ 862 04e4 F4       		.byte	0xf4
+ 863 04e5 1E060000 		.4byte	0x61e
+ 864 04e9 12       		.uleb128 0x12
+ 865 04ea 73313600 		.ascii	"s16\000"
+ 866 04ee 0C       		.byte	0xc
+ 867 04ef F6       		.byte	0xf6
+ 868 04f0 AE040000 		.4byte	0x4ae
+ 869 04f4 00       		.byte	0
+ 870 04f5 12       		.uleb128 0x12
+ 871 04f6 73313700 		.ascii	"s17\000"
+ 872 04fa 0C       		.byte	0xc
+ 873 04fb F7       		.byte	0xf7
+ 874 04fc AE040000 		.4byte	0x4ae
+ 875 0500 04       		.byte	0x4
+ 876 0501 12       		.uleb128 0x12
+ 877 0502 73313800 		.ascii	"s18\000"
+ 878 0506 0C       		.byte	0xc
+ 879 0507 F8       		.byte	0xf8
+ 880 0508 AE040000 		.4byte	0x4ae
+ 881 050c 08       		.byte	0x8
+ 882 050d 12       		.uleb128 0x12
+ 883 050e 73313900 		.ascii	"s19\000"
+ 884 0512 0C       		.byte	0xc
+ 885 0513 F9       		.byte	0xf9
+ 886 0514 AE040000 		.4byte	0x4ae
+ 887 0518 0C       		.byte	0xc
+ 888 0519 12       		.uleb128 0x12
+ 889 051a 73323000 		.ascii	"s20\000"
+ 890 051e 0C       		.byte	0xc
+ 891 051f FA       		.byte	0xfa
+ 892 0520 AE040000 		.4byte	0x4ae
+ 893 0524 10       		.byte	0x10
+ 894 0525 12       		.uleb128 0x12
+ 895 0526 73323100 		.ascii	"s21\000"
+ 896 052a 0C       		.byte	0xc
+ 897 052b FB       		.byte	0xfb
+ 898 052c AE040000 		.4byte	0x4ae
+ 899 0530 14       		.byte	0x14
+ 900 0531 12       		.uleb128 0x12
+ 901 0532 73323200 		.ascii	"s22\000"
+ 902 0536 0C       		.byte	0xc
+ 903 0537 FC       		.byte	0xfc
+ 904 0538 AE040000 		.4byte	0x4ae
+ 905 053c 18       		.byte	0x18
+ 906 053d 12       		.uleb128 0x12
+ 907 053e 73323300 		.ascii	"s23\000"
+ 908 0542 0C       		.byte	0xc
+ 909 0543 FD       		.byte	0xfd
+ 910 0544 AE040000 		.4byte	0x4ae
+ 911 0548 1C       		.byte	0x1c
+ 912 0549 12       		.uleb128 0x12
+ARM GAS  /tmp/cckvvh0F.s 			page 17
+
+
+ 913 054a 73323400 		.ascii	"s24\000"
+ 914 054e 0C       		.byte	0xc
+ 915 054f FE       		.byte	0xfe
+ 916 0550 AE040000 		.4byte	0x4ae
+ 917 0554 20       		.byte	0x20
+ 918 0555 12       		.uleb128 0x12
+ 919 0556 73323500 		.ascii	"s25\000"
+ 920 055a 0C       		.byte	0xc
+ 921 055b FF       		.byte	0xff
+ 922 055c AE040000 		.4byte	0x4ae
+ 923 0560 24       		.byte	0x24
+ 924 0561 08       		.uleb128 0x8
+ 925 0562 73323600 		.ascii	"s26\000"
+ 926 0566 0C       		.byte	0xc
+ 927 0567 0001     		.2byte	0x100
+ 928 0569 AE040000 		.4byte	0x4ae
+ 929 056d 28       		.byte	0x28
+ 930 056e 08       		.uleb128 0x8
+ 931 056f 73323700 		.ascii	"s27\000"
+ 932 0573 0C       		.byte	0xc
+ 933 0574 0101     		.2byte	0x101
+ 934 0576 AE040000 		.4byte	0x4ae
+ 935 057a 2C       		.byte	0x2c
+ 936 057b 08       		.uleb128 0x8
+ 937 057c 73323800 		.ascii	"s28\000"
+ 938 0580 0C       		.byte	0xc
+ 939 0581 0201     		.2byte	0x102
+ 940 0583 AE040000 		.4byte	0x4ae
+ 941 0587 30       		.byte	0x30
+ 942 0588 08       		.uleb128 0x8
+ 943 0589 73323900 		.ascii	"s29\000"
+ 944 058d 0C       		.byte	0xc
+ 945 058e 0301     		.2byte	0x103
+ 946 0590 AE040000 		.4byte	0x4ae
+ 947 0594 34       		.byte	0x34
+ 948 0595 08       		.uleb128 0x8
+ 949 0596 73333000 		.ascii	"s30\000"
+ 950 059a 0C       		.byte	0xc
+ 951 059b 0401     		.2byte	0x104
+ 952 059d AE040000 		.4byte	0x4ae
+ 953 05a1 38       		.byte	0x38
+ 954 05a2 08       		.uleb128 0x8
+ 955 05a3 73333100 		.ascii	"s31\000"
+ 956 05a7 0C       		.byte	0xc
+ 957 05a8 0501     		.2byte	0x105
+ 958 05aa AE040000 		.4byte	0x4ae
+ 959 05ae 3C       		.byte	0x3c
+ 960 05af 08       		.uleb128 0x8
+ 961 05b0 723400   		.ascii	"r4\000"
+ 962 05b3 0C       		.byte	0xc
+ 963 05b4 0701     		.2byte	0x107
+ 964 05b6 AE040000 		.4byte	0x4ae
+ 965 05ba 40       		.byte	0x40
+ 966 05bb 08       		.uleb128 0x8
+ 967 05bc 723500   		.ascii	"r5\000"
+ 968 05bf 0C       		.byte	0xc
+ 969 05c0 0801     		.2byte	0x108
+ARM GAS  /tmp/cckvvh0F.s 			page 18
+
+
+ 970 05c2 AE040000 		.4byte	0x4ae
+ 971 05c6 44       		.byte	0x44
+ 972 05c7 08       		.uleb128 0x8
+ 973 05c8 723600   		.ascii	"r6\000"
+ 974 05cb 0C       		.byte	0xc
+ 975 05cc 0901     		.2byte	0x109
+ 976 05ce AE040000 		.4byte	0x4ae
+ 977 05d2 48       		.byte	0x48
+ 978 05d3 08       		.uleb128 0x8
+ 979 05d4 723700   		.ascii	"r7\000"
+ 980 05d7 0C       		.byte	0xc
+ 981 05d8 0A01     		.2byte	0x10a
+ 982 05da AE040000 		.4byte	0x4ae
+ 983 05de 4C       		.byte	0x4c
+ 984 05df 08       		.uleb128 0x8
+ 985 05e0 723800   		.ascii	"r8\000"
+ 986 05e3 0C       		.byte	0xc
+ 987 05e4 0B01     		.2byte	0x10b
+ 988 05e6 AE040000 		.4byte	0x4ae
+ 989 05ea 50       		.byte	0x50
+ 990 05eb 08       		.uleb128 0x8
+ 991 05ec 723900   		.ascii	"r9\000"
+ 992 05ef 0C       		.byte	0xc
+ 993 05f0 0C01     		.2byte	0x10c
+ 994 05f2 AE040000 		.4byte	0x4ae
+ 995 05f6 54       		.byte	0x54
+ 996 05f7 08       		.uleb128 0x8
+ 997 05f8 72313000 		.ascii	"r10\000"
+ 998 05fc 0C       		.byte	0xc
+ 999 05fd 0D01     		.2byte	0x10d
+ 1000 05ff AE040000 		.4byte	0x4ae
+ 1001 0603 58       		.byte	0x58
+ 1002 0604 08       		.uleb128 0x8
+ 1003 0605 72313100 		.ascii	"r11\000"
+ 1004 0609 0C       		.byte	0xc
+ 1005 060a 0E01     		.2byte	0x10e
+ 1006 060c AE040000 		.4byte	0x4ae
+ 1007 0610 5C       		.byte	0x5c
+ 1008 0611 08       		.uleb128 0x8
+ 1009 0612 6C7200   		.ascii	"lr\000"
+ 1010 0615 0C       		.byte	0xc
+ 1011 0616 0F01     		.2byte	0x10f
+ 1012 0618 AE040000 		.4byte	0x4ae
+ 1013 061c 60       		.byte	0x60
+ 1014 061d 00       		.byte	0
+ 1015 061e 0A       		.uleb128 0xa
+ 1016 061f 04       		.byte	0x4
+ 1017 0620 DD040000 		.4byte	0x4dd
+ 1018 0624 13       		.uleb128 0x13
+ 1019 0625 04       		.byte	0x4
+ 1020 0626 0D       		.byte	0xd
+ 1021 0627 38       		.byte	0x38
+ 1022 0628 39060000 		.4byte	0x639
+ 1023 062c 07       		.uleb128 0x7
+ 1024 062d 86060000 		.4byte	.LASF91
+ 1025 0631 0D       		.byte	0xd
+ 1026 0632 3C       		.byte	0x3c
+ARM GAS  /tmp/cckvvh0F.s 			page 19
+
+
+ 1027 0633 E9000000 		.4byte	0xe9
+ 1028 0637 00       		.byte	0
+ 1029 0638 00       		.byte	0
+ 1030 0639 03       		.uleb128 0x3
+ 1031 063a 54040000 		.4byte	.LASF92
+ 1032 063e 0D       		.byte	0xd
+ 1033 063f 3D       		.byte	0x3d
+ 1034 0640 24060000 		.4byte	0x624
+ 1035 0644 14       		.uleb128 0x14
+ 1036 0645 04       		.byte	0x4
+ 1037 0646 08       		.byte	0x8
+ 1038 0647 FA       		.byte	0xfa
+ 1039 0648 A1060000 		.4byte	0x6a1
+ 1040 064c 15       		.uleb128 0x15
+ 1041 064d 1B000000 		.4byte	.LASF93
+ 1042 0651 08       		.byte	0x8
+ 1043 0652 0101     		.2byte	0x101
+ 1044 0654 2B010000 		.4byte	0x12b
+ 1045 0658 15       		.uleb128 0x15
+ 1046 0659 AF010000 		.4byte	.LASF94
+ 1047 065d 08       		.byte	0x8
+ 1048 065e 0801     		.2byte	0x108
+ 1049 0660 2B010000 		.4byte	0x12b
+ 1050 0664 15       		.uleb128 0x15
+ 1051 0665 0C070000 		.4byte	.LASF95
+ 1052 0669 08       		.byte	0x8
+ 1053 066a 0F01     		.2byte	0x10f
+ 1054 066c 61030000 		.4byte	0x361
+ 1055 0670 15       		.uleb128 0x15
+ 1056 0671 77020000 		.4byte	.LASF96
+ 1057 0675 08       		.byte	0x8
+ 1058 0676 1601     		.2byte	0x116
+ 1059 0678 A1060000 		.4byte	0x6a1
+ 1060 067c 15       		.uleb128 0x15
+ 1061 067d 3B030000 		.4byte	.LASF97
+ 1062 0681 08       		.byte	0x8
+ 1063 0682 1E01     		.2byte	0x11e
+ 1064 0684 CC060000 		.4byte	0x6cc
+ 1065 0688 15       		.uleb128 0x15
+ 1066 0689 29060000 		.4byte	.LASF98
+ 1067 068d 08       		.byte	0x8
+ 1068 068e 2701     		.2byte	0x127
+ 1069 0690 03070000 		.4byte	0x703
+ 1070 0694 15       		.uleb128 0x15
+ 1071 0695 57050000 		.4byte	.LASF99
+ 1072 0699 08       		.byte	0x8
+ 1073 069a 2F01     		.2byte	0x12f
+ 1074 069c 36010000 		.4byte	0x136
+ 1075 06a0 00       		.byte	0
+ 1076 06a1 0A       		.uleb128 0xa
+ 1077 06a2 04       		.byte	0x4
+ 1078 06a3 79020000 		.4byte	0x279
+ 1079 06a7 06       		.uleb128 0x6
+ 1080 06a8 C5050000 		.4byte	.LASF100
+ 1081 06ac 0C       		.byte	0xc
+ 1082 06ad 0E       		.byte	0xe
+ 1083 06ae 34       		.byte	0x34
+ARM GAS  /tmp/cckvvh0F.s 			page 20
+
+
+ 1084 06af CC060000 		.4byte	0x6cc
+ 1085 06b3 07       		.uleb128 0x7
+ 1086 06b4 AB020000 		.4byte	.LASF101
+ 1087 06b8 0E       		.byte	0xe
+ 1088 06b9 35       		.byte	0x35
+ 1089 06ba AE020000 		.4byte	0x2ae
+ 1090 06be 00       		.byte	0
+ 1091 06bf 07       		.uleb128 0x7
+ 1092 06c0 6C030000 		.4byte	.LASF102
+ 1093 06c4 0E       		.byte	0xe
+ 1094 06c5 37       		.byte	0x37
+ 1095 06c6 41010000 		.4byte	0x141
+ 1096 06ca 08       		.byte	0x8
+ 1097 06cb 00       		.byte	0
+ 1098 06cc 0A       		.uleb128 0xa
+ 1099 06cd 04       		.byte	0x4
+ 1100 06ce A7060000 		.4byte	0x6a7
+ 1101 06d2 06       		.uleb128 0x6
+ 1102 06d3 BB060000 		.4byte	.LASF103
+ 1103 06d7 10       		.byte	0x10
+ 1104 06d8 0F       		.byte	0xf
+ 1105 06d9 39       		.byte	0x39
+ 1106 06da 03070000 		.4byte	0x703
+ 1107 06de 07       		.uleb128 0x7
+ 1108 06df 52020000 		.4byte	.LASF104
+ 1109 06e3 0F       		.byte	0xf
+ 1110 06e4 3A       		.byte	0x3a
+ 1111 06e5 AE020000 		.4byte	0x2ae
+ 1112 06e9 00       		.byte	0
+ 1113 06ea 07       		.uleb128 0x7
+ 1114 06eb 41070000 		.4byte	.LASF105
+ 1115 06ef 0F       		.byte	0xf
+ 1116 06f0 3C       		.byte	0x3c
+ 1117 06f1 84020000 		.4byte	0x284
+ 1118 06f5 08       		.byte	0x8
+ 1119 06f6 07       		.uleb128 0x7
+ 1120 06f7 4C060000 		.4byte	.LASF106
+ 1121 06fb 0F       		.byte	0xf
+ 1122 06fc 3E       		.byte	0x3e
+ 1123 06fd 58080000 		.4byte	0x858
+ 1124 0701 0C       		.byte	0xc
+ 1125 0702 00       		.byte	0
+ 1126 0703 0A       		.uleb128 0xa
+ 1127 0704 04       		.byte	0x4
+ 1128 0705 D2060000 		.4byte	0x6d2
+ 1129 0709 0A       		.uleb128 0xa
+ 1130 070a 04       		.byte	0x4
+ 1131 070b 1B070000 		.4byte	0x71b
+ 1132 070f 05       		.uleb128 0x5
+ 1133 0710 09070000 		.4byte	0x709
+ 1134 0714 04       		.uleb128 0x4
+ 1135 0715 01       		.byte	0x1
+ 1136 0716 08       		.byte	0x8
+ 1137 0717 24060000 		.4byte	.LASF107
+ 1138 071b 16       		.uleb128 0x16
+ 1139 071c 14070000 		.4byte	0x714
+ 1140 0720 0A       		.uleb128 0xa
+ARM GAS  /tmp/cckvvh0F.s 			page 21
+
+
+ 1141 0721 04       		.byte	0x4
+ 1142 0722 63030000 		.4byte	0x363
+ 1143 0726 17       		.uleb128 0x17
+ 1144 0727 B9040000 		.4byte	0x4b9
+ 1145 072b 36070000 		.4byte	0x736
+ 1146 072f 18       		.uleb128 0x18
+ 1147 0730 37000000 		.4byte	0x37
+ 1148 0734 3A       		.byte	0x3a
+ 1149 0735 00       		.byte	0
+ 1150 0736 19       		.uleb128 0x19
+ 1151 0737 636800   		.ascii	"ch\000"
+ 1152 073a 08       		.byte	0x8
+ 1153 073b 0902     		.2byte	0x209
+ 1154 073d 30040000 		.4byte	0x430
+ 1155 0741 13       		.uleb128 0x13
+ 1156 0742 16       		.byte	0x16
+ 1157 0743 10       		.byte	0x10
+ 1158 0744 34       		.byte	0x34
+ 1159 0745 22080000 		.4byte	0x822
+ 1160 0749 07       		.uleb128 0x7
+ 1161 074a 49070000 		.4byte	.LASF108
+ 1162 074e 10       		.byte	0x10
+ 1163 074f 35       		.byte	0x35
+ 1164 0750 22080000 		.4byte	0x822
+ 1165 0754 00       		.byte	0
+ 1166 0755 07       		.uleb128 0x7
+ 1167 0756 EB030000 		.4byte	.LASF109
+ 1168 075a 10       		.byte	0x10
+ 1169 075b 36       		.byte	0x36
+ 1170 075c AD000000 		.4byte	0xad
+ 1171 0760 04       		.byte	0x4
+ 1172 0761 07       		.uleb128 0x7
+ 1173 0762 0A060000 		.4byte	.LASF110
+ 1174 0766 10       		.byte	0x10
+ 1175 0767 37       		.byte	0x37
+ 1176 0768 AD000000 		.4byte	0xad
+ 1177 076c 05       		.byte	0x5
+ 1178 076d 07       		.uleb128 0x7
+ 1179 076e 36070000 		.4byte	.LASF111
+ 1180 0772 10       		.byte	0x10
+ 1181 0773 38       		.byte	0x38
+ 1182 0774 B8000000 		.4byte	0xb8
+ 1183 0778 06       		.byte	0x6
+ 1184 0779 07       		.uleb128 0x7
+ 1185 077a 9D040000 		.4byte	.LASF112
+ 1186 077e 10       		.byte	0x10
+ 1187 077f 39       		.byte	0x39
+ 1188 0780 AD000000 		.4byte	0xad
+ 1189 0784 08       		.byte	0x8
+ 1190 0785 07       		.uleb128 0x7
+ 1191 0786 28040000 		.4byte	.LASF113
+ 1192 078a 10       		.byte	0x10
+ 1193 078b 3A       		.byte	0x3a
+ 1194 078c AD000000 		.4byte	0xad
+ 1195 0790 09       		.byte	0x9
+ 1196 0791 07       		.uleb128 0x7
+ 1197 0792 A1010000 		.4byte	.LASF114
+ARM GAS  /tmp/cckvvh0F.s 			page 22
+
+
+ 1198 0796 10       		.byte	0x10
+ 1199 0797 3B       		.byte	0x3b
+ 1200 0798 AD000000 		.4byte	0xad
+ 1201 079c 0A       		.byte	0xa
+ 1202 079d 07       		.uleb128 0x7
+ 1203 079e E6050000 		.4byte	.LASF115
+ 1204 07a2 10       		.byte	0x10
+ 1205 07a3 3C       		.byte	0x3c
+ 1206 07a4 AD000000 		.4byte	0xad
+ 1207 07a8 0B       		.byte	0xb
+ 1208 07a9 07       		.uleb128 0x7
+ 1209 07aa B0060000 		.4byte	.LASF116
+ 1210 07ae 10       		.byte	0x10
+ 1211 07af 3D       		.byte	0x3d
+ 1212 07b0 AD000000 		.4byte	0xad
+ 1213 07b4 0C       		.byte	0xc
+ 1214 07b5 07       		.uleb128 0x7
+ 1215 07b6 B8050000 		.4byte	.LASF117
+ 1216 07ba 10       		.byte	0x10
+ 1217 07bb 3E       		.byte	0x3e
+ 1218 07bc AD000000 		.4byte	0xad
+ 1219 07c0 0D       		.byte	0xd
+ 1220 07c1 07       		.uleb128 0x7
+ 1221 07c2 42030000 		.4byte	.LASF118
+ 1222 07c6 10       		.byte	0x10
+ 1223 07c7 3F       		.byte	0x3f
+ 1224 07c8 AD000000 		.4byte	0xad
+ 1225 07cc 0E       		.byte	0xe
+ 1226 07cd 07       		.uleb128 0x7
+ 1227 07ce 34040000 		.4byte	.LASF119
+ 1228 07d2 10       		.byte	0x10
+ 1229 07d3 40       		.byte	0x40
+ 1230 07d4 AD000000 		.4byte	0xad
+ 1231 07d8 0F       		.byte	0xf
+ 1232 07d9 07       		.uleb128 0x7
+ 1233 07da 2D020000 		.4byte	.LASF120
+ 1234 07de 10       		.byte	0x10
+ 1235 07df 41       		.byte	0x41
+ 1236 07e0 AD000000 		.4byte	0xad
+ 1237 07e4 10       		.byte	0x10
+ 1238 07e5 07       		.uleb128 0x7
+ 1239 07e6 FE010000 		.4byte	.LASF121
+ 1240 07ea 10       		.byte	0x10
+ 1241 07eb 43       		.byte	0x43
+ 1242 07ec AD000000 		.4byte	0xad
+ 1243 07f0 11       		.byte	0x11
+ 1244 07f1 07       		.uleb128 0x7
+ 1245 07f2 3D020000 		.4byte	.LASF122
+ 1246 07f6 10       		.byte	0x10
+ 1247 07f7 44       		.byte	0x44
+ 1248 07f8 AD000000 		.4byte	0xad
+ 1249 07fc 12       		.byte	0x12
+ 1250 07fd 07       		.uleb128 0x7
+ 1251 07fe F3030000 		.4byte	.LASF123
+ 1252 0802 10       		.byte	0x10
+ 1253 0803 45       		.byte	0x45
+ 1254 0804 AD000000 		.4byte	0xad
+ARM GAS  /tmp/cckvvh0F.s 			page 23
+
+
+ 1255 0808 13       		.byte	0x13
+ 1256 0809 07       		.uleb128 0x7
+ 1257 080a 6D050000 		.4byte	.LASF124
+ 1258 080e 10       		.byte	0x10
+ 1259 080f 46       		.byte	0x46
+ 1260 0810 AD000000 		.4byte	0xad
+ 1261 0814 14       		.byte	0x14
+ 1262 0815 07       		.uleb128 0x7
+ 1263 0816 A1030000 		.4byte	.LASF125
+ 1264 081a 10       		.byte	0x10
+ 1265 081b 48       		.byte	0x48
+ 1266 081c AD000000 		.4byte	0xad
+ 1267 0820 15       		.byte	0x15
+ 1268 0821 00       		.byte	0
+ 1269 0822 17       		.uleb128 0x17
+ 1270 0823 14070000 		.4byte	0x714
+ 1271 0827 32080000 		.4byte	0x832
+ 1272 082b 18       		.uleb128 0x18
+ 1273 082c 37000000 		.4byte	0x37
+ 1274 0830 03       		.byte	0x3
+ 1275 0831 00       		.byte	0
+ 1276 0832 03       		.uleb128 0x3
+ 1277 0833 99020000 		.4byte	.LASF126
+ 1278 0837 10       		.byte	0x10
+ 1279 0838 49       		.byte	0x49
+ 1280 0839 41070000 		.4byte	0x741
+ 1281 083d 16       		.uleb128 0x16
+ 1282 083e 32080000 		.4byte	0x832
+ 1283 0842 11       		.uleb128 0x11
+ 1284 0843 63030000 		.4byte	.LASF127
+ 1285 0847 10       		.byte	0x10
+ 1286 0848 6E       		.byte	0x6e
+ 1287 0849 3D080000 		.4byte	0x83d
+ 1288 084d 03       		.uleb128 0x3
+ 1289 084e E9020000 		.4byte	.LASF128
+ 1290 0852 0F       		.byte	0xf
+ 1291 0853 34       		.byte	0x34
+ 1292 0854 D2060000 		.4byte	0x6d2
+ 1293 0858 0A       		.uleb128 0xa
+ 1294 0859 04       		.byte	0x4
+ 1295 085a 4D080000 		.4byte	0x84d
+ 1296 085e 0A       		.uleb128 0xa
+ 1297 085f 04       		.byte	0x4
+ 1298 0860 AD000000 		.4byte	0xad
+ 1299 0864 1A       		.uleb128 0x1a
+ 1300 0865 44060000 		.4byte	.LASF129
+ 1301 0869 01       		.byte	0x1
+ 1302 086a 3E       		.byte	0x3e
+ 1303 086b 5E080000 		.4byte	0x85e
+ 1304 086f 05       		.uleb128 0x5
+ 1305 0870 03       		.byte	0x3
+ 1306 0871 00000000 		.4byte	nextmem
+ 1307 0875 1A       		.uleb128 0x1a
+ 1308 0876 00000000 		.4byte	.LASF130
+ 1309 087a 01       		.byte	0x1
+ 1310 087b 3F       		.byte	0x3f
+ 1311 087c 5E080000 		.4byte	0x85e
+ARM GAS  /tmp/cckvvh0F.s 			page 24
+
+
+ 1312 0880 05       		.uleb128 0x5
+ 1313 0881 03       		.byte	0x3
+ 1314 0882 00000000 		.4byte	endmem
+ 1315 0886 1B       		.uleb128 0x1b
+ 1316 0887 C7040000 		.4byte	.LASF142
+ 1317 088b 01       		.byte	0x1
+ 1318 088c 9B       		.byte	0x9b
+ 1319 088d 2C000000 		.4byte	0x2c
+ 1320 0891 00000000 		.4byte	.LFB222
+ 1321 0895 14000000 		.4byte	.LFE222-.LFB222
+ 1322 0899 01       		.uleb128 0x1
+ 1323 089a 9C       		.byte	0x9c
+ 1324 089b 1C       		.uleb128 0x1c
+ 1325 089c B3020000 		.4byte	.LASF143
+ 1326 08a0 01       		.byte	0x1
+ 1327 08a1 83       		.byte	0x83
+ 1328 08a2 61030000 		.4byte	0x361
+ 1329 08a6 01       		.byte	0x1
+ 1330 08a7 C0080000 		.4byte	0x8c0
+ 1331 08ab 1D       		.uleb128 0x1d
+ 1332 08ac 1A070000 		.4byte	.LASF144
+ 1333 08b0 01       		.byte	0x1
+ 1334 08b1 83       		.byte	0x83
+ 1335 08b2 2C000000 		.4byte	0x2c
+ 1336 08b6 1E       		.uleb128 0x1e
+ 1337 08b7 7000     		.ascii	"p\000"
+ 1338 08b9 01       		.byte	0x1
+ 1339 08ba 84       		.byte	0x84
+ 1340 08bb 61030000 		.4byte	0x361
+ 1341 08bf 00       		.byte	0
+ 1342 08c0 1F       		.uleb128 0x1f
+ 1343 08c1 2B000000 		.4byte	.LASF145
+ 1344 08c5 01       		.byte	0x1
+ 1345 08c6 6D       		.byte	0x6d
+ 1346 08c7 61030000 		.4byte	0x361
+ 1347 08cb 00000000 		.4byte	.LFB220
+ 1348 08cf 2C000000 		.4byte	.LFE220-.LFB220
+ 1349 08d3 01       		.uleb128 0x1
+ 1350 08d4 9C       		.byte	0x9c
+ 1351 08d5 92090000 		.4byte	0x992
+ 1352 08d9 20       		.uleb128 0x20
+ 1353 08da 1A070000 		.4byte	.LASF144
+ 1354 08de 01       		.byte	0x1
+ 1355 08df 6D       		.byte	0x6d
+ 1356 08e0 2C000000 		.4byte	0x2c
+ 1357 08e4 00000000 		.4byte	.LLST0
+ 1358 08e8 1E       		.uleb128 0x1e
+ 1359 08e9 7000     		.ascii	"p\000"
+ 1360 08eb 01       		.byte	0x1
+ 1361 08ec 6E       		.byte	0x6e
+ 1362 08ed 61030000 		.4byte	0x361
+ 1363 08f1 21       		.uleb128 0x21
+ 1364 08f2 F9090000 		.4byte	0x9f9
+ 1365 08f6 02000000 		.4byte	.LBB26
+ 1366 08fa 02000000 		.4byte	.LBE26-.LBB26
+ 1367 08fe 01       		.byte	0x1
+ 1368 08ff 70       		.byte	0x70
+ARM GAS  /tmp/cckvvh0F.s 			page 25
+
+
+ 1369 0900 26090000 		.4byte	0x926
+ 1370 0904 22       		.uleb128 0x22
+ 1371 0905 0B0A0000 		.4byte	0xa0b
+ 1372 0909 02000000 		.4byte	.LBB27
+ 1373 090d 02000000 		.4byte	.LBE27-.LBB27
+ 1374 0911 11       		.byte	0x11
+ 1375 0912 5C01     		.2byte	0x15c
+ 1376 0914 23       		.uleb128 0x23
+ 1377 0915 140A0000 		.4byte	0xa14
+ 1378 0919 02000000 		.4byte	.LBB28
+ 1379 091d 02000000 		.4byte	.LBE28-.LBB28
+ 1380 0921 0C       		.byte	0xc
+ 1381 0922 C101     		.2byte	0x1c1
+ 1382 0924 00       		.byte	0
+ 1383 0925 00       		.byte	0
+ 1384 0926 21       		.uleb128 0x21
+ 1385 0927 9B080000 		.4byte	0x89b
+ 1386 092b 04000000 		.4byte	.LBB30
+ 1387 092f 1A000000 		.4byte	.LBE30-.LBB30
+ 1388 0933 01       		.byte	0x1
+ 1389 0934 71       		.byte	0x71
+ 1390 0935 56090000 		.4byte	0x956
+ 1391 0939 24       		.uleb128 0x24
+ 1392 093a AB080000 		.4byte	0x8ab
+ 1393 093e 39000000 		.4byte	.LLST1
+ 1394 0942 25       		.uleb128 0x25
+ 1395 0943 04000000 		.4byte	.LBB31
+ 1396 0947 1A000000 		.4byte	.LBE31-.LBB31
+ 1397 094b 26       		.uleb128 0x26
+ 1398 094c B6080000 		.4byte	0x8b6
+ 1399 0950 82000000 		.4byte	.LLST2
+ 1400 0954 00       		.byte	0
+ 1401 0955 00       		.byte	0
+ 1402 0956 27       		.uleb128 0x27
+ 1403 0957 C9090000 		.4byte	0x9c9
+ 1404 095b 1E000000 		.4byte	.LBB32
+ 1405 095f 02000000 		.4byte	.LBE32-.LBB32
+ 1406 0963 01       		.byte	0x1
+ 1407 0964 72       		.byte	0x72
+ 1408 0965 25       		.uleb128 0x25
+ 1409 0966 1E000000 		.4byte	.LBB33
+ 1410 096a 02000000 		.4byte	.LBE33-.LBB33
+ 1411 096e 22       		.uleb128 0x22
+ 1412 096f 020A0000 		.4byte	0xa02
+ 1413 0973 1E000000 		.4byte	.LBB34
+ 1414 0977 02000000 		.4byte	.LBE34-.LBB34
+ 1415 097b 11       		.byte	0x11
+ 1416 097c 7301     		.2byte	0x173
+ 1417 097e 23       		.uleb128 0x23
+ 1418 097f 1D0A0000 		.4byte	0xa1d
+ 1419 0983 1E000000 		.4byte	.LBB35
+ 1420 0987 02000000 		.4byte	.LBE35-.LBB35
+ 1421 098b 0C       		.byte	0xc
+ 1422 098c CF01     		.2byte	0x1cf
+ 1423 098e 00       		.byte	0
+ 1424 098f 00       		.byte	0
+ 1425 0990 00       		.byte	0
+ARM GAS  /tmp/cckvvh0F.s 			page 26
+
+
+ 1426 0991 00       		.byte	0
+ 1427 0992 28       		.uleb128 0x28
+ 1428 0993 EE040000 		.4byte	.LASF146
+ 1429 0997 01       		.byte	0x1
+ 1430 0998 4E       		.byte	0x4e
+ 1431 0999 00000000 		.4byte	.LFB219
+ 1432 099d 28000000 		.4byte	.LFE219-.LFB219
+ 1433 09a1 01       		.uleb128 0x1
+ 1434 09a2 9C       		.byte	0x9c
+ 1435 09a3 BE090000 		.4byte	0x9be
+ 1436 09a7 11       		.uleb128 0x11
+ 1437 09a8 A2060000 		.4byte	.LASF131
+ 1438 09ac 01       		.byte	0x1
+ 1439 09ad 50       		.byte	0x50
+ 1440 09ae BE090000 		.4byte	0x9be
+ 1441 09b2 11       		.uleb128 0x11
+ 1442 09b3 43050000 		.4byte	.LASF132
+ 1443 09b7 01       		.byte	0x1
+ 1444 09b8 51       		.byte	0x51
+ 1445 09b9 BE090000 		.4byte	0x9be
+ 1446 09bd 00       		.byte	0
+ 1447 09be 17       		.uleb128 0x17
+ 1448 09bf AD000000 		.4byte	0xad
+ 1449 09c3 C9090000 		.4byte	0x9c9
+ 1450 09c7 29       		.uleb128 0x29
+ 1451 09c8 00       		.byte	0
+ 1452 09c9 2A       		.uleb128 0x2a
+ 1453 09ca 2A070000 		.4byte	.LASF147
+ 1454 09ce 11       		.byte	0x11
+ 1455 09cf 6601     		.2byte	0x166
+ 1456 09d1 03       		.byte	0x3
+ 1457 09d2 E4090000 		.4byte	0x9e4
+ 1458 09d6 2B       		.uleb128 0x2b
+ 1459 09d7 84050000 		.4byte	.LASF133
+ 1460 09db F4090000 		.4byte	0x9f4
+ 1461 09df 2A070000 		.4byte	.LASF147
+ 1462 09e3 00       		.byte	0
+ 1463 09e4 17       		.uleb128 0x17
+ 1464 09e5 1B070000 		.4byte	0x71b
+ 1465 09e9 F4090000 		.4byte	0x9f4
+ 1466 09ed 18       		.uleb128 0x18
+ 1467 09ee 37000000 		.4byte	0x37
+ 1468 09f2 0B       		.byte	0xb
+ 1469 09f3 00       		.byte	0
+ 1470 09f4 16       		.uleb128 0x16
+ 1471 09f5 E4090000 		.4byte	0x9e4
+ 1472 09f9 2C       		.uleb128 0x2c
+ 1473 09fa 8D050000 		.4byte	.LASF134
+ 1474 09fe 11       		.byte	0x11
+ 1475 09ff 5A01     		.2byte	0x15a
+ 1476 0a01 03       		.byte	0x3
+ 1477 0a02 2C       		.uleb128 0x2c
+ 1478 0a03 61020000 		.4byte	.LASF135
+ 1479 0a07 0C       		.byte	0xc
+ 1480 0a08 CA01     		.2byte	0x1ca
+ 1481 0a0a 03       		.byte	0x3
+ 1482 0a0b 2C       		.uleb128 0x2c
+ARM GAS  /tmp/cckvvh0F.s 			page 27
+
+
+ 1483 0a0c 80010000 		.4byte	.LASF136
+ 1484 0a10 0C       		.byte	0xc
+ 1485 0a11 BC01     		.2byte	0x1bc
+ 1486 0a13 03       		.byte	0x3
+ 1487 0a14 2C       		.uleb128 0x2c
+ 1488 0a15 8F040000 		.4byte	.LASF137
+ 1489 0a19 02       		.byte	0x2
+ 1490 0a1a 5401     		.2byte	0x154
+ 1491 0a1c 03       		.byte	0x3
+ 1492 0a1d 2C       		.uleb128 0x2c
+ 1493 0a1e 77040000 		.4byte	.LASF138
+ 1494 0a22 02       		.byte	0x2
+ 1495 0a23 4901     		.2byte	0x149
+ 1496 0a25 03       		.byte	0x3
+ 1497 0a26 2D       		.uleb128 0x2d
+ 1498 0a27 9B080000 		.4byte	0x89b
+ 1499 0a2b 00000000 		.4byte	.LFB221
+ 1500 0a2f 28000000 		.4byte	.LFE221-.LFB221
+ 1501 0a33 01       		.uleb128 0x1
+ 1502 0a34 9C       		.byte	0x9c
+ 1503 0a35 24       		.uleb128 0x24
+ 1504 0a36 AB080000 		.4byte	0x8ab
+ 1505 0a3a 95000000 		.4byte	.LLST3
+ 1506 0a3e 26       		.uleb128 0x26
+ 1507 0a3f B6080000 		.4byte	0x8b6
+ 1508 0a43 D3000000 		.4byte	.LLST4
+ 1509 0a47 00       		.byte	0
+ 1510 0a48 00       		.byte	0
+ 1511              		.section	.debug_abbrev,"",%progbits
+ 1512              	.Ldebug_abbrev0:
+ 1513 0000 01       		.uleb128 0x1
+ 1514 0001 11       		.uleb128 0x11
+ 1515 0002 01       		.byte	0x1
+ 1516 0003 25       		.uleb128 0x25
+ 1517 0004 0E       		.uleb128 0xe
+ 1518 0005 13       		.uleb128 0x13
+ 1519 0006 0B       		.uleb128 0xb
+ 1520 0007 03       		.uleb128 0x3
+ 1521 0008 0E       		.uleb128 0xe
+ 1522 0009 1B       		.uleb128 0x1b
+ 1523 000a 0E       		.uleb128 0xe
+ 1524 000b 55       		.uleb128 0x55
+ 1525 000c 17       		.uleb128 0x17
+ 1526 000d 11       		.uleb128 0x11
+ 1527 000e 01       		.uleb128 0x1
+ 1528 000f 10       		.uleb128 0x10
+ 1529 0010 17       		.uleb128 0x17
+ 1530 0011 00       		.byte	0
+ 1531 0012 00       		.byte	0
+ 1532 0013 02       		.uleb128 0x2
+ 1533 0014 24       		.uleb128 0x24
+ 1534 0015 00       		.byte	0
+ 1535 0016 0B       		.uleb128 0xb
+ 1536 0017 0B       		.uleb128 0xb
+ 1537 0018 3E       		.uleb128 0x3e
+ 1538 0019 0B       		.uleb128 0xb
+ 1539 001a 03       		.uleb128 0x3
+ARM GAS  /tmp/cckvvh0F.s 			page 28
+
+
+ 1540 001b 08       		.uleb128 0x8
+ 1541 001c 00       		.byte	0
+ 1542 001d 00       		.byte	0
+ 1543 001e 03       		.uleb128 0x3
+ 1544 001f 16       		.uleb128 0x16
+ 1545 0020 00       		.byte	0
+ 1546 0021 03       		.uleb128 0x3
+ 1547 0022 0E       		.uleb128 0xe
+ 1548 0023 3A       		.uleb128 0x3a
+ 1549 0024 0B       		.uleb128 0xb
+ 1550 0025 3B       		.uleb128 0x3b
+ 1551 0026 0B       		.uleb128 0xb
+ 1552 0027 49       		.uleb128 0x49
+ 1553 0028 13       		.uleb128 0x13
+ 1554 0029 00       		.byte	0
+ 1555 002a 00       		.byte	0
+ 1556 002b 04       		.uleb128 0x4
+ 1557 002c 24       		.uleb128 0x24
+ 1558 002d 00       		.byte	0
+ 1559 002e 0B       		.uleb128 0xb
+ 1560 002f 0B       		.uleb128 0xb
+ 1561 0030 3E       		.uleb128 0x3e
+ 1562 0031 0B       		.uleb128 0xb
+ 1563 0032 03       		.uleb128 0x3
+ 1564 0033 0E       		.uleb128 0xe
+ 1565 0034 00       		.byte	0
+ 1566 0035 00       		.byte	0
+ 1567 0036 05       		.uleb128 0x5
+ 1568 0037 35       		.uleb128 0x35
+ 1569 0038 00       		.byte	0
+ 1570 0039 49       		.uleb128 0x49
+ 1571 003a 13       		.uleb128 0x13
+ 1572 003b 00       		.byte	0
+ 1573 003c 00       		.byte	0
+ 1574 003d 06       		.uleb128 0x6
+ 1575 003e 13       		.uleb128 0x13
+ 1576 003f 01       		.byte	0x1
+ 1577 0040 03       		.uleb128 0x3
+ 1578 0041 0E       		.uleb128 0xe
+ 1579 0042 0B       		.uleb128 0xb
+ 1580 0043 0B       		.uleb128 0xb
+ 1581 0044 3A       		.uleb128 0x3a
+ 1582 0045 0B       		.uleb128 0xb
+ 1583 0046 3B       		.uleb128 0x3b
+ 1584 0047 0B       		.uleb128 0xb
+ 1585 0048 01       		.uleb128 0x1
+ 1586 0049 13       		.uleb128 0x13
+ 1587 004a 00       		.byte	0
+ 1588 004b 00       		.byte	0
+ 1589 004c 07       		.uleb128 0x7
+ 1590 004d 0D       		.uleb128 0xd
+ 1591 004e 00       		.byte	0
+ 1592 004f 03       		.uleb128 0x3
+ 1593 0050 0E       		.uleb128 0xe
+ 1594 0051 3A       		.uleb128 0x3a
+ 1595 0052 0B       		.uleb128 0xb
+ 1596 0053 3B       		.uleb128 0x3b
+ARM GAS  /tmp/cckvvh0F.s 			page 29
+
+
+ 1597 0054 0B       		.uleb128 0xb
+ 1598 0055 49       		.uleb128 0x49
+ 1599 0056 13       		.uleb128 0x13
+ 1600 0057 38       		.uleb128 0x38
+ 1601 0058 0B       		.uleb128 0xb
+ 1602 0059 00       		.byte	0
+ 1603 005a 00       		.byte	0
+ 1604 005b 08       		.uleb128 0x8
+ 1605 005c 0D       		.uleb128 0xd
+ 1606 005d 00       		.byte	0
+ 1607 005e 03       		.uleb128 0x3
+ 1608 005f 08       		.uleb128 0x8
+ 1609 0060 3A       		.uleb128 0x3a
+ 1610 0061 0B       		.uleb128 0xb
+ 1611 0062 3B       		.uleb128 0x3b
+ 1612 0063 05       		.uleb128 0x5
+ 1613 0064 49       		.uleb128 0x49
+ 1614 0065 13       		.uleb128 0x13
+ 1615 0066 38       		.uleb128 0x38
+ 1616 0067 0B       		.uleb128 0xb
+ 1617 0068 00       		.byte	0
+ 1618 0069 00       		.byte	0
+ 1619 006a 09       		.uleb128 0x9
+ 1620 006b 0D       		.uleb128 0xd
+ 1621 006c 00       		.byte	0
+ 1622 006d 03       		.uleb128 0x3
+ 1623 006e 0E       		.uleb128 0xe
+ 1624 006f 3A       		.uleb128 0x3a
+ 1625 0070 0B       		.uleb128 0xb
+ 1626 0071 3B       		.uleb128 0x3b
+ 1627 0072 05       		.uleb128 0x5
+ 1628 0073 49       		.uleb128 0x49
+ 1629 0074 13       		.uleb128 0x13
+ 1630 0075 38       		.uleb128 0x38
+ 1631 0076 0B       		.uleb128 0xb
+ 1632 0077 00       		.byte	0
+ 1633 0078 00       		.byte	0
+ 1634 0079 0A       		.uleb128 0xa
+ 1635 007a 0F       		.uleb128 0xf
+ 1636 007b 00       		.byte	0
+ 1637 007c 0B       		.uleb128 0xb
+ 1638 007d 0B       		.uleb128 0xb
+ 1639 007e 49       		.uleb128 0x49
+ 1640 007f 13       		.uleb128 0x13
+ 1641 0080 00       		.byte	0
+ 1642 0081 00       		.byte	0
+ 1643 0082 0B       		.uleb128 0xb
+ 1644 0083 13       		.uleb128 0x13
+ 1645 0084 01       		.byte	0x1
+ 1646 0085 03       		.uleb128 0x3
+ 1647 0086 0E       		.uleb128 0xe
+ 1648 0087 0B       		.uleb128 0xb
+ 1649 0088 0B       		.uleb128 0xb
+ 1650 0089 3A       		.uleb128 0x3a
+ 1651 008a 0B       		.uleb128 0xb
+ 1652 008b 3B       		.uleb128 0x3b
+ 1653 008c 05       		.uleb128 0x5
+ARM GAS  /tmp/cckvvh0F.s 			page 30
+
+
+ 1654 008d 01       		.uleb128 0x1
+ 1655 008e 13       		.uleb128 0x13
+ 1656 008f 00       		.byte	0
+ 1657 0090 00       		.byte	0
+ 1658 0091 0C       		.uleb128 0xc
+ 1659 0092 15       		.uleb128 0x15
+ 1660 0093 01       		.byte	0x1
+ 1661 0094 27       		.uleb128 0x27
+ 1662 0095 19       		.uleb128 0x19
+ 1663 0096 01       		.uleb128 0x1
+ 1664 0097 13       		.uleb128 0x13
+ 1665 0098 00       		.byte	0
+ 1666 0099 00       		.byte	0
+ 1667 009a 0D       		.uleb128 0xd
+ 1668 009b 05       		.uleb128 0x5
+ 1669 009c 00       		.byte	0
+ 1670 009d 49       		.uleb128 0x49
+ 1671 009e 13       		.uleb128 0x13
+ 1672 009f 00       		.byte	0
+ 1673 00a0 00       		.byte	0
+ 1674 00a1 0E       		.uleb128 0xe
+ 1675 00a2 0F       		.uleb128 0xf
+ 1676 00a3 00       		.byte	0
+ 1677 00a4 0B       		.uleb128 0xb
+ 1678 00a5 0B       		.uleb128 0xb
+ 1679 00a6 00       		.byte	0
+ 1680 00a7 00       		.byte	0
+ 1681 00a8 0F       		.uleb128 0xf
+ 1682 00a9 13       		.uleb128 0x13
+ 1683 00aa 01       		.byte	0x1
+ 1684 00ab 03       		.uleb128 0x3
+ 1685 00ac 0E       		.uleb128 0xe
+ 1686 00ad 0B       		.uleb128 0xb
+ 1687 00ae 05       		.uleb128 0x5
+ 1688 00af 3A       		.uleb128 0x3a
+ 1689 00b0 0B       		.uleb128 0xb
+ 1690 00b1 3B       		.uleb128 0x3b
+ 1691 00b2 05       		.uleb128 0x5
+ 1692 00b3 01       		.uleb128 0x1
+ 1693 00b4 13       		.uleb128 0x13
+ 1694 00b5 00       		.byte	0
+ 1695 00b6 00       		.byte	0
+ 1696 00b7 10       		.uleb128 0x10
+ 1697 00b8 34       		.uleb128 0x34
+ 1698 00b9 00       		.byte	0
+ 1699 00ba 03       		.uleb128 0x3
+ 1700 00bb 0E       		.uleb128 0xe
+ 1701 00bc 3A       		.uleb128 0x3a
+ 1702 00bd 0B       		.uleb128 0xb
+ 1703 00be 3B       		.uleb128 0x3b
+ 1704 00bf 05       		.uleb128 0x5
+ 1705 00c0 49       		.uleb128 0x49
+ 1706 00c1 13       		.uleb128 0x13
+ 1707 00c2 3F       		.uleb128 0x3f
+ 1708 00c3 19       		.uleb128 0x19
+ 1709 00c4 3C       		.uleb128 0x3c
+ 1710 00c5 19       		.uleb128 0x19
+ARM GAS  /tmp/cckvvh0F.s 			page 31
+
+
+ 1711 00c6 00       		.byte	0
+ 1712 00c7 00       		.byte	0
+ 1713 00c8 11       		.uleb128 0x11
+ 1714 00c9 34       		.uleb128 0x34
+ 1715 00ca 00       		.byte	0
+ 1716 00cb 03       		.uleb128 0x3
+ 1717 00cc 0E       		.uleb128 0xe
+ 1718 00cd 3A       		.uleb128 0x3a
+ 1719 00ce 0B       		.uleb128 0xb
+ 1720 00cf 3B       		.uleb128 0x3b
+ 1721 00d0 0B       		.uleb128 0xb
+ 1722 00d1 49       		.uleb128 0x49
+ 1723 00d2 13       		.uleb128 0x13
+ 1724 00d3 3F       		.uleb128 0x3f
+ 1725 00d4 19       		.uleb128 0x19
+ 1726 00d5 3C       		.uleb128 0x3c
+ 1727 00d6 19       		.uleb128 0x19
+ 1728 00d7 00       		.byte	0
+ 1729 00d8 00       		.byte	0
+ 1730 00d9 12       		.uleb128 0x12
+ 1731 00da 0D       		.uleb128 0xd
+ 1732 00db 00       		.byte	0
+ 1733 00dc 03       		.uleb128 0x3
+ 1734 00dd 08       		.uleb128 0x8
+ 1735 00de 3A       		.uleb128 0x3a
+ 1736 00df 0B       		.uleb128 0xb
+ 1737 00e0 3B       		.uleb128 0x3b
+ 1738 00e1 0B       		.uleb128 0xb
+ 1739 00e2 49       		.uleb128 0x49
+ 1740 00e3 13       		.uleb128 0x13
+ 1741 00e4 38       		.uleb128 0x38
+ 1742 00e5 0B       		.uleb128 0xb
+ 1743 00e6 00       		.byte	0
+ 1744 00e7 00       		.byte	0
+ 1745 00e8 13       		.uleb128 0x13
+ 1746 00e9 13       		.uleb128 0x13
+ 1747 00ea 01       		.byte	0x1
+ 1748 00eb 0B       		.uleb128 0xb
+ 1749 00ec 0B       		.uleb128 0xb
+ 1750 00ed 3A       		.uleb128 0x3a
+ 1751 00ee 0B       		.uleb128 0xb
+ 1752 00ef 3B       		.uleb128 0x3b
+ 1753 00f0 0B       		.uleb128 0xb
+ 1754 00f1 01       		.uleb128 0x1
+ 1755 00f2 13       		.uleb128 0x13
+ 1756 00f3 00       		.byte	0
+ 1757 00f4 00       		.byte	0
+ 1758 00f5 14       		.uleb128 0x14
+ 1759 00f6 17       		.uleb128 0x17
+ 1760 00f7 01       		.byte	0x1
+ 1761 00f8 0B       		.uleb128 0xb
+ 1762 00f9 0B       		.uleb128 0xb
+ 1763 00fa 3A       		.uleb128 0x3a
+ 1764 00fb 0B       		.uleb128 0xb
+ 1765 00fc 3B       		.uleb128 0x3b
+ 1766 00fd 0B       		.uleb128 0xb
+ 1767 00fe 01       		.uleb128 0x1
+ARM GAS  /tmp/cckvvh0F.s 			page 32
+
+
+ 1768 00ff 13       		.uleb128 0x13
+ 1769 0100 00       		.byte	0
+ 1770 0101 00       		.byte	0
+ 1771 0102 15       		.uleb128 0x15
+ 1772 0103 0D       		.uleb128 0xd
+ 1773 0104 00       		.byte	0
+ 1774 0105 03       		.uleb128 0x3
+ 1775 0106 0E       		.uleb128 0xe
+ 1776 0107 3A       		.uleb128 0x3a
+ 1777 0108 0B       		.uleb128 0xb
+ 1778 0109 3B       		.uleb128 0x3b
+ 1779 010a 05       		.uleb128 0x5
+ 1780 010b 49       		.uleb128 0x49
+ 1781 010c 13       		.uleb128 0x13
+ 1782 010d 00       		.byte	0
+ 1783 010e 00       		.byte	0
+ 1784 010f 16       		.uleb128 0x16
+ 1785 0110 26       		.uleb128 0x26
+ 1786 0111 00       		.byte	0
+ 1787 0112 49       		.uleb128 0x49
+ 1788 0113 13       		.uleb128 0x13
+ 1789 0114 00       		.byte	0
+ 1790 0115 00       		.byte	0
+ 1791 0116 17       		.uleb128 0x17
+ 1792 0117 01       		.uleb128 0x1
+ 1793 0118 01       		.byte	0x1
+ 1794 0119 49       		.uleb128 0x49
+ 1795 011a 13       		.uleb128 0x13
+ 1796 011b 01       		.uleb128 0x1
+ 1797 011c 13       		.uleb128 0x13
+ 1798 011d 00       		.byte	0
+ 1799 011e 00       		.byte	0
+ 1800 011f 18       		.uleb128 0x18
+ 1801 0120 21       		.uleb128 0x21
+ 1802 0121 00       		.byte	0
+ 1803 0122 49       		.uleb128 0x49
+ 1804 0123 13       		.uleb128 0x13
+ 1805 0124 2F       		.uleb128 0x2f
+ 1806 0125 0B       		.uleb128 0xb
+ 1807 0126 00       		.byte	0
+ 1808 0127 00       		.byte	0
+ 1809 0128 19       		.uleb128 0x19
+ 1810 0129 34       		.uleb128 0x34
+ 1811 012a 00       		.byte	0
+ 1812 012b 03       		.uleb128 0x3
+ 1813 012c 08       		.uleb128 0x8
+ 1814 012d 3A       		.uleb128 0x3a
+ 1815 012e 0B       		.uleb128 0xb
+ 1816 012f 3B       		.uleb128 0x3b
+ 1817 0130 05       		.uleb128 0x5
+ 1818 0131 49       		.uleb128 0x49
+ 1819 0132 13       		.uleb128 0x13
+ 1820 0133 3F       		.uleb128 0x3f
+ 1821 0134 19       		.uleb128 0x19
+ 1822 0135 3C       		.uleb128 0x3c
+ 1823 0136 19       		.uleb128 0x19
+ 1824 0137 00       		.byte	0
+ARM GAS  /tmp/cckvvh0F.s 			page 33
+
+
+ 1825 0138 00       		.byte	0
+ 1826 0139 1A       		.uleb128 0x1a
+ 1827 013a 34       		.uleb128 0x34
+ 1828 013b 00       		.byte	0
+ 1829 013c 03       		.uleb128 0x3
+ 1830 013d 0E       		.uleb128 0xe
+ 1831 013e 3A       		.uleb128 0x3a
+ 1832 013f 0B       		.uleb128 0xb
+ 1833 0140 3B       		.uleb128 0x3b
+ 1834 0141 0B       		.uleb128 0xb
+ 1835 0142 49       		.uleb128 0x49
+ 1836 0143 13       		.uleb128 0x13
+ 1837 0144 02       		.uleb128 0x2
+ 1838 0145 18       		.uleb128 0x18
+ 1839 0146 00       		.byte	0
+ 1840 0147 00       		.byte	0
+ 1841 0148 1B       		.uleb128 0x1b
+ 1842 0149 2E       		.uleb128 0x2e
+ 1843 014a 00       		.byte	0
+ 1844 014b 3F       		.uleb128 0x3f
+ 1845 014c 19       		.uleb128 0x19
+ 1846 014d 03       		.uleb128 0x3
+ 1847 014e 0E       		.uleb128 0xe
+ 1848 014f 3A       		.uleb128 0x3a
+ 1849 0150 0B       		.uleb128 0xb
+ 1850 0151 3B       		.uleb128 0x3b
+ 1851 0152 0B       		.uleb128 0xb
+ 1852 0153 27       		.uleb128 0x27
+ 1853 0154 19       		.uleb128 0x19
+ 1854 0155 49       		.uleb128 0x49
+ 1855 0156 13       		.uleb128 0x13
+ 1856 0157 11       		.uleb128 0x11
+ 1857 0158 01       		.uleb128 0x1
+ 1858 0159 12       		.uleb128 0x12
+ 1859 015a 06       		.uleb128 0x6
+ 1860 015b 40       		.uleb128 0x40
+ 1861 015c 18       		.uleb128 0x18
+ 1862 015d 9742     		.uleb128 0x2117
+ 1863 015f 19       		.uleb128 0x19
+ 1864 0160 00       		.byte	0
+ 1865 0161 00       		.byte	0
+ 1866 0162 1C       		.uleb128 0x1c
+ 1867 0163 2E       		.uleb128 0x2e
+ 1868 0164 01       		.byte	0x1
+ 1869 0165 3F       		.uleb128 0x3f
+ 1870 0166 19       		.uleb128 0x19
+ 1871 0167 03       		.uleb128 0x3
+ 1872 0168 0E       		.uleb128 0xe
+ 1873 0169 3A       		.uleb128 0x3a
+ 1874 016a 0B       		.uleb128 0xb
+ 1875 016b 3B       		.uleb128 0x3b
+ 1876 016c 0B       		.uleb128 0xb
+ 1877 016d 27       		.uleb128 0x27
+ 1878 016e 19       		.uleb128 0x19
+ 1879 016f 49       		.uleb128 0x49
+ 1880 0170 13       		.uleb128 0x13
+ 1881 0171 20       		.uleb128 0x20
+ARM GAS  /tmp/cckvvh0F.s 			page 34
+
+
+ 1882 0172 0B       		.uleb128 0xb
+ 1883 0173 01       		.uleb128 0x1
+ 1884 0174 13       		.uleb128 0x13
+ 1885 0175 00       		.byte	0
+ 1886 0176 00       		.byte	0
+ 1887 0177 1D       		.uleb128 0x1d
+ 1888 0178 05       		.uleb128 0x5
+ 1889 0179 00       		.byte	0
+ 1890 017a 03       		.uleb128 0x3
+ 1891 017b 0E       		.uleb128 0xe
+ 1892 017c 3A       		.uleb128 0x3a
+ 1893 017d 0B       		.uleb128 0xb
+ 1894 017e 3B       		.uleb128 0x3b
+ 1895 017f 0B       		.uleb128 0xb
+ 1896 0180 49       		.uleb128 0x49
+ 1897 0181 13       		.uleb128 0x13
+ 1898 0182 00       		.byte	0
+ 1899 0183 00       		.byte	0
+ 1900 0184 1E       		.uleb128 0x1e
+ 1901 0185 34       		.uleb128 0x34
+ 1902 0186 00       		.byte	0
+ 1903 0187 03       		.uleb128 0x3
+ 1904 0188 08       		.uleb128 0x8
+ 1905 0189 3A       		.uleb128 0x3a
+ 1906 018a 0B       		.uleb128 0xb
+ 1907 018b 3B       		.uleb128 0x3b
+ 1908 018c 0B       		.uleb128 0xb
+ 1909 018d 49       		.uleb128 0x49
+ 1910 018e 13       		.uleb128 0x13
+ 1911 018f 00       		.byte	0
+ 1912 0190 00       		.byte	0
+ 1913 0191 1F       		.uleb128 0x1f
+ 1914 0192 2E       		.uleb128 0x2e
+ 1915 0193 01       		.byte	0x1
+ 1916 0194 3F       		.uleb128 0x3f
+ 1917 0195 19       		.uleb128 0x19
+ 1918 0196 03       		.uleb128 0x3
+ 1919 0197 0E       		.uleb128 0xe
+ 1920 0198 3A       		.uleb128 0x3a
+ 1921 0199 0B       		.uleb128 0xb
+ 1922 019a 3B       		.uleb128 0x3b
+ 1923 019b 0B       		.uleb128 0xb
+ 1924 019c 27       		.uleb128 0x27
+ 1925 019d 19       		.uleb128 0x19
+ 1926 019e 49       		.uleb128 0x49
+ 1927 019f 13       		.uleb128 0x13
+ 1928 01a0 11       		.uleb128 0x11
+ 1929 01a1 01       		.uleb128 0x1
+ 1930 01a2 12       		.uleb128 0x12
+ 1931 01a3 06       		.uleb128 0x6
+ 1932 01a4 40       		.uleb128 0x40
+ 1933 01a5 18       		.uleb128 0x18
+ 1934 01a6 9742     		.uleb128 0x2117
+ 1935 01a8 19       		.uleb128 0x19
+ 1936 01a9 01       		.uleb128 0x1
+ 1937 01aa 13       		.uleb128 0x13
+ 1938 01ab 00       		.byte	0
+ARM GAS  /tmp/cckvvh0F.s 			page 35
+
+
+ 1939 01ac 00       		.byte	0
+ 1940 01ad 20       		.uleb128 0x20
+ 1941 01ae 05       		.uleb128 0x5
+ 1942 01af 00       		.byte	0
+ 1943 01b0 03       		.uleb128 0x3
+ 1944 01b1 0E       		.uleb128 0xe
+ 1945 01b2 3A       		.uleb128 0x3a
+ 1946 01b3 0B       		.uleb128 0xb
+ 1947 01b4 3B       		.uleb128 0x3b
+ 1948 01b5 0B       		.uleb128 0xb
+ 1949 01b6 49       		.uleb128 0x49
+ 1950 01b7 13       		.uleb128 0x13
+ 1951 01b8 02       		.uleb128 0x2
+ 1952 01b9 17       		.uleb128 0x17
+ 1953 01ba 00       		.byte	0
+ 1954 01bb 00       		.byte	0
+ 1955 01bc 21       		.uleb128 0x21
+ 1956 01bd 1D       		.uleb128 0x1d
+ 1957 01be 01       		.byte	0x1
+ 1958 01bf 31       		.uleb128 0x31
+ 1959 01c0 13       		.uleb128 0x13
+ 1960 01c1 11       		.uleb128 0x11
+ 1961 01c2 01       		.uleb128 0x1
+ 1962 01c3 12       		.uleb128 0x12
+ 1963 01c4 06       		.uleb128 0x6
+ 1964 01c5 58       		.uleb128 0x58
+ 1965 01c6 0B       		.uleb128 0xb
+ 1966 01c7 59       		.uleb128 0x59
+ 1967 01c8 0B       		.uleb128 0xb
+ 1968 01c9 01       		.uleb128 0x1
+ 1969 01ca 13       		.uleb128 0x13
+ 1970 01cb 00       		.byte	0
+ 1971 01cc 00       		.byte	0
+ 1972 01cd 22       		.uleb128 0x22
+ 1973 01ce 1D       		.uleb128 0x1d
+ 1974 01cf 01       		.byte	0x1
+ 1975 01d0 31       		.uleb128 0x31
+ 1976 01d1 13       		.uleb128 0x13
+ 1977 01d2 11       		.uleb128 0x11
+ 1978 01d3 01       		.uleb128 0x1
+ 1979 01d4 12       		.uleb128 0x12
+ 1980 01d5 06       		.uleb128 0x6
+ 1981 01d6 58       		.uleb128 0x58
+ 1982 01d7 0B       		.uleb128 0xb
+ 1983 01d8 59       		.uleb128 0x59
+ 1984 01d9 05       		.uleb128 0x5
+ 1985 01da 00       		.byte	0
+ 1986 01db 00       		.byte	0
+ 1987 01dc 23       		.uleb128 0x23
+ 1988 01dd 1D       		.uleb128 0x1d
+ 1989 01de 00       		.byte	0
+ 1990 01df 31       		.uleb128 0x31
+ 1991 01e0 13       		.uleb128 0x13
+ 1992 01e1 11       		.uleb128 0x11
+ 1993 01e2 01       		.uleb128 0x1
+ 1994 01e3 12       		.uleb128 0x12
+ 1995 01e4 06       		.uleb128 0x6
+ARM GAS  /tmp/cckvvh0F.s 			page 36
+
+
+ 1996 01e5 58       		.uleb128 0x58
+ 1997 01e6 0B       		.uleb128 0xb
+ 1998 01e7 59       		.uleb128 0x59
+ 1999 01e8 05       		.uleb128 0x5
+ 2000 01e9 00       		.byte	0
+ 2001 01ea 00       		.byte	0
+ 2002 01eb 24       		.uleb128 0x24
+ 2003 01ec 05       		.uleb128 0x5
+ 2004 01ed 00       		.byte	0
+ 2005 01ee 31       		.uleb128 0x31
+ 2006 01ef 13       		.uleb128 0x13
+ 2007 01f0 02       		.uleb128 0x2
+ 2008 01f1 17       		.uleb128 0x17
+ 2009 01f2 00       		.byte	0
+ 2010 01f3 00       		.byte	0
+ 2011 01f4 25       		.uleb128 0x25
+ 2012 01f5 0B       		.uleb128 0xb
+ 2013 01f6 01       		.byte	0x1
+ 2014 01f7 11       		.uleb128 0x11
+ 2015 01f8 01       		.uleb128 0x1
+ 2016 01f9 12       		.uleb128 0x12
+ 2017 01fa 06       		.uleb128 0x6
+ 2018 01fb 00       		.byte	0
+ 2019 01fc 00       		.byte	0
+ 2020 01fd 26       		.uleb128 0x26
+ 2021 01fe 34       		.uleb128 0x34
+ 2022 01ff 00       		.byte	0
+ 2023 0200 31       		.uleb128 0x31
+ 2024 0201 13       		.uleb128 0x13
+ 2025 0202 02       		.uleb128 0x2
+ 2026 0203 17       		.uleb128 0x17
+ 2027 0204 00       		.byte	0
+ 2028 0205 00       		.byte	0
+ 2029 0206 27       		.uleb128 0x27
+ 2030 0207 1D       		.uleb128 0x1d
+ 2031 0208 01       		.byte	0x1
+ 2032 0209 31       		.uleb128 0x31
+ 2033 020a 13       		.uleb128 0x13
+ 2034 020b 11       		.uleb128 0x11
+ 2035 020c 01       		.uleb128 0x1
+ 2036 020d 12       		.uleb128 0x12
+ 2037 020e 06       		.uleb128 0x6
+ 2038 020f 58       		.uleb128 0x58
+ 2039 0210 0B       		.uleb128 0xb
+ 2040 0211 59       		.uleb128 0x59
+ 2041 0212 0B       		.uleb128 0xb
+ 2042 0213 00       		.byte	0
+ 2043 0214 00       		.byte	0
+ 2044 0215 28       		.uleb128 0x28
+ 2045 0216 2E       		.uleb128 0x2e
+ 2046 0217 01       		.byte	0x1
+ 2047 0218 3F       		.uleb128 0x3f
+ 2048 0219 19       		.uleb128 0x19
+ 2049 021a 03       		.uleb128 0x3
+ 2050 021b 0E       		.uleb128 0xe
+ 2051 021c 3A       		.uleb128 0x3a
+ 2052 021d 0B       		.uleb128 0xb
+ARM GAS  /tmp/cckvvh0F.s 			page 37
+
+
+ 2053 021e 3B       		.uleb128 0x3b
+ 2054 021f 0B       		.uleb128 0xb
+ 2055 0220 27       		.uleb128 0x27
+ 2056 0221 19       		.uleb128 0x19
+ 2057 0222 11       		.uleb128 0x11
+ 2058 0223 01       		.uleb128 0x1
+ 2059 0224 12       		.uleb128 0x12
+ 2060 0225 06       		.uleb128 0x6
+ 2061 0226 40       		.uleb128 0x40
+ 2062 0227 18       		.uleb128 0x18
+ 2063 0228 9742     		.uleb128 0x2117
+ 2064 022a 19       		.uleb128 0x19
+ 2065 022b 01       		.uleb128 0x1
+ 2066 022c 13       		.uleb128 0x13
+ 2067 022d 00       		.byte	0
+ 2068 022e 00       		.byte	0
+ 2069 022f 29       		.uleb128 0x29
+ 2070 0230 21       		.uleb128 0x21
+ 2071 0231 00       		.byte	0
+ 2072 0232 00       		.byte	0
+ 2073 0233 00       		.byte	0
+ 2074 0234 2A       		.uleb128 0x2a
+ 2075 0235 2E       		.uleb128 0x2e
+ 2076 0236 01       		.byte	0x1
+ 2077 0237 03       		.uleb128 0x3
+ 2078 0238 0E       		.uleb128 0xe
+ 2079 0239 3A       		.uleb128 0x3a
+ 2080 023a 0B       		.uleb128 0xb
+ 2081 023b 3B       		.uleb128 0x3b
+ 2082 023c 05       		.uleb128 0x5
+ 2083 023d 27       		.uleb128 0x27
+ 2084 023e 19       		.uleb128 0x19
+ 2085 023f 20       		.uleb128 0x20
+ 2086 0240 0B       		.uleb128 0xb
+ 2087 0241 01       		.uleb128 0x1
+ 2088 0242 13       		.uleb128 0x13
+ 2089 0243 00       		.byte	0
+ 2090 0244 00       		.byte	0
+ 2091 0245 2B       		.uleb128 0x2b
+ 2092 0246 34       		.uleb128 0x34
+ 2093 0247 00       		.byte	0
+ 2094 0248 03       		.uleb128 0x3
+ 2095 0249 0E       		.uleb128 0xe
+ 2096 024a 49       		.uleb128 0x49
+ 2097 024b 13       		.uleb128 0x13
+ 2098 024c 34       		.uleb128 0x34
+ 2099 024d 19       		.uleb128 0x19
+ 2100 024e 1C       		.uleb128 0x1c
+ 2101 024f 0E       		.uleb128 0xe
+ 2102 0250 00       		.byte	0
+ 2103 0251 00       		.byte	0
+ 2104 0252 2C       		.uleb128 0x2c
+ 2105 0253 2E       		.uleb128 0x2e
+ 2106 0254 00       		.byte	0
+ 2107 0255 03       		.uleb128 0x3
+ 2108 0256 0E       		.uleb128 0xe
+ 2109 0257 3A       		.uleb128 0x3a
+ARM GAS  /tmp/cckvvh0F.s 			page 38
+
+
+ 2110 0258 0B       		.uleb128 0xb
+ 2111 0259 3B       		.uleb128 0x3b
+ 2112 025a 05       		.uleb128 0x5
+ 2113 025b 27       		.uleb128 0x27
+ 2114 025c 19       		.uleb128 0x19
+ 2115 025d 20       		.uleb128 0x20
+ 2116 025e 0B       		.uleb128 0xb
+ 2117 025f 00       		.byte	0
+ 2118 0260 00       		.byte	0
+ 2119 0261 2D       		.uleb128 0x2d
+ 2120 0262 2E       		.uleb128 0x2e
+ 2121 0263 01       		.byte	0x1
+ 2122 0264 31       		.uleb128 0x31
+ 2123 0265 13       		.uleb128 0x13
+ 2124 0266 11       		.uleb128 0x11
+ 2125 0267 01       		.uleb128 0x1
+ 2126 0268 12       		.uleb128 0x12
+ 2127 0269 06       		.uleb128 0x6
+ 2128 026a 40       		.uleb128 0x40
+ 2129 026b 18       		.uleb128 0x18
+ 2130 026c 9742     		.uleb128 0x2117
+ 2131 026e 19       		.uleb128 0x19
+ 2132 026f 00       		.byte	0
+ 2133 0270 00       		.byte	0
+ 2134 0271 00       		.byte	0
+ 2135              		.section	.debug_loc,"",%progbits
+ 2136              	.Ldebug_loc0:
+ 2137              	.LLST0:
+ 2138 0000 00000000 		.4byte	.LVL0
+ 2139 0004 0A000000 		.4byte	.LVL2
+ 2140 0008 0100     		.2byte	0x1
+ 2141 000a 50       		.byte	0x50
+ 2142 000b 0A000000 		.4byte	.LVL2
+ 2143 000f 0E000000 		.4byte	.LVL3
+ 2144 0013 0100     		.2byte	0x1
+ 2145 0015 53       		.byte	0x53
+ 2146 0016 0E000000 		.4byte	.LVL3
+ 2147 001a 12000000 		.4byte	.LVL4
+ 2148 001e 0300     		.2byte	0x3
+ 2149 0020 73       		.byte	0x73
+ 2150 0021 79       		.sleb128 -7
+ 2151 0022 9F       		.byte	0x9f
+ 2152 0023 12000000 		.4byte	.LVL4
+ 2153 0027 2C000000 		.4byte	.LFE220
+ 2154 002b 0400     		.2byte	0x4
+ 2155 002d F3       		.byte	0xf3
+ 2156 002e 01       		.uleb128 0x1
+ 2157 002f 50       		.byte	0x50
+ 2158 0030 9F       		.byte	0x9f
+ 2159 0031 00000000 		.4byte	0
+ 2160 0035 00000000 		.4byte	0
+ 2161              	.LLST1:
+ 2162 0039 04000000 		.4byte	.LVL1
+ 2163 003d 0A000000 		.4byte	.LVL2
+ 2164 0041 0100     		.2byte	0x1
+ 2165 0043 50       		.byte	0x50
+ 2166 0044 0A000000 		.4byte	.LVL2
+ARM GAS  /tmp/cckvvh0F.s 			page 39
+
+
+ 2167 0048 0E000000 		.4byte	.LVL3
+ 2168 004c 0100     		.2byte	0x1
+ 2169 004e 53       		.byte	0x53
+ 2170 004f 0E000000 		.4byte	.LVL3
+ 2171 0053 12000000 		.4byte	.LVL4
+ 2172 0057 0300     		.2byte	0x3
+ 2173 0059 73       		.byte	0x73
+ 2174 005a 79       		.sleb128 -7
+ 2175 005b 9F       		.byte	0x9f
+ 2176 005c 12000000 		.4byte	.LVL4
+ 2177 0060 1A000000 		.4byte	.LVL6
+ 2178 0064 0100     		.2byte	0x1
+ 2179 0066 53       		.byte	0x53
+ 2180 0067 1A000000 		.4byte	.LVL6
+ 2181 006b 1E000000 		.4byte	.LVL7
+ 2182 006f 0900     		.2byte	0x9
+ 2183 0071 F3       		.byte	0xf3
+ 2184 0072 01       		.uleb128 0x1
+ 2185 0073 50       		.byte	0x50
+ 2186 0074 23       		.byte	0x23
+ 2187 0075 07       		.uleb128 0x7
+ 2188 0076 09       		.byte	0x9
+ 2189 0077 F8       		.byte	0xf8
+ 2190 0078 1A       		.byte	0x1a
+ 2191 0079 9F       		.byte	0x9f
+ 2192 007a 00000000 		.4byte	0
+ 2193 007e 00000000 		.4byte	0
+ 2194              	.LLST2:
+ 2195 0082 16000000 		.4byte	.LVL5
+ 2196 0086 1E000000 		.4byte	.LVL7
+ 2197 008a 0100     		.2byte	0x1
+ 2198 008c 50       		.byte	0x50
+ 2199 008d 00000000 		.4byte	0
+ 2200 0091 00000000 		.4byte	0
+ 2201              	.LLST3:
+ 2202 0095 00000000 		.4byte	.LVL8
+ 2203 0099 0A000000 		.4byte	.LVL9
+ 2204 009d 0100     		.2byte	0x1
+ 2205 009f 50       		.byte	0x50
+ 2206 00a0 0A000000 		.4byte	.LVL9
+ 2207 00a4 0E000000 		.4byte	.LVL10
+ 2208 00a8 0300     		.2byte	0x3
+ 2209 00aa 70       		.byte	0x70
+ 2210 00ab 79       		.sleb128 -7
+ 2211 00ac 9F       		.byte	0x9f
+ 2212 00ad 0E000000 		.4byte	.LVL10
+ 2213 00b1 16000000 		.4byte	.LVL12
+ 2214 00b5 0100     		.2byte	0x1
+ 2215 00b7 50       		.byte	0x50
+ 2216 00b8 16000000 		.4byte	.LVL12
+ 2217 00bc 28000000 		.4byte	.LFE221
+ 2218 00c0 0900     		.2byte	0x9
+ 2219 00c2 F3       		.byte	0xf3
+ 2220 00c3 01       		.uleb128 0x1
+ 2221 00c4 50       		.byte	0x50
+ 2222 00c5 23       		.byte	0x23
+ 2223 00c6 07       		.uleb128 0x7
+ARM GAS  /tmp/cckvvh0F.s 			page 40
+
+
+ 2224 00c7 09       		.byte	0x9
+ 2225 00c8 F8       		.byte	0xf8
+ 2226 00c9 1A       		.byte	0x1a
+ 2227 00ca 9F       		.byte	0x9f
+ 2228 00cb 00000000 		.4byte	0
+ 2229 00cf 00000000 		.4byte	0
+ 2230              	.LLST4:
+ 2231 00d3 12000000 		.4byte	.LVL11
+ 2232 00d7 18000000 		.4byte	.LVL13
+ 2233 00db 0100     		.2byte	0x1
+ 2234 00dd 53       		.byte	0x53
+ 2235 00de 18000000 		.4byte	.LVL13
+ 2236 00e2 1A000000 		.4byte	.LVL14
+ 2237 00e6 0500     		.2byte	0x5
+ 2238 00e8 03       		.byte	0x3
+ 2239 00e9 00000000 		.4byte	nextmem
+ 2240 00ed 00000000 		.4byte	0
+ 2241 00f1 00000000 		.4byte	0
+ 2242              		.section	.debug_aranges,"",%progbits
+ 2243 0000 34000000 		.4byte	0x34
+ 2244 0004 0200     		.2byte	0x2
+ 2245 0006 00000000 		.4byte	.Ldebug_info0
+ 2246 000a 04       		.byte	0x4
+ 2247 000b 00       		.byte	0
+ 2248 000c 0000     		.2byte	0
+ 2249 000e 0000     		.2byte	0
+ 2250 0010 00000000 		.4byte	.LFB219
+ 2251 0014 28000000 		.4byte	.LFE219-.LFB219
+ 2252 0018 00000000 		.4byte	.LFB220
+ 2253 001c 2C000000 		.4byte	.LFE220-.LFB220
+ 2254 0020 00000000 		.4byte	.LFB221
+ 2255 0024 28000000 		.4byte	.LFE221-.LFB221
+ 2256 0028 00000000 		.4byte	.LFB222
+ 2257 002c 14000000 		.4byte	.LFE222-.LFB222
+ 2258 0030 00000000 		.4byte	0
+ 2259 0034 00000000 		.4byte	0
+ 2260              		.section	.debug_ranges,"",%progbits
+ 2261              	.Ldebug_ranges0:
+ 2262 0000 00000000 		.4byte	.LFB219
+ 2263 0004 28000000 		.4byte	.LFE219
+ 2264 0008 00000000 		.4byte	.LFB220
+ 2265 000c 2C000000 		.4byte	.LFE220
+ 2266 0010 00000000 		.4byte	.LFB221
+ 2267 0014 28000000 		.4byte	.LFE221
+ 2268 0018 00000000 		.4byte	.LFB222
+ 2269 001c 14000000 		.4byte	.LFE222
+ 2270 0020 00000000 		.4byte	0
+ 2271 0024 00000000 		.4byte	0
+ 2272              		.section	.debug_line,"",%progbits
+ 2273              	.Ldebug_line0:
+ 2274 0000 38030000 		.section	.debug_str,"MS",%progbits,1
+ 2274      0200C102 
+ 2274      00000201 
+ 2274      FB0E0D00 
+ 2274      01010101 
+ 2275              	.LASF130:
+ 2276 0000 656E646D 		.ascii	"endmem\000"
+ARM GAS  /tmp/cckvvh0F.s 			page 41
+
+
+ 2276      656D00
+ 2277              	.LASF57:
+ 2278 0007 72656164 		.ascii	"ready_list_t\000"
+ 2278      795F6C69 
+ 2278      73745F74 
+ 2278      00
+ 2279              	.LASF2:
+ 2280 0014 73697A65 		.ascii	"size_t\000"
+ 2280      5F7400
+ 2281              	.LASF93:
+ 2282 001b 7264796D 		.ascii	"rdymsg\000"
+ 2282      736700
+ 2283              	.LASF19:
+ 2284 0022 75696E74 		.ascii	"uint64_t\000"
+ 2284      36345F74 
+ 2284      00
+ 2285              	.LASF145:
+ 2286 002b 6368436F 		.ascii	"chCoreAlloc\000"
+ 2286      7265416C 
+ 2286      6C6F6300 
+ 2287              	.LASF3:
+ 2288 0037 5F5F7569 		.ascii	"__uint8_t\000"
+ 2288      6E74385F 
+ 2288      7400
+ 2289              	.LASF90:
+ 2290 0041 706F7274 		.ascii	"port_intctx\000"
+ 2290      5F696E74 
+ 2290      63747800 
+ 2291              	.LASF76:
+ 2292 004d 73797374 		.ascii	"system_debug_t\000"
+ 2292      656D5F64 
+ 2292      65627567 
+ 2292      5F7400
+ 2293              	.LASF139:
+ 2294 005c 474E5520 		.ascii	"GNU C99 7.3.1 20180622 (release) [ARM/embedded-7-br"
+ 2294      43393920 
+ 2294      372E332E 
+ 2294      31203230 
+ 2294      31383036 
+ 2295 008f 616E6368 		.ascii	"anch revision 261907] -mcpu=cortex-m4 -mfloat-abi=h"
+ 2295      20726576 
+ 2295      6973696F 
+ 2295      6E203236 
+ 2295      31393037 
+ 2296 00c2 61726420 		.ascii	"ard -mfpu=fpv4-sp-d16 -mno-thumb-interwork -mthumb "
+ 2296      2D6D6670 
+ 2296      753D6670 
+ 2296      76342D73 
+ 2296      702D6431 
+ 2297 00f5 2D676764 		.ascii	"-ggdb -O2 -std=gnu99 -fomit-frame-pointer -falign-f"
+ 2297      62202D4F 
+ 2297      32202D73 
+ 2297      74643D67 
+ 2297      6E753939 
+ 2298 0128 756E6374 		.ascii	"unctions=16 -ffunction-sections -fdata-sections -fn"
+ 2298      696F6E73 
+ 2298      3D313620 
+ARM GAS  /tmp/cckvvh0F.s 			page 42
+
+
+ 2298      2D666675 
+ 2298      6E637469 
+ 2299 015b 6F2D636F 		.ascii	"o-common -fsingle-precision-constant\000"
+ 2299      6D6D6F6E 
+ 2299      202D6673 
+ 2299      696E676C 
+ 2299      652D7072 
+ 2300              	.LASF136:
+ 2301 0180 706F7274 		.ascii	"port_lock\000"
+ 2301      5F6C6F63 
+ 2301      6B00
+ 2302              	.LASF14:
+ 2303 018a 6C6F6E67 		.ascii	"long long unsigned int\000"
+ 2303      206C6F6E 
+ 2303      6720756E 
+ 2303      7369676E 
+ 2303      65642069 
+ 2304              	.LASF114:
+ 2305 01a1 63685F74 		.ascii	"ch_threadsize\000"
+ 2305      68726561 
+ 2305      6473697A 
+ 2305      6500
+ 2306              	.LASF94:
+ 2307 01af 65786974 		.ascii	"exitcode\000"
+ 2307      636F6465 
+ 2307      00
+ 2308              	.LASF83:
+ 2309 01b8 6D61696E 		.ascii	"mainthread\000"
+ 2309      74687265 
+ 2309      616400
+ 2310              	.LASF73:
+ 2311 01c3 76697274 		.ascii	"virtual_timers_list_t\000"
+ 2311      75616C5F 
+ 2311      74696D65 
+ 2311      72735F6C 
+ 2311      6973745F 
+ 2312              	.LASF85:
+ 2313 01d9 49544D5F 		.ascii	"ITM_RxBuffer\000"
+ 2313      52784275 
+ 2313      66666572 
+ 2313      00
+ 2314              	.LASF56:
+ 2315 01e6 63685F74 		.ascii	"ch_threads_queue\000"
+ 2315      68726561 
+ 2315      64735F71 
+ 2315      75657565 
+ 2315      00
+ 2316              	.LASF33:
+ 2317 01f7 705F7072 		.ascii	"p_prio\000"
+ 2317      696F00
+ 2318              	.LASF121:
+ 2319 01fe 63665F6F 		.ascii	"cf_off_state\000"
+ 2319      66665F73 
+ 2319      74617465 
+ 2319      00
+ 2320              	.LASF23:
+ 2321 020b 74726566 		.ascii	"trefs_t\000"
+ARM GAS  /tmp/cckvvh0F.s 			page 43
+
+
+ 2321      735F7400 
+ 2322              	.LASF12:
+ 2323 0213 6C6F6E67 		.ascii	"long long int\000"
+ 2323      206C6F6E 
+ 2323      6720696E 
+ 2323      7400
+ 2324              	.LASF1:
+ 2325 0221 7369676E 		.ascii	"signed char\000"
+ 2325      65642063 
+ 2325      68617200 
+ 2326              	.LASF120:
+ 2327 022d 63665F6F 		.ascii	"cf_off_stklimit\000"
+ 2327      66665F73 
+ 2327      746B6C69 
+ 2327      6D697400 
+ 2328              	.LASF122:
+ 2329 023d 63665F6F 		.ascii	"cf_off_flags\000"
+ 2329      66665F66 
+ 2329      6C616773 
+ 2329      00
+ 2330              	.LASF49:
+ 2331 024a 705F6D70 		.ascii	"p_mpool\000"
+ 2331      6F6F6C00 
+ 2332              	.LASF104:
+ 2333 0252 6D5F7175 		.ascii	"m_queue\000"
+ 2333      65756500 
+ 2334              	.LASF82:
+ 2335 025a 76746C69 		.ascii	"vtlist\000"
+ 2335      737400
+ 2336              	.LASF135:
+ 2337 0261 706F7274 		.ascii	"port_unlock\000"
+ 2337      5F756E6C 
+ 2337      6F636B00 
+ 2338              	.LASF24:
+ 2339 026d 74736C69 		.ascii	"tslices_t\000"
+ 2339      6365735F 
+ 2339      7400
+ 2340              	.LASF96:
+ 2341 0277 77747472 		.ascii	"wttrp\000"
+ 2341      7000
+ 2342              	.LASF80:
+ 2343 027d 63685F73 		.ascii	"ch_system\000"
+ 2343      79737465 
+ 2343      6D00
+ 2344              	.LASF9:
+ 2345 0287 6C6F6E67 		.ascii	"long int\000"
+ 2345      20696E74 
+ 2345      00
+ 2346              	.LASF22:
+ 2347 0290 74737461 		.ascii	"tstate_t\000"
+ 2347      74655F74 
+ 2347      00
+ 2348              	.LASF126:
+ 2349 0299 63686465 		.ascii	"chdebug_t\000"
+ 2349      6275675F 
+ 2349      7400
+ 2350              	.LASF35:
+ARM GAS  /tmp/cckvvh0F.s 			page 44
+
+
+ 2351 02a3 705F6E65 		.ascii	"p_newer\000"
+ 2351      77657200 
+ 2352              	.LASF101:
+ 2353 02ab 735F7175 		.ascii	"s_queue\000"
+ 2353      65756500 
+ 2354              	.LASF143:
+ 2355 02b3 6368436F 		.ascii	"chCoreAllocI\000"
+ 2355      7265416C 
+ 2355      6C6F6349 
+ 2355      00
+ 2356              	.LASF62:
+ 2357 02c0 725F6E65 		.ascii	"r_newer\000"
+ 2357      77657200 
+ 2358              	.LASF87:
+ 2359 02c8 72656761 		.ascii	"regarm_t\000"
+ 2359      726D5F74 
+ 2359      00
+ 2360              	.LASF69:
+ 2361 02d1 76745F70 		.ascii	"vt_prev\000"
+ 2361      72657600 
+ 2362              	.LASF77:
+ 2363 02d9 63685F73 		.ascii	"ch_system_debug\000"
+ 2363      79737465 
+ 2363      6D5F6465 
+ 2363      62756700 
+ 2364              	.LASF128:
+ 2365 02e9 6D757465 		.ascii	"mutex_t\000"
+ 2365      785F7400 
+ 2366              	.LASF84:
+ 2367 02f1 69646C65 		.ascii	"idle_thread_wa\000"
+ 2367      5F746872 
+ 2367      6561645F 
+ 2367      776100
+ 2368              	.LASF28:
+ 2369 0300 636E745F 		.ascii	"cnt_t\000"
+ 2369      7400
+ 2370              	.LASF0:
+ 2371 0306 756E7369 		.ascii	"unsigned int\000"
+ 2371      676E6564 
+ 2371      20696E74 
+ 2371      00
+ 2372              	.LASF68:
+ 2373 0313 76745F6E 		.ascii	"vt_next\000"
+ 2373      65787400 
+ 2374              	.LASF16:
+ 2375 031b 75696E74 		.ascii	"uint16_t\000"
+ 2375      31365F74 
+ 2375      00
+ 2376              	.LASF86:
+ 2377 0324 53797374 		.ascii	"SystemCoreClock\000"
+ 2377      656D436F 
+ 2377      7265436C 
+ 2377      6F636B00 
+ 2378              	.LASF42:
+ 2379 0334 705F7469 		.ascii	"p_time\000"
+ 2379      6D6500
+ 2380              	.LASF97:
+ARM GAS  /tmp/cckvvh0F.s 			page 45
+
+
+ 2381 033b 77747365 		.ascii	"wtsemp\000"
+ 2381      6D7000
+ 2382              	.LASF118:
+ 2383 0342 63665F6F 		.ascii	"cf_off_older\000"
+ 2383      66665F6F 
+ 2383      6C646572 
+ 2383      00
+ 2384              	.LASF70:
+ 2385 034f 76745F64 		.ascii	"vt_delta\000"
+ 2385      656C7461 
+ 2385      00
+ 2386              	.LASF44:
+ 2387 0358 705F6D73 		.ascii	"p_msgqueue\000"
+ 2387      67717565 
+ 2387      756500
+ 2388              	.LASF127:
+ 2389 0363 63685F64 		.ascii	"ch_debug\000"
+ 2389      65627567 
+ 2389      00
+ 2390              	.LASF102:
+ 2391 036c 735F636E 		.ascii	"s_cnt\000"
+ 2391      7400
+ 2392              	.LASF7:
+ 2393 0372 73686F72 		.ascii	"short unsigned int\000"
+ 2393      7420756E 
+ 2393      7369676E 
+ 2393      65642069 
+ 2393      6E7400
+ 2394              	.LASF53:
+ 2395 0385 63685F74 		.ascii	"ch_thread\000"
+ 2395      68726561 
+ 2395      6400
+ 2396              	.LASF26:
+ 2397 038f 6D73675F 		.ascii	"msg_t\000"
+ 2397      7400
+ 2398              	.LASF79:
+ 2399 0395 63685F73 		.ascii	"ch_system_t\000"
+ 2399      79737465 
+ 2399      6D5F7400 
+ 2400              	.LASF125:
+ 2401 03a1 63665F6F 		.ascii	"cf_off_time\000"
+ 2401      66665F74 
+ 2401      696D6500 
+ 2402              	.LASF58:
+ 2403 03ad 63685F72 		.ascii	"ch_ready_list\000"
+ 2403      65616479 
+ 2403      5F6C6973 
+ 2403      7400
+ 2404              	.LASF27:
+ 2405 03bb 6576656E 		.ascii	"eventmask_t\000"
+ 2405      746D6173 
+ 2405      6B5F7400 
+ 2406              	.LASF8:
+ 2407 03c7 5F5F696E 		.ascii	"__int32_t\000"
+ 2407      7433325F 
+ 2407      7400
+ 2408              	.LASF88:
+ARM GAS  /tmp/cckvvh0F.s 			page 46
+
+
+ 2409 03d1 73746B61 		.ascii	"stkalign_t\000"
+ 2409      6C69676E 
+ 2409      5F7400
+ 2410              	.LASF52:
+ 2411 03dc 74687265 		.ascii	"threads_list_t\000"
+ 2411      6164735F 
+ 2411      6C697374 
+ 2411      5F7400
+ 2412              	.LASF109:
+ 2413 03eb 63685F7A 		.ascii	"ch_zero\000"
+ 2413      65726F00 
+ 2414              	.LASF123:
+ 2415 03f3 63665F6F 		.ascii	"cf_off_refs\000"
+ 2415      66665F72 
+ 2415      65667300 
+ 2416              	.LASF43:
+ 2417 03ff 705F7761 		.ascii	"p_waiting\000"
+ 2417      6974696E 
+ 2417      6700
+ 2418              	.LASF20:
+ 2419 0409 7274636E 		.ascii	"rtcnt_t\000"
+ 2419      745F7400 
+ 2420              	.LASF74:
+ 2421 0411 63685F76 		.ascii	"ch_virtual_timers_list\000"
+ 2421      69727475 
+ 2421      616C5F74 
+ 2421      696D6572 
+ 2421      735F6C69 
+ 2422              	.LASF113:
+ 2423 0428 63685F74 		.ascii	"ch_timesize\000"
+ 2423      696D6573 
+ 2423      697A6500 
+ 2424              	.LASF119:
+ 2425 0434 63665F6F 		.ascii	"cf_off_name\000"
+ 2425      66665F6E 
+ 2425      616D6500 
+ 2426              	.LASF36:
+ 2427 0440 705F6F6C 		.ascii	"p_older\000"
+ 2427      64657200 
+ 2428              	.LASF61:
+ 2429 0448 725F6374 		.ascii	"r_ctx\000"
+ 2429      7800
+ 2430              	.LASF34:
+ 2431 044e 705F6374 		.ascii	"p_ctx\000"
+ 2431      7800
+ 2432              	.LASF92:
+ 2433 0454 746D5F63 		.ascii	"tm_calibration_t\000"
+ 2433      616C6962 
+ 2433      72617469 
+ 2433      6F6E5F74 
+ 2433      00
+ 2434              	.LASF64:
+ 2435 0465 725F6375 		.ascii	"r_current\000"
+ 2435      7272656E 
+ 2435      7400
+ 2436              	.LASF63:
+ 2437 046f 725F6F6C 		.ascii	"r_older\000"
+ARM GAS  /tmp/cckvvh0F.s 			page 47
+
+
+ 2437      64657200 
+ 2438              	.LASF138:
+ 2439 0477 5F5F656E 		.ascii	"__enable_irq\000"
+ 2439      61626C65 
+ 2439      5F697271 
+ 2439      00
+ 2440              	.LASF13:
+ 2441 0484 5F5F7569 		.ascii	"__uint64_t\000"
+ 2441      6E743634 
+ 2441      5F7400
+ 2442              	.LASF137:
+ 2443 048f 5F5F6469 		.ascii	"__disable_irq\000"
+ 2443      7361626C 
+ 2443      655F6972 
+ 2443      7100
+ 2444              	.LASF112:
+ 2445 049d 63685F70 		.ascii	"ch_ptrsize\000"
+ 2445      74727369 
+ 2445      7A6500
+ 2446              	.LASF66:
+ 2447 04a8 76697274 		.ascii	"virtual_timer_t\000"
+ 2447      75616C5F 
+ 2447      74696D65 
+ 2447      725F7400 
+ 2448              	.LASF32:
+ 2449 04b8 705F7072 		.ascii	"p_prev\000"
+ 2449      657600
+ 2450              	.LASF25:
+ 2451 04bf 74707269 		.ascii	"tprio_t\000"
+ 2451      6F5F7400 
+ 2452              	.LASF142:
+ 2453 04c7 6368436F 		.ascii	"chCoreGetStatusX\000"
+ 2453      72654765 
+ 2453      74537461 
+ 2453      74757358 
+ 2453      00
+ 2454              	.LASF17:
+ 2455 04d8 696E7433 		.ascii	"int32_t\000"
+ 2455      325F7400 
+ 2456              	.LASF4:
+ 2457 04e0 756E7369 		.ascii	"unsigned char\000"
+ 2457      676E6564 
+ 2457      20636861 
+ 2457      7200
+ 2458              	.LASF146:
+ 2459 04ee 5F636F72 		.ascii	"_core_init\000"
+ 2459      655F696E 
+ 2459      697400
+ 2460              	.LASF47:
+ 2461 04f9 705F6D74 		.ascii	"p_mtxlist\000"
+ 2461      786C6973 
+ 2461      7400
+ 2462              	.LASF5:
+ 2463 0503 73686F72 		.ascii	"short int\000"
+ 2463      7420696E 
+ 2463      7400
+ 2464              	.LASF38:
+ARM GAS  /tmp/cckvvh0F.s 			page 48
+
+
+ 2465 050d 705F7374 		.ascii	"p_state\000"
+ 2465      61746500 
+ 2466              	.LASF140:
+ 2467 0515 43686962 		.ascii	"ChibiOS_3.0.5/os/rt/src/chmemcore.c\000"
+ 2467      694F535F 
+ 2467      332E302E 
+ 2467      352F6F73 
+ 2467      2F72742F 
+ 2468              	.LASF41:
+ 2469 0539 705F7072 		.ascii	"p_preempt\000"
+ 2469      65656D70 
+ 2469      7400
+ 2470              	.LASF132:
+ 2471 0543 5F5F6865 		.ascii	"__heap_end__\000"
+ 2471      61705F65 
+ 2471      6E645F5F 
+ 2471      00
+ 2472              	.LASF60:
+ 2473 0550 725F7072 		.ascii	"r_prio\000"
+ 2473      696F00
+ 2474              	.LASF99:
+ 2475 0557 65776D61 		.ascii	"ewmask\000"
+ 2475      736B00
+ 2476              	.LASF31:
+ 2477 055e 705F6E65 		.ascii	"p_next\000"
+ 2477      787400
+ 2478              	.LASF21:
+ 2479 0565 746D6F64 		.ascii	"tmode_t\000"
+ 2479      655F7400 
+ 2480              	.LASF124:
+ 2481 056d 63665F6F 		.ascii	"cf_off_preempt\000"
+ 2481      66665F70 
+ 2481      7265656D 
+ 2481      707400
+ 2482              	.LASF39:
+ 2483 057c 705F666C 		.ascii	"p_flags\000"
+ 2483      61677300 
+ 2484              	.LASF133:
+ 2485 0584 5F5F6675 		.ascii	"__func__\000"
+ 2485      6E635F5F 
+ 2485      00
+ 2486              	.LASF134:
+ 2487 058d 63685379 		.ascii	"chSysLock\000"
+ 2487      734C6F63 
+ 2487      6B00
+ 2488              	.LASF55:
+ 2489 0597 74687265 		.ascii	"threads_queue_t\000"
+ 2489      6164735F 
+ 2489      71756575 
+ 2489      655F7400 
+ 2490              	.LASF67:
+ 2491 05a7 63685F76 		.ascii	"ch_virtual_timer\000"
+ 2491      69727475 
+ 2491      616C5F74 
+ 2491      696D6572 
+ 2491      00
+ 2492              	.LASF117:
+ARM GAS  /tmp/cckvvh0F.s 			page 49
+
+
+ 2493 05b8 63665F6F 		.ascii	"cf_off_newer\000"
+ 2493      66665F6E 
+ 2493      65776572 
+ 2493      00
+ 2494              	.LASF100:
+ 2495 05c5 63685F73 		.ascii	"ch_semaphore\000"
+ 2495      656D6170 
+ 2495      686F7265 
+ 2495      00
+ 2496              	.LASF46:
+ 2497 05d2 705F6570 		.ascii	"p_epending\000"
+ 2497      656E6469 
+ 2497      6E6700
+ 2498              	.LASF18:
+ 2499 05dd 75696E74 		.ascii	"uint32_t\000"
+ 2499      33325F74 
+ 2499      00
+ 2500              	.LASF115:
+ 2501 05e6 63665F6F 		.ascii	"cf_off_prio\000"
+ 2501      66665F70 
+ 2501      72696F00 
+ 2502              	.LASF59:
+ 2503 05f2 725F7175 		.ascii	"r_queue\000"
+ 2503      65756500 
+ 2504              	.LASF54:
+ 2505 05fa 63685F74 		.ascii	"ch_threads_list\000"
+ 2505      68726561 
+ 2505      64735F6C 
+ 2505      69737400 
+ 2506              	.LASF110:
+ 2507 060a 63685F73 		.ascii	"ch_size\000"
+ 2507      697A6500 
+ 2508              	.LASF11:
+ 2509 0612 6C6F6E67 		.ascii	"long unsigned int\000"
+ 2509      20756E73 
+ 2509      69676E65 
+ 2509      6420696E 
+ 2509      7400
+ 2510              	.LASF107:
+ 2511 0624 63686172 		.ascii	"char\000"
+ 2511      00
+ 2512              	.LASF98:
+ 2513 0629 77746D74 		.ascii	"wtmtxp\000"
+ 2513      787000
+ 2514              	.LASF6:
+ 2515 0630 5F5F7569 		.ascii	"__uint16_t\000"
+ 2515      6E743136 
+ 2515      5F7400
+ 2516              	.LASF30:
+ 2517 063b 74687265 		.ascii	"thread_t\000"
+ 2517      61645F74 
+ 2517      00
+ 2518              	.LASF129:
+ 2519 0644 6E657874 		.ascii	"nextmem\000"
+ 2519      6D656D00 
+ 2520              	.LASF106:
+ 2521 064c 6D5F6E65 		.ascii	"m_next\000"
+ARM GAS  /tmp/cckvvh0F.s 			page 50
+
+
+ 2521      787400
+ 2522              	.LASF29:
+ 2523 0653 73797374 		.ascii	"systime_t\000"
+ 2523      696D655F 
+ 2523      7400
+ 2524              	.LASF48:
+ 2525 065d 705F7265 		.ascii	"p_realprio\000"
+ 2525      616C7072 
+ 2525      696F00
+ 2526              	.LASF65:
+ 2527 0668 76746675 		.ascii	"vtfunc_t\000"
+ 2527      6E635F74 
+ 2527      00
+ 2528              	.LASF10:
+ 2529 0671 5F5F7569 		.ascii	"__uint32_t\000"
+ 2529      6E743332 
+ 2529      5F7400
+ 2530              	.LASF78:
+ 2531 067c 70616E69 		.ascii	"panic_msg\000"
+ 2531      635F6D73 
+ 2531      6700
+ 2532              	.LASF91:
+ 2533 0686 6F666673 		.ascii	"offset\000"
+ 2533      657400
+ 2534              	.LASF89:
+ 2535 068d 636F6E74 		.ascii	"context\000"
+ 2535      65787400 
+ 2536              	.LASF45:
+ 2537 0695 705F6D73 		.ascii	"p_msg\000"
+ 2537      6700
+ 2538              	.LASF72:
+ 2539 069b 76745F70 		.ascii	"vt_par\000"
+ 2539      617200
+ 2540              	.LASF131:
+ 2541 06a2 5F5F6865 		.ascii	"__heap_base__\000"
+ 2541      61705F62 
+ 2541      6173655F 
+ 2541      5F00
+ 2542              	.LASF116:
+ 2543 06b0 63665F6F 		.ascii	"cf_off_ctx\000"
+ 2543      66665F63 
+ 2543      747800
+ 2544              	.LASF103:
+ 2545 06bb 63685F6D 		.ascii	"ch_mutex\000"
+ 2545      75746578 
+ 2545      00
+ 2546              	.LASF40:
+ 2547 06c4 705F7265 		.ascii	"p_refs\000"
+ 2547      667300
+ 2548              	.LASF141:
+ 2549 06cb 2F776F72 		.ascii	"/workspaces/bldc\000"
+ 2549      6B737061 
+ 2549      6365732F 
+ 2549      626C6463 
+ 2549      00
+ 2550              	.LASF50:
+ 2551 06dc 6D6F746F 		.ascii	"motor_selected\000"
+ARM GAS  /tmp/cckvvh0F.s 			page 51
+
+
+ 2551      725F7365 
+ 2551      6C656374 
+ 2551      656400
+ 2552              	.LASF81:
+ 2553 06eb 726C6973 		.ascii	"rlist\000"
+ 2553      7400
+ 2554              	.LASF15:
+ 2555 06f1 75696E74 		.ascii	"uint8_t\000"
+ 2555      385F7400 
+ 2556              	.LASF51:
+ 2557 06f9 74687265 		.ascii	"thread_reference_t\000"
+ 2557      61645F72 
+ 2557      65666572 
+ 2557      656E6365 
+ 2557      5F7400
+ 2558              	.LASF95:
+ 2559 070c 77746F62 		.ascii	"wtobjp\000"
+ 2559      6A7000
+ 2560              	.LASF37:
+ 2561 0713 705F6E61 		.ascii	"p_name\000"
+ 2561      6D6500
+ 2562              	.LASF144:
+ 2563 071a 73697A65 		.ascii	"size\000"
+ 2563      00
+ 2564              	.LASF75:
+ 2565 071f 76745F73 		.ascii	"vt_systime\000"
+ 2565      79737469 
+ 2565      6D6500
+ 2566              	.LASF147:
+ 2567 072a 63685379 		.ascii	"chSysUnlock\000"
+ 2567      73556E6C 
+ 2567      6F636B00 
+ 2568              	.LASF111:
+ 2569 0736 63685F76 		.ascii	"ch_version\000"
+ 2569      65727369 
+ 2569      6F6E00
+ 2570              	.LASF105:
+ 2571 0741 6D5F6F77 		.ascii	"m_owner\000"
+ 2571      6E657200 
+ 2572              	.LASF108:
+ 2573 0749 63685F69 		.ascii	"ch_identifier\000"
+ 2573      64656E74 
+ 2573      69666965 
+ 2573      7200
+ 2574              	.LASF71:
+ 2575 0757 76745F66 		.ascii	"vt_func\000"
+ 2575      756E6300 
+ 2576              		.ident	"GCC: (GNU Tools for Arm Embedded Processors 7-2018-q2-update) 7.3.1 20180622 (release) [AR
+ARM GAS  /tmp/cckvvh0F.s 			page 52
+
+
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 chmemcore.c
+     /tmp/cckvvh0F.s:18     .text._core_init:0000000000000000 $t
+     /tmp/cckvvh0F.s:26     .text._core_init:0000000000000000 _core_init
+     /tmp/cckvvh0F.s:55     .text._core_init:0000000000000018 $d
+     /tmp/cckvvh0F.s:63     .text.chCoreAlloc:0000000000000000 $t
+     /tmp/cckvvh0F.s:71     .text.chCoreAlloc:0000000000000000 chCoreAlloc
+     /tmp/cckvvh0F.s:147    .text.chCoreAlloc:0000000000000024 $d
+     /tmp/cckvvh0F.s:153    .text.chCoreAllocI:0000000000000000 $t
+     /tmp/cckvvh0F.s:161    .text.chCoreAllocI:0000000000000000 chCoreAllocI
+     /tmp/cckvvh0F.s:199    .text.chCoreAllocI:0000000000000020 $d
+     /tmp/cckvvh0F.s:205    .text.chCoreGetStatusX:0000000000000000 $t
+     /tmp/cckvvh0F.s:213    .text.chCoreGetStatusX:0000000000000000 chCoreGetStatusX
+     /tmp/cckvvh0F.s:231    .text.chCoreGetStatusX:000000000000000c $d
+     /tmp/cckvvh0F.s:237    .bss.endmem:0000000000000000 $d
+     /tmp/cckvvh0F.s:241    .bss.endmem:0000000000000000 endmem
+     /tmp/cckvvh0F.s:244    .bss.nextmem:0000000000000000 $d
+     /tmp/cckvvh0F.s:248    .bss.nextmem:0000000000000000 nextmem
+
+UNDEFINED SYMBOLS
+__heap_base__
+__heap_end__
