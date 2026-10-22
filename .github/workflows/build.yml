@@ -1,0 +1,27 @@
+name: Build BLDC
+on:
+  push
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v1.0.0
+      - name: install ARM embedded
+        run: |
+          sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
+          sudo apt update
+          sudo apt -y install wget gcc-arm-embedded
+      - name: add udev rules
+        run: |
+          wget vedder.se/Temp/49-stlinkv2.rules
+          sudo mv 49-stlinkv2.rules /etc/udev/rules.d/
+          sudo udevadm trigger
+      - name: build
+        run: make
+      - name: publish
+        uses: actions/upload-artifact@v2
+        with:
+          name: builds
+          path: build_all
