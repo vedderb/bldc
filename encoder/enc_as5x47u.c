@@ -316,6 +316,12 @@ void enc_as5x47u_routine(AS5x47U_config_t *cfg) {
 				AS5x47U_SPI_READ_ERRFL_CRC);
 		break;
 
+	case SPI_SEQ_TX_POS_RX_ERRFL:
+		// ERRFL was requested after an error, request pos while receiving it
+		AS5x47U_start_spi_exchange_precalc_crc(cfg, AS5x47U_SPI_READ_POS_MSG,
+				AS5x47U_SPI_READ_POS_CRC);
+		break;
+
 	default:
 	case SPI_SEQ_PREV_ERR:
 		// There was a problem of some sort, request ERRFL
