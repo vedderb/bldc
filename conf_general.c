@@ -140,6 +140,8 @@ __attribute__((section(".text2"))) void conf_general_init(void) {
 			backup_tmp.can_baud = APPCONF_CAN_BAUD_RATE;
 			backup_tmp.can_id = HW_DEFAULT_ID;
 		}
+
+		backup_tmp.motor_disabled = g_backup.motor_disabled;
 	}
 
 	backup_tmp.odometer_init_flag = BACKUP_VAR_INIT_CODE;
