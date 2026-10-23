@@ -624,6 +624,7 @@ static void imu_read_callback(float *accel, float *gyro, float *mag, float dt) {
 			m_fusionAhrs.quaternion.element.y = m_att.q2;
 			m_fusionAhrs.quaternion.element.z = m_att.q3;
 			m_att_seeded = true;
+			init_time = chVTGetSystemTimeX();
 		}
 	}
 
