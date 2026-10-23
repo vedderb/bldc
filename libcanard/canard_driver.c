@@ -26,6 +26,8 @@
 #include "canard_driver.h"
 #include "canard.h"
 #include "uavcan/equipment/esc/Status.h"
+// VESC MOTORPOSITION LOT2
+#include "uavcan.equipment.esc.MotorPosition.h"
 #include "uavcan/equipment/esc/RawCommand.h"
 #include "uavcan/equipment/esc/RPMCommand.h"
 #include "uavcan/protocol/param/GetSet.h"
@@ -1305,6 +1307,124 @@ static void terminal_debug_on(int argc, const char **argv) {
 	}
 }
 
+/* VESC MOTORPOSITION LOT2 - provisional DTID 1037 / V2 DSDL.
+ * Explicit opt-in for hardware development: default 0 Hz means NO broadcasts.
+ * For an isolated test build: -DVESC_DRONECAN_MOTORPOS_RATE_HZ=20
+ * The on-board RNG, if usable, supplies a fresh 32-bit boot-origin nonce.
+ * If there is no qualified nonce the message is sent valid=false (fail closed).
+ * No odometry receiver should integrate invalid samples.
+ */
+#ifndef VESC_DRONECAN_MOTORPOS_RATE_HZ
+#define VESC_DRONECAN_MOTORPOS_RATE_HZ 0
+#endif
+#if (VESC_DRONECAN_MOTORPOS_RATE_HZ < 0) || (VESC_DRONECAN_MOTORPOS_RATE_HZ > 50)
+#error "VESC_DRONECAN_MOTORPOS_RATE_HZ must be between 0 and 50"
+#endif
+#if VESC_DRONECAN_MOTORPOS_RATE_HZ > 0
+static uint32_t motorpos_boot_nonce;
+static bool motorpos_boot_nonce_valid;
+static uint8_t motorpos_sample_seq;
+static uint8_t motorpos_transfer_id_can1;
+#ifdef HW_CAN2_DEV
+static uint8_t motorpos_transfer_id_can2;
+#endif
+
+/* Cortex-M STM32 hardware RNG: reject errors and bound the wait.
+ * UUID / uptime / deterministic rand() are NOT suitable substitutes.
+ * RNG may be absent on certain VESC targets; those remain invalid.
+ */
+static bool motorpos_get_boot_nonce(uint32_t *out) {
+#if defined(RNG) && defined(RCC_AHB2ENR_RNGEN) && defined(RNG_CR_RNGEN) && \
+        defined(RNG_SR_DRDY) && defined(RNG_SR_CECS) && defined(RNG_SR_SECS)
+    RCC->AHB2ENR |= RCC_AHB2ENR_RNGEN;
+    (void)RCC->AHB2ENR;
+    RNG->CR |= RNG_CR_RNGEN;
+    for (uint32_t i = 0; i < 100000U; ++i) {
+        const uint32_t st = RNG->SR;
+        if ((st & (RNG_SR_SECS | RNG_SR_CECS)) != 0U) {
+            return false;
+        }
+        if ((st & RNG_SR_DRDY) != 0U) {
+            const uint32_t n = RNG->DR;
+            if (n == 0U) {
+                return false;
+            }
+            *out = n;
+            return true;
+        }
+    }
+#else
+    (void)out;
+#endif
+    return false;
+}
+
+/* Called ONLY by the UAVCAN worker thread, once per sampling instant.
+ * One sample sequence per published motor stream, not per CAN interface.
+ * Only motor 1 is emitted in this initial prototype. Dual-motor mapping
+ * requires explicit ESC indexes for each motor before enabling motor 2.
+ */
+static void sendMotorPosition(void) {
+    const app_configuration *appconf = app_get_configuration();
+    if (appconf->uavcan_esc_index > 31U) {
+        return;
+    }
+
+    const int saved_motor = mc_interface_get_motor_thread();
+    mc_interface_select_motor_thread(1);
+    const volatile mc_configuration *mcconf = mc_interface_get_configuration();
+    const bool change_before = mc_interface_tachometer_change_active();
+    const uint32_t gen_before = mc_interface_get_tachometer_generation();
+    const int32_t ticks = (int32_t)mc_interface_get_tachometer_value(false);
+    const uint32_t poles = (uint32_t)mcconf->si_motor_poles;
+    const int motor_type = mcconf->motor_type;
+    // Conservative prototype: sensorless/HFI position has not been qualified.
+    const bool sensor_configured =
+        (motor_type == MOTOR_TYPE_FOC &&
+            (mcconf->foc_sensor_mode == FOC_SENSOR_MODE_HALL ||
+             mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER ||
+             mcconf->foc_sensor_mode == FOC_SENSOR_MODE_ENCODER_AB)) ||
+        (motor_type == MOTOR_TYPE_BLDC &&
+            mcconf->sensor_mode == SENSOR_MODE_SENSORED);
+    const uint32_t gen_after = mc_interface_get_tachometer_generation();
+    const bool change_after = mc_interface_tachometer_change_active();
+    mc_interface_select_motor_thread(saved_motor);
+
+    struct uavcan_equipment_esc_MotorPosition msg;
+    memset(&msg, 0, sizeof(msg));
+    msg.esc_index = (uint8_t)appconf->uavcan_esc_index;
+    msg.origin_id = motorpos_boot_nonce + gen_after;
+    msg.sample_seq = motorpos_sample_seq++;
+    msg.position.union_tag = UAVCAN_EQUIPMENT_ESC_MOTORPOSITIONVALUE_TICKS;
+    msg.position.ticks.ticks = ticks;
+    msg.position.ticks.ticks_per_revolution =
+        (poles != 0U && poles <= UINT16_MAX / 3U) ? (uint16_t)(3U * poles) : 0U;
+    msg.valid = motorpos_boot_nonce_valid && gen_before == gen_after &&
+        !change_before && !change_after &&
+        (poles >= 2U) && ((poles & 1U) == 0U) &&
+        msg.position.ticks.ticks_per_revolution != 0U &&
+        sensor_configured;
+
+    uint8_t payload[UAVCAN_EQUIPMENT_ESC_MOTORPOSITION_MAX_SIZE];
+    const uint32_t len = uavcan_equipment_esc_MotorPosition_encode(&msg, payload);
+    if (len != UAVCAN_EQUIPMENT_ESC_MOTORPOSITION_MAX_SIZE) {
+        return;
+    }
+    (void)canardBroadcast(&canard_ins,
+        UAVCAN_EQUIPMENT_ESC_MOTORPOSITION_SIGNATURE,
+        UAVCAN_EQUIPMENT_ESC_MOTORPOSITION_ID,
+        &motorpos_transfer_id_can1,
+        CANARD_TRANSFER_PRIORITY_LOW, payload, (uint16_t)len);
+#ifdef HW_CAN2_DEV
+    (void)canardBroadcast(&canard_ins_if2,
+        UAVCAN_EQUIPMENT_ESC_MOTORPOSITION_SIGNATURE,
+        UAVCAN_EQUIPMENT_ESC_MOTORPOSITION_ID,
+        &motorpos_transfer_id_can2,
+        CANARD_TRANSFER_PRIORITY_LOW, payload, (uint16_t)len);
+#endif
+}
+#endif // VESC_DRONECAN_MOTORPOS_RATE_HZ > 0
+
 static THD_FUNCTION(canard_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("UAVCAN");
@@ -1314,6 +1434,9 @@ static THD_FUNCTION(canard_thread, arg) {
 	systime_t last_status_time = 0;
 	systime_t last_esc_status_time = 0;
 	systime_t last_esc_status_time_r2 = 0;
+#if VESC_DRONECAN_MOTORPOS_RATE_HZ > 0
+    systime_t last_motorpos_time = 0;
+#endif
 	systime_t last_tot_current_calc_time = 0;
 	systime_t last_param_refresh = 0;
 	bool was_running = false;
@@ -1345,6 +1468,15 @@ static THD_FUNCTION(canard_thread, arg) {
 			last_status_time = chVTGetSystemTimeX();
 			last_esc_status_time = chVTGetSystemTimeX();
 			last_esc_status_time_r2 = chVTGetSystemTimeX();
+#if VESC_DRONECAN_MOTORPOS_RATE_HZ > 0
+            last_motorpos_time = chVTGetSystemTimeX();
+            motorpos_sample_seq = 0U;
+            motorpos_transfer_id_can1 = 0U;
+#ifdef HW_CAN2_DEV
+            motorpos_transfer_id_can2 = 0U;
+#endif
+            motorpos_boot_nonce_valid = motorpos_get_boot_nonce(&motorpos_boot_nonce);
+#endif
 			last_tot_current_calc_time = chVTGetSystemTimeX();
 			last_param_refresh = chVTGetSystemTimeX();
 
@@ -1425,6 +1557,12 @@ static THD_FUNCTION(canard_thread, arg) {
 			}
 		}
 
+#if VESC_DRONECAN_MOTORPOS_RATE_HZ > 0
+        if (UTILS_AGE_S(last_motorpos_time) >= (1.0f / (float)VESC_DRONECAN_MOTORPOS_RATE_HZ)) {
+            last_motorpos_time = chVTGetSystemTimeX();
+            sendMotorPosition();
+        }
+#endif
 		if (conf->can_status_rate_2 > 0 && UTILS_AGE_S(last_esc_status_time_r2) >= (1.0 / (float)conf->can_status_rate_2)) {
 			last_esc_status_time_r2 = chVTGetSystemTimeX();
 
