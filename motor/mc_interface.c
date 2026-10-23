@@ -195,8 +195,9 @@ static THD_WORKING_AREA(stat_thread_wa, 512);
 static THD_FUNCTION(stat_thread, arg);
 
 void mc_interface_init(bool reset_conf) {
-    (void)__atomic_add_fetch(&motorpos_generation[0], 1U, __ATOMIC_RELAXED);
-    (void)__atomic_add_fetch(&motorpos_generation[1], 1U, __ATOMIC_RELAXED);
+    // VESC MOTORPOSITION LOT3C1: both-motor reinitialization guard.
+    motorpos_begin_change(0U);
+    motorpos_begin_change(1U);
 	memset((void*)&m_motor_1, 0, sizeof(motor_if_state_t));
 #ifdef HW_HAS_DUAL_MOTORS
 	memset((void*)&m_motor_2, 0, sizeof(motor_if_state_t));
@@ -292,6 +293,8 @@ void mc_interface_init(bool reset_conf) {
 	}
 
 	bms_init((bms_config*)&m_motor_1.m_conf.bms);
+    motorpos_end_change(1U);
+    motorpos_end_change(0U);
 }
 
 int mc_interface_motor_now(void) {
@@ -361,6 +364,17 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	configuration->motor_type = MOTOR_TYPE_FOC;
 #endif
 #endif
+#endif
+
+#ifdef HW_HAS_DUAL_MOTORS
+    // The shared FOC reinit clears tachometers on BOTH physical motors.
+    // A motor-type change in either motor therefore invalidates both origins.
+    const bool motorpos_reinit_both =
+        motor->m_conf.motor_type != configuration->motor_type;
+    const unsigned motorpos_other_i = motorpos_i ^ 1U;
+    if (motorpos_reinit_both) {
+        motorpos_begin_change(motorpos_other_i);
+    }
 #endif
 
 	if (motor->m_conf.m_sensor_port_mode != configuration->m_sensor_port_mode) {
@@ -457,6 +471,11 @@ void mc_interface_set_configuration(mc_configuration *configuration) {
 	}
 
 	bms_init(&configuration->bms);
+#ifdef HW_HAS_DUAL_MOTORS
+    if (motorpos_reinit_both) {
+        motorpos_end_change(motorpos_other_i);
+    }
+#endif
     motorpos_end_change(motorpos_i);
 }
 
