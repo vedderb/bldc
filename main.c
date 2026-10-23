@@ -421,8 +421,6 @@ int main(void) {
 
 	shutdown_init();
 
-	imu_reset_orientation();
-
 	// Matches the poll period of the lisp-releasing wait in blocking_thread.
 	chThdSleepMilliseconds(10);
 	m_init_done = true;
