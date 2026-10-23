@@ -1359,6 +1359,48 @@ static bool motorpos_get_boot_nonce(uint32_t *out) {
     return false;
 }
 
+/* VESC MOTORPOSITION LOT3B1: guarded classic-CAN two-frame broadcast.
+ * A 12-byte DSDL payload consumes exactly two Libcanard TX blocks.
+ * Libcanard 0.2 does not roll back the first queued frame if allocating
+ * the second frame fails. Under our single UAVCAN worker, preflight
+ * both blocks on EACH interface before calling canardBroadcast().
+ * This is not a general transactional fix for concurrent Libcanard writers.
+ * Counters persist across UAVCAN mode restarts, reset on device boot,
+ * and can be inspected with a debugger (no noisy runtime printf).
+ */
+static volatile uint32_t motorpos_tx_dropped_can1;
+static volatile uint32_t motorpos_tx_error_can1;
+#ifdef HW_CAN2_DEV
+static volatile uint32_t motorpos_tx_dropped_can2;
+static volatile uint32_t motorpos_tx_error_can2;
+#endif
+
+static bool motorpos_broadcast_guarded(CanardInstance *instance,
+                                      uint8_t *transfer_id,
+                                      const uint8_t *payload,
+                                      volatile uint32_t *dropped,
+                                      volatile uint32_t *errors) {
+    const CanardPoolAllocatorStatistics stats = canardGetPoolAllocatorStatistics(instance);
+    // Exactly two 32-byte blocks for classic-CAN MotorPosition ticks (12 B).
+    if (stats.capacity_blocks < 2U ||
+        stats.current_usage_blocks > (uint16_t)(stats.capacity_blocks - 2U)) {
+        ++(*dropped);
+        return false; // Do not enqueue an orphan first frame or advance transfer-ID.
+    }
+
+    const int16_t result = canardBroadcast(instance,
+        UAVCAN_EQUIPMENT_ESC_MOTORPOSITION_SIGNATURE,
+        UAVCAN_EQUIPMENT_ESC_MOTORPOSITION_ID,
+        transfer_id, CANARD_TRANSFER_PRIORITY_LOW, payload,
+        (uint16_t)UAVCAN_EQUIPMENT_ESC_MOTORPOSITION_MAX_SIZE);
+    if (result != 2) {
+        ++(*dropped);
+        ++(*errors); // Should not occur with exclusive worker and 2 free blocks.
+        return false;
+    }
+    return true;
+}
+
 /* Called ONLY by the UAVCAN worker thread, once per sampling instant.
  * One sample sequence per published motor stream, not per CAN interface.
  * Only motor 1 is emitted in this initial prototype. Dual-motor mapping
@@ -1410,17 +1452,13 @@ static void sendMotorPosition(void) {
     if (len != UAVCAN_EQUIPMENT_ESC_MOTORPOSITION_MAX_SIZE) {
         return;
     }
-    (void)canardBroadcast(&canard_ins,
-        UAVCAN_EQUIPMENT_ESC_MOTORPOSITION_SIGNATURE,
-        UAVCAN_EQUIPMENT_ESC_MOTORPOSITION_ID,
-        &motorpos_transfer_id_can1,
-        CANARD_TRANSFER_PRIORITY_LOW, payload, (uint16_t)len);
+    (void)motorpos_broadcast_guarded(&canard_ins,
+        &motorpos_transfer_id_can1, payload,
+        &motorpos_tx_dropped_can1, &motorpos_tx_error_can1);
 #ifdef HW_CAN2_DEV
-    (void)canardBroadcast(&canard_ins_if2,
-        UAVCAN_EQUIPMENT_ESC_MOTORPOSITION_SIGNATURE,
-        UAVCAN_EQUIPMENT_ESC_MOTORPOSITION_ID,
-        &motorpos_transfer_id_can2,
-        CANARD_TRANSFER_PRIORITY_LOW, payload, (uint16_t)len);
+    (void)motorpos_broadcast_guarded(&canard_ins_if2,
+        &motorpos_transfer_id_can2, payload,
+        &motorpos_tx_dropped_can2, &motorpos_tx_error_can2);
 #endif
 }
 #endif // VESC_DRONECAN_MOTORPOS_RATE_HZ > 0
