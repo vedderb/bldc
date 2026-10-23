@@ -42,10 +42,10 @@
 // Time for the sensor output to settle after configure() takes it out of power-down,
 // so that the attitude is seeded from a valid sample. This covers the accelerometer:
 // the LSM6DS3TR-C needs up to 80 samples at 6.66 kHz when polled (12 ms, AN5130
-// tables 9 and 13), the LSM6DSV32X 78 samples at 7.68 kHz (10 ms, AN6016 table 17),
-// both longer only with HIGH filtering at sample rates <= 480 Hz. The BMI160 needs
-// 3.8 ms, which its configure() already waits for. The gyro turn-on (70+ ms) is left
-// to the high-gain AHRS init window.
+// tables 9 and 13), longer only with HIGH filtering at sample rates <= 416 Hz. The
+// LSM6DSV32X fast-settles its LPF2, leaving up to 27 samples at 7.68 kHz (3.5 ms,
+// AN6016 table 19). The BMI160 needs 3.8 ms, which its configure() already waits for.
+// The gyro turn-on (70+ ms) is left to the high-gain AHRS init window.
 #define IMU_SETTLE_MS 30
 
 // Private variables
