@@ -32,6 +32,7 @@ static volatile bool i2c_running = false;
 static mutex_t shutdown_mutex;
 static bool will_poweroff = false;
 static unsigned int bt_hold_counter = 0;
+static bool bt_released_since_boot = false;
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -300,6 +301,16 @@ bool hw_sample_shutdown_button(void) {
     chMtxLock(&shutdown_mutex);
     float newval = ADC_VOLTS(ADC_IND_SHUTDOWN);
     chMtxUnlock(&shutdown_mutex);
+
+    // The press that powered the board on can still be held when sampling starts, only
+    // count presses after the button has been released once
+    if (!bt_released_since_boot) {
+        if (newval > 1.0f) {
+            return true;
+        }
+        bt_released_since_boot = true;
+    }
+
     if (newval > 1.0f) {
         bt_hold_counter++;
 
