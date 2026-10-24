@@ -28,6 +28,7 @@
 #include "uavcan/equipment/esc/Status.h"
 // VESC MOTORPOSITION LOT2
 #include "uavcan.equipment.esc.MotorPosition.h"
+#include "com.mowglinext.esc.MotorSpeed.h"
 #include "uavcan/equipment/esc/RawCommand.h"
 #include "uavcan/equipment/esc/RPMCommand.h"
 #include "uavcan/protocol/param/GetSet.h"
@@ -1463,6 +1464,111 @@ static void sendMotorPosition(void) {
 }
 #endif // VESC_DRONECAN_MOTORPOS_RATE_HZ > 0
 
+/* VESC MOTORSPEED LOT4A_V2 - experimental DroneCAN vendor DTID 20990.
+ * Preferred fractional-RPM telemetry alternative to the integer field of
+ * the standard ESC Status, which remains unchanged for compatibility.
+ * Opt-in build flag: -DVESC_DRONECAN_MOTORSPEED_RATE_HZ=20 (0 by default).
+ * Signed mechanical shaft RPM. A valid numerical sample is NOT a guarantee
+ * of sensor accuracy or sensorless observability at very low speeds.
+ * Only motor 1 is published, matching our provisional MotorPosition sender.
+ */
+#ifndef VESC_DRONECAN_MOTORSPEED_RATE_HZ
+#define VESC_DRONECAN_MOTORSPEED_RATE_HZ 0
+#endif
+#if VESC_DRONECAN_MOTORSPEED_RATE_HZ < 0 || VESC_DRONECAN_MOTORSPEED_RATE_HZ > 50
+#error "VESC_DRONECAN_MOTORSPEED_RATE_HZ must be between 0 and 50"
+#endif
+#if VESC_DRONECAN_MOTORSPEED_RATE_HZ > 0
+static uint8_t motorspeed_sample_seq;
+static uint8_t motorspeed_transfer_id_can1;
+#ifdef HW_CAN2_DEV
+static uint8_t motorspeed_transfer_id_can2;
+#endif
+static volatile uint32_t motorspeed_tx_dropped_can1;
+static volatile uint32_t motorspeed_tx_error_can1;
+#ifdef HW_CAN2_DEV
+static volatile uint32_t motorspeed_tx_dropped_can2;
+static volatile uint32_t motorspeed_tx_error_can2;
+#endif
+
+/* Single-frame, 6-byte DSDL payload: exactly one TX block per CAN bus.
+ * This only prevents predictable pool OOM in the exclusive UAVCAN worker;
+ * there is no assertion of physical CAN transmission success.
+ */
+static void motorspeed_broadcast_guarded(CanardInstance *instance,
+                                        uint8_t *transfer_id,
+                                        const uint8_t *payload,
+                                        volatile uint32_t *dropped,
+                                        volatile uint32_t *errors) {
+    const CanardPoolAllocatorStatistics stats = canardGetPoolAllocatorStatistics(instance);
+    if (stats.capacity_blocks == 0U || stats.current_usage_blocks >= stats.capacity_blocks) {
+        ++(*dropped);
+        return;
+    }
+    const int16_t result = canardBroadcast(instance,
+        COM_MOWGLINEXT_ESC_MOTORSPEED_SIGNATURE,
+        COM_MOWGLINEXT_ESC_MOTORSPEED_ID,
+        transfer_id, CANARD_TRANSFER_PRIORITY_LOW,
+        payload, COM_MOWGLINEXT_ESC_MOTORSPEED_MAX_SIZE);
+    if (result != 1) {
+        ++(*dropped);
+        ++(*errors);
+    }
+}
+
+static void sendMotorSpeed(void) {
+    const app_configuration *appconf = app_get_configuration();
+    if (appconf->uavcan_esc_index > 31U) {
+        return;
+    }
+
+    const int saved_motor = mc_interface_get_motor_thread();
+    mc_interface_select_motor_thread(1);
+    const volatile mc_configuration *mcconf = mc_interface_get_configuration();
+    const bool change_before = mc_interface_tachometer_change_active();
+    const uint32_t gen_before = mc_interface_get_tachometer_generation();
+    const float erpm = mc_interface_get_rpm();
+    const uint32_t poles = (uint32_t)mcconf->si_motor_poles;
+    const int motor_type = mcconf->motor_type;
+    const uint32_t gen_after = mc_interface_get_tachometer_generation();
+    const bool change_after = mc_interface_tachometer_change_active();
+    mc_interface_select_motor_thread(saved_motor);
+
+    const bool poles_ok = poles >= 2U && poles <= UINT16_MAX && (poles & 1U) == 0U;
+    const float mechanical_rpm = poles_ok ? erpm * (2.0f / (float)poles) : 0.0f;
+    const bool good = poles_ok && isfinite(erpm) && isfinite(mechanical_rpm) &&
+        (motor_type == MOTOR_TYPE_FOC || motor_type == MOTOR_TYPE_BLDC) &&
+        !change_before && !change_after && gen_before == gen_after;
+
+    struct com_mowglinext_esc_MotorSpeed msg;
+    memset(&msg, 0, sizeof(msg));
+    msg.esc_index = (uint8_t)appconf->uavcan_esc_index;
+    msg.valid = good;
+    msg.sample_seq = motorspeed_sample_seq++; // advances even when TX pool is full
+    msg.rpm = good ? mechanical_rpm : 0.0f;     // receiver ignores invalid RPM
+
+    uint8_t payload[COM_MOWGLINEXT_ESC_MOTORSPEED_MAX_SIZE];
+    const uint32_t len = com_mowglinext_esc_MotorSpeed_encode(&msg, payload);
+    if (len != sizeof(payload)) {
+        ++motorspeed_tx_dropped_can1;
+        ++motorspeed_tx_error_can1;
+#ifdef HW_CAN2_DEV
+        ++motorspeed_tx_dropped_can2;
+        ++motorspeed_tx_error_can2;
+#endif
+        return;
+    }
+    motorspeed_broadcast_guarded(&canard_ins,
+        &motorspeed_transfer_id_can1, payload,
+        &motorspeed_tx_dropped_can1, &motorspeed_tx_error_can1);
+#ifdef HW_CAN2_DEV
+    motorspeed_broadcast_guarded(&canard_ins_if2,
+        &motorspeed_transfer_id_can2, payload,
+        &motorspeed_tx_dropped_can2, &motorspeed_tx_error_can2);
+#endif
+}
+#endif // VESC_DRONECAN_MOTORSPEED_RATE_HZ > 0
+
 static THD_FUNCTION(canard_thread, arg) {
 	(void)arg;
 	chRegSetThreadName("UAVCAN");
@@ -1474,6 +1580,9 @@ static THD_FUNCTION(canard_thread, arg) {
 	systime_t last_esc_status_time_r2 = 0;
 #if VESC_DRONECAN_MOTORPOS_RATE_HZ > 0
     systime_t last_motorpos_time = 0;
+#endif
+#if VESC_DRONECAN_MOTORSPEED_RATE_HZ > 0
+    systime_t last_motorspeed_time = 0;
 #endif
 	systime_t last_tot_current_calc_time = 0;
 	systime_t last_param_refresh = 0;
@@ -1514,6 +1623,14 @@ static THD_FUNCTION(canard_thread, arg) {
             motorpos_transfer_id_can2 = 0U;
 #endif
             motorpos_boot_nonce_valid = motorpos_get_boot_nonce(&motorpos_boot_nonce);
+#endif
+#if VESC_DRONECAN_MOTORSPEED_RATE_HZ > 0
+            last_motorspeed_time = chVTGetSystemTimeX();
+            motorspeed_sample_seq = 0U;
+            motorspeed_transfer_id_can1 = 0U;
+#ifdef HW_CAN2_DEV
+            motorspeed_transfer_id_can2 = 0U;
+#endif
 #endif
 			last_tot_current_calc_time = chVTGetSystemTimeX();
 			last_param_refresh = chVTGetSystemTimeX();
@@ -1599,6 +1716,12 @@ static THD_FUNCTION(canard_thread, arg) {
         if (UTILS_AGE_S(last_motorpos_time) >= (1.0f / (float)VESC_DRONECAN_MOTORPOS_RATE_HZ)) {
             last_motorpos_time = chVTGetSystemTimeX();
             sendMotorPosition();
+        }
+#endif
+#if VESC_DRONECAN_MOTORSPEED_RATE_HZ > 0
+        if (UTILS_AGE_S(last_motorspeed_time) >= (1.0f / (float)VESC_DRONECAN_MOTORSPEED_RATE_HZ)) {
+            last_motorspeed_time = chVTGetSystemTimeX();
+            sendMotorSpeed();
         }
 #endif
 		if (conf->can_status_rate_2 > 0 && UTILS_AGE_S(last_esc_status_time_r2) >= (1.0 / (float)conf->can_status_rate_2)) {
