@@ -30,13 +30,28 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 40u
+#define LBM_MINOR_VERSION 41u
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0u
 
 #define LBM_VERSION_STRING STR(LBM_MAJOR_VERSION) "." STR(LBM_MINOR_VERSION) "." STR(LBM_PATCH_VERSION)
 
 /*! \page changelog Changelog
+
+Oct 16 2026: Version 0.41.0
+  - Arithmetic now computes the maximum type to promote to before performing the
+    operation in native words. Encoding to promoted type at the end.
+    This changes overflow behaviour to be more naturally expected (no intermediate
+    flows).
+  - Fixed bug in comparisons, zero and 1 argument comparisons now return type error.
+  - Rewriting dec_as_X to allow compiler to generate jump tables.
+  - Fixed bug that could lead to atomic state leaking out through an error.
+  - bufset-bits and bufget-bits for extracting values from CAN frames.
+  - Flag for semantics choice on member function (return tail on match).
+  - Fundamental append improved efficiency.
+  - str-from-n accepts %f format on whole integers as well.
+  - There are no more critical error paths. A critical error means the
+    runtime system is corrupted beyond repair.
 
 Sep 6 2026: Version 0.40.0
   - Fix bug in handover to ptr-rev gc from stack gc. Large nested

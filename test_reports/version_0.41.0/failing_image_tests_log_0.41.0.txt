@@ -1,0 +1,1 @@
+Expected fail: image_tests/test_fail.lisp

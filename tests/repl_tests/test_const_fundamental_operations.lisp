@@ -62,8 +62,8 @@
     (< neg-int small-int)
     
     ; Single argument cases
-    (= pi)
-    (<= e)
+    (eq (trap (= pi)) '(exit-error type_error))
+    (eq (trap (<= e)) '(exit-error type_error))
   ))
 
 ; Test type operations with boxed constants

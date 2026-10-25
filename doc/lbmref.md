@@ -60,7 +60,7 @@ So for example:
 
 **Note** that it is an absolute requirement to include a decimal when writing a floating point literal in LBM. 
 
-We are trying to make type conversions feel familiar to people who know a bit of  C programming. On a 32bit platform LBM numerical types are ordered according to: `byte < i < u < i32 < u32 < i64 < u64 < float < double`.  Operations such as `(+ a b)`, figures out the largest type according to the ordering above and converts all the values to this largest type. 
+We are trying to make type conversions feel familiar to people who know a bit of  C programming. On a 32bit platform LBM numerical types are ordered according to: `byte < i < u < i32 < u32 < i64 < u64 < float < double`.  Operations such as `(+ a b)`, figures out the largest type according to the ordering above and converts all the values to this largest type. On a 64bit platform the ordering is: `byte < i32 < u32 < i < u < i64 < u64 < float < double`. For operations with more than two arguments, such as `(+ a b c)`, the largest type among all of the arguments is found first and the entire computation is performed in that type. The result is therefore independent of the order of the arguments, for example `(+ 200b 100b 1000)` and `(+ 1000 200b 100b)` both evaluate to 1300. 
 
 Example: 
 
@@ -1580,8 +1580,9 @@ t
 
 ### =
 
-The `=` operation can only be used on numerical arguments. If you know you are comparing numbers, it will be more efficient to use `=`. 
+The `=` operation compares numerical values and can only be used on numerical arguments. Use `=` when comparing numbers and `eq` when comparing other kinds of values. 
  An important difference between `eq` and `=` is that `=` compare the numerical values of the arguments. A 3 is a 3 independent of them being different types. `eq` on the other hand compares the representations of the arguments exactly and they must match in structure, type and value to be considered equal. 
+ `(= expr1 ... exprN)` evaluates to `t` if expr1 is numerically equal to all of expr2 ... exprN. The comparison requires at least two arguments, with fewer arguments it results in a `type_error`. 
 
 <table>
 <tr>
@@ -1659,6 +1660,112 @@ nil
 
 </td>
 </tr>
+<tr>
+<td>
+
+```clj
+(= 3 3u 3.000000f32)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+</table>
+
+
+
+
+---
+
+
+### !=
+
+The `!=` operation implements the negation of `=`. So, `(!= a b)` evaluates to the same result as `(not (= a b))`. The comparison requires at least two arguments, with fewer arguments it results in a `type_error`. 
+
+<table>
+<tr>
+<td> Example </td> <td> Result </td>
+</tr>
+<tr>
+<td>
+
+```clj
+(!= 1 1)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(!= 1 2)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(!= (+ 2 3) (+ 1 4))
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(!= (+ 1 2) (+ 2 3))
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
 </table>
 
 
@@ -1669,7 +1776,7 @@ nil
 
 ### >
 
-Greater than comparison. A greater than comparison has the form `(> expr1 ... exprN)` and evaluates to `t` if expr1 is greater than all of expr2 ... exprN. 
+Greater than comparison. A greater than comparison has the form `(> expr1 ... exprN)` and evaluates to `t` if expr1 is greater than all of expr2 ... exprN. The comparison requires at least two arguments, with fewer arguments it results in a `type_error`. 
 
 <table>
 <tr>
@@ -1747,6 +1854,42 @@ nil
 
 </td>
 </tr>
+<tr>
+<td>
+
+```clj
+(> 5 1 3)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(> 5 1 9)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
 </table>
 
 
@@ -1757,7 +1900,7 @@ nil
 
 ### <
 
-Less than comparison. A less than comparison has the form `(> expr1 ... exprN)` and evaluates to `t` if expr1 is less than all of expr2 ... exprN. 
+Less than comparison. A less than comparison has the form `(< expr1 ... exprN)` and evaluates to `t` if expr1 is less than all of expr2 ... exprN. The comparison requires at least two arguments, with fewer arguments it results in a `type_error`. 
 
 <table>
 <tr>
@@ -1785,7 +1928,7 @@ nil
 <td>
 
 ```clj
-(< 5 2)
+(< 2 5)
 ```
 
 
@@ -1793,7 +1936,7 @@ nil
 <td>
 
 ```clj
-nil
+t
 ```
 
 
@@ -1835,6 +1978,42 @@ t
 
 </td>
 </tr>
+<tr>
+<td>
+
+```clj
+(< 1 5 3)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(< 1 5 0)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
 </table>
 
 
@@ -1845,7 +2024,7 @@ t
 
 ### >=
 
-Greater than or equal comparison. A greater than comparison has the form `(>= expr1 ... exprN)` and evaluates to `t` if expr1 is greater than or equal to all of expr2 ... exprN. 
+Greater than or equal comparison. A greater than or equal comparison has the form `(>= expr1 ... exprN)` and evaluates to `t` if expr1 is greater than or equal to all of expr2 ... exprN. The comparison requires at least two arguments, with fewer arguments it results in a `type_error`. 
 
 <table>
 <tr>
@@ -1941,6 +2120,42 @@ nil
 
 </td>
 </tr>
+<tr>
+<td>
+
+```clj
+(>= 5 5 1)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(>= 5 1 9)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
+```
+
+
+</td>
+</tr>
 </table>
 
 
@@ -1951,7 +2166,7 @@ nil
 
 ### <=
 
-Less than or equal comparison. A less than or equal comparison has the form `(<= expr1 ... exprN)` and evaluates to `t` if expr1 is less than or equal to all of expr2 ... exprN. 
+Less than or equal comparison. A less than or equal comparison has the form `(<= expr1 ... exprN)` and evaluates to `t` if expr1 is less than or equal to all of expr2 ... exprN. The comparison requires at least two arguments, with fewer arguments it results in a `type_error`. 
 
 <table>
 <tr>
@@ -2042,6 +2257,42 @@ nil
 
 ```clj
 t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(<= 1 1 3)
+```
+
+
+</td>
+<td>
+
+```clj
+t
+```
+
+
+</td>
+</tr>
+<tr>
+<td>
+
+```clj
+(<= 1 5 0)
+```
+
+
+</td>
+<td>
+
+```clj
+nil
 ```
 
 
@@ -8847,7 +9098,7 @@ Use `self` to obtain the thread-id of the thread in which `self` is evaluated. T
 <td>
 
 ```clj
-3620
+3571
 ```
 
 
@@ -9056,7 +9307,7 @@ The `val-expr` can be observed if the thread exit status is captured using `spaw
 
 
 ```clj
-(exit-ok 110642 kurt-russel)
+(exit-ok 112403 kurt-russel)
 ```
 
 
