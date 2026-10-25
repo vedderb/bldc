@@ -39,6 +39,15 @@
 #include <math.h>
 #include <string.h>
 
+// Time for the sensor output to settle after configure() takes it out of power-down,
+// so that the attitude is seeded from a valid sample. This covers the accelerometer:
+// the LSM6DS3TR-C needs up to 80 samples at 6.66 kHz when polled (12 ms, AN5130
+// tables 9 and 13), longer only with HIGH filtering at sample rates <= 416 Hz. The
+// LSM6DSV32X fast-settles its LPF2, leaving up to 27 samples at 7.68 kHz (3.5 ms,
+// AN6016 table 19). The BMI160 needs 3.8 ms, which its configure() already waits for.
+// The gyro turn-on (70+ ms) is left to the high-gain AHRS init window.
+#define IMU_SETTLE_MS 30
+
 // Private variables
 static ATTITUDE_INFO m_att;
 static FusionAhrs m_fusionAhrs;
@@ -252,6 +261,7 @@ void imu_init(imu_config *set) {
 
 		if (configured) {
 			configure_biquads(m_dev.sample_rate_hz);
+			chThdSleepMilliseconds(IMU_SETTLE_MS);
 			imu_thread_start(imu_read_callback);
 		}
 	}
@@ -596,6 +606,23 @@ static void imu_read_callback(float *accel, float *gyro, float *mag, float dt) {
 		m_gyro[i] -= m_settings.gyro_offsets[i];
 	}
 
+	// Seed the attitude from gravity instead of converging from identity.
+	if (!m_att_seeded && !imu_ready) {
+		float mag_sq = SQ(m_accel[0]) + SQ(m_accel[1]) + SQ(m_accel[2]);
+		if (mag_sq > SQ(0.7) && mag_sq < SQ(1.3)) {
+			biquad_seed(&acc_x_biquad, m_accel[0]);
+			biquad_seed(&acc_y_biquad, m_accel[1]);
+			biquad_seed(&acc_z_biquad, m_accel[2]);
+			ahrs_update_initial_orientation(m_accel, m_mag, &m_att);
+			m_fusionAhrs.quaternion.element.w = m_att.q0;
+			m_fusionAhrs.quaternion.element.x = m_att.q1;
+			m_fusionAhrs.quaternion.element.y = m_att.q2;
+			m_fusionAhrs.quaternion.element.z = m_att.q3;
+			m_att_seeded = true;
+			init_time = chVTGetSystemTimeX();
+		}
+	}
+
 	// Apply filters
 	if(m_settings.accel_lowpass_filter_x > 0){
 		m_accel[0] = biquad_process(&acc_x_biquad, m_accel[0]);
@@ -610,21 +637,6 @@ static void imu_read_callback(float *accel, float *gyro, float *mag, float dt) {
 		m_gyro[0] = biquad_process(&gyro_x_biquad, m_gyro[0]);
 		m_gyro[1] = biquad_process(&gyro_y_biquad, m_gyro[1]);
 		m_gyro[2] = biquad_process(&gyro_z_biquad, m_gyro[2]);
-	}
-
-	// Seed the attitude from gravity instead of converging from identity. The
-	// magnitude gate skips samples taken before the sensor (and any accel biquad)
-	// has settled, and holds off while the board is accelerating.
-	if (!m_att_seeded) {
-		float mag_sq = SQ(m_accel[0]) + SQ(m_accel[1]) + SQ(m_accel[2]);
-		if (mag_sq > SQ(0.7) && mag_sq < SQ(1.3)) {
-			ahrs_update_initial_orientation(m_accel, m_mag, &m_att);
-			m_fusionAhrs.quaternion.element.w = m_att.q0;
-			m_fusionAhrs.quaternion.element.x = m_att.q1;
-			m_fusionAhrs.quaternion.element.y = m_att.q2;
-			m_fusionAhrs.quaternion.element.z = m_att.q3;
-			m_att_seeded = true;
-		}
 	}
 
 	float gyro_rad[3];

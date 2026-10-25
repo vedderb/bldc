@@ -76,10 +76,15 @@ void ahrs_update_initial_orientation(const float *accelXYZ, const float *magXYZ,
 	float sp = sinf(pitch);
 	float cp = cosf(pitch);
 
-	float c_mx = mx * cp + my * sr * sp + mz * sp * cr;
-	float c_my = my * cr - mz * sr;
-	float yaw = atan2f(-c_my, c_mx) - M_PI / 2.0;
-	utils_norm_angle_rad(&yaw);
+	// The drivers report all-zero mag without a magnetometer, for which atan2f(+-0, +-0)
+	// would seed the yaw at +-90 degrees.
+	float yaw = 0.0;
+	if (mx != 0.0 || my != 0.0 || mz != 0.0) {
+		float c_mx = mx * cp + my * sr * sp + mz * sp * cr;
+		float c_my = my * cr - mz * sr;
+		yaw = atan2f(-c_my, c_mx) - M_PI / 2.0;
+		utils_norm_angle_rad(&yaw);
+	}
 
 	cr = cosf(-roll * 0.5f);
 	sr = sinf(-roll * 0.5f);

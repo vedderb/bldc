@@ -54,7 +54,7 @@
 #define REG_CTRL6				0x15 // gyro LPF1 bandwidth + gyro full-scale
 #define REG_CTRL7				0x16 // gyro LPF1 enable
 #define REG_CTRL8				0x17 // accel LPF2 bandwidth + accel full-scale
-#define REG_CTRL9				0x18 // accel LPF2 enable
+#define REG_CTRL9				0x18 // accel LPF2 enable + fast settling
 #define REG_OUTX_L_G			0x22 // gyro X/Y/Z then accel X/Y/Z (12 bytes)
 
 #define WHO_AM_I_VAL			0x70
@@ -65,6 +65,7 @@
 #define CTRL7_LPF1_G_EN			(1 << 0)
 #define CTRL8_MUST_SET			(1 << 2) // CTRL8 bit 2 must be written as 1
 #define CTRL9_LPF2_XL_EN		(1 << 3) // low-pass path (HP_SLOPE_XL_EN left at 0)
+#define CTRL9_XL_FASTSETTL_MODE	(1 << 5) // LPF2 set from the first sample out of power-down
 #define INT1_DRDY_G				(1 << 1) // gyro data-ready on INT1 (accel is synchronized)
 
 // Full-scale ranges: CTRL6 FS_G[3:0] / CTRL8 FS_XL[1:0] register codes and the matching
@@ -156,9 +157,11 @@ static bool configure(imu_device_t *dev, IMU_FILTER filter, bool use_mag) {
 	// Block data update + register auto-increment.
 	ok = ok && write_reg(dev, REG_CTRL3, CTRL3_BDU | CTRL3_IF_INC);
 
-	// Accelerometer: Full scale + LPF2 low-pass anti-alias filter.
+	// Accelerometer: Full scale + LPF2 low-pass anti-alias filter. Fast settling skips the
+	// LPF2 settling time on power-up, up to 626 samples (AN6016 table 17); it must be set
+	// before the accel is enabled below.
 	ok = ok && write_reg(dev, REG_CTRL8, (lpf2_bw << 5) | CTRL8_MUST_SET | FS_XL_REG);
-	ok = ok && write_reg(dev, REG_CTRL9, lpf2_en ? CTRL9_LPF2_XL_EN : 0);
+	ok = ok && write_reg(dev, REG_CTRL9, CTRL9_XL_FASTSETTL_MODE | (lpf2_en ? CTRL9_LPF2_XL_EN : 0));
 
 	// Gyroscope: Full scale, LPF1 is bypassed at LOW (widest, ~530 Hz at the max ODR) and
 	// enabled for MEDIUM (BW code 000, ~280 Hz) and HIGH (BW code 010, ~150 Hz); The
