@@ -12,3 +12,4 @@
  143292	   2208	 128864	 274364	  42fbc	build/lisp_test.elf  dec 30 2025   
  142972	   2208	 128864	 274044	  42e7c	build/lisp_test.elf  dec 30 2025 (reader revamp)
  143148	   2208	 128864	 274220	  42f2c	build/lisp_test.elf  Sep 16 2026 (GC with pointer reversal fallback)
+ 143260	   2208	 128864	 274332	  42f9c	build/lisp_test.elf  Oct 16 2026
