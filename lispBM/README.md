@@ -4354,7 +4354,11 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    0: Disabled
                         ;    1: Enabled
                         ;    2: Enabled and encrypted with pin
-                        ;    3: Enabled with scripting
+'ble-mode-lbm           ; LispBM BLE mode
+                        ;    0: Disabled
+                        ;    1: Server
+                        ;    2: Client
+                        ;    3: Client & Server
 'ble-name               ; Device name (also the name that shows up in VESC Tool)
 'ble-pin                ; BLE pin code
 'ble-service-capacity   ; BLE Service Capacity
