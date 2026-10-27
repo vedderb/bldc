@@ -110,6 +110,8 @@ package_dict["60_75"] = [['60_75', default_name],
                     ['60_75_no_limits', no_limits_name]]
 package_dict["60_75_mk2"] = [['60_75_mk2', default_name],
                     ['60_75_mk2_no_limits', no_limits_name]]
+package_dict["60_100"] = [['60_100', default_name],
+                    ['60_100_no_limits', no_limits_name]]
 package_dict["UBOX_SINGLE_75"] = [['ubox_single_75', default_name],
                                   ['ubox_single_75_no_limits', no_limits_name]]
 package_dict["UBOX_V1_75_MICRO"] = [['ubox_v1_75_micro', default_name],
