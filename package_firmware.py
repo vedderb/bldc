@@ -218,6 +218,8 @@ package_dict["FLIPSKY_110_200"] = [['flipsky_110_200', default_name],
                     ['flipsky_110_200_no_limits', no_limits_name]] 
 package_dict["FLIPSKY_110_300"] = [['flipsky_110_300', default_name],
                     ['flipsky_110_300_no_limits', no_limits_name]]
+package_dict["FLIPSKY_110_350"] = [['flipsky_110_350', default_name],
+                    ['flipsky_110_350_no_limits', no_limits_name]]
 package_dict["FLIPSKY_110_400"] = [['flipsky_110_400', default_name],
                     ['flipsky_110_400_no_limits', no_limits_name]]                     
 package_dict["Classic"] = [['classic', default_name],
