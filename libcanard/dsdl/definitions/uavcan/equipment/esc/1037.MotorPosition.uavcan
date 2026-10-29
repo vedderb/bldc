@@ -1,0 +1,43 @@
+# Cumulative mechanical motor-shaft position (not wheel position).
+# Optional complement to Status and StatusExtended; existing types unchanged.
+# Direction follows RPMCommand: positive increases mean forward motion.
+# Each publisher identifies its motor with esc_index (zero-based, like Status).
+# Receivers MUST separate state by (source_node_id, esc_index).
+#
+# origin_id MUST change whenever the publisher reboots, resets/re-zeros its
+# position, changes its ticks-per-revolution or changes its representation.
+# It MUST NOT be reused while the receiver could still hold data from the old
+# origin. Implementations should use a reset-resistant monotonically advancing
+# 32-bit generation, or a fresh high-entropy 32-bit nonce for each new origin.
+# A random nonce has a small but nonzero collision probability; a publisher
+# unable to ensure origin uniqueness cannot guarantee odometry continuity.
+# Node-ID changes/NodeStatus uptime resets also require receiver re-baselining.
+#
+# sample_seq increments modulo 256 for EVERY published MotorPosition transfer
+# in the same (source_node_id, esc_index) stream, including invalid measurements. Receivers MUST re-baseline instead of
+# integrating across a detected skipped/reordered sequence, an invalid sample,
+# an origin change, a source timeout, or a discontinuity. As sequence numbers
+# wrap, receivers must also apply a time-gap and physically plausible delta
+# check (speed bound). The accepted time window, together with a known bound
+# on publication rate, must rule out 256 missed transfers aliasing as a
+# consecutive sample; sequence continuity alone is not sufficient.
+# The DroneCAN transfer-ID is transport metadata and MUST NOT be used as a
+# substitute for this sample sequence.
+#
+# valid=false means no trustworthy position: the receiver must drop its
+# position baseline. The value in position is then unspecified and ignored.
+#
+# Integer mode: signed int32 counter, modulo 2^32 wrapping, with positive
+# ticks_per_revolution. Float mode: finite signed mechanical revolutions;
+# NaN/Infinity is invalid. Consumers must reject implausible increments and
+# not infer wheel radius, wheel slip, or gear ratio from this message.
+#
+# Tick-mode payload 95 bits (12 bytes); float-mode payload 79 bits (10 bytes).
+# Both require a two-frame transfer on classic DroneCAN/CAN (transfer CRC).
+# DTID 1037 is a provisional proposal pending DroneCAN maintainer approval.
+
+uint5 esc_index
+bool valid
+uint32 origin_id
+uint8 sample_seq
+MotorPositionValue position
