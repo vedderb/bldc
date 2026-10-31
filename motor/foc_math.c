@@ -178,7 +178,7 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 				conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP_LIN) {
 			if (conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP_LIN) {
 				float mag = NORM2_f(state->x1 - L_ia, state->x2 - L_ib);
-				UTILS_LP_FAST(state->lambda_est, mag, 0.1 * gamma_half * dt * SQ(state->lambda_est));
+				ema_step(&state->lambda_est, mag, 0.1 * gamma_half * dt * SQ(state->lambda_est));
 				utils_truncate_number(&(state->lambda_est), lambda * 0.3, lambda * 2.5);
 
 				if (mag > state->lambda_est) {
@@ -457,7 +457,7 @@ void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *moto
 	}
 
 	// Filter D
-	UTILS_LP_FAST(motor->m_pos_d_filter, d_term, conf_now->p_pid_kd_filter);
+	ema_step(&motor->m_pos_d_filter, d_term, conf_now->p_pid_kd_filter);
 	d_term = motor->m_pos_d_filter;
 
 	// Process D term
@@ -470,7 +470,7 @@ void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *moto
 	}
 
 	// Filter D process
-	UTILS_LP_FAST(motor->m_pos_d_filter_proc, d_term_proc, conf_now->p_pid_kd_filter);
+	ema_step(&motor->m_pos_d_filter_proc, d_term_proc, conf_now->p_pid_kd_filter);
 	d_term_proc = motor->m_pos_d_filter_proc;
 
 	// I-term wind-up protection
@@ -552,7 +552,7 @@ void foc_run_pid_control_speed(bool index_found, float dt, motor_all_state_t *mo
 	d_term = (error - motor->m_speed_prev_error) * (conf_now->s_pid_kd / dt) * (1.0 / 20.0);
 
 	// Filter D
-	UTILS_LP_FAST(motor->m_speed_d_filter, d_term, conf_now->s_pid_kd_filter);
+	ema_step(&motor->m_speed_d_filter, d_term, conf_now->s_pid_kd_filter);
 	d_term = motor->m_speed_d_filter;
 
 	// Store previous error

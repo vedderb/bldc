@@ -26,6 +26,7 @@
 #include "packet.h"
 #include "commands.h"
 #include "mc_interface.h"
+#include "ema.h"
 #include "utils.h"
 #include <math.h>
 #include <string.h>
@@ -638,7 +639,7 @@ static bool can_bus_rx_callback(uint32_t id, uint8_t *data, uint8_t len) {
 				float normalized_torque_sensor_output = utils_map((float)torque_sensor_output, (float)luna_settings.torque_sensor_lower_range, (float)luna_settings.torque_sensor_upper_range, 0.0, 1.0);
 				utils_truncate_number(&normalized_torque_sensor_output, 0.0, 1.0);
 				utils_deadband(&normalized_torque_sensor_output, luna_settings.torque_sensor_deadband, 1.0);
-				UTILS_LP_FAST(luna_settings.torque_sensor_output_filtered, normalized_torque_sensor_output, 0.1);
+				luna_settings.torque_sensor_output_filtered = ema_next(luna_settings.torque_sensor_output_filtered, normalized_torque_sensor_output, 0.1);
 			}
 		}
 		break;
@@ -707,7 +708,7 @@ float encoder_error(void) {
 		angle_diff = utils_angle_difference(mcpwm_foc_get_phase_encoder(), mcpwm_foc_get_phase_observer());
 	}
 
-	UTILS_LP_FAST(angle_diff_filtered, angle_diff, 0.01);
+	ema_step(&angle_diff_filtered, angle_diff, 0.01);
 	return angle_diff_filtered;
 }
 

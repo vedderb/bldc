@@ -26,6 +26,7 @@
 #include "stm32f4xx_conf.h"
 #include "mc_interface.h"
 #include "timeout.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "utils_sys.h"
 #include "comm_can.h"
@@ -196,7 +197,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// Read voltage and range check
 		static float read_filter = 0.0;
-		UTILS_LP_MOVING_AVG_APPROX(read_filter, pwr, FILTER_SAMPLES);
+		ema_step(&read_filter, pwr, ema_alpha_samples(FILTER_SAMPLES));
 
 		if (config.use_filter) {
 			read_voltage = read_filter;
@@ -231,7 +232,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// Optionally apply a filter
 		static float pwr_filter = 0.0;
-		UTILS_LP_MOVING_AVG_APPROX(pwr_filter, pwr, FILTER_SAMPLES);
+		ema_step(&pwr_filter, pwr, ema_alpha_samples(FILTER_SAMPLES));
 
 		if (config.use_filter) {
 			pwr = pwr_filter;
@@ -267,7 +268,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// Optionally apply a filter
 		static float filter_val_2 = 0.0;
-		UTILS_LP_MOVING_AVG_APPROX(filter_val_2, brake, FILTER_SAMPLES);
+		ema_step(&filter_val_2, brake, ema_alpha_samples(FILTER_SAMPLES));
 
 		if (config.use_filter) {
 			brake = filter_val_2;
@@ -543,7 +544,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// Filter RPM to avoid glitches
 		static float rpm_filtered = 0.0;
-		UTILS_LP_MOVING_AVG_APPROX(rpm_filtered, mc_interface_get_rpm(), RPM_FILTER_SAMPLES);
+		ema_step(&rpm_filtered, mc_interface_get_rpm(), ema_alpha_samples(RPM_FILTER_SAMPLES));
 
 		if (current_mode && cc_button && fabsf(pwr) < 0.001) {
 			static float pid_rpm = 0.0;

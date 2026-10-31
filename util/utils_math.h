@@ -85,30 +85,6 @@ void utils_rotate_vector3(float *input, float *rotation, float *output, bool rev
 // For double precision literals
 #define D(x) 				((double)x##L)
 
-/**
- * A simple low pass filter.
- *
- * @param value
- * The filtered value.
- *
- * @param sample
- * Next sample.
- *
- * @param filter_constant
- * Filter constant. Range 0.0 to 1.0, where 1.0 gives the unfiltered value.
- */
-#define UTILS_LP_FAST(value, sample, filter_constant)	(value -= (filter_constant) * ((value) - (sample)))
-
-/**
- * A fast approximation of a moving average filter with N samples. See
- * https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
- * https://en.wikipedia.org/wiki/Exponential_smoothing
- *
- * It is not entirely the same as it behaves like an IIR filter rather than a FIR filter, but takes
- * much less memory and is much faster to run.
- */
-#define UTILS_LP_MOVING_AVG_APPROX(value, sample, N)	UTILS_LP_FAST(value, sample, 2.0 / ((N) + 1.0))
-
 // Constants
 #define ONE_BY_SQRT3			(0.57735026919)
 #define TWO_BY_SQRT3			(2.0f * 0.57735026919)

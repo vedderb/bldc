@@ -1966,7 +1966,7 @@ __attribute__((aligned(16))) void mc_interface_mc_timer_isr(bool is_second_motor
 	FOC_PROFILE_LINE_FINE()
 
 	// Additional input current filter for the mapped current limit
-	UTILS_LP_FAST(motor->m_i_in_filter, current_in_filtered, motor->m_conf.l_in_current_map_filter);
+	ema_step(&motor->m_i_in_filter, current_in_filtered, motor->m_conf.l_in_current_map_filter);
 
 	if (state == MC_STATE_RUNNING) {
 		motor->m_cycles_running++;
@@ -2274,9 +2274,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	const float duty_now_abs = fabsf(mc_interface_get_duty_cycle_now());
 
 #ifdef HW_HAS_DUAL_PARALLEL
-	UTILS_LP_FAST(motor->m_temp_fet, fmaxf(NTC_TEMP(ADC_IND_TEMP_MOS), NTC_TEMP(ADC_IND_TEMP_MOS_M2)), 0.1);
+	motor->m_temp_fet = ema_next(motor->m_temp_fet, fmaxf(NTC_TEMP(ADC_IND_TEMP_MOS), NTC_TEMP(ADC_IND_TEMP_MOS_M2)), 0.1);
 #else
-	UTILS_LP_FAST(motor->m_temp_fet, NTC_TEMP(is_motor_1 ? ADC_IND_TEMP_MOS : ADC_IND_TEMP_MOS_M2), 0.1);
+	motor->m_temp_fet = ema_next(motor->m_temp_fet, NTC_TEMP(is_motor_1 ? ADC_IND_TEMP_MOS : ADC_IND_TEMP_MOS_M2), 0.1);
 #endif
 
 	float temp_motor = 0.0;
@@ -2339,10 +2339,10 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		temp_motor = -100.0;
 	}
 
-	UTILS_LP_FAST(motor->m_temp_motor, temp_motor, MOTOR_TEMP_LPF);
+	motor->m_temp_motor = ema_next(motor->m_temp_motor, temp_motor, MOTOR_TEMP_LPF);
 
 #ifdef HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
-	UTILS_LP_FAST(motor->m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.01);
+	motor->m_gate_driver_voltage = ema_next(motor->m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.01);
 #endif
 
 	const float l_current_min_tmp = conf->l_current_min * conf->l_current_min_scale;
@@ -2576,7 +2576,7 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		// Run the filter faster in the beginning to avoid convergence latency at boot
 		voltage_fc = 0.01;
 	}
-	UTILS_LP_FAST(motor->m_input_voltage_filtered_slower, motor->m_input_voltage_filtered, voltage_fc);
+	motor->m_input_voltage_filtered_slower = ema_next(motor->m_input_voltage_filtered_slower, motor->m_input_voltage_filtered, voltage_fc);
 
 	// Update backup data (for motor 1 only)
 	if (is_motor_1) {
@@ -2740,9 +2740,9 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		motor->m_motor_current_unbalance = mc_interface_get_abs_motor_current_unbalance();
 
 		if (fabsf(motor->m_motor_current_unbalance) > fabsf(MCCONF_MAX_CURRENT_UNBALANCE)) {
-			UTILS_LP_FAST(motor->m_motor_current_unbalance_error_rate, 1.0, (1 / 1000.0));
+			motor->m_motor_current_unbalance_error_rate = ema_next(motor->m_motor_current_unbalance_error_rate, 1.0, (1 / 1000.0));
 		} else {
-			UTILS_LP_FAST(motor->m_motor_current_unbalance_error_rate, 0.0, (1 / 1000.0));
+			motor->m_motor_current_unbalance_error_rate = ema_next(motor->m_motor_current_unbalance_error_rate, 0.0, (1 / 1000.0));
 		}
 
 		if (motor->m_motor_current_unbalance_error_rate > MCCONF_MAX_CURRENT_UNBALANCE_RATE) {
