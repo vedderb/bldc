@@ -22,24 +22,23 @@
 
 /*
  * Anti-alias low-pass cutoffs at different IMU_FILTER values:
- * fs = output rate, based on the configured Sample Rate (the poll frequency in poll mode, or the
- * data-ready rate in DRDY mode)
+ * fs = data-ready rate, the configured Sample Rate rounded up to the next ODR
  *
  * poll:
  *   ODR: both 7.68 kHz
  *
- *   filter   accel    gyro
- *   LOW      fs/2     537 Hz (LPF1 bypassed)
- *   MEDIUM   fs/4     281 Hz (LPF1 000)
- *   HIGH     fs/8     156 Hz (LPF1 010)
+ *   filter   accel              gyro
+ *   LOW      384 Hz (ODR/20)    537 Hz (LPF1 bypassed)
+ *   MEDIUM   171 Hz (ODR/45)    281 Hz (LPF1 000)
+ *   HIGH     77 Hz  (ODR/100)   156 Hz (LPF1 010)
  *
  * DRDY:
  *   ODR: both fs
  *
- *   filter   accel    gyro (scales with ODR)
- *   LOW      fs/2     <=537 Hz (LPF1 bypassed)
- *   MEDIUM   fs/4     <=281 Hz (LPF1 000)
- *   HIGH     fs/8     <=156 Hz (LPF1 010)
+ *   filter   accel              gyro (scales with ODR)
+ *   LOW      <=fs/2, <=480 Hz   <=537 Hz (LPF1 bypassed)
+ *   MEDIUM   <=fs/4, <=240 Hz   <=281 Hz (LPF1 000)
+ *   HIGH     <=fs/8, <=100 Hz   <=156 Hz (LPF1 010)
  */
 
 #define LSM6DSV32X_ADDR_A		0x6A // SA0 = 0
@@ -133,13 +132,17 @@ static bool configure(imu_device_t *dev, IMU_FILTER filter, bool use_mag) {
 
 	// Accel LPF2 low-pass anti-alias, choosing the widest cutoff <= target:
 	// ODR/2 needs LPF2 disabled, ODR/{4,10,20,45,100,200,400,800} need it
-	// enabled (datasheet table 69). The target is a fraction of the output rate
-	// (sample_rate_hz): the requested rate in poll mode (the poll decimates the
-	// max-ODR stream), the ODR itself in DRDY mode.
+	// enabled (datasheet table 69).
 	//
-	// The filter level sets the fraction: LOW ~ /2, MEDIUM ~ /4, HIGH ~ /8.
-	uint8_t div = (filter == IMU_FILTER_HIGH) ? 8 : (filter == IMU_FILTER_MEDIUM) ? 4 : 2;
-	uint16_t cutoff = dev->sample_rate_hz / div;
+	// The filter level sets a fixed target, so the cutoff doesn't follow the
+	// sample rate in poll mode. In DRDY mode the ODR can also limit the target:
+	// LOW ~ /2, MEDIUM ~ /4, HIGH ~ /8.
+	uint16_t cutoff = (filter == IMU_FILTER_HIGH) ? 100 : (filter == IMU_FILTER_MEDIUM) ? 240 : 480;
+	if (dev->use_drdy) {
+		uint8_t div = (filter == IMU_FILTER_HIGH) ? 8 : (filter == IMU_FILTER_MEDIUM) ? 4 : 2;
+		uint16_t odr_cutoff = odr_hz / div;
+		cutoff = odr_cutoff < cutoff ? odr_cutoff : cutoff;
+	}
 
 	bool lpf2_en = odr_hz / 2 > cutoff; // ODR/2 (LPF2 disabled) is the widest cutoff
 	uint8_t lpf2_bw = 0;
