@@ -24,7 +24,8 @@
 #include "drdy.h"
 
 // Bind the active IMU device at the given sample rate and register the debug terminal
-// commands. The rate is stored on the device, where its configure() may override it.
+// commands. Timed mode stores the rate rounded to whole ticks. DRDY mode stores it as
+// requested, and the device configure() replaces it with the programmed ODR.
 // drdy is the DRDY instance wired to this device, or NULL when it has none.
 void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz, drdy_t *drdy);
 

@@ -179,6 +179,11 @@ void imu_init(imu_config *set) {
 	imu_stop();
 	imu_reset_orientation();
 
+	if (m_settings.sample_rate_hz <= 0) {
+		// Leave the IMU off
+		return;
+	}
+
 	// Resolve the active (device, transport) pair: the internal IMU from
 	// compile-time board macros, an external IMU from the runtime type.
 	uint8_t dev = IMU_DEV_NONE;

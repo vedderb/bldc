@@ -117,10 +117,14 @@ static void terminal_status(int argc, const char **argv) {
 	}
 }
 
+// The timed loop period, rounded down to whole ticks so the rate is at least the requested one.
+static systime_t loop_interval(uint16_t rate_hz) {
+	return MAX(CH_CFG_ST_FREQUENCY / rate_hz, 1);
+}
+
 void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz, drdy_t *drdy) {
 	m_dev = dev;
 	m_drdy = drdy;
-	m_dev->sample_rate_hz = rate_hz;
 	m_read_fails = 0;
 	m_frozen_streak = 0;
 
@@ -129,6 +133,9 @@ void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz, drdy_t *drdy) {
 	// Resolved here (before configure()) so the device's configure() can adapt its
 	// ODR/filter setup.
 	dev->use_drdy = drdy != NULL && dev->interface->enable_drdy_output != NULL;
+
+	// In DRDY mode this is the requested rate, which configure() replaces with the ODR it programs.
+	dev->sample_rate_hz = dev->use_drdy ? rate_hz : CH_CFG_ST_FREQUENCY / loop_interval(rate_hz);
 
 	if (!m_cmds_registered) {
 		terminal_register_command_callback(
@@ -185,14 +192,13 @@ static THD_FUNCTION(thread_func, arg) {
 	chRegSetThreadName("IMU");
 
 	const systime_t period = US2ST(1000000 / m_dev->sample_rate_hz);
-	// One tick less so the actual rate is at least the configured one (US2ST rounds up).
-	const systime_t interval = period - 1;
+	const systime_t interval = loop_interval(m_dev->sample_rate_hz);
 
 	uint32_t last_ts = timer_time_now();
+	systime_t deadline = chVTGetSystemTimeX();
+	bool first_sample = true;
 
 	while (!chThdShouldTerminateX()) {
-		systime_t start_time = chVTGetSystemTimeX();
-
 		bool drdy = false;
 		if (m_drdy_active) {
 			drdy = drdy_wait(m_drdy, DRDY_TIMEOUT_PERIODS * period);
@@ -235,18 +241,23 @@ static THD_FUNCTION(thread_func, arg) {
 		}
 
 		if (m_cb && !frozen) {
-			m_cb(accel, gyro, mag, timer_calc_diff(last_ts, ts));
+			float dt = first_sample ? 1.0f / m_dev->sample_rate_hz : timer_calc_diff(last_ts, ts);
+			m_cb(accel, gyro, mag, dt);
 		}
+		first_sample = false;
 		last_ts = ts;
 
 		// In DRDY mode the next edge wakes the loop, we only sleep in timed mode
 		if (!m_drdy_active) {
-			systime_t sleep_ticks = 1;
-			systime_t remaining = start_time + interval - chVTGetSystemTimeX();
-			if (remaining > 0 && remaining <= interval) {
-				sleep_ticks = remaining;
+			systime_t now = chVTGetSystemTimeX();
+			deadline += interval;
+			systime_t remaining = deadline - now;
+			if (remaining == 0 || remaining > interval) {
+				// Too late for this deadline, restart the schedule
+				deadline = now + 1;
+				remaining = 1;
 			}
-			chThdSleep(sleep_ticks);
+			chThdSleep(remaining);
 		}
 	}
 }
