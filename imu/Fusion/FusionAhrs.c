@@ -41,6 +41,7 @@
 #include "FusionAhrs.h"
 #include <float.h> // FLT_MAX
 #include <math.h> // atan2f, cosf, sinf
+#include "ema.h"
 #include "utils_math.h"
 
 //------------------------------------------------------------------------------
@@ -51,21 +52,22 @@
  */
 #define INITIALISATION_PERIOD (3.0f)
 
+#define ACC_MAG_CUTOFF_HZ 8.0f
+
 //------------------------------------------------------------------------------
 // Functions
 
-static float calculateAccConfidence(float acc_confidence_decay, float accMag, float *accMagP);
+static float calculateAccConfidence(float acc_confidence_decay, float accMag, float dt, float *accMagP);
 
-static float calculateAccConfidence(float acc_confidence_decay, float accMag, float *accMagP) {
+static float calculateAccConfidence(float acc_confidence_decay, float accMag, float dt, float *accMagP) {
 	// G.K. Egan (C) computes confidence in accelerometers when
 	// aircraft is being accelerated over and above that due to gravity
 
 	float confidence;
 
-	accMag = *accMagP * 0.9f + accMag * 0.1f;
-	*accMagP = accMag;
+	ema_step(accMagP, accMag, ema_alpha(ACC_MAG_CUTOFF_HZ, dt));
 
-	confidence = 1.0 - (acc_confidence_decay * sqrtf(fabsf(accMag - 1.0f)));
+	confidence = 1.0 - (acc_confidence_decay * sqrtf(fabsf(*accMagP - 1.0f)));
 	utils_truncate_number(&confidence, 0.0, 1.0);
 
 	return confidence;
@@ -161,7 +163,7 @@ void FusionAhrsUpdate(FusionAhrs * const fusionAhrs, const FusionVector3 gyrosco
 
     float feedbackGain = fusionAhrs->gain;
     float accMag = sqrtf(SQ(accelerometer.axis.x) + SQ(accelerometer.axis.y) + SQ(accelerometer.axis.z));
-    float accelConfidence = calculateAccConfidence(fusionAhrs->acc_conf_decay, accMag, &fusionAhrs->accMagP);
+    float accelConfidence = calculateAccConfidence(fusionAhrs->acc_conf_decay, accMag, samplePeriod, &fusionAhrs->accMagP);
     feedbackGain *= accelConfidence;
 
     // Convert gyroscope to radians per second scaled by 0.5

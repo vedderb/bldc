@@ -15,23 +15,25 @@
 
 // Header files
 #include <ahrs.h>
+#include "ema.h"
 #include "utils_math.h"
 #include <math.h>
 
+#define ACC_MAG_CUTOFF_HZ		8.0f
+
 // Private functions
 static float invSqrt(float x);
-static float calculateAccConfidence(float accMag, float *accMagP, float acc_confidence_decay);
+static float calculateAccConfidence(float accMag, float dt, float *accMagP, float acc_confidence_decay);
 
-static float calculateAccConfidence(float accMag, float *accMagP, float acc_confidence_decay) {
+static float calculateAccConfidence(float accMag, float dt, float *accMagP, float acc_confidence_decay) {
 	// G.K. Egan (C) computes confidence in accelerometers when
 	// aircraft is being accelerated over and above that due to gravity
 
 	float confidence;
 
-	accMag = *accMagP * 0.9f + accMag * 0.1f;
-	*accMagP = accMag;
+	ema_step(accMagP, accMag, ema_alpha(ACC_MAG_CUTOFF_HZ, dt));
 
-	confidence = 1.0 - (acc_confidence_decay * sqrtf(fabsf(accMag - 1.0f)));
+	confidence = 1.0 - (acc_confidence_decay * sqrtf(fabsf(*accMagP - 1.0f)));
 	utils_truncate_number(&confidence, 0.0, 1.0);
 
 	return confidence;
@@ -123,7 +125,7 @@ void ahrs_update_mahony_imu(const float *gyroXYZ, const float *accelXYZ, float d
 		volatile float twoKp = 2.0 * att->kp;
 		volatile float twoKi = 2.0 * att->ki;
 
-		accelConfidence = calculateAccConfidence(accelNorm, &att->accMagP, att->acc_confidence_decay);
+		accelConfidence = calculateAccConfidence(accelNorm, dt, &att->accMagP, att->acc_confidence_decay);
 		twoKp *= accelConfidence;
 		twoKi *= accelConfidence;
 
@@ -251,7 +253,7 @@ void ahrs_update_madgwick_imu(const float *gyroXYZ, const float *accelXYZ, float
 			s3 *= recipNorm;
 
 			// Apply feedback step
-			accelConfidence = calculateAccConfidence(accelNorm, &att->accMagP, att->acc_confidence_decay);
+			accelConfidence = calculateAccConfidence(accelNorm, dt, &att->accMagP, att->acc_confidence_decay);
 			qDot1 -= att->beta * s0 * accelConfidence;
 			qDot2 -= att->beta * s1 * accelConfidence;
 			qDot3 -= att->beta * s2 * accelConfidence;
