@@ -27,6 +27,7 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "digital_filter.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "utils_sys.h"
 #include "ledpwm.h"
@@ -3251,7 +3252,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	float ib = curr1;
 	float ic = curr2;
 
-	UTILS_LP_FAST(state_now->v_bus, GET_INPUT_VOLTAGE(), 0.1);
+	ema_step(&state_now->v_bus, GET_INPUT_VOLTAGE(), motor_now->p_alpha_v_bus);
 
 	volatile float enc_ang = 0;
 	volatile bool encoder_is_being_used = false;
@@ -3329,10 +3330,10 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			utils_truncate_number_abs(&iq_set_tmp, -conf_now->lo_current_min);
 		}
 
-		UTILS_LP_FAST(motor_now->m_duty_abs_filtered, duty_abs, 0.01);
+		ema_step(&motor_now->m_duty_abs_filtered, duty_abs, motor_now->p_alpha_duty);
 		utils_truncate_number_abs((float*)&motor_now->m_duty_abs_filtered, 1.0);
 
-		UTILS_LP_FAST(motor_now->m_duty_filtered, duty_now, 0.01);
+		ema_step(&motor_now->m_duty_filtered, duty_now, motor_now->p_alpha_duty);
 		utils_truncate_number_abs((float*)&motor_now->m_duty_filtered, 1.0);
 
 		float duty_set = motor_now->m_duty_cycle_set;
@@ -3789,8 +3790,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		UTILS_NAN_ZERO(state_now->vd);
 		UTILS_NAN_ZERO(state_now->vq);
 
-		UTILS_LP_FAST(state_now->vd, vd_tmp, 0.2);
-		UTILS_LP_FAST(state_now->vq, vq_tmp, 0.2);
+		ema_step(&state_now->vd, vd_tmp, motor_now->p_alpha_vdq);
+		ema_step(&state_now->vq, vq_tmp, motor_now->p_alpha_vdq);
 
 		// Set the current controller integrator to the BEMF voltage to avoid
 		// a current spike when the motor is driven again. Notice that we have
@@ -3810,7 +3811,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		state_now->mod_d = state_now->vd * voltage_normalize;
 		state_now->mod_q = state_now->vq * voltage_normalize;
 		UTILS_NAN_ZERO(state_now->mod_q_filter);
-		UTILS_LP_FAST(state_now->mod_q_filter, state_now->mod_q, 0.2);
+		ema_step(&state_now->mod_q_filter, state_now->mod_q, motor_now->p_alpha_mod_q);
 		utils_truncate_number_abs((float*)&state_now->mod_q_filter, 1.0);
 	}
 
@@ -3839,16 +3840,16 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		float diff = utils_angle_difference_rad(phase_for_speed_est, motor_now->m_phase_before_speed_est);
 		utils_truncate_number(&diff, -M_PI / 3.0, M_PI / 3.0);
 
-		UTILS_LP_FAST(motor_now->m_speed_est_fast, diff * fs, 0.01);
+		ema_step(&motor_now->m_speed_est_fast, diff * fs, motor_now->p_alpha_speed_fast);
 		UTILS_NAN_ZERO(motor_now->m_speed_est_fast);
 
-		UTILS_LP_FAST(motor_now->m_speed_est_faster, diff * fs, 0.2);
+		ema_step(&motor_now->m_speed_est_faster, diff * fs, motor_now->p_alpha_speed_faster);
 		UTILS_NAN_ZERO(motor_now->m_speed_est_faster);
 
 		float diff_corr = utils_angle_difference_rad(state_now->phase, motor_now->m_phase_before_speed_est_corrected);
 		utils_truncate_number(&diff_corr, -M_PI / 3.0, M_PI / 3.0);
 
-		UTILS_LP_FAST(motor_now->m_speed_est_fast_corrected, diff_corr * fs, 0.01);
+		ema_step(&motor_now->m_speed_est_fast_corrected, diff_corr * fs, motor_now->p_alpha_speed_fast);
 		UTILS_NAN_ZERO(motor_now->m_speed_est_fast_corrected);
 
 		// pll wind-up protection
@@ -4704,7 +4705,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	state_m->mod_d = state_m->vd * voltage_normalize;
 	state_m->mod_q = state_m->vq * voltage_normalize;
 	UTILS_NAN_ZERO(state_m->mod_q_filter);
-	UTILS_LP_FAST(state_m->mod_q_filter, state_m->mod_q, 0.2);
+	state_m->mod_q_filter = ema_next(state_m->mod_q_filter, state_m->mod_q, motor->p_alpha_mod_q);
 
 	// TODO: Have a look at this?
 #ifdef HW_HAS_INPUT_CURRENT_SENSOR

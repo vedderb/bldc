@@ -27,6 +27,7 @@
 #include "stm32f4xx_conf.h"
 #include "hw.h"
 #include "terminal.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "utils_sys.h"
 #include "ch.h"
@@ -50,6 +51,7 @@
 
 // Macros
 #define DIR_MULT		(motor_now()->m_conf.m_invert_direction ? -1.0 : 1.0)
+#define INPUT_VOLTAGE_CUTOFF_HZ	45.0
 
 // Global variables
 volatile uint16_t ADC_Value[HW_ADC_CHANNELS + HW_ADC_CHANNELS_EXTRA];
@@ -1901,7 +1903,7 @@ __attribute__((aligned(16))) void mc_interface_mc_timer_isr(bool is_second_motor
 
 	mc_configuration *conf_now = (mc_configuration*)&motor->m_conf;
 	const float input_voltage = GET_INPUT_VOLTAGE();
-	UTILS_LP_FAST(motor->m_input_voltage_filtered, input_voltage, 0.02);
+	ema_step(&motor->m_input_voltage_filtered, input_voltage, ema_alpha(INPUT_VOLTAGE_CUTOFF_HZ, dt));
 
 	FOC_PROFILE_LINE_FINE()
 
