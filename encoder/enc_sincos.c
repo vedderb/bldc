@@ -25,6 +25,7 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "mc_interface.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "hw.h"
 #include "timer.h"
@@ -71,6 +72,7 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 	if (timestep > 1.0) {
 		timestep = 1.0;
 	}
+	const float alpha = ema_alpha_tau(1.0, timestep);
 	cfg->state.last_update_time = timer_time_now();
 
 	PROFILE_LINE();
@@ -78,13 +80,13 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 	if (module > SQ(SINCOS_MAX_AMPLITUDE) )	{
 		// signals vector outside of the valid area. Increase error count and discard measurement
 		++cfg->state.signal_above_max_error_cnt;
-		UTILS_LP_FAST(cfg->state.signal_above_max_error_rate, 1.0, timestep);
+		ema_step(&cfg->state.signal_above_max_error_rate, 1.0, alpha);
 	} else if (module < SQ(SINCOS_MIN_AMPLITUDE)) {
 		++cfg->state.signal_below_min_error_cnt;
-		UTILS_LP_FAST(cfg->state.signal_low_error_rate, 1.0, timestep);
+		ema_step(&cfg->state.signal_low_error_rate, 1.0, alpha);
 	} else {
-		UTILS_LP_FAST(cfg->state.signal_above_max_error_rate, 0.0, timestep);
-		UTILS_LP_FAST(cfg->state.signal_low_error_rate, 0.0, timestep);
+		ema_step(&cfg->state.signal_above_max_error_rate, 0.0, alpha);
+		ema_step(&cfg->state.signal_low_error_rate, 0.0, alpha);
 
 		PROFILE_LINE();
 		float delay_comp = ((1.0 - cfg->filter_constant) * RPM2RADPS_f(mc_interface_get_rpm()) * timestep) / (cfg->filter_constant * cfg->ratio);

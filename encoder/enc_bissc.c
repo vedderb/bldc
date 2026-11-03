@@ -26,6 +26,7 @@
 #include "stm32f4xx_conf.h"
 #include "hw.h"
 #include "mc_interface.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "spi_bb.h"
 #include "timer.h"
@@ -96,14 +97,16 @@ void enc_bissc_deinit(BISSC_config_t *cfg) {
 }
 
 void enc_bissc_routine(BISSC_config_t *cfg) {
+	// This routine runs at 10 kHz
+	const float alpha = ema_alpha_tau(1.0, 1.0 / 10000.0);
+
 	if (cfg->spi_dev->state == SPI_READY) {
 		spiSelectI(cfg->spi_dev);
 		spiStartReceiveI(cfg->spi_dev, 8, (void *)cfg->state.decod_buf);
-		UTILS_LP_FAST(encoder_cfg_bissc.state.spi_comm_error_rate, 0.0, 0.0001);
+		ema_step(&encoder_cfg_bissc.state.spi_comm_error_rate, 0.0, alpha);
 	} else {
 		++encoder_cfg_bissc.state.spi_comm_error_cnt;
-		// compute rate with factor 0.0001 for 10000hz
-		UTILS_LP_FAST(encoder_cfg_bissc.state.spi_comm_error_rate, 1.0, 0.0001);
+		ema_step(&encoder_cfg_bissc.state.spi_comm_error_rate, 1.0, alpha);
 	}
 }
 
@@ -112,10 +115,7 @@ void compute_bissc_callback(SPIDriver *pspi) {
 		BISSC_config_t *cfg = (BISSC_config_t*)pspi->app_arg;
 		spiUnselectI(cfg->spi_dev);
 
-		float timestep = timer_seconds_elapsed_since(cfg->state.last_update_time);
-		if (timestep > 1.0) {
-			timestep = 1.0;
-		}
+		const float alpha = ema_alpha_tau(1.0, timer_seconds_elapsed_since(cfg->state.last_update_time));
 		cfg->state.last_update_time = timer_time_now();
 
 		int lenghtDataBit = cfg->enc_res;
@@ -160,9 +160,9 @@ void compute_bissc_callback(SPIDriver *pspi) {
 		if(crc != crcRx)
 		{
 			++cfg->state.spi_data_error_cnt;
-			UTILS_LP_FAST(cfg->state.spi_data_error_rate, 1.0, timestep);
+			ema_step(&cfg->state.spi_data_error_rate, 1.0, alpha);
 		} else {
-			UTILS_LP_FAST(cfg->state.spi_data_error_rate, 0.0, timestep);
+			ema_step(&cfg->state.spi_data_error_rate, 0.0, alpha);
 			cfg->state.last_enc_angle = ((float)cfg->state.spi_val * 360.0) / ((1<<lenghtDataBit) - 1);
 		}
 

@@ -24,6 +24,7 @@
 #include "stm32f4xx_conf.h"
 #include "hw.h"
 #include "mc_interface.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "spi_bb.h"
 #include "timer.h"
@@ -49,10 +50,7 @@ void enc_amt22_deinit(AMT22_config_t *cfg) {
 void enc_amt22_routine(AMT22_config_t *cfg) {
 	uint16_t pos;
 
-	float timestep = timer_seconds_elapsed_since(cfg->state.last_update_time);
-	if (timestep > 1.0) {
-		timestep = 1.0;
-	}
+	const float alpha = ema_alpha_tau(1.0, timer_seconds_elapsed_since(cfg->state.last_update_time));
 	cfg->state.last_update_time = timer_time_now();
 
 	spi_bb_begin(&(cfg->sw_spi));
@@ -69,10 +67,10 @@ void enc_amt22_routine(AMT22_config_t *cfg) {
 	if (verify_checksum(pos)) {
 		pos &= 0x3FFF;
 		cfg->state.last_enc_angle = ((float) pos * 360.0) / 16384.0;
-		UTILS_LP_FAST(cfg->state.spi_error_rate, 0.0, timestep);
+		ema_step(&cfg->state.spi_error_rate, 0.0, alpha);
 	} else {
 		++cfg->state.spi_error_cnt;
-		UTILS_LP_FAST(cfg->state.spi_error_rate, 1.0, timestep);
+		ema_step(&cfg->state.spi_error_rate, 1.0, alpha);
 	}
 }
 

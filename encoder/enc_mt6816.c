@@ -26,6 +26,7 @@
 #include "stm32f4xx_conf.h"
 #include "hw.h"
 #include "mc_interface.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "spi_bb.h"
 #include "timer.h"
@@ -76,10 +77,7 @@ void enc_mt6816_deinit(MT6816_config_t *cfg) {
 }
 
 void enc_mt6816_routine(MT6816_config_t *cfg) {
-	float timestep = timer_seconds_elapsed_since(cfg->state.last_update_time);
-	if (timestep > 1.0) {
-		timestep = 1.0;
-	}
+	const float alpha = ema_alpha_tau(1.0, timer_seconds_elapsed_since(cfg->state.last_update_time));
 	cfg->state.last_update_time = timer_time_now();
 
 	uint16_t pos;
@@ -111,15 +109,15 @@ void enc_mt6816_routine(MT6816_config_t *cfg) {
 	if (spi_bb_check_parity(pos)) {
 		if (pos & MT6816_NO_MAGNET_ERROR_MASK) {
 			++cfg->state.encoder_no_magnet_error_cnt;
-			UTILS_LP_FAST(cfg->state.encoder_no_magnet_error_rate, 1.0, timestep);
+			ema_step(&cfg->state.encoder_no_magnet_error_rate, 1.0, alpha);
 		} else {
 			pos = pos >> 2;
 			cfg->state.last_enc_angle = ((float) pos * 360.0) / 16384.0;
-			UTILS_LP_FAST(cfg->state.spi_error_rate, 0.0, timestep);
-			UTILS_LP_FAST(cfg->state.encoder_no_magnet_error_rate, 0.0, timestep);
+			ema_step(&cfg->state.spi_error_rate, 0.0, alpha);
+			ema_step(&cfg->state.encoder_no_magnet_error_rate, 0.0, alpha);
 		}
 	} else {
 		++cfg->state.spi_error_cnt;
-		UTILS_LP_FAST(cfg->state.spi_error_rate, 1.0, timestep);
+		ema_step(&cfg->state.spi_error_rate, 1.0, alpha);
 	}
 }

@@ -23,6 +23,7 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "hw.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "timer.h"
 
@@ -90,10 +91,7 @@ static uint8_t mt6835_crc8(uint8_t *data, int len) {
 }
 
 void enc_mt6835_routine(MT6835_config_t *cfg) {
-	float timestep = timer_seconds_elapsed_since(cfg->state.last_update_time);
-	if (timestep > 1.0) {
-		timestep = 1.0;
-	}
+	const float alpha = ema_alpha_tau(1.0, timer_seconds_elapsed_since(cfg->state.last_update_time));
 	cfg->state.last_update_time = timer_time_now();
 
 	uint8_t tx_buf[MT6835_BURST_LEN];
@@ -120,10 +118,10 @@ void enc_mt6835_routine(MT6835_config_t *cfg) {
 
 	if (crc_rx != crc_calc || status != 0) {
 		cfg->state.spi_error_cnt++;
-		UTILS_LP_FAST(cfg->state.spi_error_rate, 1.0, timestep);
+		ema_step(&cfg->state.spi_error_rate, 1.0, alpha);
 	} else {
 		cfg->state.spi_val = angle_raw;
 		cfg->state.last_enc_angle = ((float)angle_raw * 360.0) / MT6835_ANGLE_RES;
-		UTILS_LP_FAST(cfg->state.spi_error_rate, 0.0, timestep);
+		ema_step(&cfg->state.spi_error_rate, 0.0, alpha);
 	}
 }

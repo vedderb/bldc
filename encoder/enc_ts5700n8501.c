@@ -24,6 +24,7 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "mc_interface.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "utils_sys.h"
 
@@ -165,6 +166,7 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 		TS5700N8501_send_byte(cfg, 0b01011000);
 
 #define LOOP_RATE	((float)(CH_CFG_ST_FREQUENCY / 2))
+		const float alpha = ema_alpha_tau(1.0, 1.0 / LOOP_RATE);
 		chThdSleep(2);
 
 		uint8_t reply[11];
@@ -188,7 +190,7 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 					+ ((uint32_t) reply[4] << 16);
 			cfg->state.spi_val = pos;
 			cfg->state.last_enc_angle = (float) pos / 131072.0 * 360.0;
-			UTILS_LP_FAST(cfg->state.spi_error_rate, 0.0, 1.0 / LOOP_RATE);
+			ema_step(&cfg->state.spi_error_rate, 0.0, alpha);
 
 			cfg->state.raw_status[0] = reply[1]; // SF
 			cfg->state.raw_status[1] = reply[2]; // ABS0
@@ -200,7 +202,7 @@ static THD_FUNCTION(ts5700n8501_thread, arg) {
 			cfg->state.raw_status[7] = reply[9]; // ALMC
 		} else {
 			++cfg->state.spi_error_cnt;
-			UTILS_LP_FAST(cfg->state.spi_error_rate, 1.0, 1.0 / LOOP_RATE);
+			ema_step(&cfg->state.spi_error_rate, 1.0, alpha);
 		}
 	}
 }

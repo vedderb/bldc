@@ -25,6 +25,7 @@
 #include "stm32f4xx_conf.h"
 #include "hw.h"
 #include "mc_interface.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "spi_bb.h"
 #include "timer.h"
@@ -122,10 +123,7 @@ void enc_as5x47u_spi_callback(SPIDriver *pspi) {
 		spiUnselectI(cfg->spi_dev);
 	
 		// Determine time step for error rate calculation
-		float timestep = timer_seconds_elapsed_since(cfg->state.last_update_time);
-		if (timestep > 1.0) {
-			timestep = 1.0;
-		}
+		const float alpha = ema_alpha_tau(1.0, timer_seconds_elapsed_since(cfg->state.last_update_time));
 		cfg->state.last_update_time = timer_time_now();
 
 		uint8_t rx_crc = cfg->state.rx_buf[2];
@@ -137,7 +135,7 @@ void enc_as5x47u_spi_callback(SPIDriver *pspi) {
 				(uint8_t)((rx_data & AS5x47U_SPI_ERROR_FLAG_MASK) != 0);
 
 			if (!cfg->state.sensor_diag.is_error) {
-				UTILS_LP_FAST(cfg->state.spi_error_rate, 0.0, timestep);
+				ema_step(&cfg->state.spi_error_rate, 0.0, alpha);
 
 				switch(cfg->state.spi_seq) {
 				case SPI_SEQ_TX_MAG_RX_POS:
@@ -224,7 +222,7 @@ void enc_as5x47u_spi_callback(SPIDriver *pspi) {
 			} else {
 				// Error flag is set
 				AS5x47U_determinate_if_connected(cfg, true); // Encoder is connected...
-				UTILS_LP_FAST(cfg->state.spi_error_rate, 1.0, timestep); // But there is an error
+				ema_step(&cfg->state.spi_error_rate, 1.0, alpha); // But there is an error
 				++cfg->state.spi_error_cnt;
 				// Error flag is set so need to read error register next
 				cfg->state.spi_seq = SPI_SEQ_PREV_ERR;
@@ -232,7 +230,7 @@ void enc_as5x47u_spi_callback(SPIDriver *pspi) {
 		} else {
 			// CRC error
 			AS5x47U_determinate_if_connected(cfg, false);
-			UTILS_LP_FAST(cfg->state.spi_error_rate, 1.0, timestep);
+			ema_step(&cfg->state.spi_error_rate, 1.0, alpha);
 			++cfg->state.spi_error_cnt;
 			cfg->state.spi_seq = SPI_SEQ_PREV_ERR;
 		}
