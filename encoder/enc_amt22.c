@@ -36,7 +36,7 @@
 static bool verify_checksum(uint16_t message);
 
 bool enc_amt22_init(AMT22_config_t *cfg) {
-	memset(&cfg->state, 0, sizeof(AS504x_state));
+	memset(&cfg->state, 0, sizeof(AMT22_state));
 	spi_bb_init(&(cfg->sw_spi));
 	return true;
 }
