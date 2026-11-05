@@ -28,7 +28,7 @@
 void bms_init(bms_config *conf);
 bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext);
 void bms_update_limits(float *i_in_min, float *i_in_max,
-		float i_in_min_conf, float i_in_max_conf);
+		float i_in_min_conf, float i_in_max_conf, bms_config *conf);
 void bms_process_cmd(unsigned char *data, unsigned int len,
 		void(*reply_func)(unsigned char *data, unsigned int len));
 volatile bms_values *bms_get_values(void);
