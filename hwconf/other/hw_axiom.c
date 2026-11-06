@@ -25,6 +25,7 @@
 #include "hal.h"
 #include "stm32f4xx_conf.h"
 #include "stm32f4xx_rcc.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "terminal.h"
 #include "commands.h"
@@ -762,7 +763,7 @@ float hw_axiom_temp_sensor_filter(uint8_t temp_sensor){
 	switch (temp_sensor)
 	{
 	case 1:
-		UTILS_LP_FAST(temp1,
+		ema_step(&temp1,
 			(1.0 / ((logf(NTC_RES_IGBT(ADC_Value[ADC_IND_TEMP_IGBT_1]) / 5000.0) / 3433.0) + (1.0 / 298.15)) - 273.15),
 			 0.01);
 
@@ -773,7 +774,7 @@ float hw_axiom_temp_sensor_filter(uint8_t temp_sensor){
 		return temp1;
 		break;
 	case 2:
-		UTILS_LP_FAST(temp2,
+		ema_step(&temp2,
 			(1.0 / ((logf(NTC_RES_IGBT(ADC_Value[ADC_IND_TEMP_IGBT_2]) / 5000.0) / 3433.0) + (1.0 / 298.15)) - 273.15),
 			 0.01);
 
@@ -784,7 +785,7 @@ float hw_axiom_temp_sensor_filter(uint8_t temp_sensor){
 		return temp2;
 		break;
 	case 3:
-		UTILS_LP_FAST(temp3,
+		ema_step(&temp3,
 			(1.0 / ((logf(NTC_RES_IGBT(ADC_Value[ADC_IND_TEMP_IGBT_3]) / 5000.0) / 3433.0) + (1.0 / 298.15)) - 273.15),
 			 0.01);
 
@@ -804,7 +805,7 @@ float hw_axiom_temp_sensor_filter(uint8_t temp_sensor){
 float hw_axiom_NTC_res_motor_filter(uint16_t adc_val){
 	static float adc_val_filtered = 0.0;
 
-	UTILS_LP_FAST(adc_val_filtered, adc_val, 0.01);
+	ema_step(&adc_val_filtered, adc_val, 0.01);
 	return ((4095.0 * 8870.0 * 2) / adc_val_filtered - 18870.0);
 }
 

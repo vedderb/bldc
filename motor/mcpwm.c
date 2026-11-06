@@ -27,6 +27,7 @@
 #include "mcpwm.h"
 #include "mc_interface.h"
 #include "digital_filter.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "utils_sys.h"
 #include "ledpwm.h"
@@ -1175,7 +1176,7 @@ static void run_pid_control_speed(void) {
 
 	// Filter D
 	static float d_filter = 0.0;
-	UTILS_LP_FAST(d_filter, d_term, conf->p_pid_kd_filter);
+	ema_step(&d_filter, d_term, conf->p_pid_kd_filter);
 	d_term = d_filter;
 
 	// I-term wind-up protection
@@ -1215,7 +1216,7 @@ static void run_pid_control_speed(void) {
 
 	// Filter D
 	static float d_filter = 0.0;
-	UTILS_LP_FAST(d_filter, d_term, conf->s_pid_kd_filter);
+	ema_step(&d_filter, d_term, conf->s_pid_kd_filter);
 	d_term = d_filter;
 
 	// I-term wind-up protection
@@ -1268,7 +1269,7 @@ static void run_pid_control_pos(float dt, float pos_now) {
 
 	// Filter D
 	static float d_filter = 0.0;
-	UTILS_LP_FAST(d_filter, d_term, conf->p_pid_kd_filter);
+	ema_step(&d_filter, d_term, conf->p_pid_kd_filter);
 	d_term = d_filter;
 
 	// I-term wind-up protection
@@ -1315,7 +1316,7 @@ static THD_FUNCTION(rpm_thread, arg) {
 
 		// Some low-pass filtering
 		static float rpm_filtered = 0.0;
-		UTILS_LP_FAST(rpm_filtered, rpm_now, 0.1);
+		ema_step(&rpm_filtered, rpm_now, 0.1);
 		rpm_now = rpm_filtered;
 		const float rpm_abs = fabsf(rpm_now);
 

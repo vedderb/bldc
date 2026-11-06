@@ -4175,9 +4175,9 @@ static void timer_update(motor_all_state_t *motor, float dt) {
 
 	// Current offset calibration if motor is undriven
 	if (motor->m_state == MC_STATE_OFF && (motor->m_conf->foc_offsets_cal_mode & (1 << 2))) {
-		UTILS_LP_FAST(motor->m_conf->foc_offsets_current[0], motor->m_currents_adc[0], 0.0001);
-		UTILS_LP_FAST(motor->m_conf->foc_offsets_current[1], motor->m_currents_adc[1], 0.0001);
-		UTILS_LP_FAST(motor->m_conf->foc_offsets_current[2], motor->m_currents_adc[2], 0.0001);
+		ema_step(&motor->m_conf->foc_offsets_current[0], motor->m_currents_adc[0], 0.0001);
+		ema_step(&motor->m_conf->foc_offsets_current[1], motor->m_currents_adc[1], 0.0001);
+		ema_step(&motor->m_conf->foc_offsets_current[2], motor->m_currents_adc[2], 0.0001);
 	}
 }
 
@@ -4626,8 +4626,8 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	state_m->iq = c * state_m->i_beta  - s * state_m->i_alpha;
 
 	// Low passed currents are used for less time critical parts, not for the feedback
-	UTILS_LP_FAST(state_m->id_filter, state_m->id, conf_now->foc_current_filter_const);
-	UTILS_LP_FAST(state_m->iq_filter, state_m->iq, conf_now->foc_current_filter_const);
+	state_m->id_filter = ema_next(state_m->id_filter, state_m->id, conf_now->foc_current_filter_const);
+	state_m->iq_filter = ema_next(state_m->iq_filter, state_m->iq, conf_now->foc_current_filter_const);
 
 	float Ierr_d = state_m->id_target - state_m->id;
 	float Ierr_q = state_m->iq_target - state_m->iq;
@@ -5145,9 +5145,9 @@ static void update_valpha_vbeta(motor_all_state_t *motor, float mod_alpha, float
 	float v_mag = NORM2_f(v_alpha, v_beta);
 	// The 0.1 * v_mag term below compensates for the filter attenuation as the speed increases.
 	// It is chosen by trial and error, so this can be improved.
-	UTILS_LP_FAST(state_m->v_mag_filter, v_mag + 0.1 * v_mag * filter_const, filter_const);
-	UTILS_LP_FAST(state_m->mod_alpha_filter, mod_alpha, filter_const);
-	UTILS_LP_FAST(state_m->mod_beta_filter, mod_beta, filter_const);
+	ema_step(&state_m->v_mag_filter, v_mag + 0.1 * v_mag * filter_const, filter_const);
+	ema_step(&state_m->mod_alpha_filter, mod_alpha, filter_const);
+	ema_step(&state_m->mod_beta_filter, mod_beta, filter_const);
 	UTILS_NAN_ZERO(state_m->v_mag_filter);
 	UTILS_NAN_ZERO(state_m->mod_alpha_filter);
 	UTILS_NAN_ZERO(state_m->mod_beta_filter);

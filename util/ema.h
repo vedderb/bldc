@@ -54,6 +54,18 @@ static inline float ema_alpha_tau(float time_constant, float dt) {
 }
 
 /**
+ * Calculate the constant of an exponential moving average filter that approximates a moving
+ * average over a number of samples.
+ *
+ * @param samples The number of samples of the moving average.
+ *
+ * @return The filter constant.
+ */
+static inline float ema_alpha_samples(float samples) {
+	return 2.0f / (samples + 1.0f);
+}
+
+/**
  * Calculate the next value of an exponential moving average filter. Use this for volatile values,
  * which ema_step does not accept.
  *

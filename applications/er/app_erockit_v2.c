@@ -23,6 +23,7 @@
 
 #include "conf_general.h"
 #include "mc_interface.h"
+#include "ema.h"
 #include "utils.h"
 #include "encoder/encoder.h"
 #include "terminal.h"
@@ -414,7 +415,7 @@ static THD_FUNCTION(my_thread, arg) {
 			return;
 		}
 
-		UTILS_LP_FAST(S_f, mc_interface_get_rpm(), 0.2);
+		ema_step(&S_f, mc_interface_get_rpm(), 0.2);
 		float I = mc_interface_get_tot_current_directional_filtered();
 
 		// Ramp up target current on low pedal speeds
@@ -515,7 +516,7 @@ static THD_FUNCTION(my_thread, arg) {
 			can_status_msg_5 *msg5 = comm_can_get_status_msg_5_index(0);
 			if (msg5->id >= 0 && UTILS_AGE_S(msg5->rx_time) < 0.5) {
 				static float v_batt_filter = 0.0;
-				UTILS_LP_FAST(v_batt_filter, msg5->v_in, 0.01);
+				ema_step(&v_batt_filter, msg5->v_in, 0.01);
 
 				if ((v_batt_filter / 14) < 3.3) {
 					LED_LOW_BATT_ON();
@@ -538,7 +539,7 @@ static THD_FUNCTION(my_thread, arg) {
 			}
 
 			if (running) {
-				UTILS_LP_FAST(pwr, utils_map(fabsf(mc_interface_get_rpm()), S_min,
+				ema_step(&pwr, utils_map(fabsf(mc_interface_get_rpm()), S_min,
 						m_set_now->p_top_speed_erpm, 0.0, 1.0), output_filter);
 
 				utils_truncate_number(&pwr, 0.0, 1.0);
