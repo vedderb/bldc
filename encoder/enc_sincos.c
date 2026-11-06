@@ -24,6 +24,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
+#include "mcpwm_foc.h"
 #include "mc_interface.h"
 #include "ema.h"
 #include "utils_math.h"
@@ -89,7 +90,7 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 		ema_step(&cfg->state.signal_low_error_rate, 0.0, alpha);
 
 		PROFILE_LINE();
-		float delay_comp = ((1.0 - cfg->filter_constant) * RPM2RADPS_f(mc_interface_get_rpm()) * timestep) / (cfg->filter_constant * cfg->ratio);
+		float delay_comp = ((1.0 - cfg->filter_constant) * RPM2RADPS_f(mcpwm_foc_get_rpm_fast()) * timestep) / (cfg->filter_constant * cfg->ratio);
 		PROFILE_LINE();
 		float angle = RAD2DEG_f(utils_fast_atan2(sin, cos) + delay_comp * cfg->delay_comp_sign) + 180.0;
 		PROFILE_LINE();
