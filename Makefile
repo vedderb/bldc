@@ -183,7 +183,9 @@ fw_$(1)_vescfw:
 		build_args='$$($(1)_BUILD_MACROS)' USE_VERBOSE_COMPILE=no
 
 $(1)_flash: fw_$(1)_flash
-fw_$(1)_flash: fw_$(1)_vescfw fw_$(1)_flash_only
+fw_$(1)_flash:
+	$$(MAKE) fw_$(1)_vescfw
+	$$(MAKE) fw_$(1)_flash_only
 
 $(1)_flash_only: fw_$(1)_flash_only
 fw_$(1)_flash_only:
