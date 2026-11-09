@@ -32,7 +32,9 @@
 static volatile bool i2c_running = false;
 static mutex_t shutdown_mutex;
 static bool shutdown_pressed = false;
-static int shutdown_pressed_time = 0;
+static systime_t shutdown_press_time = 0;
+static bool shutdown_long_release = false;
+static systime_t shutdown_release_time = 0;
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -260,20 +262,26 @@ void hw_try_restore_i2c(void) {
 }
 
 bool hw_sample_shutdown_button(void) {
-	
 	chMtxLock(&shutdown_mutex);
-        shutdown_pressed = palReadPad(HW_SHUTDOWN_SENSE_GPIO, HW_SHUTDOWN_SENSE_PIN) == PAL_HIGH;
-        chMtxUnlock(&shutdown_mutex);
-	if(shutdown_pressed){
-		shutdown_pressed_time += 10;
-		return true;
-	}else{
-		if(shutdown_pressed_time > 1000){
-			shutdown_pressed_time = 0;
-			return false;
-		}else{
-			shutdown_pressed_time = 0;
-			return true;
+
+	bool pressed = palReadPad(HW_SHUTDOWN_SENSE_GPIO, HW_SHUTDOWN_SENSE_PIN) == PAL_HIGH;
+
+	if (pressed) {
+		if (!shutdown_pressed) {
+			shutdown_press_time = chVTGetSystemTimeX();
 		}
+		shutdown_long_release = false;
+	} else if (shutdown_pressed && UTILS_AGE_S(shutdown_press_time) > 1.0) {
+		shutdown_release_time = chVTGetSystemTimeX();
+		shutdown_long_release = true;
+	} else if (UTILS_AGE_S(shutdown_release_time) > 1.0) {
+		// Must outlast the 0.7 s majority vote over the samples in shutdown.c
+		shutdown_long_release = false;
 	}
+
+	shutdown_pressed = pressed;
+	bool res = !shutdown_long_release;
+
+	chMtxUnlock(&shutdown_mutex);
+	return res;
 }
