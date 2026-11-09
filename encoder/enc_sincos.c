@@ -55,8 +55,8 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 	float sin = (ENCODER_SIN_VOLTS - cfg->s_offset) * cfg->s_gain;
 	float cos = (ENCODER_COS_VOLTS - cfg->c_offset) * cfg->c_gain;
 
-	UTILS_LP_FAST(cfg->state.sin_filter, sin, cfg->filter_constant);
-	UTILS_LP_FAST(cfg->state.cos_filter, cos, cfg->filter_constant);
+	ema_step(&cfg->state.sin_filter, sin, cfg->filter_constant);
+	ema_step(&cfg->state.cos_filter, cos, cfg->filter_constant);
 	sin = cfg->state.sin_filter;
 	cos = cfg->state.cos_filter;
 

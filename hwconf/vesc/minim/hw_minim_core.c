@@ -20,6 +20,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
+#include "ema.h"
 #include "utils_math.h"
 #include <math.h>
 #include "mc_interface.h"
@@ -285,7 +286,7 @@ static THD_FUNCTION(sense_thread, arg) {
 	for (;;) {
 		bool speed = false;
 
-		UTILS_LP_FAST(volts, ADC_VOLTS(ADC_IND_EXT3), 0.5);
+		ema_step(&volts, ADC_VOLTS(ADC_IND_EXT3), 0.5);
 
 		if (speed_last) {
 			speed = volts < 1.3;

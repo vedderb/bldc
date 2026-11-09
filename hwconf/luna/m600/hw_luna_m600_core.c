@@ -21,6 +21,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
+#include "ema.h"
 #include "utils.h"
 #include <math.h>
 #include "mc_interface.h"
@@ -322,7 +323,7 @@ void hw_update_speed_sensor(void) {
 		if (revolution_duration > 0.11) {	//ignore periods <110ms, which is about 68km/h
 			last_sensor_event_time = current_time;
 			wheel_rpm = 60.0 / revolution_duration;
-			UTILS_LP_FAST(wheel_rpm_filtered, (float)wheel_rpm, 0.5);
+			wheel_rpm_filtered = ema_next(wheel_rpm_filtered, (float)wheel_rpm, 0.5);
 
 			// For some reason a race condition on startup crashes the OS if this is executed too soon.
 			// So don't track odometer for the first 4 seconds
@@ -359,19 +360,19 @@ float hw_get_mosfet_temp_filtered(void) {
 	static float mosfet_temp_filtered = 25.0;
 	float mosfet_temp = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3455.0) + (1.0 / 298.15)) - 273.15);
 
-	UTILS_LP_FAST(mosfet_temp_filtered, (float)mosfet_temp, 0.1);
+	ema_step(&mosfet_temp_filtered, (float)mosfet_temp, 0.1);
 	return mosfet_temp_filtered;
 }
 
 bool hw_luna_m600_shutdown_button_down(void) {
 	static float button_filtered = 0.0;
-	UTILS_LP_FAST(button_filtered, GET_ON_OFF_BUTTON_VOLTAGE(), 0.01);
+	ema_step(&button_filtered, GET_ON_OFF_BUTTON_VOLTAGE(), 0.01);
 	return (button_filtered < 1.35);
 }
 
 bool hw_luna_m600_minus_button_down(void) {
 	static float button_filtered = 0.0;
-	UTILS_LP_FAST(button_filtered, GET_ON_OFF_BUTTON_VOLTAGE(), 0.05);
+	ema_step(&button_filtered, GET_ON_OFF_BUTTON_VOLTAGE(), 0.05);
 	return (button_filtered >= 1.35 && button_filtered < 2.0);
 }
 
@@ -465,7 +466,7 @@ float hw_get_encoder_error(void) {
 		angle_diff = utils_angle_difference(mcpwm_foc_get_phase_encoder(), mcpwm_foc_get_phase_observer());
 	}
 
-	UTILS_LP_FAST(angle_diff_filtered, angle_diff, 0.005);
+	ema_step(&angle_diff_filtered, angle_diff, 0.005);
 	return angle_diff_filtered;
 }
 
