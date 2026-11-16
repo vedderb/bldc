@@ -1,5 +1,6 @@
 #!/usr/bin/env -S shlbm -M 512000 --
-(import "dsp_lang.lisp")
+(import "dsp_lang.lisp" 'dsp)
+(read-eval-program dsp)
 
 ;; FFT and inverse
 

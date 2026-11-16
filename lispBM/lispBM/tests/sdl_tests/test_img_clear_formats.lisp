@@ -133,6 +133,8 @@
 ;; Display one of the cleared buffers
 (disp-render img_indexed16 0 0 '(0x000000 0xFF0000 0x00FF00 0x0000FF 0xFFFF00 0xFF00FF 0x00FFFF 0x808080 
                                  0x400000 0x004000 0x000040 0x404000 0x400040 0x004040 0x404040 0xC0C0C0))
+(save-img img_indexed16 "sdl_tests/png_out/test_img_clear_formats.png" '(0x000000 0xFF0000 0x00FF00 0x0000FF 0xFFFF00 0xFF00FF 0x00FFFF 0x808080 
+                                 0x400000 0x004000 0x000040 0x404000 0x400040 0x004040 0x404040 0xC0C0C0))
 
 (if (and r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20 r21 r22 r23 r24 r25 r26 r27 r28 r29 r30 r31 r32 r33 r34
          (eq dims16 '(200 100)) (eq dims332 '(200 100)) (eq dims565 '(200 100)) (eq dims888 '(200 100))

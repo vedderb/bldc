@@ -13,11 +13,6 @@
 (defun code-png-str (img c xs) (code-png img c (map (lambda (x) (list 'read-eval x)) xs)))
 
 
-;; VESC style import emulator
-(define import (macro (file sym)
-                      `(define ,(eval sym) (load-file (f-open ,file "r")))))
-
-
 (define font-file (f-open "Ubuntu-Regular.ttf" "r"))
 (define font (load-file font-file))
 

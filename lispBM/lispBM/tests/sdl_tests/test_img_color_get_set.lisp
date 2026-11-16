@@ -111,6 +111,7 @@
 
 ;; Display the result
 (disp-render img400x300 0 0 '(0x000000 0xFF0000 0x00FF00 0x0000FF))
+(save-img img400x300 "sdl_tests/png_out/test_img_color_get_set.png" '(0x000000 0xFF0000 0x00FF00 0x0000FF))
 
 (list )
 

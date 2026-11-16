@@ -45,5 +45,6 @@ void filter_add_sample(float *buffer, float sample, int bits, uint32_t *offset);
 float biquad_process(Biquad *biquad, float in);
 void biquad_config(Biquad *biquad, BiquadType type, float Fc);
 void biquad_reset(Biquad *biquad);
+void biquad_seed(Biquad *biquad, float in);
 
 #endif /* DIGITAL_FILTER_H_ */

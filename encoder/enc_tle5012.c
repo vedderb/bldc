@@ -31,6 +31,7 @@
 #include "stm32f4xx_conf.h"
 #include "hw.h"
 #include "mc_interface.h"
+#include "ema.h"
 #include "utils.h"
 #include "spi_bb.h"
 #include "timer.h"
@@ -206,10 +207,7 @@ bool enc_tle5012_setup(TLE5012_config_t *cfg) {
 }
 
 void enc_tle5012_routine(TLE5012_config_t *cfg) {
-	float timestep = timer_seconds_elapsed_since(cfg->state.last_update_time);
-	if (timestep > 1.0) {
-		timestep = 1.0;
-	}
+	const float alpha = ema_alpha_tau(1.0, timer_seconds_elapsed_since(cfg->state.last_update_time));
 	cfg->state.last_update_time = timer_time_now();
 
 	uint16_t rx_data;
@@ -219,7 +217,7 @@ void enc_tle5012_routine(TLE5012_config_t *cfg) {
 	if (tle_status == NO_ERROR ){
 		uint16_t pos = rx_data & 0x7FFF;
 		cfg->state.last_enc_angle = (float) pos * (360.0 / 32768.0); // 2^15 = 32768.0
-		UTILS_LP_FAST(cfg->state.spi_error_rate, 0.0, timestep);
+		ema_step(&cfg->state.spi_error_rate, 0.0, alpha);
 	}else{
 		if (tle_status != CRC_ERROR ) { // if not just a crc error
 
@@ -229,7 +227,7 @@ void enc_tle5012_routine(TLE5012_config_t *cfg) {
 		}
 
 		++cfg->state.spi_error_cnt;
-		UTILS_LP_FAST(cfg->state.spi_error_rate, 1.0, timestep);
+		ema_step(&cfg->state.spi_error_rate, 1.0, alpha);
 	}
 }
 

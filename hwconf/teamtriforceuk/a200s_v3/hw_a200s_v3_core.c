@@ -19,6 +19,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
+#include "ema.h"
 #include "utils.h"
 #include <math.h>
 #include "mc_interface.h"
@@ -272,7 +273,7 @@ float hw_a200s_get_temp_mos(void) {
 	mos_temp = t_board + ((SQ(motor_current_now) * mos_r_temp_comp/HW_TEMP_MOSFET_COUNT)/HW_TEMP_NUM_PHASES * HW_TEMP_MOSFET_KW);	
 	
 	static float mos_temp_filtered = 0.0;  
-	UTILS_LP_FAST(mos_temp_filtered, mos_temp, 0.0003);
+	ema_step(&mos_temp_filtered, mos_temp, 0.0003);
 	
 	return mos_temp_filtered;	
 }
@@ -284,7 +285,7 @@ float hw_a200s_get_temp_shunt(void) {
 	float shunt_temp = t_board +((((SQ(input_current_now) * CURRENT_SHUNT_RES)/HW_TEMP_NUM_PHASES)) * HW_TEMP_MOSFET_KW);
 	
 	static float shunt_temp_filtered = 0.0;	 
-	UTILS_LP_FAST(shunt_temp_filtered, shunt_temp, 0.0003);	
+	ema_step(&shunt_temp_filtered, shunt_temp, 0.0003);
 	
 	return shunt_temp_filtered;
 }

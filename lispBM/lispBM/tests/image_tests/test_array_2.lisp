@@ -7,4 +7,3 @@
   })
 
 (image-save)
-(f-write-image (f-open "image.lbm" "w"))

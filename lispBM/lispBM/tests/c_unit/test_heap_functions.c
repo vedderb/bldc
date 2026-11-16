@@ -205,24 +205,18 @@ int test_lbm_gc_lock_unlock(void) {
   // Test 1: Basic lock and unlock operations should not crash
   lbm_gc_lock();
   lbm_gc_unlock();
-  
-  // Test 2: Multiple locks should work (if implementation supports nesting)
-  lbm_gc_lock();
-  lbm_gc_lock();
-  lbm_gc_unlock();
-  lbm_gc_unlock();
-  
-  // Test 3: Test that allocations work normally after unlock
+
+  // Test 2: Test that allocations work normally after unlock
   lbm_value test_alloc1 = lbm_cons(lbm_enc_i(123), lbm_enc_i(456));
   if (lbm_is_symbol_merror(test_alloc1)) return 0;
-  
-  // Test 4: Lock during allocation sequence
+
+  // Test 3: Lock during allocation sequence
   lbm_gc_lock();
   lbm_value test_alloc2 = lbm_cons(lbm_enc_i(789), lbm_enc_i(012));
   if (lbm_is_symbol_merror(test_alloc2)) return 0;
   lbm_gc_unlock();
-  
-  // Test 5: Verify heap is still functional after lock/unlock operations
+
+  // Test 4: Verify heap is still functional after lock/unlock operations
   lbm_value final_test = lbm_cons(test_alloc1, test_alloc2);
   if (lbm_is_symbol_merror(final_test)) return 0;
   

@@ -222,6 +222,7 @@ typedef enum {
 	SENSOR_PORT_MODE_MA782,
 	SENSOR_PORT_MODE_AMT22,
 	SENSOR_PORT_MODE_MT6835_SPI_HW,
+	SENSOR_PORT_MODE_PWM_ABI_INVERTED,
 } sensor_port_mode;
 
 typedef struct {
@@ -402,6 +403,7 @@ typedef struct {
 	float l_abs_current_max;
 	float l_min_erpm;
 	float l_max_erpm;
+	float l_erpm_abs_overspeed;
 	float l_erpm_start;
 	float l_max_erpm_fbrake;
 	float l_max_erpm_fbrake_cc;
@@ -423,6 +425,8 @@ typedef struct {
 	float l_watt_min;
 	float l_current_max_scale;
 	float l_current_min_scale;
+	float l_in_current_max_scale;
+	float l_in_current_min_scale;
 	float l_duty_start;
 	uint8_t l_additional_faults;
 	// Overridden limits (Computed during runtime)
@@ -717,6 +721,8 @@ typedef struct {
 	bool tc;
 	float tc_max_diff;
 	uint32_t update_rate_hz;
+	float coast_brake_level;
+	float coast_brake_ramp_time;
 } adc_config;
 
 // Nunchuk control types
@@ -836,7 +842,8 @@ typedef enum {
 	IMU_TYPE_EXTERNAL_MPU9X50,
 	IMU_TYPE_EXTERNAL_ICM20948,
 	IMU_TYPE_EXTERNAL_BMI160,
-	IMU_TYPE_EXTERNAL_LSM6DS3
+	IMU_TYPE_EXTERNAL_LSM6DS3,
+	IMU_TYPE_EXTERNAL_LSM6DSV32X
 } IMU_TYPE;
 
 typedef enum {

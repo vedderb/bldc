@@ -82,4 +82,5 @@ tests/test_lisp_code_cps
 /.direnv
 .aider*
 repl/.build_features
+.venv
 

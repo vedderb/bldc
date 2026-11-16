@@ -35,7 +35,7 @@ int lispif_get_restart_cnt(void);
 void lispif_lock_lbm(void);
 void lispif_unlock_lbm(void);
 void lispif_stop(void);
-bool lispif_restart(bool print, bool load_code, bool load_imports);
+bool lispif_restart(bool print, bool load_code);
 void lispif_add_ext_load_callback(void (*p_func)(bool));
 bool lispif_is_eval_task(void);
 lbm_uint lispif_const_heap_max_ind(void);

@@ -20,3 +20,5 @@ workspace.code-workspace
 
 .cache
 compile_commands.json
+
+/result

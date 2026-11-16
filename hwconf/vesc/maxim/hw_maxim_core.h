@@ -28,6 +28,8 @@
 	#define HW_NAME					"Maxim_120_PH"
 #elif defined(HWMAXIM_150_PH)
 	#define HW_NAME					"Maxim_150_PH"
+#elif defined(HWMAXIM_100)
+	#define HW_NAME					"Maxim_100"
 #else
 	#error "Must define hardware type"
 #endif
@@ -305,6 +307,10 @@
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE			112.0	// Maximum input voltage
 #endif
+#elif defined(HWMAXIM_100)
+#ifndef MCCONF_L_MAX_VOLTAGE
+#define MCCONF_L_MAX_VOLTAGE			94.0	// Maximum input voltage
+#endif
 #else
 #ifndef MCCONF_L_MAX_VOLTAGE
 #define MCCONF_L_MAX_VOLTAGE			140.0	// Maximum input voltage
@@ -347,6 +353,11 @@
 #define HW_LIM_CURRENT_IN		-650.0, 650.0
 #define HW_LIM_CURRENT_ABS		0.0, 900.0
 #define HW_LIM_VIN				20.0, 115.0
+#elif defined(HWMAXIM_100)
+#define HW_LIM_CURRENT			-650.0, 650.0
+#define HW_LIM_CURRENT_IN		-650.0, 650.0
+#define HW_LIM_CURRENT_ABS		0.0, 900.0
+#define HW_LIM_VIN				20.0, 97.0
 #else
 #define HW_LIM_CURRENT			-450.0, 450.0
 #define HW_LIM_CURRENT_IN		-450.0, 450.0

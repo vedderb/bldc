@@ -187,6 +187,26 @@
 #define IMU_SPI_MISO_GPIO		GPIOB
 #define IMU_SPI_MISO_PIN		4
 
+// External IMU on the HW_SPI header (SPID3), NSS on PA7, DRDY on PC9. PC10/PC11 are
+// shared with the COMM-port UART, which is not started while an external IMU is
+// configured. SPID3 is shared with the SPI encoders - do not configure one alongside
+// an external IMU (the IMU loses the pins).
+#define IMU_EXT_COM			IMU_COM_SPI_HW
+#define IMU_EXT_SPI_DEV			SPID3
+#define IMU_EXT_SPI_AF			GPIO_AF_SPI3
+#define IMU_EXT_SPI_NSS_GPIO		GPIOA
+#define IMU_EXT_SPI_NSS_PIN		7
+#define IMU_EXT_SPI_SCK_GPIO		GPIOC
+#define IMU_EXT_SPI_SCK_PIN		10
+#define IMU_EXT_SPI_MISO_GPIO		GPIOC
+#define IMU_EXT_SPI_MISO_PIN		11
+#define IMU_EXT_SPI_MOSI_GPIO		GPIOC
+#define IMU_EXT_SPI_MOSI_PIN		12
+#define IMU_EXT_BUS_SPEED_HZ		10500000
+
+#define IMU_EXT_DRDY_GPIO		GPIOC
+#define IMU_EXT_DRDY_PIN		9
+
 // UART Peripheral
 #define HW_UART_DEV		        SD4
 #define HW_UART_GPIO_AF		    GPIO_AF_UART4

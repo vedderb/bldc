@@ -29,7 +29,7 @@
 extern "C" {
 #endif
   extern const fundamental_fun fundamental_table[];
-  bool struct_eq(lbm_value a, lbm_value b);
+  bool struct_eq(lbm_value a, lbm_value b, int rlevel);
 #ifdef __cplusplus
 }
 #endif

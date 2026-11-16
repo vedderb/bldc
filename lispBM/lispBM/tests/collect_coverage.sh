@@ -6,6 +6,7 @@ cov_files=("tests_cov_32.json"
            "tests_cov_64.json"
            "../repl/repl_tests_cov.json"
            "../repl/image_tests_cov.json"
+           "../repl/persist_tests_cov.json"
            "./c_unit/c_unit_tests_cov.json"
            "../repl/sdl_tests_cov.json")
 

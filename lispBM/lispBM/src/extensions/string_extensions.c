@@ -46,6 +46,41 @@ static char print_val_buffer[256];
 static lbm_uint sym_left;
 static lbm_uint sym_case_insensitive;
 
+static bool str_from_n_format_is_safe(const char *format, bool is_float, bool *format_is_float) {
+  const char *p = format;
+  int num_specs = 0;
+  while (*p) {
+    if (*p != '%') {
+      p++;
+      continue;
+    }
+    p++;
+    if (*p == '%') {
+      p++;
+      continue;
+    }
+    num_specs++;
+    if (num_specs > 1) return false;
+
+    while (*p == '-' || *p == '+' || *p == ' ' || *p == '0' || *p == '#') p++;
+    while (isdigit((unsigned char)*p)) p++;
+    if (*p == '.') {
+      p++;
+      while (isdigit((unsigned char)*p)) p++;
+    }
+
+    char c = *p;
+    bool spec_is_float = (c == 'f' || c == 'F' || c == 'e' || c == 'E' ||
+                          c == 'g' || c == 'G' || c == 'a' || c == 'A');
+    bool spec_is_int = (c == 'd' || c == 'i' || c == 'o' ||
+                        c == 'u' || c == 'x' || c == 'X' || c == 'c');
+    if (!spec_is_float && !spec_is_int) return false;
+    if (is_float && !spec_is_float) return false;
+    *format_is_float = spec_is_float;
+    p++;
+  }
+  return num_specs == 1;
+}
 
 static lbm_value ext_str_from_n(lbm_value *args, lbm_uint argn) {
   if (argn != 1 && argn != 2) {
@@ -63,26 +98,32 @@ static lbm_value ext_str_from_n(lbm_value *args, lbm_uint argn) {
   char *format = 0;
   if (argn == 2) {
     format = lbm_dec_str(args[1]);
+    if (!format) {
+      return ENC_SYM_TERROR;
+    }
+  }
+
+  bool is_float = (lbm_type_of_functional(args[0]) == LBM_TYPE_DOUBLE ||
+                   lbm_type_of_functional(args[0]) == LBM_TYPE_FLOAT);
+  bool format_is_float = is_float;
+
+  if (format && !str_from_n_format_is_safe(format, is_float, &format_is_float)) {
+    lbm_set_error_reason((char*)lbm_error_str_incorrect_arg);
+    lbm_set_error_suspect(args[1]);
+    return ENC_SYM_TERROR;
+  }
+
+  if (!format) {
+    format = is_float ? "%g" : "%d";
   }
 
   char buffer[100];
   size_t len = 0;
 
-  switch (lbm_type_of_functional(args[0])) {
-  case LBM_TYPE_DOUBLE: /* fall through */
-  case LBM_TYPE_FLOAT:
-    if (!format) {
-      format = "%g";
-    }
+  if (format_is_float) {
     len = (size_t)snprintf(buffer, sizeof(buffer), format, lbm_dec_as_double(args[0]));
-    break;
-
-  default:
-    if (!format) {
-      format = "%d";
-    }
+  } else {
     len = (size_t)snprintf(buffer, sizeof(buffer), format, lbm_dec_as_i32(args[0]));
-    break;
   }
 
   len = MIN(len, sizeof(buffer));

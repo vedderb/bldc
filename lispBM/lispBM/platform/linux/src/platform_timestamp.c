@@ -45,3 +45,8 @@ void lbm_timestamp_cacher(void *v) {
 void lbm_timestamp_cacher_stop(void) {
   atomic_store(&timestamp_running, 0);
 }
+
+void *lbm_timestamp_cacher_pthread(void *v) {
+  lbm_timestamp_cacher(v);
+  return NULL;
+}

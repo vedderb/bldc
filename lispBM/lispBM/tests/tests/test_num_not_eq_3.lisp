@@ -1,1 +1,1 @@
-(check (not (!= 1)))
+(check (eq (trap (!= 1)) '(exit-error type_error)))

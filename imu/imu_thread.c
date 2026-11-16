@@ -22,23 +22,34 @@
 #include "ch.h"
 #include "terminal.h"
 #include "commands.h"
+#include "timer.h"
 #include "utils_math.h"
 
 #include <stdio.h>
+#include <string.h>
 
 // In DRDY mode, fall back to a timed read after this many sample periods
 // without a data-ready edge, so a missed edge or an unwired pin can't stall
 // the loop.
 #define DRDY_TIMEOUT_PERIODS 2
 
+// Reads on a dead bus can still "succeed" while returning constant data. A
+// live MEMS chip always has noise, so treat this many consecutive
+// bit-identical samples as a dead bus. The limit has enough headroom over the
+// short duplicate runs of a poll transiently outrunning the ODR.
+#define FROZEN_SAMPLES_LIMIT 32
+
 static THD_FUNCTION(thread_func, arg);
 
 static stkalign_t m_wa[THD_WORKING_AREA_SIZE(1024) / sizeof(stkalign_t)];
 static thread_t *m_thd = NULL;
 static imu_device_t *m_dev;
+static drdy_t *m_drdy;
 static volatile uint32_t m_read_fails;
+static volatile uint32_t m_frozen_streak;
+static float m_prev_sample[6];
 static bool m_drdy_active = false;
-static void (*m_cb)(float *accel, float *gyro, float *mag);
+static void (*m_cb)(float *accel, float *gyro, float *mag, float dt);
 static bool m_cmds_registered = false;
 
 static void terminal_read_reg(int argc, const char **argv) {
@@ -82,13 +93,18 @@ static void terminal_status(int argc, const char **argv) {
 	if (m_dev->variant) {
 		commands_printf("Variant       : %s", m_dev->variant);
 	}
+	const char *running = m_thd ? "yes" : "no";
+	if (m_thd && m_frozen_streak >= FROZEN_SAMPLES_LIMIT) {
+		running = "frozen";
+	}
+
 	commands_printf(
 			"Transport     : %s\n"
 			"Running       : %s\n"
 			"Sample Rate   : %d Hz\n"
 			"Read fails    : %u",
 			m_dev->transport->interface->name,
-			m_thd ? "yes" : "no",
+			running,
 			m_dev->sample_rate_hz,
 			m_read_fails);
 
@@ -96,20 +112,30 @@ static void terminal_status(int argc, const char **argv) {
 		commands_printf(
 				"DRDY ints     : %u\n"
 				"DRDY timeouts : %u\n",
-				drdy_interrupt_count(),
-				drdy_timeout_count());
+				drdy_interrupt_count(m_drdy),
+				drdy_timeout_count(m_drdy));
 	}
 }
 
-void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz) {
-	m_dev = dev;
-	m_dev->sample_rate_hz = rate_hz;
-	m_read_fails = 0;
+// The timed loop period, rounded down to whole ticks so the rate is at least the requested one.
+static systime_t loop_interval(uint16_t rate_hz) {
+	return MAX(CH_CFG_ST_FREQUENCY / rate_hz, 1);
+}
 
-	// Interrupt mode only when both the board wires a DRDY pin and the device can route its
-	// data-ready to it; otherwise the timed loop runs and the hook is never called. Resolved
-	// here (before configure()) so the device's configure() can adapt its ODR/filter setup.
-	dev->use_drdy = drdy_present() && dev->interface->enable_drdy_output != NULL;
+void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz, drdy_t *drdy) {
+	m_dev = dev;
+	m_drdy = drdy;
+	m_read_fails = 0;
+	m_frozen_streak = 0;
+
+	// Interrupt mode only when both a DRDY pin is wired to this device and the device can
+	// route its data-ready to it; otherwise the timed loop runs and the pin stays unused.
+	// Resolved here (before configure()) so the device's configure() can adapt its
+	// ODR/filter setup.
+	dev->use_drdy = drdy != NULL && dev->interface->enable_drdy_output != NULL;
+
+	// In DRDY mode this is the requested rate, which configure() replaces with the ODR it programs.
+	dev->sample_rate_hz = dev->use_drdy ? rate_hz : CH_CFG_ST_FREQUENCY / loop_interval(rate_hz);
 
 	if (!m_cmds_registered) {
 		terminal_register_command_callback(
@@ -126,32 +152,38 @@ void imu_thread_set_device(imu_device_t *dev, uint16_t rate_hz) {
 	}
 }
 
-void imu_thread_start(void (*cb)(float *accel, float *gyro, float *mag)) {
+void imu_thread_start(void (*cb)(float *accel, float *gyro, float *mag, float dt)) {
 	m_cb = cb;
 
 	m_drdy_active = m_dev->use_drdy;
 	if (m_drdy_active) {
-		drdy_init();
+		drdy_init(m_drdy);
 		m_dev->interface->enable_drdy_output(m_dev, true);
 	}
 
-	m_thd = chThdCreateStatic(m_wa, sizeof(m_wa), NORMALPRIO, thread_func, NULL);
+	// Run above NORMALPRIO threads and the CAN read thread (NORMALPRIO + 1) when the
+	// transport allows it (is not CPU-heavy).
+	tprio_t prio = m_dev->transport->interface->cpu_bound ? NORMALPRIO : NORMALPRIO + 2;
+	m_thd = chThdCreateStatic(m_wa, sizeof(m_wa), prio, thread_func, NULL);
 }
 
 void imu_thread_stop(void) {
 	if (m_thd) {
 		chThdTerminate(m_thd);
-		drdy_signal(); // unblock a DRDY wait so the thread sees the terminate flag
+		if (m_drdy_active) {
+			drdy_signal(m_drdy); // unblock a DRDY wait so the thread sees the terminate flag
+		}
 		chThdWait(m_thd);
 		m_thd = NULL;
 	}
 
 	if (m_dev && m_drdy_active) {
 		m_dev->interface->enable_drdy_output(m_dev, false);
-		drdy_deinit();
+		drdy_deinit(m_drdy);
 	}
 
 	m_dev = NULL;
+	m_drdy = NULL;
 	m_drdy_active = false;
 }
 
@@ -160,18 +192,22 @@ static THD_FUNCTION(thread_func, arg) {
 	chRegSetThreadName("IMU");
 
 	const systime_t period = US2ST(1000000 / m_dev->sample_rate_hz);
-	// One tick less so the actual rate is at least the configured one (US2ST rounds up).
-	const systime_t interval = period - 1;
+	const systime_t interval = loop_interval(m_dev->sample_rate_hz);
+
+	uint32_t last_ts = timer_time_now();
+	systime_t deadline = chVTGetSystemTimeX();
+	bool first_sample = true;
 
 	while (!chThdShouldTerminateX()) {
-		systime_t start_time = chVTGetSystemTimeX();
-
+		bool drdy = false;
 		if (m_drdy_active) {
-			drdy_wait(DRDY_TIMEOUT_PERIODS * period);
+			drdy = drdy_wait(m_drdy, DRDY_TIMEOUT_PERIODS * period);
 			if (chThdShouldTerminateX()) {
 				break;
 			}
 		}
+
+		uint32_t ts = drdy ? drdy_timestamp(m_drdy) : timer_time_now();
 
 		float accel[3], gyro[3], mag[3];
 		if (!m_dev->interface->read_sample(m_dev, accel, gyro, mag)) {
@@ -184,18 +220,44 @@ static THD_FUNCTION(thread_func, arg) {
 			continue;
 		}
 
-		if (m_cb) {
-			m_cb(accel, gyro, mag);
+		// Detect a dead bus by a run of bit-identical samples and calling the
+		// callback until it changes again (mag is left out of the comparison).
+		if (memcmp(m_prev_sample, accel, sizeof(accel)) == 0 &&
+				memcmp(m_prev_sample + 3, gyro, sizeof(gyro)) == 0) {
+			if (m_frozen_streak < FROZEN_SAMPLES_LIMIT) {
+				m_frozen_streak++;
+			}
+		} else {
+			m_frozen_streak = 0;
+			memcpy(m_prev_sample, accel, sizeof(accel));
+			memcpy(m_prev_sample + 3, gyro, sizeof(gyro));
 		}
+		bool frozen = m_frozen_streak >= FROZEN_SAMPLES_LIMIT;
+
+		// An edge stamp can be older than the previous iteration's timeout-fallback stamp
+		// (edge fired right after the timeout expired), keep dt from wrapping to negative.
+		if ((int32_t)(ts - last_ts) <= 0) {
+			ts = timer_time_now();
+		}
+
+		if (m_cb && !frozen) {
+			float dt = first_sample ? 1.0f / m_dev->sample_rate_hz : timer_calc_diff(last_ts, ts);
+			m_cb(accel, gyro, mag, dt);
+		}
+		first_sample = false;
+		last_ts = ts;
 
 		// In DRDY mode the next edge wakes the loop, we only sleep in timed mode
 		if (!m_drdy_active) {
-			systime_t sleep_ticks = 1;
-			systime_t remaining = start_time + interval - chVTGetSystemTimeX();
-			if (remaining > 0 && remaining <= interval) {
-				sleep_ticks = remaining;
+			systime_t now = chVTGetSystemTimeX();
+			deadline += interval;
+			systime_t remaining = deadline - now;
+			if (remaining == 0 || remaining > interval) {
+				// Too late for this deadline, restart the schedule
+				deadline = now + 1;
+				remaining = 1;
 			}
-			chThdSleep(sleep_ticks);
+			chThdSleep(remaining);
 		}
 	}
 }

@@ -27,5 +27,6 @@ bool enc_pwm_init(bool update_abi);
 void enc_pwm_deinit(void);
 float enc_pwm_read_deg(void);
 uint32_t enc_pwm_update_cnt(void);
+void enc_pwm_set_inverted(bool inverted);
 
 #endif /* ENC_PWM_H_ */

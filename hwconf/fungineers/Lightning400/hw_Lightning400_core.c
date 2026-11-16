@@ -33,6 +33,7 @@ static volatile bool i2c_running = false;
 static mutex_t shutdown_mutex;
 static bool will_poweroff = false;
 static unsigned int bt_hold_counter = 0;
+static bool bt_released_since_boot = false;
 
 // I2C configuration
 static const I2CConfig i2cfg = {
@@ -41,19 +42,23 @@ static const I2CConfig i2cfg = {
 		STD_DUTY_CYCLE
 };
 
+static virtual_timer_t buzzer_vt;
+
+static void buzzer_off_vt_cb(void *arg) {
+	(void)arg;
+	HW_BUZZER_OFF();
+}
+
 void hw_Lightning_buzzer_init(void) {
 	// ShutDown
 	palSetPadMode(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(HW_SHUTDOWN_SENSE_GPIO, HW_SHUTDOWN_SENSE_PIN, PAL_MODE_INPUT_ANALOG);
 	HW_SHUTDOWN_HOLD_ON();
 
-	//Start the buzzer and beep it
+	// Start the buzzer beep, switch it off from a timer to not block booting
 	pwm_servo_init((uint32_t)4000, (float)0.5f);
 	HW_BUZZER_ON();
-	chThdSleepMilliseconds(400);
-	HW_BUZZER_OFF();
-
-	chThdSleepMilliseconds(1000);
+	chVTSet(&buzzer_vt, MS2ST(400), buzzer_off_vt_cb, NULL);
 }
 
 static void beep_off(void)
@@ -297,6 +302,16 @@ bool hw_sample_shutdown_button(void) {
     chMtxLock(&shutdown_mutex);
     float newval = ADC_VOLTS(ADC_IND_SHUTDOWN);
     chMtxUnlock(&shutdown_mutex);
+
+    // The press that powered the board on can still be held when sampling starts, only
+    // count presses after the button has been released once
+    if (!bt_released_since_boot) {
+        if (newval > 1.0f) {
+            return true;
+        }
+        bt_released_since_boot = true;
+    }
+
     if (newval > 1.0f) {
         bt_hold_counter++;
 

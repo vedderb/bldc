@@ -136,6 +136,10 @@
                                0xFFFF00 0xFF00FF 0x00FFFF 0xFFFFFF
                                0x800000 0x008000 0x000080 0x808000
                                0x800080 0x008080 0x808080 0xC0C0C0))
+(save-img img600x400 "sdl_tests/png_out/test_img_filled_arcs_edge_cases.png" '(0x000000 0xFF0000 0x00FF00 0x0000FF 
+                               0xFFFF00 0xFF00FF 0x00FFFF 0xFFFFFF
+                               0x800000 0x008000 0x000080 0x808000
+                               0x800080 0x008080 0x808080 0xC0C0C0))
 
 ;; (list test1 test2 test3 test4 test5 test6 test7 test8 test9 test10
 ;;          test11 test12 test13 test14 test15 test16 test17 test18 test19 test20

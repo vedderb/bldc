@@ -119,7 +119,6 @@ private:
 
   static int  printCallback(const char *fmt, ...);
   static void doneCallback(eval_context_t *ctx);
-  static void criticalCallback(void);
   static void sleepCallback(uint32_t us);
   static bool imageWriteCallback(uint32_t data, int32_t index, bool const_heap);
   static bool dynLoadCallback(const char *str, const char **code);

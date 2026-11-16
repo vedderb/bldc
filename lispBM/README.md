@@ -3396,6 +3396,20 @@ This version of uart-start is for the Express-platform. Start the UART uart-num 
 
 ---
 
+#### uart-select
+
+| Platforms | Firmware |
+|---|---|
+| Express | 7.01+ |
+
+```clj
+(uart-select uart-num)
+```
+
+Select which UART port to use. The UART must be started with uart-start first. Note that uart-start automatically selects the uart that is started to keep compatibility with old code.
+
+---
+
 #### uart-stop
 
 | Platforms | Firmware |
@@ -4021,6 +4035,8 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-current-max          ; Maximum current in A
 'l-current-min-scale    ; Scaled minimum current, 0.0 to 1.0
 'l-current-max-scale    ; Scaled maximum current, 0.0 to 1.0
+'l-in-current-min-scale ; Scaled minimum input current, 0.0 to 1.0 (FW 7.01+)
+'l-in-current-max-scale ; Scaled maximum input current, 0.0 to 1.0 (FW 7.01+)
 'l-in-current-min       ; Minimum input current in A (a negative value)
 'l-in-current-max       ; Maximum input current in A
 'l-abs-current-max      ; Abs max current in A
@@ -4035,6 +4051,8 @@ The following selection of app and motor parameters can be read and set from Lis
 'l-watt-max             ; Maximum power in W
 'l-battery-cut-start    ; Voltage where current starts to get reduced
 'l-battery-cut-end      ; Voltage below which current is not allowed
+'l-battery-regen-cut-start ; Regen voltage where current starts to get reduced (FW 7.01+)
+'l-battery-regen-cut-end ; Regen voltage above which current is not allowed (FW 7.01+)
 'l-temp-motor-start     ; Temperature where motor current starts to get reduced
 'l-temp-motor-end       ; Temperature above which motor current is not allowed
 'l-temp-accel-dec       ; Decrease temp limits this much during acceleration
@@ -4116,6 +4134,10 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    12: SENSOR_PORT_MODE_CUSTOM_ENCODER
                         ;    13: SENSOR_PORT_MODE_PWM
                         ;    14: SENSOR_PORT_MODE_PWM_ABI
+                        ;    15: SENSOR_PORT_MODE_MA782,
+                        ;    16: SENSOR_PORT_MODE_AMT22,
+                        ;    17: SENSOR_PORT_MODE_MT6835_SPI_HW,
+                        ;    18: SENSOR_PORT_MODE_PWM_ABI_INVERTED,
 'm-fault-stop-time-ms   ; Milliseconds to stop the motor for after fauls (FW6.06.5)
 'si-motor-poles         ; Number of motor poles, must be multiple of 2
 'si-gear-ratio          ; Gear ratio (Added in FW 6.05)
@@ -4272,6 +4294,8 @@ The following selection of app and motor parameters can be read and set from Lis
 'adc-v1-max             ; Throttle 1 high fault voltage (Added in FW 6.05)
 'adc-v2-start           ; Throttle 2 start voltage (Added in FW 7.00.1)
 'adc-v2-end             ; Throttle 2 end voltage (Added in FW 7.00.1)
+'adc-coast-brake-level  ; Brake to apply when coasting (Added in FW 7.01)
+'adc-coast-brake-ramp-time ; Time to ramp up coasting brake in seconds (Added in FW 7.01)
 'pas-current-scaling    ; PAS current scaling (Added in FW 6.05)
 
 ; VESC Remote App (Added in firmware 7.00)
@@ -4330,7 +4354,11 @@ The following selection of app and motor parameters can be read and set from Lis
                         ;    0: Disabled
                         ;    1: Enabled
                         ;    2: Enabled and encrypted with pin
-                        ;    3: Enabled with scripting
+'ble-mode-lbm           ; LispBM BLE mode
+                        ;    0: Disabled
+                        ;    1: Server
+                        ;    2: Client
+                        ;    3: Client & Server
 'ble-name               ; Device name (also the name that shows up in VESC Tool)
 'ble-pin                ; BLE pin code
 'ble-service-capacity   ; BLE Service Capacity
@@ -6003,6 +6031,78 @@ Here are some examples
 ```
 
 As with bufget big endian is the default byte order and little-endian can be passed as the last argument to use little-endian byte order instead.
+
+---
+
+#### bufget-bits-\[x\]
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 7.01+ |
+
+Read data from an array at a bit position. bitpos is which bit to start at and bitlen is how many bits to read. The optional argument optEndian can be set to 'little-endian or 'big-endian with 'big-endian being the default. The optional argument optDbc can be set to 'dbc to count the bit position in the same way as CAN DBC files, which only matters when using 'little-endian (see [here](https://www.typhoon-hil.com/documentation/typhoon-hil-software-manual/References/can_bus_protocol.html) what DBC counting looks like).
+
+Note that bitlen only is used for i and u, f32 is always 32 bits.
+
+```clj
+(bufget-bits-[x] arr bitpos bitlen optEndian optDbc)
+```
+
+Examples
+
+```clj
+; Read 14 bits starting at position 2 in unsigned big-endian
+(bufget-bits-u arr 2 14)
+
+; Read 20 bits starting at position 5 in signed little-endian
+(bufget-bits-i arr 5 20 'little-endian)
+
+; Read 11 bits starting at position 5 in signed little-endian
+(bufget-bits-i arr 5 11 'big-endian 'dbc)
+(bufget-bits-i arr 5 11 'dbc) ; same as above
+
+; Read a 32-bit float starting at position 5 in big-endian
+(bufget-bits-f32 arr 5)
+
+; Read a 32-bit float starting at position 5 in little-endian
+(bufget-bits-f32 arr 5 'little-endian)
+```
+
+---
+
+#### bufset-bits-\[x\]
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 7.01+ |
+
+Write value to an array at a bit position. bitpos is which bit to start at and bitlen is how many bits to write. The optional argument optEndian can be set to 'little-endian or 'big-endian with 'big-endian being the default. The optional argument optDbc can be set to 'dbc to count the bit position in the same way as CAN DBC files, which only matters when using 'little-endian (see [here](https://www.typhoon-hil.com/documentation/typhoon-hil-software-manual/References/can_bus_protocol.html) what DBC counting looks like).
+
+Note that bitlen only is used for i and u, f32 is always 32 bits.
+
+```clj
+(bufset-bits-[x] arr bitpos bitlen value optEndian optDbc)
+```
+
+Examples
+
+```clj
+; Write 287 as 14 bits starting at position 2 in unsigned big-endian
+(bufset-bits-u arr 2 14 287)
+
+; Write 7825 as 20 bits starting at position 5 in signed little-endian
+(bufset-bits-i arr 5 20 7852 'little-endian)
+
+; Write 511 as 11 bits starting at position 5 in signed little-endian
+(bufset-bits-i arr 5 11 511 'big-endian 'dbc)
+(bufset-bits-i arr 5 11 511 'dbc) ; same as above
+
+; Write 1.234 as a 32-bit float starting at position 5 in big-endian
+(bufset-bits-f32 arr 5 1.234)
+
+; Write 1.234 as a 32-bit float starting at position 5 in little-endian
+(bufset-bits-f32 arr 5 1.1234 'little-endian)
+```
 
 ---
 
@@ -8227,6 +8327,94 @@ Example:
 (aes-ctr-crypt key counter data start-offset len)
 (print data)
 > [0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15]
+```
+
+---
+
+## Packet Encoder/Decoder
+
+This is an encoder/decoder for the same packets that VESC Tool uses to communicate with ESCs and other devices. The decoder can be used to decode a stream of bytes as they get received in chunks.
+
+Example Encoder over UART:
+
+```clj
+(uart-start 1 20 21 115200)
+
+(loopwhile-thd 150 t {
+        (uart-write (pkt-enc (flatten (list 1 2 3 "Hello"))))
+        (sleep 0.1)
+})
+```
+
+Example Decoder over UART:
+
+```clj
+(var dec-state (pkt-dec-alloc))
+(var uart-buf (bufcreate 10))
+(uart-start 1 20 21 115200)
+
+(loopwhile t {
+        (var len (uart-read uart-buf (buflen uart-buf) nil nil 0.02))
+        (var res (pkt-dec dec-state uart-buf len))
+        (if res (print (unflatten res)))
+})
+```
+
+---
+
+#### pkt-enc
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 7.01+ |
+
+```clj
+(pkt-enc data)
+```
+
+Encode data in the VESC packet format. Returns a byte array with one start byte, one or two length bytes, the payload, two CRC16-bytes and one stop byte.
+
+---
+
+#### pkt-dec-alloc
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 7.01+ |
+
+```clj
+(pkt-dec-alloc)
+```
+
+Allocate packet decoder state.
+
+---
+
+#### pkt-dec
+
+| Platforms | Firmware |
+|---|---|
+| ESC, Express | 7.01+ |
+
+```clj
+(pkt-dec dec-state data optLen)
+```
+
+Decode packet. Dec-state is the decoder state created with pkt-dec-alloc and data is the data to decode. The optional argument optLen can be used if only the first optLen bytes of data should be decoded (otherwise all of data is decoded). If a complete packet is decoded with a correct checksum the decoded payload is returned. If the decoding is not complete or if no valid packet is found nil is returned.
+
+This function can be used when streaming packets over e.g. TCP or UART.
+
+Example:
+
+```clj
+(def to-send (pkt-enc "Hello"))
+(def dec-state (pkt-dec-alloc))
+
+(print to-send)
+> [2 6 72 101 108 108 111 0 190 39 3]
+
+(print (pkt-dec dec-state to-send))
+> "Hello"
 ```
 
 ---

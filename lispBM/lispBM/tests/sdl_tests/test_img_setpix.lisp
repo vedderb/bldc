@@ -29,6 +29,7 @@
 (define r5 (img-setpix img400x200 1000 1000 8)) ;; index out of range
 
 (disp-render img400x200 0 0 '(0x000000 0xFFFFFF))
+(save-img img400x200 "sdl_tests/png_out/test_img_setpix.png" '(0x000000 0xFFFFFF))
 
 (if (and r1 r2 r3 r4 r5)
     (print "SUCCESS")

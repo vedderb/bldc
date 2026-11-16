@@ -8,5 +8,5 @@ repl/windows/SDL2/include/SDL2/SDL_config.h   binary
 repl/windows/SDL2/include/SDL2/SDL_revision.h binary
 repl/windows/readline/include/readline/readline.h binary
 repl/windows/readline/include/readline/rlstdc.h   binary
-src/extensions/tjpgd.h    binary
-src/extensions/tjpgdcnf.h binary
+utils/tjpgd.h    binary
+utils/tjpgdcnf.h binary

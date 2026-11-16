@@ -511,16 +511,17 @@ lbm_uint lbm_list_length(lbm_value c);
  * \return The list reversed
  */
 lbm_value lbm_list_destructive_reverse(lbm_value list);
-/** Copy a list
+/** Copy a list, terminating the copy with tail instead of nil.
  *
  * \cycledanger
  * \evalpaused
  *
- * \param m Number of elements to copy or -1 for all. If 1, m will be updated with the length of the list
+ * \param m Number of elements to copy or -1 for all. If -1, m will be updated with the length of the list
  * \param list A list.
- * \return Reversed list or enc_sym(SYM_MERROR) if heap is full.
+ * \param tail Value to use as the cdr of the last copied cell (enc_sym(SYM_NIL) for a normal copy).
+ * \return Copied list (ending in tail) or enc_sym(SYM_MERROR) if heap is full.
  */
-lbm_value lbm_list_copy(int *m, lbm_value list);
+lbm_value lbm_list_copy(int *m, lbm_value list, lbm_value tail);
 
 /** A destructive append of two lists
  *

@@ -86,6 +86,7 @@
 
 ;; Display the result
 (disp-render img400x200 0 0 '(0x000000 0xFFFFFF 0xFF0000 0x00FF00))
+(save-img img400x200 "sdl_tests/png_out/test_img_getpix.png" '(0x000000 0xFFFFFF 0xFF0000 0x00FF00))
 
 ;; Check test results
 (if (and test1 test2 test3 test4 test7 test8 test9 test10 test12 test13 test18

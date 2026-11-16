@@ -245,6 +245,12 @@ typedef struct {
 	float p_duty_norm;
 	float p_fs;
 	float p_dt;
+	float p_alpha_vdq;
+	float p_alpha_duty;
+	float p_alpha_v_bus;
+	float p_alpha_mod_q;
+	float p_alpha_speed_fast;
+	float p_alpha_speed_faster;
 } motor_all_state_t;
 
 // Functions

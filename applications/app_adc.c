@@ -26,6 +26,7 @@
 #include "stm32f4xx_conf.h"
 #include "mc_interface.h"
 #include "timeout.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "utils_sys.h"
 #include "comm_can.h"
@@ -196,7 +197,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// Read voltage and range check
 		static float read_filter = 0.0;
-		UTILS_LP_MOVING_AVG_APPROX(read_filter, pwr, FILTER_SAMPLES);
+		ema_step(&read_filter, pwr, ema_alpha_samples(FILTER_SAMPLES));
 
 		if (config.use_filter) {
 			read_voltage = read_filter;
@@ -231,7 +232,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// Optionally apply a filter
 		static float pwr_filter = 0.0;
-		UTILS_LP_MOVING_AVG_APPROX(pwr_filter, pwr, FILTER_SAMPLES);
+		ema_step(&pwr_filter, pwr, ema_alpha_samples(FILTER_SAMPLES));
 
 		if (config.use_filter) {
 			pwr = pwr_filter;
@@ -267,7 +268,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// Optionally apply a filter
 		static float filter_val_2 = 0.0;
-		UTILS_LP_MOVING_AVG_APPROX(filter_val_2, brake, FILTER_SAMPLES);
+		ema_step(&filter_val_2, brake, ema_alpha_samples(FILTER_SAMPLES));
 
 		if (config.use_filter) {
 			brake = filter_val_2;
@@ -385,10 +386,32 @@ static THD_FUNCTION(adc_thread, arg) {
 		// Apply throttle curve
 		pwr = utils_throttle_curve(pwr, config.throttle_exp, config.throttle_exp_brake, config.throttle_exp_mode);
 
+		bool coast_brake = false;
+		static bool was_coast_brake = false;
+		static bool pwr_last = 0.0;
+
+		// Coasting brake
+		if (config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_CENTER ||
+				config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_CENTER ||
+				config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_BUTTON ||
+				config.ctrl_type == ADC_CTRL_TYPE_CURRENT_NOREV_BRAKE_ADC ||
+				config.ctrl_type == ADC_CTRL_TYPE_CURRENT_REV_BUTTON_BRAKE_ADC) {
+			if (config.coast_brake_level > 0.005 && fabsf(was_coast_brake ? pwr : pwr_last) < 0.01) {
+				pwr = -config.coast_brake_level;
+				coast_brake = true;
+			}
+		}
+
+		was_coast_brake = coast_brake;
+
 		// Apply ramping
 		static systime_t last_time = 0;
 		static float pwr_ramp = 0.0;
 		float ramp_time = fabsf(pwr) > fabsf(pwr_ramp) ? config.ramp_time_pos : config.ramp_time_neg;
+
+		if (coast_brake) {
+			ramp_time = config.coast_brake_ramp_time;
+		}
 
 		if (ramp_time > 0.01) {
 			const float ramp_step = (float)ST2MS(chVTTimeElapsedSinceX(last_time)) / (ramp_time * 1000.0);
@@ -396,6 +419,8 @@ static THD_FUNCTION(adc_thread, arg) {
 			last_time = chVTGetSystemTimeX();
 			pwr = pwr_ramp;
 		}
+
+		pwr_last = pwr;
 
 		float current_rel = 0.0;
 		bool current_mode = false;
@@ -519,7 +544,7 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		// Filter RPM to avoid glitches
 		static float rpm_filtered = 0.0;
-		UTILS_LP_MOVING_AVG_APPROX(rpm_filtered, mc_interface_get_rpm(), RPM_FILTER_SAMPLES);
+		ema_step(&rpm_filtered, mc_interface_get_rpm(), ema_alpha_samples(RPM_FILTER_SAMPLES));
 
 		if (current_mode && cc_button && fabsf(pwr) < 0.001) {
 			static float pid_rpm = 0.0;

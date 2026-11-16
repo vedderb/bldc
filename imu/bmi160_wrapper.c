@@ -27,13 +27,17 @@
  * (acc_bwp/gyr_bwp); with the ODR fixed this acts as a fixed-cutoff selector. Datasheet table 12
  * (accel) and the gyroscope cutoff table.
  *
+ * The datasheet only lists these for the normal mode. The OSR2 and OSR4 values are derived from
+ * its description of those modes (the normal mode filter at half and a quarter of the ODR), so
+ * they're approximate.
+ *
  * poll:
  *   ODR: accel 1600 Hz, gyro 3200 Hz
  *
  *   filter          accel          gyro
  *   LOW    (normal)  684 Hz         890 Hz
- *   MEDIUM (OSR2)    342 Hz         445 Hz
- *   HIGH   (OSR4)    171 Hz         222 Hz
+ *   MEDIUM (OSR2)    ~324 Hz        ~524 Hz
+ *   HIGH   (OSR4)    ~162 Hz        ~255 Hz
  */
 
 static struct bmi160_dev m_sensor;
@@ -64,9 +68,9 @@ static bool reset_init_bmi(struct bmi160_dev *sensor, IMU_FILTER filter) {
 	// Unlike the LSM6DS3 the BMI160 has no absolute-Hz anti-alias filter: acc_bwp/gyr_bwp only pick
 	// an oversampling ratio whose 3dB cutoff is a fixed fraction of the ODR (normal power mode).
 	// With the ODR pinned at max, that ratio acts as a fixed-cutoff selector, so IMU_FILTER maps
-	// straight onto it. The narrowest cutoff is tied to the max ODR (accel 1600 Hz is the binding
-	// constraint), so a sample rate below ~350 Hz cannot be fully anti-aliased (a limit of using
-	// this approach).
+	// straight onto it. The narrowest cutoff is tied to the max ODR (the gyro's ~255 Hz is the
+	// binding constraint), so a sample rate below ~510 Hz cannot be fully anti-aliased (a limit of
+	// using this approach).
 	sensor->accel_cfg.range = BMI160_ACCEL_RANGE_16G;
 	sensor->accel_cfg.power = BMI160_ACCEL_NORMAL_MODE;
 	sensor->accel_cfg.odr = BMI160_ACCEL_ODR_1600HZ;

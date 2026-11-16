@@ -246,15 +246,15 @@ static bool write_u64(uint64_t dw, int32_t *i, bool direction) {
   // upwards     hw   lw ...
   //            ix+1  ix
 
-  // true = downwards
+  // direction: DOWNWARDS (false) writes hw then lw; UPWARDS (true) writes lw then hw.
 
   bool r = true;
   if (direction) {
-    r = r && write_u32(words[1], i, direction);
     r = r && write_u32(words[0], i, direction);
+    r = r && write_u32(words[1], i, direction);
   } else {
-    r = r && write_u32(words[0], i, direction);
     r = r && write_u32(words[1], i, direction);
+    r = r && write_u32(words[0], i, direction);
   }
   return r;
 }
@@ -773,6 +773,7 @@ sharing_table lbm_image_sharing(void) {
 typedef struct {
   int32_t s;
   sharing_table *st;
+  bool ok;
 } size_accumulator;
 
 static int size_acc(lbm_value v, bool shared, void *acc) {
@@ -820,6 +821,9 @@ static int size_acc(lbm_value v, bool shared, void *acc) {
   case LBM_TYPE_LISPARRAY:
     sa->s += 4 + 1;
     break;
+  case LBM_TYPE_CHANNEL:
+    sa->ok = false;
+    return TRAV_FUN_SUBTREE_DONE;
   case LBM_TYPE_BYTE:
     sa->s += 2;
     break;
@@ -932,6 +936,9 @@ static int flatten_node(lbm_value v, bool shared, void *arg) {
       // hmm
     }
   } break;
+  case LBM_TYPE_CHANNEL:
+    *acc = false;
+    return TRAV_FUN_SUBTREE_DONE;
   case LBM_TYPE_BYTE:
     *acc = *acc && i_f_b((uint8_t)lbm_dec_as_char(v));
     break;
@@ -981,9 +988,11 @@ static int32_t image_flatten_size(sharing_table *st, lbm_value v) {
   size_accumulator sa;
   sa.s = 0;
   sa.st = st;
+  sa.ok = true;
   lbm_ptr_rev_trav(size_acc, v, &sa);
   lbm_perform_gc();
-  return sa.s; // Should always be "ok" now.
+  if (sa.ok) return sa.s;
+  else return -1;
 }
 
 static bool image_flatten_value(sharing_table *st, lbm_value v) {

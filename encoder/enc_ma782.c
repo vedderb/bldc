@@ -27,6 +27,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "mc_interface.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "spi_bb.h"
 #include "timer.h"
@@ -173,16 +174,18 @@ static void ma782_init_config(ma782_config_t *cfg) {
 void enc_ma782_routine(ma782_config_t *cfg) {
 	ma782_state_t *state = &cfg->state;
 
+	// This routine runs at 10 kHz
+	const float alpha = ema_alpha_tau(1.0, 1.0 / 10000.0);
+
 	if (cfg->spi_dev->state == SPI_READY) {
 		if(state->start > 0) {
 			ma782_read_angle(cfg);
 		}
-		UTILS_LP_FAST(state->spi_comm_error_rate, 0.0, 0.0001);
+		ema_step(&state->spi_comm_error_rate, 0.0, alpha);
 	} else {
 		++state->spi_comm_error_cnt;
 		ma782_error(state, MA782_SPI_NOT_READY);
-		// compute rate with factor 0.0001 for 10000hz
-		UTILS_LP_FAST(state->spi_comm_error_rate, 1.0, 0.0001);
+		ema_step(&state->spi_comm_error_rate, 1.0, alpha);
 	}
 }
 

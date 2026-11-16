@@ -54,6 +54,7 @@
                     '(thickness 20)))
 
 (disp-render img 0 0 (list 0x0 0xff5f5f 0x00ff5f 0x5f00ff))
+(save-img img "sdl_tests/png_out/test_arc_edge_case.png" (list 0x0 0xff5f5f 0x00ff5f 0x5f00ff))
 
 (if (and r1 r2 r3 r4 r5)
     (print "SUCCESS")

@@ -46,7 +46,7 @@ static lbm_value set_insert(lbm_value set, lbm_value val) {
   lbm_value curr = set;
   while (lbm_is_cons(curr)) {
     lbm_value h = lbm_car(curr);
-    if (struct_eq(lbm_car(curr), val)) {
+    if (struct_eq(lbm_car(curr), val, 0)) {
       return set;
     }
     lbm_value cell = lbm_cons(h, ENC_SYM_NIL);

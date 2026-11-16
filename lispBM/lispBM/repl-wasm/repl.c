@@ -135,10 +135,6 @@ static int print_callback(const char *fmt, ...) {
   return written;
 }
 
-static void critical_callback(void) {
-  print_callback("CRITICAL ERROR\n");
-}
-
 // ////////////////////////////////////////////////////////////
 // Extensions
 //
@@ -1607,7 +1603,6 @@ int lbm_wasm_init(void) {
   if (!lbm_eval_init_events(20)) {
     return 0;
   }
-  lbm_set_critical_error_callback(critical_callback);
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dynamic_loader);

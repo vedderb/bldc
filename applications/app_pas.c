@@ -27,6 +27,7 @@
 #include "stm32f4xx_conf.h"
 #include "mc_interface.h"
 #include "timeout.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "comm_can.h"
 #include "hw.h"
@@ -156,7 +157,7 @@ void pas_event_handler(void) {
 		float period = (timestamp - old_timestamp) * (float)config.magnets;
 		old_timestamp = timestamp;
 
-		UTILS_LP_FAST(period_filtered, period, 1.0);
+		ema_step(&period_filtered, period, 1.0);
 
 		if(period_filtered < min_pedal_period) { //can't be that short, abort
 			return;

@@ -32,9 +32,6 @@
 #include "lbm_channel.h"
 #include "platform_mutex.h"
 #include "eval_cps.h"
-#ifdef VISUALIZE_HEAP
-#include "heap_vis.h"
-#endif
 
 static inline lbm_value lbm_set_gc_mark(lbm_value x) {
   return x | LBM_GC_MARKED;
@@ -90,19 +87,17 @@ static bool    lbm_const_heap_mutex_initialized = false;
 static lbm_mutex_t lbm_mark_mutex;
 static bool    lbm_mark_mutex_initialized = false;
 
-#ifdef USE_GC_PTR_REV
+// These mutexes are not currently used. There was a thought
+// related to these and pointer-revesal.
+// It is actually more important to lock out accesses to the heap
+// when in the middle of ptr-rev gc as it temporarlity
+// distorts the heap pointer structure.
 void lbm_gc_lock(void) {
   lbm_mutex_lock(&lbm_mark_mutex);
 }
 void lbm_gc_unlock(void) {
   lbm_mutex_unlock(&lbm_mark_mutex);
 }
-#else
-void lbm_gc_lock(void) {
-}
-void lbm_gc_unlock(void) {
-}
-#endif
 
 // ////////////////////////////////////////////////////////////
 // ENCODERS DECODERS
@@ -347,178 +342,196 @@ lbm_uint lbm_dec_custom(lbm_value val) {
   return res;
 }
 
+#define LBM_IMM_IX(T) ((unsigned int)(((lbm_uint)(T)) & LBM_VAL_TYPE_MASK) >> 2)
+#define LBM_PTR_IX(T) ((unsigned int)(((lbm_uint)(T)) >> (LBM_PTR_TO_CONSTANT_SHIFT + 2)))
+
 uint8_t lbm_dec_as_char(lbm_value a) {
-  uint8_t r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (uint8_t)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (uint8_t)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (uint8_t)lbm_dec_u(a); break;
-  case LBM_TYPE_I32:
-    r = (uint8_t)lbm_dec_i32(a); break;
-  case LBM_TYPE_U32:
-    r = (uint8_t)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (uint8_t)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (uint8_t)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (uint8_t)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (uint8_t) lbm_dec_double(a); break;
+  if (!(a & LBM_PTR_BIT)) {
+    switch ((unsigned int)((a & LBM_VAL_TYPE_MASK) >> 2)) {
+    case LBM_IMM_IX(LBM_TYPE_CHAR): return (uint8_t)lbm_dec_char(a);
+    case LBM_IMM_IX(LBM_TYPE_I):    return (uint8_t)lbm_dec_i(a);
+    case LBM_IMM_IX(LBM_TYPE_U):    return (uint8_t)lbm_dec_u(a);
+#ifdef LBM64
+    case LBM_IMM_IX(LBM_TYPE_I32):   return (uint8_t)lbm_dec_i32(a);
+    case LBM_IMM_IX(LBM_TYPE_U32):   return (uint8_t)lbm_dec_u32(a);
+    case LBM_IMM_IX(LBM_TYPE_FLOAT): return (uint8_t)lbm_dec_float(a);
+#endif
+    default: return 0;
+    }
   }
-  return r;
+  switch ((unsigned int)(a >> (LBM_PTR_TO_CONSTANT_SHIFT + 2))) {
+#ifndef LBM64
+  case LBM_PTR_IX(LBM_TYPE_I32):   return (uint8_t)lbm_dec_i32(a);
+  case LBM_PTR_IX(LBM_TYPE_U32):   return (uint8_t)lbm_dec_u32(a);
+  case LBM_PTR_IX(LBM_TYPE_FLOAT): return (uint8_t)lbm_dec_float(a);
+#endif
+  case LBM_PTR_IX(LBM_TYPE_I64):    return (uint8_t)lbm_dec_i64(a);
+  case LBM_PTR_IX(LBM_TYPE_U64):    return (uint8_t)lbm_dec_u64(a);
+  case LBM_PTR_IX(LBM_TYPE_DOUBLE): return (uint8_t)lbm_dec_double(a);
+  default: return 0;
+  }
 }
 
 uint32_t lbm_dec_as_u32(lbm_value a) {
-  uint32_t r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (uint32_t)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (uint32_t)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (uint32_t)lbm_dec_u(a); break;
-  case LBM_TYPE_I32: /* fall through */
-  case LBM_TYPE_U32:
-    r = (uint32_t)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (uint32_t)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (uint32_t)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (uint32_t)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (uint32_t)lbm_dec_double(a); break;
+  if (!(a & LBM_PTR_BIT)) {
+    switch ((unsigned int)((a & LBM_VAL_TYPE_MASK) >> 2)) {
+    case LBM_IMM_IX(LBM_TYPE_CHAR): return (uint32_t)lbm_dec_char(a);
+    case LBM_IMM_IX(LBM_TYPE_I):    return (uint32_t)lbm_dec_i(a);
+    case LBM_IMM_IX(LBM_TYPE_U):    return (uint32_t)lbm_dec_u(a);
+#ifdef LBM64
+    case LBM_IMM_IX(LBM_TYPE_I32): /* fall through */
+    case LBM_IMM_IX(LBM_TYPE_U32):   return (uint32_t)lbm_dec_u32(a);
+    case LBM_IMM_IX(LBM_TYPE_FLOAT): return (uint32_t)lbm_dec_float(a);
+#endif
+    default: return 0;
+    }
   }
-  return r;
+  switch ((unsigned int)(a >> (LBM_PTR_TO_CONSTANT_SHIFT + 2))) {
+#ifndef LBM64
+  case LBM_PTR_IX(LBM_TYPE_I32): /* fall through */
+  case LBM_PTR_IX(LBM_TYPE_U32):   return (uint32_t)lbm_dec_u32(a);
+  case LBM_PTR_IX(LBM_TYPE_FLOAT): return (uint32_t)lbm_dec_float(a);
+#endif
+  case LBM_PTR_IX(LBM_TYPE_I64):    return (uint32_t)lbm_dec_i64(a);
+  case LBM_PTR_IX(LBM_TYPE_U64):    return (uint32_t)lbm_dec_u64(a);
+  case LBM_PTR_IX(LBM_TYPE_DOUBLE): return (uint32_t)lbm_dec_double(a);
+  default: return 0;
+  }
 }
 
 int32_t lbm_dec_as_i32(lbm_value a) {
-  int32_t r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (int32_t)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (int32_t)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (int32_t)lbm_dec_u(a); break;
-  case LBM_TYPE_I32:
-    r = (int32_t)lbm_dec_i32(a); break;
-  case LBM_TYPE_U32:
-    r = (int32_t)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (int32_t)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (int32_t)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (int32_t)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (int32_t) lbm_dec_double(a); break;
+  if (!(a & LBM_PTR_BIT)) {
+    switch ((unsigned int)((a & LBM_VAL_TYPE_MASK) >> 2)) {
+    case LBM_IMM_IX(LBM_TYPE_CHAR): return (int32_t)lbm_dec_char(a);
+    case LBM_IMM_IX(LBM_TYPE_I):    return (int32_t)lbm_dec_i(a);
+    case LBM_IMM_IX(LBM_TYPE_U):    return (int32_t)lbm_dec_u(a);
+#ifdef LBM64
+    case LBM_IMM_IX(LBM_TYPE_I32):   return (int32_t)lbm_dec_i32(a);
+    case LBM_IMM_IX(LBM_TYPE_U32):   return (int32_t)lbm_dec_u32(a);
+    case LBM_IMM_IX(LBM_TYPE_FLOAT): return (int32_t)lbm_dec_float(a);
+#endif
+    default: return 0;
+    }
   }
-  return r;
+  switch ((unsigned int)(a >> (LBM_PTR_TO_CONSTANT_SHIFT + 2))) {
+#ifndef LBM64
+  case LBM_PTR_IX(LBM_TYPE_I32):   return (int32_t)lbm_dec_i32(a);
+  case LBM_PTR_IX(LBM_TYPE_U32):   return (int32_t)lbm_dec_u32(a);
+  case LBM_PTR_IX(LBM_TYPE_FLOAT): return (int32_t)lbm_dec_float(a);
+#endif
+  case LBM_PTR_IX(LBM_TYPE_I64):    return (int32_t)lbm_dec_i64(a);
+  case LBM_PTR_IX(LBM_TYPE_U64):    return (int32_t)lbm_dec_u64(a);
+  case LBM_PTR_IX(LBM_TYPE_DOUBLE): return (int32_t)lbm_dec_double(a);
+  default: return 0;
+  }
 }
 
 int64_t lbm_dec_as_i64(lbm_value a) {
-  int64_t r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (int64_t)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (int64_t)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (int64_t)lbm_dec_u(a); break;
-  case LBM_TYPE_I32:
-    r = (int64_t)lbm_dec_i32(a); break;
-  case LBM_TYPE_U32:
-    r = (int64_t)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (int64_t)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (int64_t)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (int64_t)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (int64_t) lbm_dec_double(a); break;
+  if (!(a & LBM_PTR_BIT)) {
+    switch ((unsigned int)((a & LBM_VAL_TYPE_MASK) >> 2)) {
+    case LBM_IMM_IX(LBM_TYPE_CHAR): return (int64_t)lbm_dec_char(a);
+    case LBM_IMM_IX(LBM_TYPE_I):    return (int64_t)lbm_dec_i(a);
+    case LBM_IMM_IX(LBM_TYPE_U):    return (int64_t)lbm_dec_u(a);
+#ifdef LBM64
+    case LBM_IMM_IX(LBM_TYPE_I32):   return (int64_t)lbm_dec_i32(a);
+    case LBM_IMM_IX(LBM_TYPE_U32):   return (int64_t)lbm_dec_u32(a);
+    case LBM_IMM_IX(LBM_TYPE_FLOAT): return (int64_t)lbm_dec_float(a);
+#endif
+    default: return 0;
+    }
   }
-  return r;
+  switch ((unsigned int)(a >> (LBM_PTR_TO_CONSTANT_SHIFT + 2))) {
+#ifndef LBM64
+  case LBM_PTR_IX(LBM_TYPE_I32):   return (int64_t)lbm_dec_i32(a);
+  case LBM_PTR_IX(LBM_TYPE_U32):   return (int64_t)lbm_dec_u32(a);
+  case LBM_PTR_IX(LBM_TYPE_FLOAT): return (int64_t)lbm_dec_float(a);
+#endif
+  case LBM_PTR_IX(LBM_TYPE_I64):    return (int64_t)lbm_dec_i64(a);
+  case LBM_PTR_IX(LBM_TYPE_U64):    return (int64_t)lbm_dec_u64(a);
+  case LBM_PTR_IX(LBM_TYPE_DOUBLE): return (int64_t)lbm_dec_double(a);
+  default: return 0;
+  }
 }
 
 uint64_t lbm_dec_as_u64(lbm_value a) {
-  uint64_t r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (uint64_t)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (uint64_t)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (uint64_t)lbm_dec_u(a); break;
-  case LBM_TYPE_I32:
-    r = (uint64_t)lbm_dec_i32(a); break;
-  case LBM_TYPE_U32:
-    r = (uint64_t)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (uint64_t)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (uint64_t)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (uint64_t)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (uint64_t)lbm_dec_double(a); break;
+  if (!(a & LBM_PTR_BIT)) {
+    switch ((unsigned int)((a & LBM_VAL_TYPE_MASK) >> 2)) {
+    case LBM_IMM_IX(LBM_TYPE_CHAR): return (uint64_t)lbm_dec_char(a);
+    case LBM_IMM_IX(LBM_TYPE_I):    return (uint64_t)lbm_dec_i(a);
+    case LBM_IMM_IX(LBM_TYPE_U):    return (uint64_t)lbm_dec_u(a);
+#ifdef LBM64
+    case LBM_IMM_IX(LBM_TYPE_I32):   return (uint64_t)lbm_dec_i32(a);
+    case LBM_IMM_IX(LBM_TYPE_U32):   return (uint64_t)lbm_dec_u32(a);
+    case LBM_IMM_IX(LBM_TYPE_FLOAT): return (uint64_t)lbm_dec_float(a);
+#endif
+    default: return 0;
+    }
   }
-  return r;
+  switch ((unsigned int)(a >> (LBM_PTR_TO_CONSTANT_SHIFT + 2))) {
+#ifndef LBM64
+  case LBM_PTR_IX(LBM_TYPE_I32):   return (uint64_t)lbm_dec_i32(a);
+  case LBM_PTR_IX(LBM_TYPE_U32):   return (uint64_t)lbm_dec_u32(a);
+  case LBM_PTR_IX(LBM_TYPE_FLOAT): return (uint64_t)lbm_dec_float(a);
+#endif
+  case LBM_PTR_IX(LBM_TYPE_I64):    return (uint64_t)lbm_dec_i64(a);
+  case LBM_PTR_IX(LBM_TYPE_U64):    return (uint64_t)lbm_dec_u64(a);
+  case LBM_PTR_IX(LBM_TYPE_DOUBLE): return (uint64_t)lbm_dec_double(a);
+  default: return 0;
+  }
 }
 
 float lbm_dec_as_float(lbm_value a) {
-  float r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (float)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (float)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (float)lbm_dec_u(a); break;
-  case LBM_TYPE_I32:
-    r = (float)lbm_dec_i32(a); break;
-  case LBM_TYPE_U32:
-    r = (float)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (float)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (float)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (float)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (float)lbm_dec_double(a); break;
+  if (!(a & LBM_PTR_BIT)) {
+    switch ((unsigned int)((a & LBM_VAL_TYPE_MASK) >> 2)) {
+    case LBM_IMM_IX(LBM_TYPE_CHAR): return (float)lbm_dec_char(a);
+    case LBM_IMM_IX(LBM_TYPE_I):    return (float)lbm_dec_i(a);
+    case LBM_IMM_IX(LBM_TYPE_U):    return (float)lbm_dec_u(a);
+#ifdef LBM64
+    case LBM_IMM_IX(LBM_TYPE_I32):   return (float)lbm_dec_i32(a);
+    case LBM_IMM_IX(LBM_TYPE_U32):   return (float)lbm_dec_u32(a);
+    case LBM_IMM_IX(LBM_TYPE_FLOAT): return (float)lbm_dec_float(a);
+#endif
+    default: return 0;
+    }
   }
-  return r;
+  switch ((unsigned int)(a >> (LBM_PTR_TO_CONSTANT_SHIFT + 2))) {
+#ifndef LBM64
+  case LBM_PTR_IX(LBM_TYPE_I32):   return (float)lbm_dec_i32(a);
+  case LBM_PTR_IX(LBM_TYPE_U32):   return (float)lbm_dec_u32(a);
+  case LBM_PTR_IX(LBM_TYPE_FLOAT): return (float)lbm_dec_float(a);
+#endif
+  case LBM_PTR_IX(LBM_TYPE_I64):    return (float)lbm_dec_i64(a);
+  case LBM_PTR_IX(LBM_TYPE_U64):    return (float)lbm_dec_u64(a);
+  case LBM_PTR_IX(LBM_TYPE_DOUBLE): return (float)lbm_dec_double(a);
+  default: return 0;
+  }
 }
 
 double lbm_dec_as_double(lbm_value a) {
-  double r = 0;
-  switch (lbm_type_of_functional(a)) {
-  case LBM_TYPE_CHAR:
-    r = (double)lbm_dec_char(a); break;
-  case LBM_TYPE_I:
-    r = (double)lbm_dec_i(a); break;
-  case LBM_TYPE_U:
-    r = (double)lbm_dec_u(a); break;
-  case LBM_TYPE_I32:
-    r = (double)lbm_dec_i32(a); break;
-  case LBM_TYPE_U32:
-    r = (double)lbm_dec_u32(a); break;
-  case LBM_TYPE_FLOAT:
-    r = (double)lbm_dec_float(a); break;
-  case LBM_TYPE_I64:
-    r = (double)lbm_dec_i64(a); break;
-  case LBM_TYPE_U64:
-    r = (double)lbm_dec_u64(a); break;
-  case LBM_TYPE_DOUBLE:
-    r = (double)lbm_dec_double(a); break;
+  if (!(a & LBM_PTR_BIT)) {
+    switch ((unsigned int)((a & LBM_VAL_TYPE_MASK) >> 2)) {
+    case LBM_IMM_IX(LBM_TYPE_CHAR): return (double)lbm_dec_char(a);
+    case LBM_IMM_IX(LBM_TYPE_I):    return (double)lbm_dec_i(a);
+    case LBM_IMM_IX(LBM_TYPE_U):    return (double)lbm_dec_u(a);
+#ifdef LBM64
+    case LBM_IMM_IX(LBM_TYPE_I32):   return (double)lbm_dec_i32(a);
+    case LBM_IMM_IX(LBM_TYPE_U32):   return (double)lbm_dec_u32(a);
+    case LBM_IMM_IX(LBM_TYPE_FLOAT): return (double)lbm_dec_float(a);
+#endif
+    default: return 0;
+    }
   }
-  return r;
+  switch ((unsigned int)(a >> (LBM_PTR_TO_CONSTANT_SHIFT + 2))) {
+#ifndef LBM64
+  case LBM_PTR_IX(LBM_TYPE_I32):   return (double)lbm_dec_i32(a);
+  case LBM_PTR_IX(LBM_TYPE_U32):   return (double)lbm_dec_u32(a);
+  case LBM_PTR_IX(LBM_TYPE_FLOAT): return (double)lbm_dec_float(a);
+#endif
+  case LBM_PTR_IX(LBM_TYPE_I64):    return (double)lbm_dec_i64(a);
+  case LBM_PTR_IX(LBM_TYPE_U64):    return (double)lbm_dec_u64(a);
+  case LBM_PTR_IX(LBM_TYPE_DOUBLE): return (double)lbm_dec_double(a);
+  default: return 0;
+  }
 }
 
 // ////////////////////////////////////////////////////////////
@@ -619,7 +632,7 @@ lbm_value lbm_heap_allocate_list(lbm_uint n) {
 
   lbm_value curr = lbm_heap_state.freelist;
   lbm_value res  = curr;
-  
+
   lbm_cons_t *c_cell = NULL;
   lbm_uint count = 0;
   do {
@@ -691,7 +704,6 @@ static inline void value_assign(lbm_value *a, lbm_value b) {
   *a = a_old | (b & ~LBM_GC_MASK);
 }
 
-#ifdef LBM_USE_GC_PTR_REV
 // ////////////////////////////////////////////////////////////
 // Deutch-Schorr-Waite (DSW) pointer reversal GC
 //
@@ -719,13 +731,12 @@ static int do_nothing(lbm_value v, bool shared, void *arg) {
   return TRAV_FUN_SUBTREE_CONTINUE;
 }
 
-void lbm_gc_mark_phase(lbm_value root) {
+void lbm_gc_mark_phase_ptr_rev(lbm_value root) {
     lbm_mutex_lock(&lbm_const_heap_mutex);
     lbm_ptr_rev_trav(do_nothing, root, NULL);
     lbm_mutex_unlock(&lbm_const_heap_mutex);
 }
 
-#else
 // ////////////////////////////////////////////////////////////
 // Check if a value is currently on the stack
 
@@ -791,7 +802,12 @@ void lbm_gc_mark_phase(lbm_value root) {
       }
       lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
       lbm_value *arrdata = (lbm_value *)arr->data;
-      lbm_push(s, curr); // put array back as bookkeeping.
+      if (!lbm_push(s, curr)) { // put array back as bookkeeping.
+        // Switch to pointer reversal here.
+        // This is a new array that we have not yet started descending into.
+        lbm_gc_mark_phase_ptr_rev(curr);
+        continue;
+      }
       // Example A: Array with 10 elements
       // A: assume arr->index == 9
       // Example B: Array with 0 elements
@@ -833,6 +849,8 @@ void lbm_gc_mark_phase(lbm_value root) {
       // TODO: Can channels be explicitly freed ?
       if (cell->car != ENC_SYM_NIL) {
         lbm_char_channel_t *chan = (lbm_char_channel_t *)cell->car;
+        // A channel dependency is currently assumed to be a byte array (a string)
+        // or NIL.
         curr = chan->dependency;
         goto mark_shortcut;
       }
@@ -845,8 +863,9 @@ void lbm_gc_mark_phase(lbm_value root) {
     if (t_ptr == LBM_TYPE_CONS) {
       if (lbm_is_ptr(cell->cdr)) {
         if (!lbm_push(s, cell->cdr)) {
-          lbm_critical_error();
-          break;
+          // This is the only place where we grab a new stack position.
+          // If the stack is full switch to ptr-rev GC.
+          lbm_gc_mark_phase_ptr_rev(cell->cdr);
         }
       }
       curr = cell->car;
@@ -854,7 +873,6 @@ void lbm_gc_mark_phase(lbm_value root) {
     }
   }
 }
-#endif
 
 //Environments are proper lists with a 2 element list stored in each car.
 void lbm_gc_mark_env(lbm_value env) {
@@ -1053,28 +1071,30 @@ lbm_value lbm_list_destructive_reverse(lbm_value list) {
 }
 
 
-lbm_value lbm_list_copy(int *m, lbm_value list) {
+lbm_value lbm_list_copy(int *m, lbm_value list, lbm_value tail) {
   lbm_value curr = list;
   lbm_uint n = lbm_list_length(list);
   lbm_uint copy_n = n;
   if (*m >= 0 && (lbm_uint)*m < n) {
     copy_n = (lbm_uint)*m;
-  } else if (*m == -1) {
-    *m = (int)n; // TODO: smaller range in target variable.
+  } else { // *m == -1 or *m >= n
+    *m = (int)n;
   }
-  if (copy_n == 0) return ENC_SYM_NIL;
+  if (copy_n == 0) return tail;
   lbm_uint new_list = lbm_heap_allocate_list(copy_n);
   if (lbm_is_symbol(new_list)) return new_list;
   lbm_value curr_targ = new_list;
+  lbm_cons_t *targ_cell = NULL;
 
   while (lbm_is_cons(curr) && copy_n > 0) {
     lbm_cons_t *curr_cell = lbm_ref_cell(curr);
-    lbm_cons_t *targ_cell = lbm_ref_cell(curr_targ);
+    targ_cell = lbm_ref_cell(curr_targ);
     targ_cell->car = curr_cell->car;
     curr_targ = targ_cell->cdr;
     curr = curr_cell->cdr;
     copy_n --;
   }
+  targ_cell->cdr = tail; // targ_cell is the last cell allocated into new_list
   return new_list;
 }
 
@@ -1332,7 +1352,7 @@ lbm_flash_status lbm_allocate_const_raw(lbm_uint nwords, lbm_uint *res) {
   lbm_flash_status r = LBM_FLASH_FULL;
 
   if (lbm_const_heap_state &&
-      (lbm_const_heap_state->next + nwords) < (uint32_t)lbm_image_get_write_index()) {
+      (lbm_const_heap_state->next + nwords) <= (uint32_t)lbm_image_get_write_index()) {
     lbm_uint ix = lbm_const_heap_state->next;
     *res = (lbm_uint)&lbm_const_heap_state->heap[ix];
     lbm_const_heap_state->next += nwords;
@@ -1346,7 +1366,7 @@ lbm_flash_status lbm_write_const_raw(lbm_uint *data, lbm_uint n, lbm_uint *res) 
   lbm_flash_status r = LBM_FLASH_FULL;
 
   if (lbm_const_heap_state &&
-      (lbm_const_heap_state->next + n) < (uint32_t)lbm_image_get_write_index()) {
+      (lbm_const_heap_state->next + n) <= (uint32_t)lbm_image_get_write_index()) {
     lbm_uint ix = lbm_const_heap_state->next;
 
     for (unsigned int i = 0; i < n; i ++) {
@@ -1430,7 +1450,8 @@ void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
     // If curr is marked here there is a cycle in the graph.
     // In case of a cycle or leaf, this first loop is exited.
     while (((lbm_is_cons_rw(curr)) ||
-            (lbm_is_lisp_array_rw(curr))) && !gc_marked(curr)) {
+            (lbm_is_lisp_array_rw(curr)) ||
+            (lbm_is_channel(curr))) && !gc_marked(curr)) {
       lbm_cons_t *cell = lbm_ref_cell(curr);
       if (lbm_is_cons(curr)) {
         // In-order traversal
@@ -1445,26 +1466,40 @@ void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
         value_assign(&cell->car, prev);
         value_assign(&prev, curr);
         value_assign(&curr, next);
-      } else { // it is an array
+      } else if (lbm_is_channel (curr)) {
+        if (f(curr, false, arg) == TRAV_FUN_SUBTREE_DONE) {
+          lbm_gc_mark_phase(curr);
+          goto trav_backtrack;
+        }
+        gc_mark(curr);
 
+        lbm_char_channel_t *chan = (lbm_char_channel_t*)cell->car;
+        lbm_value next = 0;
+        value_assign(&next, chan->dependency);
+        value_assign(&chan->dependency, prev);
+        value_assign(&prev, curr);
+        value_assign(&curr, next);
+      } else { // it is an array
         lbm_array_header_extended_t *arr = (lbm_array_header_extended_t*)cell->car;
         lbm_value *arr_data = (lbm_value *)arr->data;
-        uint32_t index = arr->index;
         if (arr->size == 0) break;
-        if (index == 0) { // index should only be 0 or there is a potential cycle
-          if (f(curr, false, arg) == TRAV_FUN_SUBTREE_DONE) {
-            lbm_gc_mark_phase(curr);
-            break;
-          }
-          arr->index = 1;
-          gc_mark(curr);
 
-          lbm_value next = 0;
-          value_assign(&next, arr_data[0]);
-          value_assign(&arr_data[0], prev);
-          value_assign(&prev, curr);
-          value_assign(&curr, next);
+        if (f(curr, false, arg) == TRAV_FUN_SUBTREE_DONE) {
+          lbm_gc_mark_phase(curr);
+          break;
         }
+        // Cycles in arrays are not detected using the index
+        // in this algorithm. If we enter into an array, we take
+        // full ownership of it here, even if the  stack based marker
+        // has partially walked it already.
+        arr->index = 1; // Explicitly sets array index to one.
+        gc_mark(curr);
+
+        lbm_value next = 0;
+        value_assign(&next, arr_data[0]);
+        value_assign(&arr_data[0], prev);
+        value_assign(&prev, curr);
+        value_assign(&curr, next);
       }
     }
     // Currently there are a few different users of this traversal.
@@ -1496,7 +1531,8 @@ void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
     while ((lbm_is_cons(prev) &&
             (lbm_dec_ptr(prev) != LBM_PTR_NULL) && // is LBM_NULL a cons type?
             lbm_get_gc_flag(lbm_car(prev))) ||
-           lbm_is_lisp_array_rw(prev)) {
+           lbm_is_lisp_array_rw(prev) ||
+           lbm_is_channel(prev)) {
       lbm_cons_t *cell = lbm_ref_cell(prev);
       if (lbm_is_cons(prev)) {
 
@@ -1521,6 +1557,13 @@ void lbm_ptr_rev_trav(trav_fun f, lbm_value v, void* arg) {
         lbm_value next = 0;
         value_assign(&next, cell->cdr);
         value_assign(&cell->cdr, curr);
+        value_assign(&curr, prev);
+        value_assign(&prev, next);
+      } else if (lbm_is_channel(prev)) {
+        lbm_char_channel_t *chan = (lbm_char_channel_t*)cell->car;
+        lbm_value next = 0;
+        value_assign(&next, chan->dependency);
+        value_assign(&chan->dependency, curr);
         value_assign(&curr, prev);
         value_assign(&prev, next);
       } else { // is an array

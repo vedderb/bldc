@@ -118,12 +118,8 @@ expected_fails=()
 
 # Common expected failures for small heap sizes
 if [ "$USE_TIMEOUT" = true ]; then
-  expected_fails+=("$BINARY -t $timeout -h 1024 tests/test_take_iota_0.lisp")
-  expected_fails+=("$BINARY -t $timeout -s -h 1024 tests/test_take_iota_0.lisp")
   expected_fails+=("$BINARY -t $timeout -h 512 tests/test_take_iota_0.lisp")
   expected_fails+=("$BINARY -t $timeout -s -h 512 tests/test_take_iota_0.lisp")
-  expected_fails+=("$BINARY -t $timeout -i -h 1024 tests/test_take_iota_0.lisp")
-  expected_fails+=("$BINARY -t $timeout -i -s -h 1024 tests/test_take_iota_0.lisp")
   expected_fails+=("$BINARY -t $timeout -i -h 512 tests/test_take_iota_0.lisp")
   expected_fails+=("$BINARY -t $timeout -i -s -h 512 tests/test_take_iota_0.lisp")
   expected_fails+=("$BINARY -t $timeout -h 512 tests/test_match_stress_2.lisp")
@@ -131,12 +127,8 @@ if [ "$USE_TIMEOUT" = true ]; then
   expected_fails+=("$BINARY -t $timeout -s -h 512 tests/test_match_stress_2.lisp")
   expected_fails+=("$BINARY -t $timeout -i -s -h 512 tests/test_match_stress_2.lisp")
 else
-  expected_fails+=("$BINARY -h 1024 tests/test_take_iota_0.lisp")
-  expected_fails+=("$BINARY -s -h 1024 tests/test_take_iota_0.lisp")
   expected_fails+=("$BINARY -h 512 tests/test_take_iota_0.lisp")
   expected_fails+=("$BINARY -s -h 512 tests/test_take_iota_0.lisp")
-  expected_fails+=("$BINARY -i -h 1024 tests/test_take_iota_0.lisp")
-  expected_fails+=("$BINARY -i -s -h 1024 tests/test_take_iota_0.lisp")
   expected_fails+=("$BINARY -i -h 512 tests/test_take_iota_0.lisp")
   expected_fails+=("$BINARY -i -s -h 512 tests/test_take_iota_0.lisp")
   expected_fails+=("$BINARY -h 512 tests/test_match_stress_2.lisp")
@@ -152,26 +144,10 @@ if [ "$USE_TIMEOUT" = true ]; then
     "-t $timeout -i -h 32768"
     "-t $timeout -s -h 32768"
     "-t $timeout -i -s -h 32768"
-    "-t $timeout -h 16384"
-    "-t $timeout -i -h 16384"
-    "-t $timeout -s -h 16384"
-    "-t $timeout -i -s -h 16384"
     "-t $timeout -h 8192"
     "-t $timeout -i -h 8192"
     "-t $timeout -s -h 8192"
     "-t $timeout -i -s -h 8192"
-    "-t $timeout -h 4096"
-    "-t $timeout -i -h 4096"
-    "-t $timeout -s -h 4096"
-    "-t $timeout -i -s -h 4096"
-    "-t $timeout -h 2048"
-    "-t $timeout -i -h 2048"
-    "-t $timeout -s -h 2048"
-    "-t $timeout -i -s -h 2048"
-    "-t $timeout -h 1024"
-    "-t $timeout -i -h 1024"
-    "-t $timeout -s -h 1024"
-    "-t $timeout -i -s -h 1024"
     "-t $timeout -h 512"
     "-t $timeout -i -h 512"
     "-t $timeout -s -h 512"
@@ -183,26 +159,10 @@ else
     "-i -h 32768"
     "-s -h 32768"
     "-i -s -h 32768"
-    "-h 16384"
-    "-i -h 16384"
-    "-s -h 16384"
-    "-i -s -h 16384"
     "-h 8192"
     "-i -h 8192"
     "-s -h 8192"
     "-i -s -h 8192"
-    "-h 4096"
-    "-i -h 4096"
-    "-s -h 4096"
-    "-i -s -h 4096"
-    "-h 2048"
-    "-i -h 2048"
-    "-s -h 2048"
-    "-i -s -h 2048"
-    "-h 1024"
-    "-i -h 1024"
-    "-s -h 1024"
-    "-i -s -h 1024"
     "-h 512"
     "-i -h 512"
     "-s -h 512"

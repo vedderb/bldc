@@ -93,7 +93,7 @@ echo "Running 32bit tests"
 ./run_tests_generic_parallel.sh 32bit ../$reportdir/$failing_unit_tests_log_file >> ../$reportdir/$unit_tests_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## 32BIT UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
-tail -n 4 ../$reportdir/$unit_tests_log_file >> ../$reportdir/$release_readme
+tail -n 8 ../$reportdir/$unit_tests_log_file >> ../$reportdir/$release_readme
 
 print_elapsed ../$reportdir/$release_readme
 
@@ -123,7 +123,7 @@ echo "Running 64bit tests"
 ./run_tests_generic_parallel.sh 64bit ../$reportdir/$failing_unit_tests_64_log_file >> ../$reportdir/$unit_tests_64_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## 64BIT UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
-tail -n 4 ../$reportdir/$unit_tests_64_log_file >> ../$reportdir/$release_readme
+tail -n 8 ../$reportdir/$unit_tests_64_log_file >> ../$reportdir/$release_readme
 
 print_elapsed ../$reportdir/$release_readme
 
@@ -158,19 +158,21 @@ tail -n 4 ../$reportdir/$gc_unit_tests_log_file >> ../$reportdir/$release_readme
 print_elapsed ../$reportdir/$release_readme
 
 ############################################################
-#Pointer reversal gc tests
-revgc_unit_tests_log_file="revgc_unit_tests_log_${release}.txt"
-failing_revgc_unit_tests_log_file="failing_revgc_unit_tests_log_${release}.txt"
-
-echo "Running ptr-rev gc tests"
-
-#./run_tests_gc_rev.sh ../$reportdir/$failing_revgc_unit_tests_log_file >> ../$reportdir/$revgc_unit_tests_log_file 2> /dev/null
-./run_tests_generic_parallel.sh revgc ../$reportdir/$failing_revgc_unit_tests_log_file >> ../$reportdir/$revgc_unit_tests_log_file 2> /dev/null
-echo "" >> ../$reportdir/$release_readme
-echo "## POINTER REVERSAL GC UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
-tail -n 4 ../$reportdir/$revgc_unit_tests_log_file >> ../$reportdir/$release_readme
-
-print_elapsed ../$reportdir/$release_readme
+# Pointer reversal gc tests - DISABLED.
+# Pointer reversal is now part of the normal RTS build
+# and utilised as a fall-back when stack is depleted.
+#
+# revgc_unit_tests_log_file="revgc_unit_tests_log_${release}.txt"
+# failing_revgc_unit_tests_log_file="failing_revgc_unit_tests_log_${release}.txt"
+#
+# echo "Running ptr-rev gc tests"
+#
+# ./run_tests_generic_parallel.sh revgc ../$reportdir/$failing_revgc_unit_tests_log_file >> ../$reportdir/$revgc_unit_tests_log_file 2> /dev/null
+# echo "" >> ../$reportdir/$release_readme
+# echo "## POINTER REVERSAL GC UNIT TESTS RESULTS" >> ../$reportdir/$release_readme
+# tail -n 4 ../$reportdir/$revgc_unit_tests_log_file >> ../$reportdir/$release_readme
+#
+# print_elapsed ../$reportdir/$release_readme
 
 ############################################################
 #
@@ -203,6 +205,20 @@ print_elapsed ../$reportdir/$release_readme
 ############################################################
 #
 
+echo "Running Persist tests"
+
+failing_persist_tests_log_file="failing_persist_tests_log_${release}.txt"
+persist_tests_log_file="persist_tests_log_${release}.txt"
+./run_persist_tests.sh ../$reportdir/$failing_persist_tests_log_file >> ../$reportdir/$persist_tests_log_file 2> /dev/null
+echo "" >> ../$reportdir/$release_readme
+echo "## PERSIST TESTS" >> ../$reportdir/$release_readme
+tail -n 4 ../$reportdir/$persist_tests_log_file >> ../$reportdir/$release_readme
+
+print_elapsed ../$reportdir/$release_readme
+
+############################################################
+#
+
 echo "Running SDL tests"
 
 failing_sdl_tests_log_file="failing_sdl_tests_log_${release}.txt"
@@ -210,7 +226,7 @@ sdl_tests_log_file="sdl_tests_log_${release}.txt"
 ./run_sdl_tests.sh ../$reportdir/$failing_sdl_tests_log_file >> ../$reportdir/$sdl_tests_log_file 2> /dev/null
 echo "" >> ../$reportdir/$release_readme
 echo "## SDL TESTS" >> ../$reportdir/$release_readme
-tail -n 4 ../$reportdir/$sdl_tests_log_file >> ../$reportdir/$release_readme
+tail -n 18 ../$reportdir/$sdl_tests_log_file >> ../$reportdir/$release_readme
 
 print_elapsed ../$reportdir/$release_readme
 

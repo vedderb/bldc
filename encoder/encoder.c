@@ -316,7 +316,8 @@ bool encoder_init(volatile mc_configuration *conf) {
 		res = true;
 	} break;
 
-	case SENSOR_PORT_MODE_PWM_ABI: {
+	case SENSOR_PORT_MODE_PWM_ABI:
+	case SENSOR_PORT_MODE_PWM_ABI_INVERTED:{
 		SENSOR_PORT_5V();
 
 		encoder_cfg_ABI.counts = conf->m_encoder_counts;
@@ -330,6 +331,8 @@ bool encoder_init(volatile mc_configuration *conf) {
 			m_encoder_type_now = ENCODER_TYPE_NONE;
 			return false;
 		}
+
+		enc_pwm_set_inverted(conf->m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ABI_INVERTED);
 
 		m_encoder_type_now = ENCODER_TYPE_PWM_ABI;
 		res = true;
@@ -376,14 +379,17 @@ void encoder_update_config(volatile mc_configuration *conf) {
 	} break;
 
 	case SENSOR_PORT_MODE_ABI:
-	case SENSOR_PORT_MODE_PWM_ABI: {
+	case SENSOR_PORT_MODE_PWM_ABI:
+	case SENSOR_PORT_MODE_PWM_ABI_INVERTED:{
 		if (encoder_cfg_ABI.counts != conf->m_encoder_counts) {
 			encoder_cfg_ABI.counts = conf->m_encoder_counts;
 			TIM_SetAutoreload(encoder_cfg_ABI.timer, encoder_cfg_ABI.counts - 1);
 			memset(&encoder_cfg_ABI.state, 0, sizeof(ABI_state));
 
-			if (conf->m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ABI) {
+			if (conf->m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ABI ||
+					conf->m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ABI_INVERTED) {
 				enc_pwm_init(true);
+				enc_pwm_set_inverted(conf->m_sensor_port_mode == SENSOR_PORT_MODE_PWM_ABI_INVERTED);
 			}
 		}
 
@@ -469,7 +475,9 @@ void encoder_set_custom_callbacks (
 
 #pragma GCC pop_options
 
-float encoder_read_deg(void) {
+// The optimize pragma above disables -falign-functions=16 for the whole file,
+// even after pop_options. Align the hot function explicitly.
+__attribute__((aligned(16))) float encoder_read_deg(void) {
 	float res = 0.0;
 
 	switch (m_encoder_type_now) {
@@ -949,6 +957,7 @@ static void terminal_encoder(int argc, const char **argv) {
 		break;
 
 	case SENSOR_PORT_MODE_PWM_ABI:
+	case SENSOR_PORT_MODE_PWM_ABI_INVERTED:
 		commands_printf("Index found: %d", encoder_index_found());
 		commands_printf("PWM Update Cnt: %d", enc_pwm_update_cnt());
 		break;

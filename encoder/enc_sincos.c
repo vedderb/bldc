@@ -24,7 +24,9 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
+#include "mcpwm_foc.h"
 #include "mc_interface.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "hw.h"
 #include "timer.h"
@@ -53,8 +55,8 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 	float sin = (ENCODER_SIN_VOLTS - cfg->s_offset) * cfg->s_gain;
 	float cos = (ENCODER_COS_VOLTS - cfg->c_offset) * cfg->c_gain;
 
-	UTILS_LP_FAST(cfg->state.sin_filter, sin, cfg->filter_constant);
-	UTILS_LP_FAST(cfg->state.cos_filter, cos, cfg->filter_constant);
+	ema_step(&cfg->state.sin_filter, sin, cfg->filter_constant);
+	ema_step(&cfg->state.cos_filter, cos, cfg->filter_constant);
 	sin = cfg->state.sin_filter;
 	cos = cfg->state.cos_filter;
 
@@ -71,6 +73,7 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 	if (timestep > 1.0) {
 		timestep = 1.0;
 	}
+	const float alpha = ema_alpha_tau(1.0, timestep);
 	cfg->state.last_update_time = timer_time_now();
 
 	PROFILE_LINE();
@@ -78,16 +81,16 @@ float enc_sincos_read_deg(ENCSINCOS_config_t *cfg) {
 	if (module > SQ(SINCOS_MAX_AMPLITUDE) )	{
 		// signals vector outside of the valid area. Increase error count and discard measurement
 		++cfg->state.signal_above_max_error_cnt;
-		UTILS_LP_FAST(cfg->state.signal_above_max_error_rate, 1.0, timestep);
+		ema_step(&cfg->state.signal_above_max_error_rate, 1.0, alpha);
 	} else if (module < SQ(SINCOS_MIN_AMPLITUDE)) {
 		++cfg->state.signal_below_min_error_cnt;
-		UTILS_LP_FAST(cfg->state.signal_low_error_rate, 1.0, timestep);
+		ema_step(&cfg->state.signal_low_error_rate, 1.0, alpha);
 	} else {
-		UTILS_LP_FAST(cfg->state.signal_above_max_error_rate, 0.0, timestep);
-		UTILS_LP_FAST(cfg->state.signal_low_error_rate, 0.0, timestep);
+		ema_step(&cfg->state.signal_above_max_error_rate, 0.0, alpha);
+		ema_step(&cfg->state.signal_low_error_rate, 0.0, alpha);
 
 		PROFILE_LINE();
-		float delay_comp = ((1.0 - cfg->filter_constant) * RPM2RADPS_f(mc_interface_get_rpm()) * timestep) / (cfg->filter_constant * cfg->ratio);
+		float delay_comp = ((1.0 - cfg->filter_constant) * RPM2RADPS_f(mcpwm_foc_get_rpm_fast()) * timestep) / (cfg->filter_constant * cfg->ratio);
 		PROFILE_LINE();
 		float angle = RAD2DEG_f(utils_fast_atan2(sin, cos) + delay_comp * cfg->delay_comp_sign) + 180.0;
 		PROFILE_LINE();

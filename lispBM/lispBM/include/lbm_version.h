@@ -30,7 +30,7 @@ extern "C" {
 /** LBM major version */
 #define LBM_MAJOR_VERSION 0u
 /** LBM minor version */
-#define LBM_MINOR_VERSION 37u
+#define LBM_MINOR_VERSION 41u
 /** LBM patch revision */
 #define LBM_PATCH_VERSION 0u
 
@@ -38,9 +38,55 @@ extern "C" {
 
 /*! \page changelog Changelog
 
+Oct 16 2026: Version 0.41.0
+  - Arithmetic now computes the maximum type to promote to before performing the
+    operation in native words. Encoding to promoted type at the end.
+    This changes overflow behaviour to be more naturally expected (no intermediate
+    flows).
+  - Fixed bug in comparisons, zero and 1 argument comparisons now return type error.
+  - Rewriting dec_as_X to allow compiler to generate jump tables.
+  - Fixed bug that could lead to atomic state leaking out through an error.
+  - bufset-bits and bufget-bits for extracting values from CAN frames.
+  - Flag for semantics choice on member function (return tail on match).
+  - Fundamental append improved efficiency.
+  - str-from-n accepts %f format on whole integers as well.
+  - There are no more critical error paths. A critical error means the
+    runtime system is corrupted beyond repair.
+
+Sep 6 2026: Version 0.40.0
+  - Fix bug in handover to ptr-rev gc from stack gc. Large nested
+    arrays could still exhaust gc stack and crash.
+  - Add a recursion counter to struct_eq.
+  - Add a quickpath to struct_eq that does not grow call-stack.
+  - Add a recursion counter to match.
+  - Add a quickpath to match that does not grow call-stack.
+
+Sep 5 2026: Version 0.39.0
+  - Garbage collector fix: switches to ptr-rev garbage collection
+    when the explicit stack version runs out of stack. Combines
+    ptr-rev correctness and stack version efficiency.
+  - Fix to generic pointer reversal traversal to correctly follow
+    channel dependencies. Also, to correctly error out if someone
+    tries to store a channel into an Image.
+  - Format safety check in str-from-n to rule out segfault if abused.
+  - Send can now deliver messages to named threads by name rather than
+    ID.
+  - Fix in defrag_mem: It did additional and pointless compactions.
+  - Reset atomic state if the RTS resets.
+  - Fix in lbm_allocate_const_raw and write_raw to correctly track
+    size.
+  - Fix off by one error in lbm_memory_shrink.
+  - Fix in read-eval-program that could make locals forever
+    bound in closures created by the read program.
+
+Jul 11 2026: Version 0.38.0
+  - Important bug fix in the image system after update to store symbols names in top half.
+  - String pattern matching functions based on lua (extensions).
+  - Adding tests of image system.
+
 Jul 2 2026: Version 0.37.0
   - Symbol names are now stored in the top half of the image (the bootable image).
-    This fixes an issue where creating new symbols can and NOT saving the image can 
+    This fixes an issue where creating new symbols and NOT saving the image can
     lead to a corrupted image state.
   - unzip is part of the dynamic load extensions.
   - Lots of additions in the Linux REPL (qt, mcp).

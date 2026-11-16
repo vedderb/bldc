@@ -185,6 +185,13 @@
                         "i64 < u64 < float < double`.  Operations such as `(+ a b)`, figures"
                         "out the largest type according to the ordering above and converts all"
                         "the values to this largest type."
+                        "On a 64bit platform the ordering is: `byte < i32 < u32 < i < u <"
+                        "i64 < u64 < float < double`."
+                        "For operations with more than two arguments, such as `(+ a b c)`, the largest type"
+                        "among all of the arguments is found first and the entire computation is"
+                        "performed in that type. The result is therefore independent of the order"
+                        "of the arguments, for example `(+ 200b 100b 1000)` and `(+ 1000 200b 100b)`"
+                        "both evaluate to 1300."
                         ))
             (para (list "Example:"
                         ))
@@ -671,18 +678,22 @@
 (define comp-=
   (ref-entry "="
              (list
-              (para (list "The `=` operation can only be used on numerical arguments. If you know you are comparing numbers, it will be more efficient to use `=`."
+              (para (list "The `=` operation compares numerical values and can only be used on numerical arguments. Use `=` when comparing numbers and `eq` when comparing other kinds of values."
                           "\n"
                           "An important difference between `eq` and `=` is"
                           "that `=` compare the numerical values of the arguments. A 3 is a 3"
                           "independent of them being different types. `eq` on the other"
                           "hand compares the representations of the arguments exactly and they must"
                           "match in structure, type and value to be considered equal."
+                          "\n"
+                          "`(= expr1 ... exprN)` evaluates to `t` if expr1 is numerically equal to all of expr2 ... exprN."
+                          "The comparison requires at least two arguments, with fewer arguments it results in a `type_error`."
                           ))
               (code '((= 1 1)
                       (= 1 2)
                       (= (+ 2 3) (+ 1 4))
                       (= (+ 1 2) (+ 2 3))
+                      (= 3 3u 3.0f32)
                       ))
               end)))
 
@@ -690,6 +701,7 @@
   (ref-entry "!="
              (list
               (para (list "The `!=` operation implements the negation of `=`. So, `(!= a b)` evaluates to the same result as `(not (= a b))`."
+                          "The comparison requires at least two arguments, with fewer arguments it results in a `type_error`."
                           ))
               (code '((!= 1 1)
                       (!= 1 2)
@@ -702,32 +714,39 @@
   (ref-entry ">"
              (list
               (para (list "Greater than comparison. A greater than comparison has the form `(> expr1 ... exprN)` and evaluates to `t` if expr1 is greater than all of expr2 ... exprN."
+                          "The comparison requires at least two arguments, with fewer arguments it results in a `type_error`."
                           ))
 
               (code '((> 5 2)
                       (> 2 5)
                       (> 3.14 1)
                       (> 1 3.14)
+                      (> 5 1 3)
+                      (> 5 1 9)
                       ))
               end)))
 
 (define comp-<
   (ref-entry "<"
              (list
-              (para (list "Less than comparison. A less than comparison has the form `(> expr1 ... exprN)` and evaluates to `t` if expr1 is less than all of expr2 ... exprN."
+              (para (list "Less than comparison. A less than comparison has the form `(< expr1 ... exprN)` and evaluates to `t` if expr1 is less than all of expr2 ... exprN."
+                          "The comparison requires at least two arguments, with fewer arguments it results in a `type_error`."
                           ))
 
               (code '((< 5 2)
-                      (< 5 2)
+                      (< 2 5)
                       (read-eval "(< 3.14 1)")
                       (read-eval "(< 1 3.14)")
+                      (< 1 5 3)
+                      (< 1 5 0)
                       ))
               end)))
 
 (define comp->=
   (ref-entry ">="
              (list
-              (para (list "Greater than or equal comparison. A greater than comparison has the form `(>= expr1 ... exprN)` and evaluates to `t` if expr1 is greater than or equal to all of expr2 ... exprN."
+              (para (list "Greater than or equal comparison. A greater than or equal comparison has the form `(>= expr1 ... exprN)` and evaluates to `t` if expr1 is greater than or equal to all of expr2 ... exprN."
+                          "The comparison requires at least two arguments, with fewer arguments it results in a `type_error`."
                           ))
 
               (code '((>= 1 1)
@@ -735,6 +754,8 @@
                       (>= 2 5)
                       (read-eval "(>= 3.14 1)")
                       (read-eval "(>= 1 3.14)")
+                      (>= 5 5 1)
+                      (>= 5 1 9)
                       ))
               end)))
 
@@ -742,6 +763,7 @@
   (ref-entry "<="
              (list
               (para (list "Less than or equal comparison. A less than or equal comparison has the form `(<= expr1 ... exprN)` and evaluates to `t` if expr1 is less than or equal to all of expr2 ... exprN."
+                          "The comparison requires at least two arguments, with fewer arguments it results in a `type_error`."
                           ))
 
               (code '((<= 1 1)
@@ -749,6 +771,8 @@
                       (<= 2 5)
                       (read-eval "(<= 3.14 1)")
                       (read-eval "(<= 1 3.14)")
+                      (<= 1 1 3)
+                      (<= 1 5 0)
                       ))
               end)))
 
@@ -758,6 +782,7 @@
                  comp-eq
                  comp-not-eq
                  comp-=
+                 comp-!=
                  comp->
                  comp-<
                  comp->=

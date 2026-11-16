@@ -56,6 +56,7 @@
 
 ;; Display the result - no color mapping needed for rgb332
 (disp-render img400x200 0 0)
+(save-img img400x200 "sdl_tests/png_out/test_img_rgb332.png")
 
 (if (and r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 is_buffer
          (eq dims '(400 200)))

@@ -3,16 +3,9 @@ import os
 import subprocess
 import sys
 
-# https://stackoverflow.com/questions/14989858/get-the-current-git-hash-in-a-python-script
-def get_git_revision_short_hash() -> str:
-    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
-
 # Get the origin and destination directories
 build_dir = os.path.dirname(os.path.abspath(__file__)) + '/build'
 package_dir = os.path.dirname(os.path.abspath(__file__)) + '/package'
-
-# Get the short git hash
-git_hash = get_git_revision_short_hash()
 
 # Define default destination filenames
 no_limits_name = "VESC_default_no_hw_limits.bin"
@@ -100,7 +93,7 @@ package_dict["Thor300"] = [['Thor300_20s', default_name]]
 package_dict["Thor301"] = [['Thor301', default_name]]
 package_dict["Thor400"] = [['Thor400', default_name]]
 package_dict["Thor400v2"] = [['Thor400v2', default_name]]
-package_dict["Lightning400"] = [['Lightning400', default_name]]
+package_dict["Lightning400_o_Z400"] = [['Lightning400', default_name]]
 package_dict["JetFleetF6_20s"] = [['JetFleetF6_20s', default_name]]
 package_dict["JetFleetF6_24s"] = [['JetFleetF6_24s', default_name]]
 package_dict["JetFleetF6_32s"] = [['JetFleetF6_32s', default_name]]
@@ -117,6 +110,8 @@ package_dict["60_75"] = [['60_75', default_name],
                     ['60_75_no_limits', no_limits_name]]
 package_dict["60_75_mk2"] = [['60_75_mk2', default_name],
                     ['60_75_mk2_no_limits', no_limits_name]]
+package_dict["60_100"] = [['60_100', default_name],
+                    ['60_100_no_limits', no_limits_name]]
 package_dict["UBOX_SINGLE_75"] = [['ubox_single_75', default_name],
                                   ['ubox_single_75_no_limits', no_limits_name]]
 package_dict["UBOX_V1_75_MICRO"] = [['ubox_v1_75_micro', default_name],
@@ -189,6 +184,7 @@ package_dict["RSR_DD_V1"] = [['RSR_DD_V1', default_name],
 package_dict["RSR_DD_V2"] = [['RSR_DD_V2', default_name]]
 package_dict["RSR_DD_V2.1"] = [['RSR_DD_V2.1', default_name]]
 package_dict["ITR_X1"] = [['itr_x1', default_name]]
+package_dict["Maxim_100"] = [['maxim_100', default_name]]
 package_dict["Maxim_120"] = [['maxim_120', default_name],
                     ['maxim_120_no_limits', no_limits_name]]
 package_dict["Maximp_120"] = [['maximp_120', default_name],
@@ -224,6 +220,8 @@ package_dict["FLIPSKY_110_200"] = [['flipsky_110_200', default_name],
                     ['flipsky_110_200_no_limits', no_limits_name]] 
 package_dict["FLIPSKY_110_300"] = [['flipsky_110_300', default_name],
                     ['flipsky_110_300_no_limits', no_limits_name]]
+package_dict["FLIPSKY_110_350"] = [['flipsky_110_350', default_name],
+                    ['flipsky_110_350_no_limits', no_limits_name]]
 package_dict["FLIPSKY_110_400"] = [['flipsky_110_400', default_name],
                     ['flipsky_110_400_no_limits', no_limits_name]]                     
 package_dict["Classic"] = [['classic', default_name],

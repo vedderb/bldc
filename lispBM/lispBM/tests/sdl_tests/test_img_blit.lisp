@@ -48,6 +48,7 @@
 
 ;; Display the result
 (disp-render dst_img 0 0 '(0x000000 0xFFFFFF))
+(save-img dst_img "sdl_tests/png_out/test_img_blit.png" '(0x000000 0xFFFFFF))
 
 (if (and r1 r2 r3 r4 r5
          (eq r6 '(exit-error type_error))

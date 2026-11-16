@@ -25,6 +25,11 @@
 extern void lbm_timestamp_cacher(void *v);
 extern void lbm_timestamp_cacher_stop(void);
 
+// pthread_create requires a start routine returning void*.
+// Use this trampoline instead of lbm_timestamp_cacher directly
+// when calling pthread_create.
+extern void *lbm_timestamp_cacher_pthread(void *v);
+
 // timestamp interface
 extern atomic_uint_least32_t lbm_timestamp_cache;
 

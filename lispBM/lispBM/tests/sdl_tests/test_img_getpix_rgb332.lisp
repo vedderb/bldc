@@ -102,6 +102,7 @@
 
 ;; Display the result
 (disp-render img400x200 0 0)
+(save-img img400x200 "sdl_tests/png_out/test_img_getpix_rgb332.png")
 
 
 (if (and test1

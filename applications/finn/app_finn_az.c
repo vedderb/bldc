@@ -22,6 +22,7 @@
 #include "hal.h"
 
 #include "mc_interface.h"
+#include "ema.h"
 #include "utils.h"
 #include "encoder/encoder.h"
 #include "terminal.h"
@@ -476,7 +477,7 @@ static THD_FUNCTION(control_thread, arg) {
 			}
 		}
 
-		UTILS_LP_FAST(angle_target, angle_target_no_filter, FILTER_CONST);
+		ema_step(&angle_target, angle_target_no_filter, FILTER_CONST);
 
 		m_pod_state.actual_angle = angle_now - m_pod_state.angle_home - m_pod_state.angle_offset;
 

@@ -15,23 +15,25 @@
 
 // Header files
 #include <ahrs.h>
+#include "ema.h"
 #include "utils_math.h"
 #include <math.h>
 
+#define ACC_MAG_CUTOFF_HZ		8.0f
+
 // Private functions
 static float invSqrt(float x);
-static float calculateAccConfidence(float accMag, float *accMagP, float acc_confidence_decay);
+static float calculateAccConfidence(float accMag, float dt, float *accMagP, float acc_confidence_decay);
 
-static float calculateAccConfidence(float accMag, float *accMagP, float acc_confidence_decay) {
+static float calculateAccConfidence(float accMag, float dt, float *accMagP, float acc_confidence_decay) {
 	// G.K. Egan (C) computes confidence in accelerometers when
 	// aircraft is being accelerated over and above that due to gravity
 
 	float confidence;
 
-	accMag = *accMagP * 0.9f + accMag * 0.1f;
-	*accMagP = accMag;
+	ema_step(accMagP, accMag, ema_alpha(ACC_MAG_CUTOFF_HZ, dt));
 
-	confidence = 1.0 - (acc_confidence_decay * sqrtf(fabsf(accMag - 1.0f)));
+	confidence = 1.0 - (acc_confidence_decay * sqrtf(fabsf(*accMagP - 1.0f)));
 	utils_truncate_number(&confidence, 0.0, 1.0);
 
 	return confidence;
@@ -76,10 +78,15 @@ void ahrs_update_initial_orientation(const float *accelXYZ, const float *magXYZ,
 	float sp = sinf(pitch);
 	float cp = cosf(pitch);
 
-	float c_mx = mx * cp + my * sr * sp + mz * sp * cr;
-	float c_my = my * cr - mz * sr;
-	float yaw = atan2f(-c_my, c_mx) - M_PI / 2.0;
-	utils_norm_angle_rad(&yaw);
+	// The drivers report all-zero mag without a magnetometer, for which atan2f(+-0, +-0)
+	// would seed the yaw at +-90 degrees.
+	float yaw = 0.0;
+	if (mx != 0.0 || my != 0.0 || mz != 0.0) {
+		float c_mx = mx * cp + my * sr * sp + mz * sp * cr;
+		float c_my = my * cr - mz * sr;
+		yaw = atan2f(-c_my, c_mx) - M_PI / 2.0;
+		utils_norm_angle_rad(&yaw);
+	}
 
 	cr = cosf(-roll * 0.5f);
 	sr = sinf(-roll * 0.5f);
@@ -118,7 +125,7 @@ void ahrs_update_mahony_imu(const float *gyroXYZ, const float *accelXYZ, float d
 		volatile float twoKp = 2.0 * att->kp;
 		volatile float twoKi = 2.0 * att->ki;
 
-		accelConfidence = calculateAccConfidence(accelNorm, &att->accMagP, att->acc_confidence_decay);
+		accelConfidence = calculateAccConfidence(accelNorm, dt, &att->accMagP, att->acc_confidence_decay);
 		twoKp *= accelConfidence;
 		twoKi *= accelConfidence;
 
@@ -236,18 +243,22 @@ void ahrs_update_madgwick_imu(const float *gyroXYZ, const float *accelXYZ, float
 		s1 = _4q1 * q3q3 - _2q3 * ax + 4.0f * q0q0 * q1 - _2q0 * ay - _4q1 + _8q1 * q1q1 + _8q1 * q2q2 + _4q1 * az;
 		s2 = 4.0f * q0q0 * q2 + _2q0 * ax + _4q2 * q3q3 - _2q3 * ay - _4q2 + _8q2 * q1q1 + _8q2 * q2q2 + _4q2 * az;
 		s3 = 4.0f * q1q1 * q3 - _2q1 * ax + 4.0f * q2q2 * q3 - _2q2 * ay;
-		recipNorm = invSqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
-		s0 *= recipNorm;
-		s1 *= recipNorm;
-		s2 *= recipNorm;
-		s3 *= recipNorm;
 
-		// Apply feedback step
-		accelConfidence = calculateAccConfidence(accelNorm, &att->accMagP, att->acc_confidence_decay);
-		qDot1 -= att->beta * s0 * accelConfidence;
-		qDot2 -= att->beta * s1 * accelConfidence;
-		qDot3 -= att->beta * s2 * accelConfidence;
-		qDot4 -= att->beta * s3 * accelConfidence;
+		float stepNormSq = s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3;
+		if (stepNormSq > 0) {
+			recipNorm = invSqrt(stepNormSq); // normalise step magnitude
+			s0 *= recipNorm;
+			s1 *= recipNorm;
+			s2 *= recipNorm;
+			s3 *= recipNorm;
+
+			// Apply feedback step
+			accelConfidence = calculateAccConfidence(accelNorm, dt, &att->accMagP, att->acc_confidence_decay);
+			qDot1 -= att->beta * s0 * accelConfidence;
+			qDot2 -= att->beta * s1 * accelConfidence;
+			qDot3 -= att->beta * s2 * accelConfidence;
+			qDot4 -= att->beta * s3 * accelConfidence;
+		}
 	}
 
 	// Integrate rate of change of quaternion to yield quaternion

@@ -27,6 +27,8 @@
   #define HW_NAME					"Flipsky_110_200"
 #elif defined(HW_FLIPSKY_110_300)
   #define HW_NAME					"Flipsky_110_300"
+#elif defined(HW_FLIPSKY_110_350)
+  #define HW_NAME					"Flipsky_110_350"
 #elif defined(HW_FLIPSKY_110_400)
   #define HW_NAME					"Flipsky_110_400"
 #else
@@ -249,6 +251,8 @@
   #define HW_DEAD_TIME_NSEC		1000.0
 #elif defined(HW_FLIPSKY_110_300)
   #define HW_DEAD_TIME_NSEC		1500.0
+#elif defined(HW_FLIPSKY_110_350)
+  #define HW_DEAD_TIME_NSEC		1200.0
 #elif defined(HW_FLIPSKY_110_400)
   #define HW_DEAD_TIME_NSEC		1200.0
 #else
@@ -284,7 +288,11 @@
 #endif
 
 // Setting limits
-#ifdef  HW_FLIPSKY_110_400
+#ifdef  HW_FLIPSKY_110_350
+#define HW_LIM_CURRENT			-350.0, 350.0
+#define HW_LIM_CURRENT_IN		-350.0, 350.0
+#define HW_LIM_CURRENT_ABS		0.0, 500.0
+#elif defined(HW_FLIPSKY_110_400)
 #define HW_LIM_CURRENT			-400.0, 400.0
 #define HW_LIM_CURRENT_IN		-400.0, 400.0
 #define HW_LIM_CURRENT_ABS		0.0, 550.0

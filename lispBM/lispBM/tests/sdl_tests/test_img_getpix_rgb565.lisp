@@ -117,6 +117,7 @@
 
 ;; Display the result
 (disp-render img400x200 0 0)
+(save-img img400x200 "sdl_tests/png_out/test_img_getpix_rgb565.png")
 
 (list test1 test2 test3 test4 test5 test6 test7 test8 test9 test12 test17 test18 test19
          (eq test13 '(exit-error type_error))

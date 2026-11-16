@@ -1,7 +1,7 @@
 # VESC firmware
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Travis CI Status](https://travis-ci.com/vedderb/bldc.svg?branch=master)](https://travis-ci.com/vedderb/bldc)
+[![GitHub Actions Status](https://github.com/vedderb/bldc/actions/workflows/nix.yml/badge.svg?branch=master)](https://github.com/vedderb/bldc/actions/workflows/nix.yml)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/75e90ffbd46841a3a7be2a9f7a94c242)](https://www.codacy.com/app/vedderb/bldc?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=vedderb/bldc&amp;utm_campaign=Badge_Grade)
 [![Contributors](https://img.shields.io/github/contributors/vedderb/bldc.svg)](https://github.com/vedderb/bldc/graphs/contributors)
 [![Watchers](https://img.shields.io/github/watchers/vedderb/bldc.svg)](https://github.com/vedderb/bldc/watchers)
@@ -69,6 +69,18 @@ Open up a terminal
 2.  `make arm_sdk_install`
 3.  `make` <-- Pick out the name of your target device from the supported boards list. For instance, I have a Trampa **VESC 100/250**, so my target is `100_250`
 4.   `make 100_250` <-- This will build the **VESC 100/250** firmware and place it into the `bldc/builds/100_250/` directory
+
+## Building with Nix
+
+Nix is a build tool which manages all dependencies. With [Nix flakes](https://nixos.wiki/wiki/Flakes)
+enabled, build the general-purpose firmware package from the repository root.
+
+```bash
+nix build .#bldc-fw
+```
+
+The packaged firmware and `res_fw.qrc` are available under `result/`.
+All boards are built by default. `make *_flash` helpers are not supported with nix.
 
 ## Other tools
 

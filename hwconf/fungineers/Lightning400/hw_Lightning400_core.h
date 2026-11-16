@@ -189,9 +189,8 @@
 
 #define IMU_DRDY_GPIO			GPIOC
 #define IMU_DRDY_PIN			9
-#define IMU_DRDY_EXTI_PORTSRC	EXTI_PortSourceGPIOC
-#define IMU_DRDY_EXTI_PINSRC	EXTI_PinSource9
-#define IMU_DRDY_EXTI_LINE		EXTI_Line9
+
+#define IMU_ROT_90
 
 // UART Peripheral
 #define HW_UART_DEV		        SD4

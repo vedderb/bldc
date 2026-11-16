@@ -125,6 +125,8 @@ void comm_usb_init(void) {
 	// Threads
 	chThdCreateStatic(serial_read_thread_wa, sizeof(serial_read_thread_wa), NORMALPRIO, serial_read_thread, NULL);
 	chThdCreateStatic(serial_process_thread_wa, sizeof(serial_process_thread_wa), NORMALPRIO, serial_process_thread, NULL);
+
+	comm_usb_serial_connect();
 }
 
 void comm_usb_send_packet(unsigned char *data, unsigned int len) {

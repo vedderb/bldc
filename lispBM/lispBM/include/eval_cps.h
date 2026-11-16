@@ -276,12 +276,6 @@ void lbm_set_error_reason(const char *error_str);
  * \param lbm_value
  */
 void lbm_set_error_suspect(lbm_value suspect);
-/** Terminate the runtime system in response to an
-  *  error that it is not possible to recover from.
-  */
-void lbm_critical_error(void);
-/** Set the critical error callback */
-void lbm_set_critical_error_callback(void (*fptr)(void));
 /** Create a context and enqueue it as runnable.
  *
  * \evalpaused

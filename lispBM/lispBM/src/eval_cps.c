@@ -37,7 +37,7 @@
      for running all evaluation.
   2. longjmp is called as part of the ERROR_CTX/ERROR_AT_CTX macros which
      are executed by the evaluator in error cases.
-  3. the jump buffers are static (error_jmp_buf, critical_error_jmp_buf).
+  3. the jump buffers are static (error_jmp_buf).
   4. The error_ctx/error_at_ctx functions are static.
   5. The ERROR_CTX/ERROR_AT_CTX/READ_ERROR_CTX macros are only called in
      static functions.
@@ -103,7 +103,6 @@
 #endif
 
 static jmp_buf error_jmp_buf;
-static jmp_buf critical_error_jmp_buf;
 
 #define S_TO_US(X) (lbm_uint)((X) * 1000000)
 
@@ -394,20 +393,10 @@ sizeopt static void ctx_done_nonsense(eval_context_t *ctx) {
   (void) ctx;
 }
 
-sizeopt static void critical_nonsense(void) {
-  return;
-}
-
-static void (*critical_error_callback)(void) = critical_nonsense;
 static void (*usleep_callback)(uint32_t) = usleep_nonsense;
 static void (*ctx_done_callback)(eval_context_t *) = ctx_done_nonsense;
 int (*lbm_printf_callback)(const char *, ...) = printf_nonsense;
 static bool (*dynamic_load_callback)(const char *, const char **) = dynamic_load_nonsense;
-
-sizeopt void lbm_set_critical_error_callback(void (*fptr)(void)) {
-  if (fptr == NULL) critical_error_callback = critical_nonsense;
-  else critical_error_callback = fptr;
-}
 
 sizeopt void lbm_set_usleep_callback(void (*fptr)(uint32_t)) {
   if (fptr == NULL) usleep_callback = usleep_nonsense;
@@ -796,7 +785,6 @@ static lbm_value allocate_binding(lbm_value key, lbm_value val, lbm_value the_cd
 #define LOOP_BODY  2
 
 static void atomic_error(void) {
-  is_atomic = false;
   lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
   ERROR_CTX(ENC_SYM_EERROR);
 }
@@ -1057,6 +1045,26 @@ static void enqueue_ctx(eval_context_queue_t *q, eval_context_t *ctx) {
   lbm_mutex_unlock(&qmutex);
 }
 
+// //////////////////////////////////////////////////
+// If CID was a type that is impossible to create
+// other than by "spawning a thread", we could
+// make direct use of the fact that it is an index into
+// lbm_memory that identifies a context.
+// We would still need to ensure by inspection
+// that the value stored is a context.
+//
+// Currently any access to a context via its CID is
+// done by searching all queues for the context and then modifying it.
+// This is a SAFE way of accessing the context as it enables
+// detection of state CID.
+//
+// Alternative: A CID should be a heap cell (context_address . symbol)
+// where no program can generate symbol and the type of (context_address . symbol)
+// is LBM_TYPE_CID.
+// This would cost one heap cell per context but, it would
+// give O(1) lookup of context structure which
+// is useful in for example message delivery.
+
 static eval_context_t *lookup_ctx_nm(eval_context_queue_t *q, lbm_cid cid) {
   eval_context_t *curr;
   curr = q->first;
@@ -1068,6 +1076,19 @@ static eval_context_t *lookup_ctx_nm(eval_context_queue_t *q, lbm_cid cid) {
   }
   return NULL;
 }
+
+static eval_context_t *lookup_ctx_name_nm(eval_context_queue_t *q, char *name, lbm_uint name_len) {
+  eval_context_t *curr;
+  curr = q->first;
+  while (curr != NULL) {
+    if (curr->name && strncmp(curr->name, name, name_len) == 0) {
+      return curr;
+    }
+    curr = curr->next;
+  }
+  return NULL;
+}
+
 
 // Unlinks a context from a queue (doubly linked list).
 // Unlinking must be preceded by a lookup, both within the same
@@ -1092,6 +1113,9 @@ static void unlink_ctx_nm(eval_context_queue_t *q, eval_context_t *ctx) {
 /* End execution of the running context. */
 static void finish_ctx(void) {
 
+  // Reset atomic status if this finish_ctx is part of an
+  // untrapper error or a self-kill within an atomic block.
+  is_atomic = false;
   if (!ctx_running) {
     return;
   }
@@ -1135,6 +1159,8 @@ sizeopt static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_
 sizeopt static noreturn void error_ctx_base(lbm_value err_val, bool has_at, lbm_value at, unsigned int row, unsigned int column) {
 #endif
   bool print_trapped = !lbm_hide_trapped_error && (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN);
+  // An error always exists atomic status.
+  is_atomic = false;
 
   if (!(lbm_hide_trapped_error &&
         (ctx_running->flags & EVAL_CPS_CONTEXT_FLAG_TRAP_UNROLL_RETURN))) {
@@ -1214,10 +1240,6 @@ sizeopt static noreturn void read_error_ctx(unsigned int row, unsigned int colum
   error_ctx_base(ENC_SYM_RERROR, false, 0, row, column);
 }
 #endif
-
-void lbm_critical_error(void) {
-  longjmp(critical_error_jmp_buf, 1);
-}
 
 // successfully finish a context
 static void ok_ctx(void) {
@@ -1614,16 +1636,25 @@ static uint32_t lbm_mailbox_free_space_for_cid(lbm_cid cid) {
   return res;
 }
 
-/** find_receiver_and_send is used for message passing where
- * the semantics is that the oldest message is dropped if the
- * receiver mailbox is full.
- */
-bool lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
-  lbm_mutex_lock(&qmutex);
+typedef struct {
+  bool by_name;
+  lbm_uint name_len;
+  union {
+    char *name;
+    lbm_cid cid;
+  } u;
+} find_receiver_t;
+
+bool find_receiver_and_send(find_receiver_t c, lbm_value msg) {
+ lbm_mutex_lock(&qmutex);
   eval_context_t *found = NULL;
   int res = true;
 
-  found = lookup_ctx_nm(&blocked, cid);
+  if (c.by_name) {
+    found = lookup_ctx_name_nm(&blocked, c.u.name, c.name_len);
+  } else {
+    found = lookup_ctx_nm(&blocked, c.u.cid);
+  }
   if (found) {
     if (LBM_IS_STATE_RECV(found->state)) { // only if unblock receivers here.
       unlink_ctx_nm(&blocked,found);
@@ -1634,23 +1665,43 @@ bool lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
     goto find_receiver_end;
   }
 
-  found = lookup_ctx_nm(&queue, cid);
+  if (c.by_name) {
+    found = lookup_ctx_name_nm(&queue, c.u.name, c.name_len);
+  } else {
+    found = lookup_ctx_nm(&queue, c.u.cid);
+  }
   if (found) {
     mailbox_add_mail(found, msg);
     goto find_receiver_end;
   }
 
   /* check the current context */
-  if (ctx_running && ctx_running->id == cid) {
-    mailbox_add_mail(ctx_running, msg);
-    goto find_receiver_end;
+  if (c.by_name) {
+    if (ctx_running && ctx_running->name && strncmp(ctx_running->name, c.u.name, c.name_len) == 0) {
+      mailbox_add_mail(ctx_running, msg);
+      goto find_receiver_end;
+    }
+  } else {
+    if (ctx_running && ctx_running->id == c.u.cid) {
+      mailbox_add_mail(ctx_running, msg);
+      goto find_receiver_end;
+    }
   }
   res = false;
  find_receiver_end:
   lbm_mutex_unlock(&qmutex);
   return res;
 }
-
+/** find_receiver_and_send is used for message passing where
+ * the semantics is that the oldest message is dropped if the
+ * receiver mailbox is full.
+ */
+bool lbm_find_receiver_and_send(lbm_cid cid, lbm_value msg) {
+  find_receiver_t c;
+  c.u.cid = cid;
+  c.by_name = false;
+  return find_receiver_and_send(c, msg);
+}
 // a match binder looks like (? x) or (? _) for example.
 // It is a list of two elements where the first is a ? and the second is a symbol.
 static inline lbm_value get_match_binder_variable(lbm_value exp) {
@@ -1668,8 +1719,11 @@ static inline lbm_value get_match_binder_variable(lbm_value exp) {
 /* Pattern matching is currently implemented as a recursive
    function and make use of stack relative to the size of
    expressions that are being matched. */
-static bool match(lbm_value p, lbm_value e, lbm_value *env) {
-  bool r = false;
+static bool match(lbm_value p, lbm_value e, lbm_value *env, int rlevel) {
+  if (rlevel >= LBM_MAX_C_RECURSION) return false;
+  bool r;
+ match_quickpath:
+  r = false;
   lbm_value var = get_match_binder_variable(p);
   if (var) {
 #ifdef LBM_ALWAYS_GC
@@ -1701,10 +1755,16 @@ static bool match(lbm_value p, lbm_value e, lbm_value *env) {
     lbm_value tailp = p_cell->cdr;
     lbm_value heade = e_cell->car;
     lbm_value taile = e_cell->cdr;
-    r = match(headp, heade, env);
-    r = r && match (tailp, taile, env);
+    if (match(headp, heade, env, rlevel+1)) {
+        p = tailp;
+        e = taile;
+        goto match_quickpath;
+    }
+    r = false;
   } else {
-    r = struct_eq(p, e);
+    // TODO: Think about this.
+    // may be better to pass rlevel here.
+    r = struct_eq(p, e, 0);
   }
   return r;
 }
@@ -1730,7 +1790,7 @@ static int find_match(lbm_value plist, lbm_value *earr, lbm_uint num, lbm_value 
         lbm_set_error_reason("Incorrect pattern format for recv");
         ERROR_AT_CTX(ENC_SYM_EERROR,curr);
       }
-      if (match(p0, curr_e, env)) {
+      if (match(p0, curr_e, env, 0)) {
         *e = p1;
         return n;
       }
@@ -2738,7 +2798,6 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
       // enforced in the case where it can cause problems.
       if (lbm_channel_may_block(lbm_dec_channel(chan)) && is_atomic) {
        lbm_set_error_reason((char*)lbm_error_str_forbidden_in_atomic);
-       is_atomic = false;
        ERROR_CTX(ENC_SYM_EERROR);
       }
     } else {
@@ -2779,7 +2838,10 @@ static void apply_read_base(lbm_value *args, lbm_uint nargs, eval_context_t *ctx
       if (incremental) {
         ctx->flags |= EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
         lbm_value  *rptr1 = stack_reserve(ctx,2);
-        rptr1[0] = ctx->curr_env;
+        // Evaluating the program in the curr_env can lead to
+        // values on curr_env to be captured in closures created in
+        // the program.
+        rptr1[0] = ENC_SYM_NIL; // ctx->curr_env;
         rptr1[1] = READ_EVAL_CONTINUE;
       } else {
         ctx->flags &= ~EVAL_CPS_CONTEXT_FLAG_INCREMENTAL_READ;
@@ -2956,7 +3018,7 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
     lbm_value prg_copy;
 
     int len = -1;
-    WITH_GC(prg_copy, lbm_list_copy(&len, prg));
+    WITH_GC(prg_copy, lbm_list_copy(&len, prg, ENC_SYM_NIL));
     stack_drop(ctx, (unsigned int)nargs+1);
     // There is always a continuation (DONE).
     // If ctx->program is nil, the stack should contain DONE.
@@ -2978,14 +3040,30 @@ static void apply_eval_program(lbm_value *args, lbm_uint nargs, eval_context_t *
 
 static void apply_send(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 2) {
+    lbm_value msg = args[1];
     if (lbm_type_of(args[0]) == LBM_TYPE_I) {
       lbm_cid cid = (lbm_cid)lbm_dec_i(args[0]);
-      lbm_value msg = args[1];
       bool r = lbm_find_receiver_and_send(cid, msg);
       /* return the status */
       stack_drop(ctx, (unsigned int)nargs+1);
       ctx->r = r ? ENC_SYM_TRUE : ENC_SYM_NIL;
       ctx->app_cont = true;
+    } else if (lbm_type_of_functional(args[0]) == LBM_TYPE_ARRAY) {
+      char *name;
+      size_t name_len;
+      if (lbm_value_is_printable_string(args[0], &name) &&
+          lbm_dec_str_size(args[0], &name, &name_len)) {
+        find_receiver_t c;
+        c.u.name = name;
+        c.name_len = (lbm_uint)name_len;
+        c.by_name = true;
+        bool r = find_receiver_and_send(c, msg);
+        stack_drop(ctx, (unsigned int)nargs + 1);
+        ctx->r = r ? ENC_SYM_TRUE : ENC_SYM_NIL;
+        ctx->app_cont = true;
+      } else {
+        ERROR_AT_CTX(ENC_SYM_TERROR, ENC_SYM_SEND);
+      }
     } else {
       ERROR_AT_CTX(ENC_SYM_TERROR, ENC_SYM_SEND);
     }
@@ -3000,7 +3078,6 @@ static void apply_ok(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs >= 1) {
     ok_val = args[0];
   }
-  is_atomic = false;
   ctx->r = ok_val;
   ok_ctx();
 }
@@ -3011,7 +3088,6 @@ static void apply_error(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs >= 1) {
     err_val = args[0];
   }
-  is_atomic = false;
   ERROR_AT_CTX(err_val, ENC_SYM_EXIT_ERROR);
 }
 
@@ -3234,8 +3310,8 @@ static void apply_merge(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
     lbm_value b;
     int len_a = -1;
     int len_b = -1;
-    WITH_GC(a, lbm_list_copy(&len_a, args[1]));
-    WITH_GC_RMBR_1(b, lbm_list_copy(&len_b, args[2]), a);
+    WITH_GC(a, lbm_list_copy(&len_a, args[1], ENC_SYM_NIL));
+    WITH_GC_RMBR_1(b, lbm_list_copy(&len_b, args[2], ENC_SYM_NIL), a);
 
     if (len_a == 0) {
       ctx->r = b;
@@ -3307,7 +3383,7 @@ static void apply_sort(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
 
     int len = -1;
     lbm_value list_copy;
-    WITH_GC(list_copy, lbm_list_copy(&len, args[1]));
+    WITH_GC(list_copy, lbm_list_copy(&len, args[1], ENC_SYM_NIL));
     if (len <= 1) {
       stack_drop(ctx, 3);
       ctx->r = list_copy;
@@ -3397,7 +3473,7 @@ static void apply_rotate(lbm_value *args, lbm_uint nargs, eval_context_t *ctx) {
   if (nargs == 2 && lbm_is_list(args[0]) && lbm_is_number(args[1])) {
     int len = -1;
     lbm_value ls;
-    WITH_GC(ls, lbm_list_copy(&len, args[0]));
+    WITH_GC(ls, lbm_list_copy(&len, args[0], ENC_SYM_NIL));
     int dist = lbm_dec_as_i32(args[1]);
     if (len > 0 && dist != 0) {
       int d = dist;
@@ -3836,7 +3912,7 @@ static void cont_match(eval_context_t *ctx) {
       body = get_car(n2);
       check_guard = true;
     }
-    bool is_match = match(pattern, e, &new_env);
+    bool is_match = match(pattern, e, &new_env, 0);
     if (is_match) {
       if (check_guard) {
         lbm_value *rptr = stack_reserve(ctx,5);
@@ -5925,12 +6001,6 @@ void lbm_add_eval_symbols(void) {
 
 #ifdef LBM_SINGLE_THREADED
 bool lbm_eval_step(int n) {
-  if (setjmp(critical_error_jmp_buf) > 0) {
-    lbm_printf_callback("GC stack overflow!\n");
-    critical_error_callback();
-    eval_running = false;
-    return false; // uninteresting on a critical error.
-  }
   if (setjmp(error_jmp_buf) > 0) { return false; }
 
   bool busy = false;
@@ -5975,13 +6045,6 @@ bool lbm_eval_init(void) {
    communication between other threads and the run_eval
    but for now a set of variables will be used. */
 void lbm_run_eval(void){
-  if (setjmp(critical_error_jmp_buf) > 0) {
-    lbm_printf_callback("GC stack overflow!\n");
-    critical_error_callback();
-    // terminate evaluation thread.
-    return;
-  }
-
   setjmp(error_jmp_buf);
 
   while (eval_running) {
@@ -6122,6 +6185,7 @@ bool lbm_eval_init(void) {
   lbm_mutex_lock(&qmutex);
   lbm_mutex_lock(&lbm_events_mutex);
 
+  is_atomic = false;
   blocked.first = NULL;
   blocked.last = NULL;
   queue.first = NULL;

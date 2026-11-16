@@ -227,9 +227,9 @@ void lbm_free(void *ptr);
 /** Shrink an allocated array.
  * \param ptr Pointer to array to shrink
  * \param n New smaller size of array
- * \return 1 on success and 0 on failure.
+ * \return true on success and false on failure.
  */
-int lbm_memory_shrink(lbm_uint *ptr, lbm_uint n);
+bool lbm_memory_shrink(lbm_uint *ptr, lbm_uint n);
 
 /** Check if a pointer points into the lbm_memory
  *

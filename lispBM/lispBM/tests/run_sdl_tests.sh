@@ -16,6 +16,9 @@ make clean
 make FEATURES="sdl coverage"
 cd ../tests
 
+rm -rf sdl_tests/png_out
+mkdir -p sdl_tests/png_out
+
 date=$(date +"%Y-%m-%d_%H-%M")
 logfile="log_sdl_tests_${date}.log"
 
@@ -85,6 +88,54 @@ else
     echo "There were $unexpected_fail_count unexpected test failures."
 fi
 
+
+## compare rendered PNGs to the GOLD.
+#
+#  If there is a difference between the current render and the GOLD then
+#  one has to inspect the visual difference and check if it is better, a
+#  worthwhile tradeoff or a bug.
+
+echo ""
+echo "Comparing rendered images against gold references:"
+
+if command -v compare >/dev/null 2>&1; then
+    mkdir -p sdl_tests/png_diff
+    gold_match=0
+    gold_diff=0
+    gold_missing=0
+    diff_list=()
+
+    for f in sdl_tests/png_out/*.png; do
+        name=$(basename "$f")
+        gold_file="sdl_tests/gold/$name"
+        if [ ! -f "$gold_file" ]; then
+            echo "NO GOLD REFERENCE: $name"
+            gold_missing=$((gold_missing+1))
+            continue
+        fi
+
+        ae=$(compare -metric AE "$gold_file" "$f" "sdl_tests/png_diff/$name" 2>&1 >/dev/null)
+        if [ "$ae" == "0" ]; then
+            gold_match=$((gold_match+1))
+            rm -f "sdl_tests/png_diff/$name"
+        else
+            echo "DIFFERS FROM GOLD: $name (differing pixels: $ae)"
+            gold_diff=$((gold_diff+1))
+            diff_list+=("$name")
+        fi
+    done
+
+    echo ""
+    echo "Gold comparison: $gold_match match, $gold_diff differ, $gold_missing without a gold reference"
+    if [ $gold_diff -gt 0 ]; then
+        echo "Differing images (gold: sdl_tests/gold/<name>, new: sdl_tests/png_out/<name>, highlighted diff: sdl_tests/png_diff/<name>):"
+        for name in "${diff_list[@]}"; do
+            echo "  $name"
+        done
+    fi
+else
+    echo "ImageMagick 'compare' not found; skipping gold comparison."
+fi
 
 ## Go to repl directory and collect the coverage data
 cd ../repl

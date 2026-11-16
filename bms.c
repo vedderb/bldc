@@ -42,7 +42,8 @@
 #define MAX_CAN_AGE_SEC				2.0
 
 // Private variables
-static volatile bms_config m_conf;
+static volatile BMS_TYPE m_bms_type;
+static volatile BMS_FWD_CAN_MODE m_fwd_can_mode;
 static volatile bms_values m_values;
 static volatile bms_soc_soh_temp_stat m_stat_temp_max;
 static volatile bms_soc_soh_temp_stat m_stat_soc_min;
@@ -50,8 +51,16 @@ static volatile bms_soc_soh_temp_stat m_stat_soc_max;
 static volatile bms_soc_soh_temp_stat m_stat_vcell_min;
 static volatile bms_soc_soh_temp_stat m_stat_vcell_max;
 
+// Contiguously received value count of the multi-frame V_CELL and TEMPS
+// sequences. The counts in m_values are only published once a whole sequence
+// is received.
+static unsigned int m_vcell_filled;
+static unsigned int m_temps_filled;
+
 void bms_init(bms_config *conf) {
-	m_conf = *conf;
+	m_bms_type = conf->type;
+	m_fwd_can_mode = conf->fwd_can_mode;
+
 	memset((void*)&m_values, 0, sizeof(m_values));
 	memset((void*)&m_stat_temp_max, 0, sizeof(m_stat_temp_max));
 	memset((void*)&m_stat_soc_min, 0, sizeof(m_stat_soc_min));
@@ -60,6 +69,8 @@ void bms_init(bms_config *conf) {
 	memset((void*)&m_stat_vcell_max, 0, sizeof(m_stat_vcell_max));
 
 	m_values.can_id = -1;
+	m_vcell_filled = 0;
+	m_temps_filled = 0;
 	m_stat_temp_max.id = -1;
 	m_stat_soc_min.id = -1;
 	m_stat_soc_max.id = -1;
@@ -70,7 +81,7 @@ void bms_init(bms_config *conf) {
 bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext) {
 	bool used_data = false;
 
-	if (m_conf.type == BMS_TYPE_VESC) {
+	if (m_bms_type == BMS_TYPE_VESC) {
 		if (is_ext) {
 			uint8_t id = can_id & 0xFF;
 			CAN_PACKET_ID cmd = can_id >> 8;
@@ -93,7 +104,7 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 				memcpy(fwd_data + fwd_len, data8, len);
 				fwd_len += len;
 
-				switch (m_conf.fwd_can_mode) {
+				switch (m_fwd_can_mode) {
 				case BMS_FWD_CAN_MODE_DISABLED:
 					break;
 
@@ -232,7 +243,18 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 					m_values.can_id = id;
 					m_values.update_time = chVTGetSystemTimeX();
 					unsigned int ofs = data8[ind++];
-					m_values.cell_num = data8[ind++];
+					unsigned int num = data8[ind++];
+
+					// Don't trust the count from the wire, it is used as a
+					// bound in (get/set-bms-val 'bms-v-cell)
+					if (num > sizeof(m_values.v_cell) / sizeof(float)) {
+						num = sizeof(m_values.v_cell) / sizeof(float);
+					}
+
+					if (ofs == 0) {
+						m_vcell_filled = 0;
+					}
+					bool contiguous = ofs == m_vcell_filled;
 
 					while(ind < len) {
 						if (ofs >= (sizeof(m_values.v_cell) / sizeof(float))) {
@@ -241,6 +263,16 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 						}
 
 						m_values.v_cell[ofs++] = buffer_get_float16(data8, 1e3, &ind);
+					}
+
+					// Only publish the count once the whole sequence is
+					// received, so that consumers can't enumerate cells whose
+					// values haven't been received yet
+					if (contiguous) {
+						m_vcell_filled = ofs;
+						if (m_vcell_filled >= num) {
+							m_values.cell_num = num;
+						}
 					}
 				}
 			} break;
@@ -275,7 +307,18 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 					m_values.can_id = id;
 					m_values.update_time = chVTGetSystemTimeX();
 					unsigned int ofs = data8[ind++];
-					m_values.temp_adc_num = data8[ind++];
+					unsigned int num = data8[ind++];
+
+					// Don't trust the count from the wire, it is used as a
+					// bound in (get/set-bms-val 'bms-temps-adc)
+					if (num > sizeof(m_values.temps_adc) / sizeof(float)) {
+						num = sizeof(m_values.temps_adc) / sizeof(float);
+					}
+
+					if (ofs == 0) {
+						m_temps_filled = 0;
+					}
+					bool contiguous = ofs == m_temps_filled;
 
 					while(ind < len) {
 						if (ofs >= (sizeof(m_values.temps_adc) / sizeof(float))) {
@@ -284,6 +327,16 @@ bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext
 						}
 
 						m_values.temps_adc[ofs++] = buffer_get_float16(data8, 1e2, &ind);
+					}
+
+					// Only publish the count once the whole sequence is
+					// received, so that consumers can't enumerate temps whose
+					// values haven't been received yet
+					if (contiguous) {
+						m_temps_filled = ofs;
+						if (m_temps_filled >= num) {
+							m_values.temp_adc_num = num;
+						}
 					}
 				}
 			} break;
@@ -358,7 +411,10 @@ static void disable_on_timeout(volatile bms_soc_soh_temp_stat *stat) {
 }
 
 void bms_update_limits(float *i_in_min, float *i_in_max,
-		float i_in_min_conf, float i_in_max_conf) {
+		float i_in_min_conf, float i_in_max_conf, bms_config *conf) {
+	m_bms_type = conf->type;
+	m_fwd_can_mode = conf->fwd_can_mode;
+
 	float i_in_min_bms = i_in_min_conf;
 	float i_in_max_bms = i_in_max_conf;
 
@@ -371,13 +427,13 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 	// Temperature
 	float i_in_max_bms_temp = i_in_max_conf;
 	float i_in_min_bms_temp = i_in_min_conf;
-	if ((m_conf.limit_mode >> 0) & 1) {
+	if ((conf->limit_mode >> 0) & 1) {
 		if (m_stat_temp_max.id >= 0) {
 			float temp = m_stat_temp_max.t_cell_max;
 
-			if (temp < (m_conf.t_limit_start + 0.1)) {
+			if (temp < (conf->t_limit_start + 0.1)) {
 				// OK
-			} else if (temp > (m_conf.t_limit_end - 0.1)) {
+			} else if (temp > (conf->t_limit_end - 0.1)) {
 				i_in_max_bms_temp = 0.0;
 				i_in_min_bms_temp = 0.0;
 				// Maybe add fault code?
@@ -388,7 +444,7 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 					maxc = fabsf(i_in_min_conf);
 				}
 
-				maxc = utils_map(temp, m_conf.t_limit_start, m_conf.t_limit_end, maxc, 0.0);
+				maxc = utils_map(temp, conf->t_limit_start, conf->t_limit_end, maxc, 0.0);
 
 				if (fabsf(i_in_min_bms_temp) > maxc) {
 					i_in_min_bms_temp = SIGN(i_in_min_bms_temp) * maxc;
@@ -403,51 +459,51 @@ void bms_update_limits(float *i_in_min, float *i_in_max,
 
 	// SOC
 	float i_in_max_bms_soc = i_in_max_conf;
-	if ((m_conf.limit_mode >> 1) & 1) {
+	if ((conf->limit_mode >> 1) & 1) {
 		if (m_stat_soc_min.id >= 0) {
 			float soc = m_stat_soc_min.soc;
 
-			if (soc > (m_conf.soc_limit_start - 0.001)) {
+			if (soc > (conf->soc_limit_start - 0.001)) {
 				// OK
-			} else if (soc < (m_conf.soc_limit_end + 0.001)) {
+			} else if (soc < (conf->soc_limit_end + 0.001)) {
 				i_in_max_bms_soc = 0.0;
 			} else {
-				i_in_max_bms_soc = utils_map(soc, m_conf.soc_limit_start,
-						m_conf.soc_limit_end, i_in_max_conf, 0.0);
+				i_in_max_bms_soc = utils_map(soc, conf->soc_limit_start,
+						conf->soc_limit_end, i_in_max_conf, 0.0);
 			}
 		}
 	}
 
 	// VMIN
 	float i_in_max_bms_vmin = i_in_max_conf;
-	if ((m_conf.limit_mode >> 2) & 1) {
+	if ((conf->limit_mode >> 2) & 1) {
 		if (m_stat_vcell_min.id >= 0) {
 			float vmin = m_stat_vcell_min.v_cell_min;
 
-			if (vmin > (m_conf.vmin_limit_start - 0.001)) {
+			if (vmin > (conf->vmin_limit_start - 0.001)) {
 				// OK
-			} else if (vmin < (m_conf.vmin_limit_end + 0.001)) {
+			} else if (vmin < (conf->vmin_limit_end + 0.001)) {
 				i_in_max_bms_vmin = 0.0;
 			} else {
-				i_in_max_bms_vmin = utils_map(vmin, m_conf.vmin_limit_start,
-						m_conf.vmin_limit_end, i_in_max_conf, 0.0);
+				i_in_max_bms_vmin = utils_map(vmin, conf->vmin_limit_start,
+						conf->vmin_limit_end, i_in_max_conf, 0.0);
 			}
 		}
 	}
 
 	// VMAX (regen)
 	float i_in_min_bms_vmax = i_in_min_conf;
-	if ((m_conf.limit_mode >> 3) & 1) {
+	if ((conf->limit_mode >> 3) & 1) {
 		if (m_stat_vcell_max.id >= 0) {
 			float vmax = m_stat_vcell_max.v_cell_max;
 
-			if (vmax < (m_conf.vmax_limit_start + 0.001)) {
+			if (vmax < (conf->vmax_limit_start + 0.001)) {
 				// OK
-			} else if (vmax > (m_conf.vmax_limit_end - 0.001)) {
+			} else if (vmax > (conf->vmax_limit_end - 0.001)) {
 				i_in_min_bms_vmax = 0.0;
 			} else {
-				i_in_min_bms_vmax = utils_map(vmax, m_conf.vmax_limit_start,
-						m_conf.vmax_limit_end, i_in_min_conf, 0.0);
+				i_in_min_bms_vmax = utils_map(vmax, conf->vmax_limit_start,
+						conf->vmax_limit_end, i_in_min_conf, 0.0);
 			}
 		}
 	}
@@ -547,7 +603,7 @@ void bms_process_cmd(unsigned char *data, unsigned int len,
 		break;
 	}
 
-	if (m_conf.type == BMS_TYPE_VESC && UTILS_AGE_S(m_values.update_time) < MAX_CAN_AGE_SEC) {
+	if (m_bms_type == BMS_TYPE_VESC && UTILS_AGE_S(m_values.update_time) < MAX_CAN_AGE_SEC) {
 		switch (packet_id) {
 		case COMM_BMS_SET_CHARGE_ALLOWED:
 		case COMM_BMS_SET_BALANCE_OVERRIDE:

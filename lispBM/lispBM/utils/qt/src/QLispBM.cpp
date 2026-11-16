@@ -75,7 +75,6 @@ bool QLispBM::init(const QLispBMConfig *config) {
 
   lbm_set_printf_callback((int (*)(const char*, ...))printCallback);
   lbm_set_ctx_done_callback(doneCallback);
-  lbm_set_critical_error_callback(criticalCallback);
   lbm_set_usleep_callback(sleepCallback);
 
   lbm_image_init(m_image, m_config.imageWords, imageWriteCallback);
@@ -295,11 +294,6 @@ void QLispBM::doneCallback(eval_context_t *ctx) {
     delete pending->chan;
     delete pending;
   }
-}
-
-void QLispBM::criticalCallback(void) {
-  emit s_instance->evalFailed(-1, QStringLiteral("critical error: GC stack overflow"));
-  s_instance->stop();
 }
 
 void QLispBM::sleepCallback(uint32_t us) {

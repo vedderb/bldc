@@ -22,7 +22,6 @@
 #include "imu_config.h"
 #include "mpu9150.h"
 #include "ahrs.h"
-#include "timer.h"
 #include "commands.h"
 #include "icm20948.h"
 #include "bmi160_wrapper.h"
@@ -31,6 +30,7 @@
 #include "transport_i2c_bb.h"
 #include "transport_spi_bb.h"
 #include "transport_spi_hw.h"
+#include "drdy.h"
 #include "imu_thread.h"
 #include "utils_math.h"
 #include "Fusion.h"
@@ -39,19 +39,32 @@
 #include <math.h>
 #include <string.h>
 
+// Time for the sensor output to settle after configure() takes it out of power-down,
+// so that the attitude is seeded from a valid sample. This covers the accelerometer:
+// the LSM6DS3TR-C needs up to 80 samples at 6.66 kHz when polled (12 ms, AN5130
+// tables 9 and 13), longer only with HIGH filtering at sample rates <= 416 Hz. The
+// LSM6DSV32X fast-settles its LPF2, leaving up to 27 samples at 7.68 kHz (3.5 ms,
+// AN6016 table 19). The BMI160 needs 3.8 ms, which its configure() already waits for.
+// The gyro turn-on (70+ ms) is left to the high-gain AHRS init window.
+#define IMU_SETTLE_MS 30
+
 // Private variables
 static ATTITUDE_INFO m_att;
 static FusionAhrs m_fusionAhrs;
 static float m_accel[3], m_gyro[3], m_mag[3];
 static transport_t m_transport;
+#if defined(IMU_DRDY_GPIO) || defined(IMU_EXT_DRDY_GPIO)
+static drdy_t m_drdy;
+#endif
 static imu_device_t m_dev;
 static imu_config m_settings;
 static systime_t init_time;
 static bool imu_ready;
+static bool m_att_seeded;
 static Biquad acc_x_biquad, acc_y_biquad, acc_z_biquad, gyro_x_biquad, gyro_y_biquad, gyro_z_biquad;
 
 // Private functions
-static void imu_read_callback(float *accel, float *gyro, float *mag);
+static void imu_read_callback(float *accel, float *gyro, float *mag, float dt);
 
 // Function pointers
 static void (*m_read_callback)(float *acc, float *gyro, float *mag, float dt) = NULL;
@@ -84,6 +97,8 @@ static uint8_t imu_dev_for_external(IMU_TYPE type) {
 		return IMU_DEV_BMI160;
 	case IMU_TYPE_EXTERNAL_LSM6DS3:
 		return IMU_DEV_LSM6DS3;
+	case IMU_TYPE_EXTERNAL_LSM6DSV32X:
+		return IMU_DEV_LSM6DSV32X;
 	case IMU_TYPE_OFF:
 	case IMU_TYPE_INTERNAL:
 		break;
@@ -101,6 +116,26 @@ static void imu_fallback_transport_init(void) {
 			IMU_FALLBACK_I2C_SCL_GPIO, IMU_FALLBACK_I2C_SCL_PIN, IMU_FALLBACK_BUS_SPEED_HZ);
 #else
 #error "IMU_FALLBACK_COM currently supports only IMU_COM_I2C_BB"
+#endif
+}
+#endif
+
+#ifdef IMU_EXT_COM
+// Bind m_transport to the board's dedicated external IMU bus. A board declares IMU_EXT_COM
+// plus the matching IMU_EXT_* pins when external IMUs attach there instead of the I2C COMM
+// header (see imu/imu_config.h).
+static void imu_ext_transport_init(void) {
+#if IMU_EXT_COM == IMU_COM_SPI_HW
+	transport_spi_hw_init(&m_transport, &IMU_EXT_SPI_DEV, IMU_EXT_SPI_AF,
+			IMU_EXT_SPI_NSS_GPIO, IMU_EXT_SPI_NSS_PIN, IMU_EXT_SPI_SCK_GPIO, IMU_EXT_SPI_SCK_PIN,
+			IMU_EXT_SPI_MOSI_GPIO, IMU_EXT_SPI_MOSI_PIN, IMU_EXT_SPI_MISO_GPIO, IMU_EXT_SPI_MISO_PIN,
+			IMU_EXT_BUS_SPEED_HZ);
+#elif IMU_EXT_COM == IMU_COM_SPI_BB
+	transport_spi_bb_init(&m_transport, IMU_EXT_SPI_NSS_GPIO, IMU_EXT_SPI_NSS_PIN,
+			IMU_EXT_SPI_SCK_GPIO, IMU_EXT_SPI_SCK_PIN, IMU_EXT_SPI_MOSI_GPIO, IMU_EXT_SPI_MOSI_PIN,
+			IMU_EXT_SPI_MISO_GPIO, IMU_EXT_SPI_MISO_PIN);
+#else
+#error "IMU_EXT_COM currently supports only IMU_COM_SPI_HW and IMU_COM_SPI_BB"
 #endif
 }
 #endif
@@ -130,7 +165,8 @@ static void configure_biquads(float rate_hz) {
 
 void imu_init(imu_config *set) {
 	bool imu_changed = set->sample_rate_hz != m_settings.sample_rate_hz ||
-			set->type != m_settings.type || set->filter != m_settings.filter;
+		set->type != m_settings.type || set->filter != m_settings.filter ||
+		set->use_magnetometer != m_settings.use_magnetometer;
 
 	m_settings = *set;
 
@@ -143,15 +179,26 @@ void imu_init(imu_config *set) {
 	imu_stop();
 	imu_reset_orientation();
 
+	if (m_settings.sample_rate_hz <= 0) {
+		// Leave the IMU off
+		return;
+	}
+
 	// Resolve the active (device, transport) pair: the internal IMU from
 	// compile-time board macros, an external IMU from the runtime type.
 	uint8_t dev = IMU_DEV_NONE;
 	uint8_t com = IMU_COM_NONE;
+	drdy_t *drdy = NULL;
 
 	if (set->type == IMU_TYPE_INTERNAL) {
 #if IMU_DEV != IMU_DEV_NONE
 		dev = IMU_DEV;
 		com = IMU_COM;
+
+#ifdef IMU_DRDY_GPIO
+		drdy_bind(&m_drdy, IMU_DRDY_GPIO, IMU_DRDY_PIN);
+		drdy = &m_drdy;
+#endif
 
 #if IMU_COM == IMU_COM_I2C_BB
 		transport_i2c_bb_init(&m_transport, IMU_I2C_SDA_GPIO, IMU_I2C_SDA_PIN,
@@ -179,16 +226,26 @@ void imu_init(imu_config *set) {
 	} else {
 		dev = imu_dev_for_external(set->type);
 		if (dev != IMU_DEV_NONE) {
+#ifdef IMU_EXT_COM
+			com = IMU_EXT_COM;
+			imu_ext_transport_init();
+
+#ifdef IMU_EXT_DRDY_GPIO
+			drdy_bind(&m_drdy, IMU_EXT_DRDY_GPIO, IMU_EXT_DRDY_PIN);
+			drdy = &m_drdy;
+#endif
+#else
 			com = IMU_COM_I2C_BB;
 			transport_i2c_bb_init(&m_transport, HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
 					HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, 0);
+#endif
 		}
 	}
 
 	if (dev != IMU_DEV_NONE) {
 		m_dev = imu_device_create(dev, com, &m_transport);
 		uint16_t rate_hz = MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport));
-		imu_thread_set_device(&m_dev, rate_hz);
+		imu_thread_set_device(&m_dev, rate_hz, drdy);
 		bool configured = m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer);
 
 #ifdef IMU_FALLBACK_COM
@@ -197,17 +254,19 @@ void imu_init(imu_config *set) {
 			// same IMU to a different bus, so re-bind to the fallback transport
 			// and try once more.
 			commands_printf("IMU: no response on primary bus, trying fallback");
+			transport_deinit(&m_transport);
 			imu_fallback_transport_init();
 			com = IMU_FALLBACK_COM;
 			m_dev = imu_device_create(dev, com, &m_transport);
 			rate_hz = MIN(m_settings.sample_rate_hz, transport_max_sample_rate(&m_transport));
-			imu_thread_set_device(&m_dev, rate_hz);
+			imu_thread_set_device(&m_dev, rate_hz, drdy);
 			configured = m_dev.interface->configure(&m_dev, m_settings.filter, m_settings.use_magnetometer);
 		}
 #endif
 
 		if (configured) {
 			configure_biquads(m_dev.sample_rate_hz);
+			chThdSleepMilliseconds(IMU_SETTLE_MS);
 			imu_thread_start(imu_read_callback);
 		}
 	}
@@ -215,6 +274,7 @@ void imu_init(imu_config *set) {
 
 void imu_reset_orientation(void) {
 	imu_ready = false;
+	m_att_seeded = false;
 	init_time = chVTGetSystemTimeX();
 	ahrs_init_attitude_info(&m_att);
 	FusionAhrsInitialise(&m_fusionAhrs, 10.0, 1.0);
@@ -227,10 +287,7 @@ i2c_bb_state *imu_get_i2c(void) {
 
 void imu_stop(void) {
 	imu_thread_stop();
-
-#if IMU_COM == IMU_COM_SPI_HW
-	spiStop(&IMU_SPI_DEV);
-#endif
+	transport_deinit(&m_transport);
 }
 
 bool imu_startup_done(void) {
@@ -447,15 +504,11 @@ void imu_set_read_callback(void (*func)(float *acc, float *gyro, float *mag, flo
 	m_read_callback = func;
 }
 
-static void imu_read_callback(float *accel, float *gyro, float *mag) {
-	static uint32_t last_time = 0;
-
-	chSysLock();
-	float dt = timer_seconds_elapsed_since(last_time);
-	last_time = timer_time_now();
-	chSysUnlock();
-
-	if (!imu_ready && ST2MS(chVTGetSystemTimeX() - init_time) > 1000) {
+static void imu_read_callback(float *accel, float *gyro, float *mag, float dt) {
+	// Once seeded, the high-gain init window only needs to smooth out seed noise
+	// and sensor turn-on; 1000 ms is the fallback if no plausible accel arrives.
+	systime_t window_ms = m_att_seeded ? 200 : 1000;
+	if (!imu_ready && ST2MS(chVTGetSystemTimeX() - init_time) > window_ms) {
 		ahrs_update_all_parameters(
 				&m_att,
 				m_settings.accel_confidence_decay,
@@ -556,6 +609,23 @@ static void imu_read_callback(float *accel, float *gyro, float *mag) {
 	for (int i = 0; i < 3; i++) {
 		m_accel[i] -= m_settings.accel_offsets[i];
 		m_gyro[i] -= m_settings.gyro_offsets[i];
+	}
+
+	// Seed the attitude from gravity instead of converging from identity.
+	if (!m_att_seeded && !imu_ready) {
+		float mag_sq = SQ(m_accel[0]) + SQ(m_accel[1]) + SQ(m_accel[2]);
+		if (mag_sq > SQ(0.7) && mag_sq < SQ(1.3)) {
+			biquad_seed(&acc_x_biquad, m_accel[0]);
+			biquad_seed(&acc_y_biquad, m_accel[1]);
+			biquad_seed(&acc_z_biquad, m_accel[2]);
+			ahrs_update_initial_orientation(m_accel, m_mag, &m_att);
+			m_fusionAhrs.quaternion.element.w = m_att.q0;
+			m_fusionAhrs.quaternion.element.x = m_att.q1;
+			m_fusionAhrs.quaternion.element.y = m_att.q2;
+			m_fusionAhrs.quaternion.element.z = m_att.q3;
+			m_att_seeded = true;
+			init_time = chVTGetSystemTimeX();
+		}
 	}
 
 	// Apply filters

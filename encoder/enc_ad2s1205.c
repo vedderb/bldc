@@ -26,6 +26,7 @@
 #include "stm32f4xx_conf.h"
 #include "hw.h"
 #include "mc_interface.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "spi_bb.h"
 #include "timer.h"
@@ -66,10 +67,7 @@ void enc_ad2s1205_deinit(AD2S1205_config_t *cfg) {
 void enc_ad2s1205_routine(AD2S1205_config_t *cfg) {
 	uint16_t pos;
 
-	float timestep = timer_seconds_elapsed_since(cfg->state.last_update_time);
-	if (timestep > 1.0) {
-		timestep = 1.0;
-	}
+	const float alpha = ema_alpha_tau(1.0, timer_seconds_elapsed_since(cfg->state.last_update_time));
 	cfg->state.last_update_time = timer_time_now();
 
 	// SAMPLE signal should have been be asserted in sync with ADC sampling
@@ -92,20 +90,20 @@ void enc_ad2s1205_routine(AD2S1205_config_t *cfg) {
 
 	if(cfg->state.spi_val == 0){ // an empty SPI packet means that the resolver IC is not responding
 		++cfg->state.resolver_void_packet_cnt;
-		UTILS_LP_FAST(cfg->state.resolver_void_packet_error_rate, 1.0, timestep);
+		ema_step(&cfg->state.resolver_void_packet_error_rate, 1.0, alpha);
 		if(cfg->state.resolver_void_packet_error_rate > cfg->state.resolver_VOIDspi_peak_error_rate){
 				cfg->state.resolver_VOIDspi_peak_error_rate = cfg->state.resolver_void_packet_error_rate;
 			}
 	}else{
-		UTILS_LP_FAST(cfg->state.resolver_void_packet_error_rate, 0.0, timestep);
+		ema_step(&cfg->state.resolver_void_packet_error_rate, 0.0, alpha);
 		if(RDVEL == 0){
             ++cfg->state.resolver_vel_packet_cnt;
-            UTILS_LP_FAST(cfg->state.resolver_vel_packet_error_rate, 1.0, timestep);
+            ema_step(&cfg->state.resolver_vel_packet_error_rate, 1.0, alpha);
 			if(cfg->state.resolver_vel_packet_error_rate > cfg->state.resolver_VELread_peak_error_rate ) {
 				cfg->state.resolver_VELread_peak_error_rate = cfg->state.resolver_vel_packet_error_rate;
 			}
 		}else{
-			UTILS_LP_FAST(cfg->state.resolver_vel_packet_error_rate, 0.0, timestep);
+			ema_step(&cfg->state.resolver_vel_packet_error_rate, 0.0, alpha);
 		}
 	}
 
@@ -122,11 +120,11 @@ void enc_ad2s1205_routine(AD2S1205_config_t *cfg) {
 		}
 
 		if (!parity_error) {
-			UTILS_LP_FAST(cfg->state.spi_error_rate, 0.0, timestep);
+			ema_step(&cfg->state.spi_error_rate, 0.0, alpha);
 		} else {
 			angle_is_correct = false;
 			++cfg->state.spi_error_cnt;
-			UTILS_LP_FAST(cfg->state.spi_error_rate, 1.0, timestep);
+			ema_step(&cfg->state.spi_error_rate, 1.0, alpha);
 			if(cfg->state.spi_error_rate > cfg->state.resolver_SPI_peak_error_rate){
 				cfg->state.resolver_SPI_peak_error_rate = cfg->state.spi_error_rate;
 			}
@@ -139,34 +137,34 @@ void enc_ad2s1205_routine(AD2S1205_config_t *cfg) {
 		if (LOT) {
 			angle_is_correct = false;
 			++cfg->state.resolver_loss_of_tracking_error_cnt;
-			UTILS_LP_FAST(cfg->state.resolver_loss_of_tracking_error_rate, 1.0, timestep);
+			ema_step(&cfg->state.resolver_loss_of_tracking_error_rate, 1.0, alpha);
 			if(cfg->state.resolver_loss_of_tracking_error_rate > cfg->state.resolver_LOT_peak_error_rate) {
 				cfg->state.resolver_LOT_peak_error_rate = cfg->state.resolver_loss_of_tracking_error_rate;
 			}
 		} else {
-			UTILS_LP_FAST(cfg->state.resolver_loss_of_tracking_error_rate, 0.0, timestep);
+			ema_step(&cfg->state.resolver_loss_of_tracking_error_rate, 0.0, alpha);
 		}
 
 		if (DOS) {
 			angle_is_correct = false;
 			++cfg->state.resolver_degradation_of_signal_error_cnt;
-			UTILS_LP_FAST(cfg->state.resolver_degradation_of_signal_error_rate, 1.0, timestep);
+			ema_step(&cfg->state.resolver_degradation_of_signal_error_rate, 1.0, alpha);
 			if(cfg->state.resolver_degradation_of_signal_error_rate > cfg->state.resolver_DOS_peak_error_rate ) {
 				cfg->state.resolver_DOS_peak_error_rate = cfg->state.resolver_degradation_of_signal_error_rate;
 			}
 		} else {
-			UTILS_LP_FAST(cfg->state.resolver_degradation_of_signal_error_rate, 0.0, timestep);
+			ema_step(&cfg->state.resolver_degradation_of_signal_error_rate, 0.0, alpha);
 		}
 
 		if (LOS) {
 			angle_is_correct = false;
 			++cfg->state.resolver_loss_of_signal_error_cnt;
-			UTILS_LP_FAST(cfg->state.resolver_loss_of_signal_error_rate, 1.0, timestep);
+			ema_step(&cfg->state.resolver_loss_of_signal_error_rate, 1.0, alpha);
 			if(cfg->state.resolver_loss_of_signal_error_rate > cfg->state.resolver_LOS_peak_error_rate ) {
 				cfg->state.resolver_LOS_peak_error_rate = cfg->state.resolver_loss_of_signal_error_rate;
 			}
 		} else {
-			UTILS_LP_FAST(cfg->state.resolver_loss_of_signal_error_rate, 0.0, timestep);
+			ema_step(&cfg->state.resolver_loss_of_signal_error_rate, 0.0, alpha);
 		}
 
 		if (angle_is_correct) {

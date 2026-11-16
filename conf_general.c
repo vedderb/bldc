@@ -1986,9 +1986,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 
 		if (mc_interface_temp_motor_filtered() > -10) {
 			mcconf_old->foc_temp_comp_base_temp = mc_interface_temp_motor_filtered();
-#ifdef HW_HAS_PHASE_FILTERS
 			mcconf_old->foc_temp_comp = true;
-#endif
 		}
 
 		conf_general_calc_apply_foc_cc_kp_ki_gain(mcconf_old, 1000);
@@ -2012,9 +2010,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 
 		if (mc_interface_temp_motor_filtered() > -10) {
 			mcconf_old_second->foc_temp_comp_base_temp = mc_interface_temp_motor_filtered();
-#ifdef HW_HAS_PHASE_FILTERS
 			mcconf_old_second->foc_temp_comp = true;
-#endif
 		}
 
 		mc_interface_set_configuration(mcconf_old_second);

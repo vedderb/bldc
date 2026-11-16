@@ -1,6 +1,7 @@
 #!/usr/bin/env -S shlbm  -H 32000 -M 512000 --
 
-(import "dsp_lang.lisp")
+(import "dsp_lang.lisp" 'dsp)
+(read-eval-program dsp)
 
 
 ;; PSK encodes data in changes of phase of a carrier wave.

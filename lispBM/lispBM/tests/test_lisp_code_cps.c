@@ -130,12 +130,6 @@ void context_done_callback(eval_context_t *ctx) {
   printf("Thread %d finished: %s\n", (int32_t)ctx->id, output);
 }
 
-void critical_error(void) {
-  printf("Critical error\n");
-  exit(EXIT_FAILURE);
-}
-
-
 // Dynamic loader
 
 bool dyn_load(const char *str, const char **code) {
@@ -460,7 +454,7 @@ int main(int argc, char **argv) {
   pthread_t lispbm_thd;
   lbm_cons_t *heap_storage = NULL;
 
-  pthread_create(&timestamp_thread, NULL, lbm_timestamp_cacher, NULL);
+  pthread_create(&timestamp_thread, NULL, lbm_timestamp_cacher_pthread, NULL);
 
   int c;
   opterr = 1;
@@ -626,7 +620,6 @@ int main(int argc, char **argv) {
   lbm_set_dynamic_load_callback(dyn_load);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_printf_callback(printf);
-  lbm_set_critical_error_callback(critical_error);
 
   lbm_set_verbose(true);
 

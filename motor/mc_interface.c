@@ -27,6 +27,7 @@
 #include "stm32f4xx_conf.h"
 #include "hw.h"
 #include "terminal.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "utils_sys.h"
 #include "ch.h"
@@ -50,6 +51,7 @@
 
 // Macros
 #define DIR_MULT		(motor_now()->m_conf.m_invert_direction ? -1.0 : 1.0)
+#define INPUT_VOLTAGE_CUTOFF_HZ	45.0
 
 // Global variables
 volatile uint16_t ADC_Value[HW_ADC_CHANNELS + HW_ADC_CHANNELS_EXTRA];
@@ -260,6 +262,15 @@ void mc_interface_init(bool reset_conf) {
 	default:
 		break;
 	}
+
+	// Seed the filters from live reading so consumers don't see them slowly
+	// converge from 0 after boot.
+	m_motor_1.m_input_voltage_filtered = GET_INPUT_VOLTAGE();
+	m_motor_1.m_input_voltage_filtered_slower = m_motor_1.m_input_voltage_filtered;
+#ifdef HW_HAS_DUAL_MOTORS
+	m_motor_2.m_input_voltage_filtered = m_motor_1.m_input_voltage_filtered;
+	m_motor_2.m_input_voltage_filtered_slower = m_motor_1.m_input_voltage_filtered;
+#endif
 
 	bms_init((bms_config*)&m_motor_1.m_conf.bms);
 }
@@ -1745,12 +1756,16 @@ void mc_interface_ignore_input_both(int time_ms) {
 }
 
 void mc_interface_release_motor_override_both(void) {
+#ifdef HW_HAS_DUAL_MOTORS
 	int motor_last = mc_interface_get_motor_thread();
 	mc_interface_select_motor_thread(1);
 	mc_interface_release_motor_override();
 	mc_interface_select_motor_thread(2);
 	mc_interface_release_motor_override();
 	mc_interface_select_motor_thread(motor_last);
+#else
+	mc_interface_release_motor_override();
+#endif
 }
 
 bool mc_interface_wait_for_motor_release_both(float timeout) {
@@ -1872,7 +1887,9 @@ void mc_interface_fault_stop(mc_fault_code fault, bool is_second_motor, bool is_
 
 #pragma GCC pop_options
 
-void mc_interface_mc_timer_isr(bool is_second_motor, float dt) {
+// The optimize pragma above disables -falign-functions=16 for the whole file,
+// even after pop_options. Align the hot functions explicitly.
+__attribute__((aligned(16))) void mc_interface_mc_timer_isr(bool is_second_motor, float dt) {
 	FOC_PROFILE_LINE_FINE()
 	ledpwm_update_pwm();
 	FOC_PROFILE_LINE_FINE()
@@ -1886,7 +1903,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor, float dt) {
 
 	mc_configuration *conf_now = (mc_configuration*)&motor->m_conf;
 	const float input_voltage = GET_INPUT_VOLTAGE();
-	UTILS_LP_FAST(motor->m_input_voltage_filtered, input_voltage, 0.02);
+	ema_step(&motor->m_input_voltage_filtered, input_voltage, ema_alpha(INPUT_VOLTAGE_CUTOFF_HZ, dt));
 
 	FOC_PROFILE_LINE_FINE()
 
@@ -1949,7 +1966,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor, float dt) {
 	FOC_PROFILE_LINE_FINE()
 
 	// Additional input current filter for the mapped current limit
-	UTILS_LP_FAST(motor->m_i_in_filter, current_in_filtered, motor->m_conf.l_in_current_map_filter);
+	ema_step(&motor->m_i_in_filter, current_in_filtered, motor->m_conf.l_in_current_map_filter);
 
 	if (state == MC_STATE_RUNNING) {
 		motor->m_cycles_running++;
@@ -2215,7 +2232,7 @@ void mc_interface_mc_timer_isr(bool is_second_motor, float dt) {
 	FOC_PROFILE_LINE_FINE()
 }
 
-void mc_interface_adc_inj_int_handler(void) {
+__attribute__((aligned(16))) void mc_interface_adc_inj_int_handler(void) {
 	switch (m_motor_1.m_conf.motor_type) {
 	case MOTOR_TYPE_BLDC:
 	case MOTOR_TYPE_DC:
@@ -2257,9 +2274,9 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	const float duty_now_abs = fabsf(mc_interface_get_duty_cycle_now());
 
 #ifdef HW_HAS_DUAL_PARALLEL
-	UTILS_LP_FAST(motor->m_temp_fet, fmaxf(NTC_TEMP(ADC_IND_TEMP_MOS), NTC_TEMP(ADC_IND_TEMP_MOS_M2)), 0.1);
+	motor->m_temp_fet = ema_next(motor->m_temp_fet, fmaxf(NTC_TEMP(ADC_IND_TEMP_MOS), NTC_TEMP(ADC_IND_TEMP_MOS_M2)), 0.1);
 #else
-	UTILS_LP_FAST(motor->m_temp_fet, NTC_TEMP(is_motor_1 ? ADC_IND_TEMP_MOS : ADC_IND_TEMP_MOS_M2), 0.1);
+	motor->m_temp_fet = ema_next(motor->m_temp_fet, NTC_TEMP(is_motor_1 ? ADC_IND_TEMP_MOS : ADC_IND_TEMP_MOS_M2), 0.1);
 #endif
 
 	float temp_motor = 0.0;
@@ -2322,10 +2339,10 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 		temp_motor = -100.0;
 	}
 
-	UTILS_LP_FAST(motor->m_temp_motor, temp_motor, MOTOR_TEMP_LPF);
+	motor->m_temp_motor = ema_next(motor->m_temp_motor, temp_motor, MOTOR_TEMP_LPF);
 
 #ifdef HW_HAS_GATE_DRIVER_SUPPLY_MONITOR
-	UTILS_LP_FAST(motor->m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.01);
+	motor->m_gate_driver_voltage = ema_next(motor->m_gate_driver_voltage, GET_GATE_DRIVER_SUPPLY_VOLTAGE(), 0.01);
 #endif
 
 	const float l_current_min_tmp = conf->l_current_min * conf->l_current_min_scale;
@@ -2441,8 +2458,7 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	if ((conf->l_additional_faults & (1 << 2)) && rpm_slow < conf->l_min_erpm) {
 		mc_interface_fault_stop(FAULT_CODE_UNDERSPEED, !is_motor_1, false);
 	}
-	if ((conf->l_additional_faults & (1 << 3)) &&
-			fabsf(rpm_slow) > fabsf(utils_max_abs(conf->l_min_erpm, conf->l_max_erpm))) {
+	if ((conf->l_additional_faults & (1 << 3)) && fabsf(rpm_slow) > fabsf(conf->l_erpm_abs_overspeed)) {
 		mc_interface_fault_stop(FAULT_CODE_ABS_OVERSPEED, !is_motor_1, false);
 	}
 
@@ -2464,26 +2480,29 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 
 	// Input current limits
 
+	const float l_in_current_min_tmp = conf->l_in_current_min * conf->l_in_current_min_scale;
+	const float l_in_current_max_tmp = conf->l_in_current_max * conf->l_in_current_max_scale;
+
 	// Battery cutoff
 	float lo_in_max_batt = 0.0;
 	if (v_in > (conf->l_battery_cut_start - 0.1)) {
-		lo_in_max_batt = conf->l_in_current_max;
+		lo_in_max_batt = l_in_current_max_tmp;
 	} else if (v_in < (conf->l_battery_cut_end + 0.1)) {
 		lo_in_max_batt = 0.0;
 	} else {
 		lo_in_max_batt = utils_map(v_in, conf->l_battery_cut_start,
-				conf->l_battery_cut_end, conf->l_in_current_max, 0.0);
+				conf->l_battery_cut_end, l_in_current_max_tmp, 0.0);
 	}
 
 	// Regen overvoltage cutoff
 	float lo_in_min_batt = 0.0;
 	if (v_in < (conf->l_battery_regen_cut_start + 0.1)) {
-		lo_in_min_batt = conf->l_in_current_min;
+		lo_in_min_batt = l_in_current_min_tmp;
 	} else if (v_in > (conf->l_battery_regen_cut_end - 0.1)) {
 		lo_in_min_batt = 0.0;
 	} else {
 		lo_in_min_batt = utils_map(v_in, conf->l_battery_regen_cut_start,
-				conf->l_battery_regen_cut_end, conf->l_in_current_min, 0.0);
+				conf->l_battery_regen_cut_end, l_in_current_min_tmp, 0.0);
 	}
 
 	// Wattage limits
@@ -2494,10 +2513,10 @@ static void update_override_limits(volatile motor_if_state_t *motor, volatile mc
 	float lo_in_min = utils_min_abs(lo_in_min_watt, lo_in_min_batt);
 
 	// BMS limits
-	bms_update_limits(&lo_in_min,  &lo_in_max, conf->l_in_current_min, conf->l_in_current_max);
+	bms_update_limits(&lo_in_min,  &lo_in_max, l_in_current_min_tmp, l_in_current_max_tmp, (bms_config*)&conf->bms);
 
-	conf->lo_in_current_max = utils_min_abs(conf->l_in_current_max, lo_in_max);
-	conf->lo_in_current_min = utils_min_abs(conf->l_in_current_min, lo_in_min);
+	conf->lo_in_current_max = utils_min_abs(l_in_current_max_tmp, lo_in_max);
+	conf->lo_in_current_min = utils_min_abs(l_in_current_min_tmp, lo_in_min);
 
 	// Limit iq based on the input current. The input current depends on id and iq combined, but id is determined
 	// from iq based on MTPA and field weakening, which makes it tricky to limit them together in the fast
@@ -2557,7 +2576,7 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		// Run the filter faster in the beginning to avoid convergence latency at boot
 		voltage_fc = 0.01;
 	}
-	UTILS_LP_FAST(motor->m_input_voltage_filtered_slower, motor->m_input_voltage_filtered, voltage_fc);
+	motor->m_input_voltage_filtered_slower = ema_next(motor->m_input_voltage_filtered_slower, motor->m_input_voltage_filtered, voltage_fc);
 
 	// Update backup data (for motor 1 only)
 	if (is_motor_1) {
@@ -2576,14 +2595,17 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		m_motor_1.m_runtime_last = runtime;
 	}
 
+	utils_sys_lock_cnt();
 	// Decrease fault iterations
 	if (motor->m_ignore_iterations > 0) {
 		motor->m_ignore_iterations--;
-	} else {
+	}
+	if (motor->m_ignore_iterations == 0) {
 		if (!(is_motor_1 ? IS_DRV_FAULT() : IS_DRV_FAULT_2())) {
 			motor->m_fault_now = FAULT_CODE_NONE;
 		}
 	}
+	utils_sys_unlock_cnt();
 
 	if (is_motor_1 ? IS_DRV_FAULT() : IS_DRV_FAULT_2()) {
 		motor->m_drv_fault_iterations++;
@@ -2718,9 +2740,9 @@ static void run_timer_tasks(volatile motor_if_state_t *motor) {
 		motor->m_motor_current_unbalance = mc_interface_get_abs_motor_current_unbalance();
 
 		if (fabsf(motor->m_motor_current_unbalance) > fabsf(MCCONF_MAX_CURRENT_UNBALANCE)) {
-			UTILS_LP_FAST(motor->m_motor_current_unbalance_error_rate, 1.0, (1 / 1000.0));
+			motor->m_motor_current_unbalance_error_rate = ema_next(motor->m_motor_current_unbalance_error_rate, 1.0, (1 / 1000.0));
 		} else {
-			UTILS_LP_FAST(motor->m_motor_current_unbalance_error_rate, 0.0, (1 / 1000.0));
+			motor->m_motor_current_unbalance_error_rate = ema_next(motor->m_motor_current_unbalance_error_rate, 0.0, (1 / 1000.0));
 		}
 
 		if (motor->m_motor_current_unbalance_error_rate > MCCONF_MAX_CURRENT_UNBALANCE_RATE) {
@@ -2771,7 +2793,7 @@ static void update_stats(volatile motor_if_state_t *motor) {
 	}
 
 	if (fabs(speed) > (double)motor->m_stats.max_speed) {
-		motor->m_stats.max_speed = fabsf(speed);
+		motor->m_stats.max_speed = fabs(speed);
 	}
 
 	if (temp_mos > (double)motor->m_stats.max_temp_mos) {

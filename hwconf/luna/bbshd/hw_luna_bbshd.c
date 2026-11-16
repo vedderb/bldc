@@ -21,6 +21,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
+#include "ema.h"
 #include "utils.h"
 #include <math.h>
 #include "mc_interface.h"
@@ -296,7 +297,7 @@ void hw_update_speed_sensor(void) {
 		if (revolution_duration > 0.05) {	//ignore periods <50ms
 			last_sensor_event_time = current_time;
 			wheel_rpm = 60.0 / revolution_duration;
-			UTILS_LP_FAST(wheel_rpm_filtered, (float)wheel_rpm, 0.5);
+			ema_step(&wheel_rpm_filtered, (float)wheel_rpm, 0.5);
 
 			
 			const volatile mc_configuration *conf = mc_interface_get_configuration();
@@ -467,7 +468,7 @@ int8_t hw_read_initial_assist_level(void) {
 
 float hw_read_motor_temp(float beta) {
 	static float sensor_resistance = 1000;
-	UTILS_LP_FAST(sensor_resistance, NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]), 0.1);
+	ema_step(&sensor_resistance, NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]), 0.1);
 
 	// the ptc sensor has 1.3kOhm at 100°C and 930 Ohm at -15°C. If resistance is outside this
 	// range there is no way this is a PTC sensor

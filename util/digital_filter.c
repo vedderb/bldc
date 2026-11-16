@@ -263,3 +263,10 @@ void biquad_reset(Biquad *biquad) {
 	biquad->z1 = 0;
 	biquad->z2 = 0;
 }
+// Set the state to the steady state of a constant input, so that the output
+// starts at its value instead of settling from 0.
+void biquad_seed(Biquad *biquad, float in) {
+	float out = in * (biquad->a0 + biquad->a1 + biquad->a2) / (1 + biquad->b1 + biquad->b2);
+	biquad->z1 = out - in * biquad->a0;
+	biquad->z2 = in * biquad->a2 - biquad->b2 * out;
+}

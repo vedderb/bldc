@@ -1,5 +1,5 @@
 /*
-    Copyright 2018, 2021, 2022, 2024, 2025 Joel Svensson  svenssonjoel@yahoo.se
+    Copyright 2018, 2021, 2022, 2024 - 2026 Joel Svensson  svenssonjoel@yahoo.se
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -65,6 +65,7 @@
 #include "repl_exts.h"
 #include "repl_defines.h"
 #include "lbm_image.h"
+#include "image_file.h"
 #ifdef CLEAN_UP_CLOSURES
 #include "clean_cl.h"
 #endif
@@ -219,7 +220,7 @@ static char *history_file_path = NULL;
 
 void exit_on_alloc_failure(const void *mem) {
   if (mem == NULL) {
-    fprintf(stderr, "ERROR: Malloc failed.\n");
+    fprintf(stderr, "Error: Malloc failed.\n");
     exit(1);
   }
 }
@@ -246,7 +247,7 @@ static lbm_char_channel_t buffered_string_tok;
 // ////////////////////////////////////////////////////////////
 // Image
 
-#define IMAGE_STORAGE_SIZE              (128 * 1024) // bytes:
+#define IMAGE_STORAGE_DEFAULT_SIZE          (512 * 1024) // bytes:
 #ifdef LBM64
   #ifdef LBM_WIN
     #define IMAGE_FIXED_VIRTUAL_ADDRESS     (void*)0x30000000  // Windows-safe address
@@ -263,9 +264,18 @@ static lbm_char_channel_t buffered_string_tok;
 // todo: is there a good way to pick a fixed virtual address ?
 
 static char *image_input_file = NULL;
-static bool persist_image = false;
-static size_t   image_storage_size = IMAGE_STORAGE_SIZE;
+static bool load_image_flag = false; // --load_image: load image_input_file at startup.
+static bool persist_image = false;   // --persist_image: allow (image-save) to write to image_input_file.
+static size_t   image_storage_size = IMAGE_STORAGE_DEFAULT_SIZE;
 static uint32_t *image_storage = NULL;
+
+// ////////////////////////////////////////////////////////////
+// Imports
+
+#define IMPORTS_DEFAULT_MAX_SIZE           33554432 // 32 megabytes default
+
+static size_t imports_storage_size = IMPORTS_DEFAULT_MAX_SIZE;
+static size_t imports_high_water_mark = 0;
 
 // ////////////////////////////////////////////////////////////
 // LBM
@@ -299,7 +309,8 @@ static lbm_thread_t timestamp_thread;
 lbm_thread_t lispbm_thd = {0};
 static bool lispbm_thd_running = false;
 
-unsigned int heap_size = 2048; // default
+#define HEAP_SIZE_DEFAULT 2048
+unsigned int heap_size = HEAP_SIZE_DEFAULT;
 lbm_cons_t *heap_storage = NULL;
 lbm_heap_state_t heap_state;
 lbm_const_heap_t const_heap;
@@ -398,10 +409,10 @@ bool image_write(uint32_t w, int32_t ix, bool is_const_heap) { // ix >= 0 and ix
   //printf("write %x to ix %d\n",w, ix);
   if (image_storage[ix] == 0xffffffff) {
     image_storage[ix] = w;
-    if (persist_image && image_input_file) {
+    if (persist_image && image_input_file) { // Writes-through to the image file if specified.
       FILE *f = fopen(image_input_file, "r+b");
       if (f) {
-        fseek(f, ix * (long)sizeof(uint32_t), SEEK_SET);
+        fseek(f, (long)sizeof(image_file_header_t) + ix * (long)sizeof(uint32_t), SEEK_SET);
         fwrite(&w, sizeof(uint32_t), 1, f);
         fclose(f);
       }
@@ -420,6 +431,69 @@ bool image_clear(void) {
   return true;
 }
 
+// See repl_exts.h - called from ext_image_save() as the final step of
+// (image-save), so that one call both finalizes the bootable image in
+// memory and (when configured) persists it to disk.
+bool image_save_to_disk(void) {
+  // No gate on persist_image here: calling (image-save) is itself the
+  // explicit, deliberate signal to persist. persist_image instead gates
+  // the *automatic*, continuous per-word write-through in image_write()
+  // below, which needs its own opt-in since it happens as a side effect
+  // of ordinary programming, with no deliberate "write now" anywhere.
+  if (!image_input_file) {
+    return true;
+  }
+  return save_image(image_input_file, image_storage,
+                     image_storage_size, imports_high_water_mark) == IMAGE_FILE_OK;
+}
+
+lbm_value import_area_add(const char *path, const uint8_t *data, size_t size) {
+  uint8_t *area = (uint8_t*)image_storage + image_storage_size;
+
+  size_t pos = 0;
+  while (pos < imports_high_water_mark) {
+    const char *entry_path = (const char*)(area + pos);
+    pos += strlen(entry_path) + 1;
+    uint32_t entry_len;
+    memcpy(&entry_len, area + pos, sizeof(uint32_t));
+    pos += sizeof(uint32_t);
+    if (strcmp(entry_path, path) == 0) {
+      lbm_value val;
+      if (!lbm_share_array_const(&val, (char*)(area + pos), entry_len)) {
+        return ENC_SYM_MERROR;
+      }
+      return val;
+    }
+    pos += entry_len + 1; // +1: the terminator after this entry's data
+  }
+
+  if (size > UINT32_MAX) {
+    return ENC_SYM_MERROR;
+  }
+  size_t path_len = strlen(path) + 1;
+  size_t needed = path_len + sizeof(uint32_t) + size + 1; // +1: terminator
+  if (imports_high_water_mark > imports_storage_size ||
+      needed > imports_storage_size - imports_high_water_mark) {
+    return ENC_SYM_MERROR;
+  }
+
+  uint8_t *dest = area + imports_high_water_mark;
+  memcpy(dest, path, path_len);
+  dest += path_len;
+  uint32_t len32 = (uint32_t)size;
+  memcpy(dest, &len32, sizeof(uint32_t));
+  dest += sizeof(uint32_t);
+  memcpy(dest, data, size);
+  dest[size] = 0; // terminator - not part of the reported/shared length
+
+  lbm_value val;
+  if (!lbm_share_array_const(&val, (char*)dest, size)) {
+    return ENC_SYM_MERROR;
+  }
+  imports_high_water_mark += needed;
+  return val;
+}
+
 // TODO: These are shared state that can be abused!
 // The readers list should containt string_tokenizers, not just strings.
 static lbm_char_channel_t string_tok;
@@ -433,7 +507,7 @@ static int printf_callback(const char *format, ...) {
   int len = vsnprintf(buffer, 2048, format, args);
   if (len == 2048) buffer[2047] = 0;
   iobuffer_write(buffer);
-  va_end(args);  
+  va_end(args);
   return len;
 }
 
@@ -460,11 +534,6 @@ static void eval_thd_wrapper(void *arg) {
     printf("     :load [filename] to load lisp source.\n");
   }
   lbm_run_eval();
-}
-
-void critical(void) {
-  printf("CRITICAL ERROR\n");
-  terminate_repl(REPL_EXIT_CRITICAL_ERROR);
 }
 
 static int done_status = 0; // exit success
@@ -655,7 +724,6 @@ void sym_it(const char *str) {
 #define TERMINATE            0x0404
 #define SILENT_MODE          0x0405
 #define LOAD_IMAGE           0x0406
-#define PERSIST_IMAGE        0x0412
 #define VESCTCP              0x0407
 #define VESCTCP_PORT         0x0408
 #define VESCTCP_PROGRAM_FLASH_SIZE   0x0409
@@ -666,20 +734,26 @@ void sym_it(const char *str) {
 #define MCP_MODE             0x040F
 #define MCP_DOC_PATH         0x0410
 #define CAN_PORT             0x0411
+#define PERSIST_IMAGE        0x0412
+#define IMAGE_SIZE           0x0413
+#define IMAGE_FILE           0x0414
+#define IMPORTS_SIZE         0x0415
 
 struct option options[] = {
   {"help", no_argument, NULL, 'h'},
   {"heap_size", required_argument, NULL, 'H'},
   {"memory_size", required_argument, NULL, 'M'},
-  {"const_memory_size", required_argument, NULL, 'C'},
   {"src", required_argument, NULL, 's'},
   {"eval", required_argument, NULL, 'e'},
   {"load_env", required_argument, NULL, LOAD_ENVIRONMENT},
   {"store_env", required_argument, NULL, STORE_ENVIRONMENT},
   {"store_res", required_argument, NULL, STORE_RESULT},
   {"terminate", no_argument, NULL, TERMINATE},
-  {"load_image", required_argument, NULL, LOAD_IMAGE},
+  {"image_file", required_argument, NULL, IMAGE_FILE},
+  {"load_image", no_argument, NULL, LOAD_IMAGE},
   {"persist_image", no_argument, NULL, PERSIST_IMAGE},
+  {"image_size", required_argument, NULL, IMAGE_SIZE},
+  {"imports_size", required_argument, NULL, IMPORTS_SIZE},
   {"silent", no_argument, NULL, SILENT_MODE},
   {"vesctcp",no_argument, NULL, VESCTCP},
   {"vesctcp_port",required_argument, NULL, VESCTCP_PORT},
@@ -691,19 +765,27 @@ struct option options[] = {
   {"mcp-doc-path", required_argument, NULL, MCP_DOC_PATH},
   {0,0,0,0}};
 
+
+typedef enum {
+  SOURCE_FILE = 0,
+  EXPRESSION
+} source_type_t;
+
 typedef struct src_list_s {
-  char *filename;
+  source_type_t type;
+  char *str;
   struct src_list_s *next;
 } src_list_t;
 
 src_list_t *sources = NULL;
 
-bool src_list_add(char *filename) {
-  if (strlen(filename) == 0) return false;
+bool src_list_add(char *str, source_type_t t) {
+  if (strlen(str) == 0) return false;
   src_list_t *entry=malloc(sizeof(src_list_t));
   if (!entry) return false;
 
-  entry->filename = filename;
+  entry->type = t;
+  entry->str = str;
   entry->next = NULL;
 
   if (!sources) {
@@ -728,45 +810,15 @@ int src_list_len(void) {
   return n;
 }
 
-typedef struct expr_list_s {
-  char *expr;
-  struct expr_list_s *next;
-} expr_list_t;
-
-expr_list_t *expressions = NULL;
-
-bool expr_list_add(char *expr) {
-  if (strlen(expr) == 0) return false;
-  expr_list_t *entry=malloc(sizeof(expr_list_t));
-  if (!entry) return false;
-
-  entry->expr = expr;
-  entry->next = NULL;
-
-  if (!expressions) {
-    expressions = entry;
-    return true;
-  }
-  expr_list_t *curr = expressions;
-  while(curr->next) {
-    curr = curr->next;
-  }
-  curr->next = entry;
-  return true;
-}
-
 void parse_opts(int argc, char **argv) {
 
   int c;
   opterr = 1;
   int opt_index = 0;
-  while ((c = getopt_long(argc, argv, "H:M:C:hs:e:",options, &opt_index)) != -1) {
+  while ((c = getopt_long(argc, argv, "H:M:hs:e:",options, &opt_index)) != -1) {
     switch (c) {
     case 'H':
       heap_size = (unsigned int)atoi((char*)optarg);
-      break;
-    case 'C':
-      printf("Constant memory a dynamically growing part of the image\n");
       break;
     case 'M': {
       uint32_t sizebytes = (uint32_t)atoi((char*)optarg);
@@ -791,14 +843,11 @@ void parse_opts(int argc, char **argv) {
       printf("Usage: %s [OPTION...]\n\n", argv[0]);
       printf("    -h, --help                        Prints help\n");
       printf("    -H SIZE, --heap_size=SIZE         Set heap_size to be SIZE number of\n"\
-             "                                      cells.\n");
+             "                                      cells. (default: %u)\n", HEAP_SIZE_DEFAULT);
       printf("    -M SIZE, --memory_size=SIZE       Set the arrays and symbols memory\n"\
              "                                      SIZE in Bytes.\n" \
              "                                      Value is rounded up to nearest\n"\
              "                                      usable larger value.\n");
-      printf("    -C SIZE, --const_memory_size=SIZE Set the size of the constants memory.\n"\
-             "                                      This memory emulates a flash memory\n"\
-             "                                      that can be written to once per location.\n");
       printf("    -s FILEPATH, --src=FILEPATH       Load and evaluate lisp src\n");
       printf("    -e EXPRESSION, --eval=EXPRESSION  Load and evaluate lisp src\n");
       printf("\n");
@@ -811,14 +860,25 @@ void parse_opts(int argc, char **argv) {
              "                                      specified with the --src/-s options.\n");
       printf("    --terminate                       Terminate the REPL after evaluating the\n" \
              "                                      source files specified with --src/-s\n");
-      printf("    --load_image=FILEPATH             Load an image-file at startup.\n"\
-             "                                      If the file does not exist, a fresh\n"\
-             "                                      image is created and saved to that path.\n");
-      printf("    --persist_image                   Write-through all image writes to the\n"\
-             "                                      file specified by --load_image.\n");
+      printf("    --image_file=FILEPATH             Image file to use with --load_image\n"\
+             "                                      and/or --persist_image.\n");
+      printf("    --load_image                      Load the image from --image_file at\n"\
+             "                                      startup. The file must already exist\n"\
+             "                                      and be a valid image - this does not\n"\
+             "                                      create one.\n");
+      printf("    --persist_image                   Allow (image-save) to write the current\n"\
+             "                                      image to --image_file. Without\n"\
+             "                                      --load_image, --image_file must not\n"\
+             "                                      already exist (use --load_image to\n"\
+             "                                      resume from an existing one instead).\n");
+      printf("    --image_size=SIZE                 Specify the image size in bytes.\n"\
+             "                                      (default: %zu)\n", (size_t)IMAGE_STORAGE_DEFAULT_SIZE);
+      printf("    --imports_size=SIZE               Specify the imports area size in MB.\n"\
+             "                                      (default: %zu)\n",
+             (size_t)(IMPORTS_DEFAULT_MAX_SIZE / (1024*1024)));
       printf("\n");
-      printf("    --mcp                             Start an MCP (Model Context Protocol) server\n"\
-             "                                      on stdio for AI tool integration.\n");
+      printf("    --mcp                             Start an MCP (Model Context Protocol)\n"\
+             "                                      server on stdio for AI tool integration.\n");
       printf("    --vesctcp                         Open a TCP server talking the VESC\n"\
              "                                      protocol on port %d\n", DEFAULT_VESCIF_TCP_PORT);
       printf("    --vesctcp_port=PORT               open the TCP server on this port instead.\n");
@@ -836,9 +896,7 @@ void parse_opts(int argc, char **argv) {
              "  Multiple sourcefiles and expressions can be added with multiple uses\n" \
              "  of the --src/-s and --eval/-e flags.\n" \
              "  Sources and expressions are evaluated in sequence in the order they are\n" \
-             "  specified on the command-line, and all source files are evaluated before\n" \
-             "  expressions. Source file N will not start evaluating until after\n" \
-             "  source file (N-1) has terminated, for N larger than 1.\n");
+             "  specified on the command-line.\n");
       printf("\n");
       printf("HISTORY FILE\n" \
              "  The REPL history is saved to '~/.lbm_history' by default. If the environment\n" \
@@ -849,13 +907,13 @@ void parse_opts(int argc, char **argv) {
       terminate_repl(REPL_EXIT_SUCCESS);
       break;
     case 's':
-      if (!src_list_add((char*)optarg)) {
+      if (!src_list_add((char*)optarg, SOURCE_FILE)) {
         printf("Error adding source file to source list\n");
         terminate_repl(REPL_EXIT_INVALID_SOURCE_FILE);
       }
       break;
     case 'e':
-      if (!expr_list_add((char*)optarg)) {
+      if (!src_list_add((char*)optarg, EXPRESSION)) {
         printf("Error adding expression to eval list\n");
         terminate_repl(REPL_EXIT_INVALID_EXPRESSION);
       }
@@ -875,11 +933,20 @@ void parse_opts(int argc, char **argv) {
     case SILENT_MODE:
       silent_mode = true;
       break;
-    case LOAD_IMAGE:
+    case IMAGE_FILE:
       image_input_file = (char*)optarg;
+      break;
+    case LOAD_IMAGE:
+      load_image_flag = true;
       break;
     case PERSIST_IMAGE:
       persist_image = true;
+      break;
+    case IMAGE_SIZE:
+      image_storage_size = (size_t)atoi(optarg);
+      break;
+    case IMPORTS_SIZE:
+      imports_storage_size = 1024*1024*(size_t)atoi(optarg);
       break;
     case VESCTCP:
       vesctcp = true;
@@ -900,7 +967,7 @@ void parse_opts(int argc, char **argv) {
     case SHEBANG_MODE:
       shebang_mode = true;
       terminate_after_startup = true;
-      if (!src_list_add((char*)optarg)) {
+      if (!src_list_add((char*)optarg, SOURCE_FILE)) {
         printf("Error adding source file to source list\n");
         terminate_repl(REPL_EXIT_INVALID_SOURCE_FILE);
       }
@@ -1024,53 +1091,118 @@ int init_repl(void) {
     return 0;
   }
 
-  lbm_set_critical_error_callback(critical);
   lbm_set_ctx_done_callback(done_callback);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dynamic_loader);
   lbm_set_printf_callback(printf_direct_callback);
   // print directly to stdout until the REPL is running
 
+  // --load_image requires an --image_file to load from.
+  if (load_image_flag && !image_input_file) {
+    printf("Error: --load_image requires --image_file\n");
+    return 0;
+  }
 
+  bool have_image_header = false;
+  image_file_t image_file;
+
+  if (load_image_flag) {
+    // Explicit request to resume from an existing image: the file must
+    // already exist and be valid. Nothing here falls back to "create
+    // fresh" - that's what omitting --load_image is for.
+    int r = open_image(image_input_file, &image_file);
+    if (r == IMAGE_FILE_OK) {
+      have_image_header = true;
+      if (image_storage) {
+        if (image_storage_size != image_file.header.image_size) {
+          printf("Error: Incompatible image size\n");
+          close_image(&image_file);
+          return 0;
+        }
+      } else {
+        image_storage_size = image_file.header.image_size;
+      }
+    } else if (r == IMAGE_FILE_NOT_FOUND) {
+      printf("Error: %s does not exist\n", image_input_file);
+      return 0;
+    } else {
+      printf("Error: %s is not a valid image file\n", image_input_file);
+      return 0;
+    }
+  } else if (persist_image && image_input_file) {
+    // Persisting without loading: image_input_file must not already
+    // exist, otherwise the per-word write-through below would start
+    // blindly overwriting content that was never read in the first
+    // place. Use --load_image to resume from an existing file instead.
+    FILE *probe = fopen(image_input_file, "rb");
+    if (probe) {
+      fclose(probe);
+      printf("Error: %s already exists - use --load_image to resume from "
+             "it, or remove it first\n", image_input_file);
+      return 0;
+    }
+  }
+
+  // MMAP Image storage
+  if (!image_storage) {
+#ifdef LBM_WIN
+    LPVOID image_address = VirtualAlloc((LPVOID)IMAGE_FIXED_VIRTUAL_ADDRESS,
+                                        image_storage_size + imports_storage_size,
+                                        MEM_COMMIT | MEM_RESERVE,
+                                        PAGE_READWRITE);
+
+    if (image_address) {
+      printf("Image storage successfully allocated at %p\n", image_address);
+    } else {
+      DWORD error = GetLastError();
+      printf("VirtualAlloc failed for address %p: Windows error %lu\n",
+             IMAGE_FIXED_VIRTUAL_ADDRESS, error);
+      printf("Try running with Administrator privileges or disable Windows ASLR\n");
+      terminate_repl(REPL_EXIT_CRITICAL_ERROR);
+    }
+    image_storage = (uint32_t *)image_address;
+#else
+    image_storage = mmap(IMAGE_FIXED_VIRTUAL_ADDRESS,
+                         image_storage_size + imports_storage_size,
+                         PROT_READ | PROT_WRITE,
+                         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (((int)image_storage) == -1) {
+      printf("error mapping fixed location for flash emulation\n");
+      terminate_repl(REPL_EXIT_CRITICAL_ERROR);
+    } else if (image_storage != IMAGE_FIXED_VIRTUAL_ADDRESS) {
+      printf("Warning: Image is located at nonstandard address %p\n", (void*)image_storage);
+    }
+#endif
+  }
 
   //Load an image
   lbm_image_init(image_storage,
                  (uint32_t)(image_storage_size / sizeof(uint32_t)), //sizeof(lbm_uint),
                  image_write);
 
-  if (image_input_file) {
-    FILE *f = fopen(image_input_file, "rb");
-    if (!f) {
-      // File does not exist: create a fresh image and write it to the file.
-      image_clear();
-      lbm_image_create("bepa_1");
-      FILE *fw = fopen(image_input_file, "wb");
-      if (!fw) {
+  if (have_image_header) {
+    // Reuses the handle opened by open_image() above - same file, no
+    // second filename resolution, and the sizes used for this read are
+    // exactly the ones image_storage_size was already sized against.
+    if (load_image(&image_file, image_storage) != IMAGE_FILE_OK) {
+      printf("Error: failed to load %s\n", image_input_file);
+      return 0;
+    }
+    imports_high_water_mark = image_file.header.imports_high_water_mark;
+  } else {
+    // Nothing loaded (--load_image wasn't given): start from a fresh
+    // image. If --persist_image is active, establish image_input_file
+    // now - the per-word write-through in image_write() opens it "r+b",
+    // which needs the file (and a correctly sized body) to already exist.
+    image_clear();
+    lbm_image_create("bepa_1");
+    if (persist_image && image_input_file) {
+      if (save_image(image_input_file, image_storage,
+                      image_storage_size, imports_high_water_mark) != IMAGE_FILE_OK) {
         printf("Error creating image file: %s\n", image_input_file);
         return 0;
       }
-      fwrite(image_storage, image_storage_size, 1, fw);
-      fclose(fw);
-    } else {
-      fseek(f, 0, SEEK_END);
-      size_t fsize = (size_t)ftell(f);
-      rewind(f);
-      // assume image files <= 128k
-      if (fsize > 0) {
-        // Load file into mapped region. Could map file instead.
-        size_t n = fread(image_storage, fsize, 1, f);
-        if (n == 0) {
-          printf("Error: empty image!\n");
-        }
-      } else {
-        image_clear();
-        lbm_image_create("bepa_1");
-      }
-      fclose(f);
     }
-  } else {
-    image_clear();
-    lbm_image_create("bepa_1");
   }
 
   if (lbm_image_exists()) {
@@ -1127,57 +1259,49 @@ int init_repl(void) {
 bool evaluate_sources(void) {
 
   src_list_t *curr = sources;
-  char *file_str = NULL;
   while (curr) {
-    if (file_str) free(file_str);
-    file_str = load_file(curr->filename);
-    if (!file_str) return false; // load file returns NULL if no file
-    lbm_create_string_char_channel(&string_tok_state,
-                                   &string_tok,
-                                   file_str);
-    lbm_pause_eval_with_gc(50);
-    while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-      sleep_callback(10);
-    }
+    char *file_str = NULL;
+    if (curr->type == SOURCE_FILE ){
 
-    startup_cid = lbm_load_and_eval_program_incremental(&string_tok, NULL);
-    if (res_output_file) {
-      store_result_cid = startup_cid;
-    }
-    lbm_continue_eval();
+      file_str = load_file(curr->str);
+      if (!file_str) return false; // load file returns NULL if no file
+      lbm_create_string_char_channel(&string_tok_state,
+                                     &string_tok,
+                                     file_str);
+      lbm_pause_eval_with_gc(50);
+      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+        sleep_callback(10);
+      }
 
+      startup_cid = lbm_load_and_eval_program_incremental(&string_tok, NULL);
+      if (res_output_file) {
+        store_result_cid = startup_cid;
+      }
+      lbm_continue_eval();
+    } else {
+      char *expr = curr->str;
+      lbm_create_string_char_channel(&string_tok_state,
+                                     &string_tok,
+                                     expr);
+      lbm_pause_eval_with_gc(50);
+      while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
+        sleep_callback(10);
+      }
+
+      startup_cid = lbm_load_and_eval_program_incremental(&string_tok, NULL);
+      if (res_output_file) {
+        store_result_cid = startup_cid;
+      }
+      lbm_continue_eval();
+    }
     while (startup_cid != -1) {
       sleep_callback(10);
     }
-    curr = curr->next;
-  }
-  return true;
-}
 
-bool evaluate_expressions(void) {
-  expr_list_t *curr = expressions;
-  char *expr = NULL;
-
-  while (curr) {
-    // if (expr) free(expr);
-    expr = curr->expr;
-    lbm_create_string_char_channel(&string_tok_state,
-                                   &string_tok,
-                                   expr);
-    lbm_pause_eval_with_gc(50);
-    while(lbm_get_eval_state() != EVAL_CPS_STATE_PAUSED) {
-      sleep_callback(10);
+    if (curr->type == SOURCE_FILE) {
+      free(file_str);
     }
 
-    startup_cid = lbm_load_and_eval_program_incremental(&string_tok, NULL);
-    if (res_output_file) {
-      store_result_cid = startup_cid;
-    }
-    lbm_continue_eval();
-
-    while (startup_cid != -1) {
-      sleep_callback(10);
-    }
     curr = curr->next;
   }
   return true;
@@ -1336,9 +1460,9 @@ void startup_procedure(int argc, char **argv) {
       terminate_repl(REPL_EXIT_INVALID_SOURCE_FILE);
     }
   }
-  if (expressions) {
-    evaluate_expressions();
-  }
+  //if (expressions) {
+  //  evaluate_expressions();
+  //}
 
   if(terminate_after_startup) {
     shutdown_procedure();
@@ -1638,7 +1762,6 @@ static bool restart_core(void (*done_cb)(eval_context_t *),
   lbm_image_create("bepa_1");
   lbm_image_boot();
 
-  lbm_set_critical_error_callback(critical);
   lbm_set_usleep_callback(sleep_callback);
   lbm_set_dynamic_load_callback(dynamic_loader);
 
@@ -2922,7 +3045,7 @@ int main(int argc, char **argv) {
 
 
 #if defined(TEST_FT4232H_NAND_DRIVER) || defined(TEST_FT232H_NAND_DRIVER)
-  
+
 
 #ifdef TEST_FT4232H_NAND_DRIVER
   printf("NAND: opening FT4232H port A...\n");
@@ -2931,12 +3054,11 @@ int main(int argc, char **argv) {
 #ifdef TEST_FT232H_NAND_DRIVER
     printf("NAND: opening FT232H...\n");
   if (!nand_open()) {
-#endif    
+#endif
     printf("NAND: open failed\n");
   } else {
     printf("NAND: open OK\n");
-    
-    
+
     nand_reset();
 
     uint8_t id[3] = {0};
@@ -3015,45 +3137,15 @@ int main(int argc, char **argv) {
       }
     }
 
-    
+
     nand_close();
   }
 #endif
 
 
-  
   // ////////////////////////////////////////////////////////////
   // start timestamp cacher
   lbm_thread_create(&timestamp_thread, "timestamp", lbm_timestamp_cacher, NULL, LBM_THREAD_PRIO_NORMAL, 0);
-
-#ifdef LBM_WIN
-  LPVOID image_address = VirtualAlloc((LPVOID)IMAGE_FIXED_VIRTUAL_ADDRESS,
-                                      IMAGE_STORAGE_SIZE,
-                                      MEM_COMMIT | MEM_RESERVE,
-                                      PAGE_READWRITE);
-
-  if (image_address) {
-    printf("Image storage successfully allocated at %p\n", image_address);
-  } else {
-    DWORD error = GetLastError();
-    printf("VirtualAlloc failed for address %p: Windows error %lu\n",
-           IMAGE_FIXED_VIRTUAL_ADDRESS, error);
-    printf("Try running with Administrator privileges or disable Windows ASLR\n");
-    terminate_repl(REPL_EXIT_CRITICAL_ERROR);
-  }
-  image_storage = (uint32_t *)image_address;
-#else
-  image_storage = mmap(IMAGE_FIXED_VIRTUAL_ADDRESS,
-                       IMAGE_STORAGE_SIZE,
-                       PROT_READ | PROT_WRITE,
-                       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-  if (((int)image_storage) == -1) {
-    printf("error mapping fixed location for flash emulation\n");
-    terminate_repl(REPL_EXIT_CRITICAL_ERROR);
-  } else if (image_storage != IMAGE_FIXED_VIRTUAL_ADDRESS) {
-    printf("Warning: Image is located at nonstandard address %p\n", (void*)image_storage);
-  }
-#endif
 
   parse_opts(argc, argv);
 

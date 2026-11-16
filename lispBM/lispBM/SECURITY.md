@@ -39,6 +39,7 @@ of LispBM.
 ## Reporting Vulnerabilities
 
 Please report security vulnerabilities to bo.joel.svensson@gmail.com
+or via [report a vulnerability](https://github.com/svenssonjoel/lispBM/security/advisories/new)
 rather than opening a public issue.
 
 Include a description of the vulnerability and the steps needed to

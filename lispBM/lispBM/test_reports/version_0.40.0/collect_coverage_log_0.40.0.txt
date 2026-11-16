@@ -1,0 +1,33 @@
+Checking if cov files exist:
+  File tests_cov_32.json exists
+  File tests_cov_64.json exists
+  File ../repl/repl_tests_cov.json exists
+  File ../repl/image_tests_cov.json exists
+  File ../repl/persist_tests_cov.json exists
+  File ./c_unit/c_unit_tests_cov.json exists
+  File ../repl/sdl_tests_cov.json exists
+
+Collect cov file meta data:
+ tests_cov_32.json
+    Modified: 2026-09-06 17:38:15.501072165 +0200
+    Changed:  2026-09-06 17:38:15.501072165 +0200
+ tests_cov_64.json
+    Modified: 2026-09-06 17:41:21.861045312 +0200
+    Changed:  2026-09-06 17:41:21.861045312 +0200
+ ../repl/repl_tests_cov.json
+    Modified: 2026-09-06 17:52:27.066196613 +0200
+    Changed:  2026-09-06 17:52:27.066196613 +0200
+ ../repl/image_tests_cov.json
+    Modified: 2026-09-06 17:52:31.985280851 +0200
+    Changed:  2026-09-06 17:52:31.985280851 +0200
+ ../repl/persist_tests_cov.json
+    Modified: 2026-09-06 17:52:47.422545313 +0200
+    Changed:  2026-09-06 17:52:47.422545313 +0200
+ ./c_unit/c_unit_tests_cov.json
+    Modified: 2026-09-06 17:54:43.589540009 +0200
+    Changed:  2026-09-06 17:54:43.589540009 +0200
+ ../repl/sdl_tests_cov.json
+    Modified: 2026-09-06 17:53:40.289452127 +0200
+    Changed:  2026-09-06 17:53:40.289452127 +0200
+
+Running gcovr

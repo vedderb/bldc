@@ -1,0 +1,694 @@
+tests/test_is_32bit.lisp FAILED
+------------------------------------------------------------
+Heap size: 32768
+Streaming source: no
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_is_32bit.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+Checking result value: nil
+Test: Failed!
+Result: nil
+Thread 432 finished: t
+Experiment done: Check was executed 2 times
+FAILURE
+tests/test_is_32bit.lisp FAILED
+------------------------------------------------------------
+Heap size: 512
+Streaming source: yes
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_is_32bit.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+Checking result value: nil
+Test: Failed!
+Result: nil
+Thread 432 finished: t
+Experiment done: Check was executed 2 times
+FAILURE
+tests/test_match_stress_2.lisp FAILED
+------------------------------------------------------------
+Heap size: 512
+Streaming source: yes
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_match_stress_2.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+   Error: out_of_memory
+
+   Heap cells free:  0
+   Mem longest free: 2923
+
+   CTX: 432
+   Current: ~CHANNEL~
+
+
+   Current intermediate result: ((define syms [|apa bepa cepa kurt russel daniel jackson sam|]) (define rnd-sym (lambda nil (ix syms (mod (random) 8)))) (define test-ok t) (define iterations (if (is-always-gc) 2 100)) (loopfor i 0 (< i iterations) (+ i 1) (match (list (rnd-sym) (random) 
+
+	Current local environment:
+
+
+	Current global environment:
+
+   Mailbox:
+
+   Stack:
+     CONT[0]
+     eval-program
+     ((define syms [|apa bepa cepa kurt russel daniel jackson sam|]) (define rnd-sym (lambda nil (ix syms (mod (random) 8)))) (define test-ok t) (define iterations (if (is-always-gc) 2 100)) (loopfor i 0 (< i iterations) (+ i 1) (match (list (rnd-sym) (random) 
+Thread 432 finished: out_of_memory
+experiment failed due to taking longer than 50 seconds
+tests/test_take_iota_0.lisp FAILED
+------------------------------------------------------------
+Heap size: 512
+Streaming source: yes
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_take_iota_0.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+   Error: out_of_memory
+
+   Heap cells free:  494
+   Mem longest free: 2934
+
+   CTX: 432
+   Current: n
+      bound to: 1000
+   In: range
+
+
+   Current intermediate result: 1000
+
+	Current local environment:
+	n = 1000
+
+
+	Current global environment:
+	iota = (closure (n) (range 0 n) nil)
+
+   Mailbox:
+
+   Stack:
+     CONT[0]
+     CONT[0]
+     check
+     nil
+     nil
+     1u
+     CONT[5]
+     eq
+     nil
+     ((iota 100))
+     1u
+     CONT[5]
+     take
+     nil
+     (100)
+     1u
+     CONT[5]
+     range
+     0
+     1000
+Thread 432 finished: out_of_memory
+experiment failed due to taking longer than 50 seconds
+tests/test_is_32bit.lisp FAILED
+------------------------------------------------------------
+Heap size: 512
+Streaming source: yes
+Incremental read: yes
+------------------------------------------------------------
+Opening file: tests/test_is_32bit.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+Checking result value: nil
+Test: Failed!
+Result: nil
+Thread 432 finished: t
+Experiment done: Check was executed 2 times
+FAILURE
+tests/test_match_stress_2.lisp FAILED
+------------------------------------------------------------
+Heap size: 512
+Streaming source: yes
+Incremental read: yes
+------------------------------------------------------------
+Opening file: tests/test_match_stress_2.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+   Error: out_of_memory
+
+   Heap cells free:  0
+   Mem longest free: 2902
+
+   CTX: 432
+   Current: ~CHANNEL~
+
+   Starting at row: 1
+
+   Current intermediate result: (macro (it start cnd update body) (me-loopfor it start cnd update body))
+
+	Current local environment:
+
+
+	Current global environment:
+	rnd-sym = (closure nil (ix syms (mod (random) 8)) nil)
+	test-ok = t
+	iterations = 100
+	syms = [|apa bepa cepa kurt russel daniel jackson sam|]
+
+   Mailbox:
+
+   Stack:
+     CONT[0]
+     2u
+     CONT[20]
+     nil
+     CONT[17]
+     CONT[52]
+     ~CHANNEL~
+     8u
+     CONT[44]
+     nil
+     (i 0 (< i iterations) (+ i 1) (match (list (rnd-sym) (random) (random)) ((apa (? x) (? y)) (and (> x 1000) (eq (type-of y) type-u)) (setq test-ok (and t test-ok))) ((apa (? x) (? y)) (and (<= x 1000) (eq (type-of y) type-u)) (setq test-ok (and t test-ok)))
+     CONT[10]
+     loopfor
+     nil
+     CONT[12]
+     eval
+     nil
+     nil
+     1u
+     CONT[5]
+     0u
+     CONT[20]
+     (define loopfor)
+     (loopfor)
+Thread 432 finished: out_of_memory
+experiment failed due to taking longer than 50 seconds
+tests/test_take_iota_0.lisp FAILED
+------------------------------------------------------------
+Heap size: 512
+Streaming source: yes
+Incremental read: yes
+------------------------------------------------------------
+Opening file: tests/test_take_iota_0.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+   Error: out_of_memory
+
+   Heap cells free:  495
+   Mem longest free: 2934
+
+   CTX: 432
+   Current: n
+      bound to: 1000
+   In: range
+
+
+   Current intermediate result: 1000
+
+	Current local environment:
+	n = 1000
+
+
+	Current global environment:
+	iota = (closure (n) (range 0 n) nil)
+
+   Mailbox:
+
+   Stack:
+     CONT[0]
+     2u
+     CONT[20]
+     nil
+     CONT[17]
+     CONT[52]
+     ~CHANNEL~
+     8u
+     CONT[44]
+     check
+     nil
+     nil
+     1u
+     CONT[5]
+     eq
+     nil
+     ((iota 100))
+     1u
+     CONT[5]
+     take
+     nil
+     (100)
+     1u
+     CONT[5]
+     range
+     0
+     1000
+Thread 432 finished: out_of_memory
+experiment failed due to taking longer than 50 seconds
+tests/test_is_32bit.lisp FAILED
+------------------------------------------------------------
+Heap size: 32768
+Streaming source: no
+Incremental read: yes
+------------------------------------------------------------
+Opening file: tests/test_is_32bit.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+Checking result value: nil
+Test: Failed!
+Result: nil
+Thread 432 finished: t
+Experiment done: Check was executed 2 times
+FAILURE
+tests/test_is_32bit.lisp FAILED
+------------------------------------------------------------
+Heap size: 32768
+Streaming source: yes
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_is_32bit.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+Checking result value: nil
+Test: Failed!
+Result: nil
+Thread 432 finished: t
+Experiment done: Check was executed 2 times
+FAILURE
+tests/test_is_32bit.lisp FAILED
+------------------------------------------------------------
+Heap size: 32768
+Streaming source: yes
+Incremental read: yes
+------------------------------------------------------------
+Opening file: tests/test_is_32bit.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+Checking result value: nil
+Test: Failed!
+Result: nil
+Thread 432 finished: t
+Experiment done: Check was executed 2 times
+FAILURE
+tests/test_is_32bit.lisp FAILED
+------------------------------------------------------------
+Heap size: 8192
+Streaming source: no
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_is_32bit.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+Checking result value: nil
+Test: Failed!
+Result: nil
+Thread 432 finished: t
+Experiment done: Check was executed 2 times
+FAILURE
+tests/test_is_32bit.lisp FAILED
+------------------------------------------------------------
+Heap size: 8192
+Streaming source: no
+Incremental read: yes
+------------------------------------------------------------
+Opening file: tests/test_is_32bit.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+Checking result value: nil
+Test: Failed!
+Result: nil
+Thread 432 finished: t
+Experiment done: Check was executed 2 times
+FAILURE
+tests/test_is_32bit.lisp FAILED
+------------------------------------------------------------
+Heap size: 8192
+Streaming source: yes
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_is_32bit.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+Checking result value: nil
+Test: Failed!
+Result: nil
+Thread 432 finished: t
+Experiment done: Check was executed 2 times
+FAILURE
+tests/test_is_32bit.lisp FAILED
+------------------------------------------------------------
+Heap size: 8192
+Streaming source: yes
+Incremental read: yes
+------------------------------------------------------------
+Opening file: tests/test_is_32bit.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+Checking result value: nil
+Test: Failed!
+Result: nil
+Thread 432 finished: t
+Experiment done: Check was executed 2 times
+FAILURE
+tests/test_is_32bit.lisp FAILED
+------------------------------------------------------------
+Heap size: 512
+Streaming source: no
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_is_32bit.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+Checking result value: nil
+Test: Failed!
+Result: nil
+Thread 432 finished: t
+Experiment done: Check was executed 2 times
+FAILURE
+tests/test_match_stress_2.lisp FAILED
+------------------------------------------------------------
+Heap size: 512
+Streaming source: no
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_match_stress_2.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+   Error: out_of_memory
+
+   Heap cells free:  0
+   Mem longest free: 2923
+
+   CTX: 432
+   Current: ~CHANNEL~
+
+
+   Current intermediate result: ((define syms [|apa bepa cepa kurt russel daniel jackson sam|]) (define rnd-sym (lambda nil (ix syms (mod (random) 8)))) (define test-ok t) (define iterations (if (is-always-gc) 2 100)) (loopfor i 0 (< i iterations) (+ i 1) (match (list (rnd-sym) (random) 
+
+	Current local environment:
+
+
+	Current global environment:
+
+   Mailbox:
+
+   Stack:
+     CONT[0]
+     eval-program
+     ((define syms [|apa bepa cepa kurt russel daniel jackson sam|]) (define rnd-sym (lambda nil (ix syms (mod (random) 8)))) (define test-ok t) (define iterations (if (is-always-gc) 2 100)) (loopfor i 0 (< i iterations) (+ i 1) (match (list (rnd-sym) (random) 
+Thread 432 finished: out_of_memory
+experiment failed due to taking longer than 50 seconds
+tests/test_take_iota_0.lisp FAILED
+------------------------------------------------------------
+Heap size: 512
+Streaming source: no
+Incremental read: no
+------------------------------------------------------------
+Opening file: tests/test_take_iota_0.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+   Error: out_of_memory
+
+   Heap cells free:  494
+   Mem longest free: 2934
+
+   CTX: 432
+   Current: n
+      bound to: 1000
+   In: range
+
+
+   Current intermediate result: 1000
+
+	Current local environment:
+	n = 1000
+
+
+	Current global environment:
+	iota = (closure (n) (range 0 n) nil)
+
+   Mailbox:
+
+   Stack:
+     CONT[0]
+     CONT[0]
+     check
+     nil
+     nil
+     1u
+     CONT[5]
+     eq
+     nil
+     ((iota 100))
+     1u
+     CONT[5]
+     take
+     nil
+     (100)
+     1u
+     CONT[5]
+     range
+     0
+     1000
+Thread 432 finished: out_of_memory
+experiment failed due to taking longer than 50 seconds
+tests/test_is_32bit.lisp FAILED
+------------------------------------------------------------
+Heap size: 512
+Streaming source: no
+Incremental read: yes
+------------------------------------------------------------
+Opening file: tests/test_is_32bit.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+Checking result value: nil
+Test: Failed!
+Result: nil
+Thread 432 finished: t
+Experiment done: Check was executed 2 times
+FAILURE
+tests/test_match_stress_2.lisp FAILED
+------------------------------------------------------------
+Heap size: 512
+Streaming source: no
+Incremental read: yes
+------------------------------------------------------------
+Opening file: tests/test_match_stress_2.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+   Error: out_of_memory
+
+   Heap cells free:  0
+   Mem longest free: 2902
+
+   CTX: 432
+   Current: ~CHANNEL~
+
+   Starting at row: 1
+
+   Current intermediate result: (macro (it start cnd update body) (me-loopfor it start cnd update body))
+
+	Current local environment:
+
+
+	Current global environment:
+	rnd-sym = (closure nil (ix syms (mod (random) 8)) nil)
+	test-ok = t
+	iterations = 100
+	syms = [|apa bepa cepa kurt russel daniel jackson sam|]
+
+   Mailbox:
+
+   Stack:
+     CONT[0]
+     2u
+     CONT[20]
+     nil
+     CONT[17]
+     CONT[52]
+     ~CHANNEL~
+     8u
+     CONT[44]
+     nil
+     (i 0 (< i iterations) (+ i 1) (match (list (rnd-sym) (random) (random)) ((apa (? x) (? y)) (and (> x 1000) (eq (type-of y) type-u)) (setq test-ok (and t test-ok))) ((apa (? x) (? y)) (and (<= x 1000) (eq (type-of y) type-u)) (setq test-ok (and t test-ok)))
+     CONT[10]
+     loopfor
+     nil
+     CONT[12]
+     eval
+     nil
+     nil
+     1u
+     CONT[5]
+     0u
+     CONT[20]
+     (define loopfor)
+     (loopfor)
+Thread 432 finished: out_of_memory
+experiment failed due to taking longer than 50 seconds
+tests/test_take_iota_0.lisp FAILED
+------------------------------------------------------------
+Heap size: 512
+Streaming source: no
+Incremental read: yes
+------------------------------------------------------------
+Opening file: tests/test_take_iota_0.lisp
+Memory initialized.
+LBM Initialized
+Events initialized.
+Extensions loaded successfully
+LBM memory free: 3664 words, 29312 bytes 
+test_cid = 432
+Program loaded
+   Error: out_of_memory
+
+   Heap cells free:  495
+   Mem longest free: 2934
+
+   CTX: 432
+   Current: n
+      bound to: 1000
+   In: range
+
+
+   Current intermediate result: 1000
+
+	Current local environment:
+	n = 1000
+
+
+	Current global environment:
+	iota = (closure (n) (range 0 n) nil)
+
+   Mailbox:
+
+   Stack:
+     CONT[0]
+     2u
+     CONT[20]
+     nil
+     CONT[17]
+     CONT[52]
+     ~CHANNEL~
+     8u
+     CONT[44]
+     check
+     nil
+     nil
+     1u
+     CONT[5]
+     eq
+     nil
+     ((iota 100))
+     1u
+     CONT[5]
+     take
+     nil
+     (100)
+     1u
+     CONT[5]
+     range
+     0
+     1000
+Thread 432 finished: out_of_memory
+experiment failed due to taking longer than 50 seconds

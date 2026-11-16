@@ -18,9 +18,18 @@
  */
 
 #include "foc_math.h"
+#include "ema.h"
 #include "utils_math.h"
 #include "hw.h"
 #include <math.h>
+
+// Cutoff frequencies of the filters in the control loop
+#define VDQ_CUTOFF_HZ				500.0
+#define DUTY_CUTOFF_HZ				22.0
+#define V_BUS_CUTOFF_HZ				225.0
+#define MOD_Q_CUTOFF_HZ				500.0
+#define SPEED_FAST_CUTOFF_HZ		22.0
+#define SPEED_FASTER_CUTOFF_HZ		500.0
 
 // See http://cas.ensmp.fr/~praly/Telechargement/Journaux/2010-IEEE_TPEL-Lee-Hong-Nam-Ortega-Praly-Astolfi.pdf
 void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
@@ -169,7 +178,7 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 				conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP_LIN) {
 			if (conf_now->foc_observer_type == FOC_OBSERVER_MXV_LAMBDA_COMP_LIN) {
 				float mag = NORM2_f(state->x1 - L_ia, state->x2 - L_ib);
-				UTILS_LP_FAST(state->lambda_est, mag, 0.1 * gamma_half * dt * SQ(state->lambda_est));
+				ema_step(&state->lambda_est, mag, 0.1 * gamma_half * dt * SQ(state->lambda_est));
 				utils_truncate_number(&(state->lambda_est), lambda * 0.3, lambda * 2.5);
 
 				if (mag > state->lambda_est) {
@@ -448,7 +457,7 @@ void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *moto
 	}
 
 	// Filter D
-	UTILS_LP_FAST(motor->m_pos_d_filter, d_term, conf_now->p_pid_kd_filter);
+	ema_step(&motor->m_pos_d_filter, d_term, conf_now->p_pid_kd_filter);
 	d_term = motor->m_pos_d_filter;
 
 	// Process D term
@@ -461,7 +470,7 @@ void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *moto
 	}
 
 	// Filter D process
-	UTILS_LP_FAST(motor->m_pos_d_filter_proc, d_term_proc, conf_now->p_pid_kd_filter);
+	ema_step(&motor->m_pos_d_filter_proc, d_term_proc, conf_now->p_pid_kd_filter);
 	d_term_proc = motor->m_pos_d_filter_proc;
 
 	// I-term wind-up protection
@@ -507,7 +516,12 @@ void foc_run_pid_control_speed(bool index_found, float dt, motor_all_state_t *mo
 		if (!index_found) {
 			utils_truncate_number_abs(&motor->m_speed_pid_set_rpm, conf_now->foc_openloop_rpm);
 		}
-		utils_truncate_number(&motor->m_speed_pid_set_rpm, conf_now->l_min_erpm, conf_now->l_max_erpm);
+
+		if (motor->m_conf->m_invert_direction) {
+			utils_truncate_number(&motor->m_speed_pid_set_rpm, -conf_now->l_max_erpm, -conf_now->l_min_erpm);
+		} else {
+			utils_truncate_number(&motor->m_speed_pid_set_rpm, conf_now->l_min_erpm, conf_now->l_max_erpm);
+		}
 	}
 
 	float rpm = 0.0;
@@ -538,7 +552,7 @@ void foc_run_pid_control_speed(bool index_found, float dt, motor_all_state_t *mo
 	d_term = (error - motor->m_speed_prev_error) * (conf_now->s_pid_kd / dt) * (1.0 / 20.0);
 
 	// Filter D
-	UTILS_LP_FAST(motor->m_speed_d_filter, d_term, conf_now->s_pid_kd_filter);
+	ema_step(&motor->m_speed_d_filter, d_term, conf_now->s_pid_kd_filter);
 	d_term = motor->m_speed_d_filter;
 
 	// Store previous error
@@ -791,4 +805,11 @@ void foc_precalc_values(motor_all_state_t *motor) {
 	motor->p_fs = conf_now->foc_f_zv * 0.5;
 #endif
 	motor->p_dt = 1.0 / motor->p_fs;
+
+	motor->p_alpha_vdq = ema_alpha(VDQ_CUTOFF_HZ, motor->p_dt);
+	motor->p_alpha_duty = ema_alpha(DUTY_CUTOFF_HZ, motor->p_dt);
+	motor->p_alpha_v_bus = ema_alpha(V_BUS_CUTOFF_HZ, motor->p_dt);
+	motor->p_alpha_mod_q = ema_alpha(MOD_Q_CUTOFF_HZ, motor->p_dt);
+	motor->p_alpha_speed_fast = ema_alpha(SPEED_FAST_CUTOFF_HZ, motor->p_dt);
+	motor->p_alpha_speed_faster = ema_alpha(SPEED_FASTER_CUTOFF_HZ, motor->p_dt);
 }
