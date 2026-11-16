@@ -23,25 +23,7 @@
 #include "stm32f4xx_conf.h"
 #include "utils_math.h"
 #include <math.h>
-#include "terminal.h"
-#include "commands.h"
 #include "mc_interface.h"
-
-// Variables
-typedef enum {
-	BT_SHUTDOWN_IDLE = 0,
-	BT_SHUTDOWN_HOLDING,
-	BT_SHUTDOWN_ARMED,
-	BT_SHUTDOWN_FORCE_ARMED,
-	BT_SHUTDOWN_REQUESTED,
-} bt_shutdown_state;
-
-static bool bt_raw_pressed = false;
-static bool bt_last_raw_pressed = false;
-static bool bt_pressed = false;
-static bt_shutdown_state bt_state = BT_SHUTDOWN_IDLE;
-static unsigned int bt_hold_counter = 0;
-static unsigned int bt_debounce_counter = 0;
 
 #define EXT_BUZZER_ON()    palSetPad(HW_ICU_GPIO, HW_ICU_PIN)
 #define EXT_BUZZER_OFF()   palClearPad(HW_ICU_GPIO, HW_ICU_PIN)
@@ -56,21 +38,7 @@ void buzzer_init(void) {
     EXT_BUZZER_OFF();
 }
 
-static void beep_off(void)
-{
-	EXT_BUZZER_OFF();
-}
-
-static void beep_on(void)
-{
-	EXT_BUZZER_ON();
-}
-
-// Private functions
-static void terminal_button_test(int argc, const char **argv);
-
 void hw_init_gpio(void) {
-	
 	// GPIO clock enable
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
@@ -158,12 +126,6 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
-
-	terminal_register_command_callback(
-			"test_button",
-			"Try sampling the shutdown button",
-			0,
-			terminal_button_test);
 }
 
 void hw_setup_adc_channels(void) {
@@ -215,126 +177,6 @@ void hw_stop_i2c(void) {
 void hw_try_restore_i2c(void) {
 }
 
-#define TIME_500MS 50
-#define TIME_3S 300
-#define ERPM_THRESHOLD 100
-#define BUTTON_DEBOUNCE_SAMPLES 2
-
-static bool shutdown_button_pressed(void) {
-	bt_raw_pressed = palReadPad(HW_SHUTDOWN_SENSE_GPIO, HW_SHUTDOWN_SENSE_PIN) == PAL_HIGH;
-
-	if (bt_raw_pressed == bt_last_raw_pressed) {
-		if (bt_debounce_counter < BUTTON_DEBOUNCE_SAMPLES) {
-			bt_debounce_counter++;
-		}
-	} else {
-		bt_last_raw_pressed = bt_raw_pressed;
-		bt_debounce_counter = 1;
-	}
-
-	if (bt_debounce_counter >= BUTTON_DEBOUNCE_SAMPLES) {
-		bt_pressed = bt_raw_pressed;
-	}
-
-	return bt_pressed;
-}
-
-/**
- * hw_sample_shutdown_button - return false if shutdown is requested, true otherwise
- *
- * Behavior: sample the shutdown button as a digital input. The input is expected
- * to be low when released and high when pressed.
- *
- * Once the hold counter reaches the threshold, provided that the ERPM is below
- * 100, a very short (20ms) beep will go off. Shutdown actually happens on the
- * release edge when the press is over.
- *
- * If the motor is spinning faster, then a 3s press is required. Buzzer will beep once the
- * time has been reached. Again, shutdown happens on release.
- *
- * Normal shutdown time:    0.5s
- * Emergency shutdown time: 3.0s
- */
-
-bool hw_sample_shutdown_button(void) {
-	bool pressed = shutdown_button_pressed();
-
-	switch (bt_state) {
-	case BT_SHUTDOWN_IDLE:
-		if (pressed) {
-			bt_hold_counter = 1;
-			bt_state = BT_SHUTDOWN_HOLDING;
-		} else {
-			bt_hold_counter = 0;
-		}
-		break;
-
-	case BT_SHUTDOWN_HOLDING:
-		if (!pressed) {
-			bt_hold_counter = 0;
-			beep_off();
-			bt_state = BT_SHUTDOWN_IDLE;
-			break;
-		}
-
-		bt_hold_counter++;
-
-		if (bt_hold_counter > TIME_500MS) {
-			if (fabsf(mc_interface_get_rpm()) < ERPM_THRESHOLD) {
-				// Power-down is triggered by releasing the button after arming.
-				bt_hold_counter = 0;
-				bt_state = BT_SHUTDOWN_ARMED;
-
-				beep_on();
-				chThdSleepMilliseconds(20);
-				beep_off();
-			} else if (bt_hold_counter > TIME_3S) {
-				// Emergency Power-Down - beep to let the user know it's ready.
-				beep_on();
-				bt_hold_counter = 0;
-				bt_state = BT_SHUTDOWN_FORCE_ARMED;
-			}
-		}
-		break;
-
-	case BT_SHUTDOWN_ARMED:
-		if (fabsf(mc_interface_get_rpm()) > ERPM_THRESHOLD) {
-			bt_hold_counter = 0;
-			beep_off();
-			bt_state = BT_SHUTDOWN_IDLE;
-			break;
-		}
-
-		if (!pressed) {
-			beep_off();
-			bt_state = BT_SHUTDOWN_REQUESTED;
-			return false;
-		}
-		break;
-
-	case BT_SHUTDOWN_FORCE_ARMED:
-		if (!pressed) {
-			beep_off();
-			bt_state = BT_SHUTDOWN_REQUESTED;
-			return false;
-		}
-		break;
-
-	case BT_SHUTDOWN_REQUESTED:
-		beep_off();
-		return false;
-
-	default:
-		bt_hold_counter = 0;
-		beep_off();
-		bt_state = BT_SHUTDOWN_IDLE;
-		break;
-	}
-
-	return true;
-}
-
-
 float hw_JetFleet_get_temp(void) {
 	float t1 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
 	float t3 = (1.0 / ((logf(NTC_RES(ADC_Value[ADC_IND_TEMP_MOS_3]) / 10000.0) / 3380.0) + (1.0 / 298.15)) - 273.15);
@@ -348,14 +190,36 @@ float hw_JetFleet_get_temp(void) {
 	return res;
 }
 
-static void terminal_button_test(int argc, const char **argv) {
-	(void)argc;
-	(void)argv;
+/*
+ * Power button
+ *
+ * The button is a digital input: high when pressed, low when released.
+ * shutdown.c does the press detection: it majority-votes the samples over
+ * 0.7 s and shuts down when the button has been held for most of a window.
+ * The press that powered the board on is not counted, because shutdown.c
+ * only reacts to a released-to-pressed change.
+ *
+ * The button overrides the hold pin: if the pin is pulled low while the
+ * button is pressed, the board browns out and powers straight back on. So
+ * once shutdown is requested, the hold pin follows the button and the
+ * buzzer sounds until it is released.
+ */
 
-	for (int i = 0;i < 40;i++) {
-		commands_printf("BT: %d:%d raw=%d pressed=%d state=%d RPM=%.1f",
-				HW_SAMPLE_SHUTDOWN(), bt_hold_counter, (int)bt_raw_pressed,
-				(int)bt_pressed, (int)bt_state, (double)mc_interface_get_rpm());
-		chThdSleepMilliseconds(100);
+static volatile bool power_off = false;
+
+// Returns true while the button is released
+bool hw_sample_shutdown_button(void) {
+	bool pressed = palReadPad(HW_SHUTDOWN_SENSE_GPIO, HW_SHUTDOWN_SENSE_PIN) == PAL_HIGH;
+
+	if (power_off) {
+		palWritePad(HW_SHUTDOWN_GPIO, HW_SHUTDOWN_PIN, pressed ? PAL_HIGH : PAL_LOW);
+		palWritePad(HW_ICU_GPIO, HW_ICU_PIN, pressed ? PAL_HIGH : PAL_LOW);
 	}
+
+	return !pressed;
+}
+
+void hw_shutdown_hold_off(void) {
+	power_off = true;
+	hw_sample_shutdown_button();
 }
