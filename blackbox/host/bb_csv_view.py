@@ -40,6 +40,8 @@ DEFAULT_PANELS = [
     {"title": "Phase currents", "cols": ["ia", "ib", "ic"]},
     {"title": "Electrical angle", "cols": ["theta", "theta_enc", "theta_used", "phase", "phase_enc", "theta_obs", "phase_obs"]},
     {"title": "Duty", "cols": ["duty"]},
+    {"title": "SVM sector / reconstructed phase", "cols": ["sector", "phase_used"]},
+    {"title": "CCR window (% of ARR)", "cols": ["ccr_max_pct", "ccr_min_pct"]},
     {"title": "Fault", "cols": ["fault"]},
 ]
 

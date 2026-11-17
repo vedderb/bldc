@@ -43,46 +43,57 @@ MAGIC = b"BBIN"
 # Header carries the ISR tick of the first record so the wire records can omit
 # the per-record tick (records in a batch are consecutive, decimation == 1).
 HEADER = struct.Struct("<4sBBHII")
-# Firmware wire record (BB_STREAM_VERSION 14), 12 bytes, no tick:
-# erpm (int16, 1 LSB/ERPM), id, iq (int16, 50 LSB/A),
-# ud, uq (int16, 100 LSB/V), theta_obs (int16, full turn over int16 range).
-WIRE = struct.Struct("<hhhhhh")
-# Self-contained record stored in the temp .bin (tick reconstructed + 6 int16).
-RECORD = struct.Struct("<Ihhhhhh")
-STREAM_VERSION = 14
+# Firmware wire record (BB_STREAM_VERSION 16), 16 bytes, no tick:
+# erpm (int16, 1 LSB/ERPM), ia, ib, ic (int16, 50 LSB/A, phase currents as used
+# by the FOC, i.e. after the shunt pick / reconstruction), ud, uq (int16,
+# 100 LSB/V), sector (uint8, 1..6), phase_used (uint8, 0..2 reconstructed
+# phase, 3 = all measured), ccr_max_pct / ccr_min_pct (uint8, % of ARR at the
+# sample instant).
+WIRE = struct.Struct("<hhhhhhBBBB")
+# Self-contained record stored in the temp .bin (tick reconstructed + payload).
+RECORD = struct.Struct("<IhhhhhhBBBB")
+STREAM_VERSION = 16
 STREAM_I_LSB_PER_A = 50.0
 STREAM_V_LSB_PER_V = 100.0
 STREAM_ERPM_LSB = 1.0
-STREAM_ANG_LSB = 32768.0 / (2.0 * math.pi)
 
 
 def decode_record(raw):
-    # raw = (tick, erpm, id, iq, ud, uq, theta_obs) as fixed-point ints.
+    # raw = (tick, erpm, ia, ib, ic, ud, uq, sector, phase_used,
+    #        ccr_max_pct, ccr_min_pct) as fixed-point ints.
     tick = raw[0]
-    erpm, idc, iqc, ud, uq, theta_obs = raw[1:7]
+    erpm, ia, ib, ic, ud, uq = raw[1:7]
+    sector, phase_used, ccr_max_pct, ccr_min_pct = raw[7:11]
     return (
         tick,
         erpm / STREAM_ERPM_LSB,
-        idc / STREAM_I_LSB_PER_A,
-        iqc / STREAM_I_LSB_PER_A,
+        ia / STREAM_I_LSB_PER_A,
+        ib / STREAM_I_LSB_PER_A,
+        ic / STREAM_I_LSB_PER_A,
         ud / STREAM_V_LSB_PER_V,
         uq / STREAM_V_LSB_PER_V,
-        theta_obs / STREAM_ANG_LSB,
+        sector,
+        phase_used,
+        ccr_max_pct,
+        ccr_min_pct,
     )
 
 RAW_COLUMNS = [
-    "tick", "erpm", "id", "iq", "ud", "uq", "theta_obs",
+    "tick", "erpm", "ia", "ib", "ic", "ud", "uq",
+    "sector", "phase_used", "ccr_max_pct", "ccr_min_pct",
 ]
 
 PLOT_COLUMNS = [
-    "erpm", "id", "iq", "ud", "uq", "theta_obs",
+    "erpm", "ia", "ib", "ic", "ud", "uq",
+    "sector", "phase_used", "ccr_max_pct", "ccr_min_pct",
 ]
 
 DEFAULT_PANELS = [
     {"title": "ERPM", "cols": ["erpm"]},
-    {"title": "dq currents", "cols": ["id", "iq"]},
+    {"title": "Phase currents", "cols": ["ia", "ib", "ic"]},
     {"title": "dq voltages", "cols": ["ud", "uq"]},
-    {"title": "Observer angle", "cols": ["theta_obs"]},
+    {"title": "SVM sector / reconstructed phase", "cols": ["sector", "phase_used"]},
+    {"title": "CCR window (% of ARR)", "cols": ["ccr_max_pct", "ccr_min_pct"]},
 ]
 
 

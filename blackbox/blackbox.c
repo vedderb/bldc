@@ -28,29 +28,32 @@
 #endif
 
 #define BB_STREAM_MAGIC			"BBIN"
-#define BB_STREAM_VERSION		14
+#define BB_STREAM_VERSION		16
 
 // Compact binary stream fixed-point scales.
-// Currents: int16 at 0.02 A/LSB (+-655 A). Voltages: int16 at 0.01 V/LSB
-// (+-327 V). ERPM: int16 at 1 ERPM/LSB (+-32767). Electrical phase is
-// int16 mapping a full turn onto the int16 range.
+// Phase currents: int16 at 0.02 A/LSB (+-655 A). Voltages: int16 at 0.01 V/LSB
+// (+-327 V). ERPM: int16 at 1 ERPM/LSB (+-32767).
 #define BB_STREAM_I_LSB_PER_A	50.0f
 #define BB_STREAM_V_LSB_PER_V	100.0f
 #define BB_STREAM_ERPM_LSB		1.0f
-#define BB_STREAM_ANG_LSB		(32768.0f / (2.0f * (float)M_PI))
 #define BB_STREAM_I16_MAX		32767.0f
 #define BB_STREAM_I16_MIN		(-32768.0f)
 
-// 12 bytes per record (no padding): 6 x int16. The per-record tick is not
-// transmitted; the host reconstructs it as header.first_tick + record_index.
+// 16 bytes per record (no padding): 6 x int16 + 4 x uint8. The per-record tick
+// is not transmitted; the host reconstructs it as header.first_tick +
+// record_index.
 // This assumes BB_STREAM_DECIMATION == 1 so records in a batch are consecutive.
 typedef struct __attribute__((packed)) {
 	int16_t erpm;			// Electrical RPM: int16, BB_STREAM_ERPM_LSB LSB per ERPM
-	int16_t id;				// dq currents: int16, BB_STREAM_I_LSB_PER_A LSB per amp
-	int16_t iq;
+	int16_t ia;				// Phase currents as used by the FOC (i.e. after the
+	int16_t ib;				// shunt pick / reconstruction): int16,
+	int16_t ic;				// BB_STREAM_I_LSB_PER_A LSB per amp
 	int16_t ud;				// dq voltages: int16, BB_STREAM_V_LSB_PER_V LSB per volt
 	int16_t uq;
-	int16_t theta_obs;		// Observer electrical phase: int16, BB_STREAM_ANG_LSB LSB per rad
+	uint8_t sector;			// SVM sector of the sampled period: 1..6, 0 = unknown
+	uint8_t phase_used;		// Reconstructed phase 0..2 (A/B/C), 3 = all three measured
+	uint8_t ccr_max_pct;	// Highest CCR at the sample instant, in % of ARR
+	uint8_t ccr_min_pct;	// Lowest CCR at the sample instant, in % of ARR
 } bb_stream_record_t;
 
 static inline int16_t bb_stream_clamp_i16(float v) {
@@ -137,7 +140,7 @@ static void dump_csv(void) {
 	uint32_t n = (count < BB_BUF_LEN) ? count : BB_BUF_LEN;
 
 	len = snprintf(line, sizeof(line),
-			"#BB_DUMP_BEGIN,ver=1,f_isr_hz=%.1f,decimation=%d,buflen=%d,records=%lu,frozen=%d,fault=%d\r\n",
+			"#BB_DUMP_BEGIN,ver=2,f_isr_hz=%.1f,decimation=%d,buflen=%d,records=%lu,frozen=%d,fault=%d\r\n",
 			(double)mcpwm_foc_get_sampling_frequency_now(), BB_DECIMATION, BB_BUF_LEN,
 			(unsigned long)n, m_frozen ? 1 : 0, m_fault_code);
 	if (!rtt_write_chunk(line, len)) {
@@ -145,7 +148,7 @@ static void dump_csv(void) {
 	}
 
 	len = snprintf(line, sizeof(line),
-			"tick,ia,ib,ic,id,iq,i_abs,i_abs_filter,duty,v_bus,phase,phase_enc,phase_obs,speed_rad_s,vd,vq,fault,state,mode,flags\r\n");
+			"tick,ia,ib,ic,id,iq,i_abs,i_abs_filter,duty,v_bus,phase,phase_enc,phase_obs,speed_rad_s,vd,vq,fault,state,mode,flags,sector,phase_used,ccr_max_pct,ccr_min_pct\r\n");
 	if (!rtt_write_chunk(line, len)) {
 		return;
 	}
@@ -155,7 +158,7 @@ static void dump_csv(void) {
 		volatile bb_record_t *r = &m_buf[idx];
 
 		len = snprintf(line, sizeof(line),
-				"%lu,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.4f,%.2f,%.4f,%.4f,%.4f,%.2f,%.3f,%.3f,%u,%u,%u,%u\r\n",
+				"%lu,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.4f,%.2f,%.4f,%.4f,%.4f,%.2f,%.3f,%.3f,%u,%u,%u,%u,%u,%u,%u,%u\r\n",
 				(unsigned long)r->tick,
 				(double)r->ia, (double)r->ib, (double)r->ic,
 				(double)r->id, (double)r->iq,
@@ -164,7 +167,9 @@ static void dump_csv(void) {
 				(double)r->phase, (double)r->phase_enc, (double)r->phase_obs, (double)r->speed_rad_s,
 				(double)r->vd, (double)r->vq,
 				(unsigned int)r->fault_code, (unsigned int)r->state,
-				(unsigned int)r->control_mode, (unsigned int)r->flags);
+				(unsigned int)r->control_mode, (unsigned int)r->flags,
+				(unsigned int)r->samp_sector, (unsigned int)r->samp_phase,
+				(unsigned int)r->samp_ccr_max, (unsigned int)r->samp_ccr_min);
 		if (!rtt_write_chunk(line, len)) {
 			return;
 		}
@@ -177,11 +182,13 @@ static void dump_csv(void) {
 // Periodic live telemetry line. Written in skip mode: if the RTT buffer is
 // full (no host attached) the line is simply dropped, nothing blocks.
 static void live_print(void) {
-	char line[224];
+	char line[288];
+	const volatile bb_record_t *rec = blackbox_get_record(0);
 
 	int len = snprintf(line, sizeof(line),
 			"BB t=%lu iq=%.2f id=%.2f iabs=%.2f duty=%.3f vbus=%.1f erpm=%.0f "
-			"ang_used=%.1f ang_obs=%.1f ang_enc=%.1f ang_hall=%.1f fault=%d\r\n",
+			"ang_used=%.1f ang_obs=%.1f ang_enc=%.1f ang_hall=%.1f fault=%d "
+			"sect=%u sph=%u ccr=%u/%u\r\n",
 			(unsigned long)m_isr_tick,
 			(double)mcpwm_foc_get_iq(), (double)mcpwm_foc_get_id(),
 			(double)mcpwm_foc_get_abs_motor_current(),
@@ -192,7 +199,11 @@ static void live_print(void) {
 			(double)mcpwm_foc_get_phase_observer(),	// observer angle (deg)
 			(double)mcpwm_foc_get_phase_encoder(),	// encoder angle (deg)
 			(double)mcpwm_foc_get_phase_hall(),		// hall angle (deg)
-			(int)mc_interface_get_fault());
+			(int)mc_interface_get_fault(),
+			rec ? (unsigned int)rec->samp_sector : 0U,
+			rec ? (unsigned int)rec->samp_phase : 0U,
+			rec ? (unsigned int)rec->samp_ccr_max : 0U,
+			rec ? (unsigned int)rec->samp_ccr_min : 0U);
 
 	if (len > 0) {
 		SEGGER_RTT_Write(0, line, (unsigned int)len);
@@ -276,11 +287,15 @@ static void stream_binary(void) {
 			}
 			bb_stream_record_t *out = (bb_stream_record_t*)&payload[payload_ofs];
 			out->erpm = bb_stream_clamp_i16(r->speed_rad_s * (60.0f / (2.0f * (float)M_PI)) * BB_STREAM_ERPM_LSB);
-			out->id = bb_stream_clamp_i16(r->id * BB_STREAM_I_LSB_PER_A);
-			out->iq = bb_stream_clamp_i16(r->iq * BB_STREAM_I_LSB_PER_A);
+			out->ia = bb_stream_clamp_i16(r->ia * BB_STREAM_I_LSB_PER_A);
+			out->ib = bb_stream_clamp_i16(r->ib * BB_STREAM_I_LSB_PER_A);
+			out->ic = bb_stream_clamp_i16(r->ic * BB_STREAM_I_LSB_PER_A);
 			out->ud = bb_stream_clamp_i16(r->vd * BB_STREAM_V_LSB_PER_V);
 			out->uq = bb_stream_clamp_i16(r->vq * BB_STREAM_V_LSB_PER_V);
-			out->theta_obs = bb_stream_clamp_i16(r->phase_obs * BB_STREAM_ANG_LSB);
+			out->sector = r->samp_sector;
+			out->phase_used = r->samp_phase;
+			out->ccr_max_pct = r->samp_ccr_max;
+			out->ccr_min_pct = r->samp_ccr_min;
 			payload_ofs += sizeof(bb_stream_record_t);
 		}
 

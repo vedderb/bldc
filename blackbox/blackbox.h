@@ -17,11 +17,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// Number of records in the ring buffer. 240 x 72 B ≈ 17 KB in main SRAM.
-// Stock 75_300 has ~25 KB of ram0 left for .bss + heap, so this leaves
-// roughly 10 KB of heap headroom. Verify with the terminal "mem" command.
+// Number of records in the ring buffer.
+// 224 x 72 B = 16128 B in main SRAM (ram0). bb_record_t is 72 B since the
+// current-sampling fields (samp_sector/phase/ccr_*) were added; the boot
+// banner prints sizeof(bb_record_t). ram0 is essentially full on 75_300
+// (240 x 68 B used to fit with only ~230 B to spare), so the record count was
+// reduced from 240 to 224 to keep the .bss footprint below the previous one.
+// Verify with the terminal "mem" command or the linker memory report.
 #ifndef BB_BUF_LEN
-#define BB_BUF_LEN			240
+#define BB_BUF_LEN			224
 #endif
 
 // Record every BB_DECIMATION:th FOC ADC ISR (1 = every ISR, ~12.5 kHz).
@@ -58,6 +62,15 @@ typedef struct {
 	uint8_t state;			// mc_state
 	uint8_t control_mode;	// mc_control_mode
 	uint8_t flags;			// BB_FLAG_*
+
+	// Current-sampling instrumentation. Tells which phase was reconstructed
+	// from the other two (i.e. where the shunt window was too short) and how
+	// close the modulation was to that limit, so the distorted samples can be
+	// identified afterwards.
+	uint8_t samp_sector;	// SVM sector of the sampled PWM period: 1..6, 0 = unknown
+	uint8_t samp_phase;		// 0..2 = reconstructed phase (A/B/C), 3 = all three measured
+	uint8_t samp_ccr_max;	// Highest CCR at the sample instant, in % of ARR
+	uint8_t samp_ccr_min;	// Lowest CCR at the sample instant, in % of ARR
 } bb_record_t;
 
 // Thread context API

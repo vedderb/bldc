@@ -18,8 +18,11 @@ import math
 import re
 import sys
 
+# Must match the CSV header printed by blackbox.c dump_csv() exactly (ver=2).
 COLUMNS = ["tick", "ia", "ib", "ic", "id", "iq", "i_abs", "i_abs_filter",
-           "duty", "v_bus", "phase", "speed_rad_s", "fault", "state", "mode", "flags"]
+           "duty", "v_bus", "phase", "phase_enc", "phase_obs", "speed_rad_s",
+           "vd", "vq", "fault", "state", "mode", "flags",
+           "sector", "phase_used", "ccr_max_pct", "ccr_min_pct"]
 
 FAULT_NAMES = {
     0: "NONE", 1: "OVER_VOLTAGE", 2: "UNDER_VOLTAGE", 3: "DRV",
@@ -102,7 +105,7 @@ def main():
     except ImportError:
         sys.exit("matplotlib not installed. Run: pip install matplotlib")
 
-    fig, axes = plt.subplots(6, 1, sharex=True, figsize=(12, 14))
+    fig, axes = plt.subplots(8, 1, sharex=True, figsize=(12, 16))
     fig.suptitle(f"VESC blackbox dump - fault {fault} ({FAULT_NAMES.get(fault, '?')})")
 
     # Mark where the fault flag first became active.
@@ -159,9 +162,26 @@ def main():
     ax.step(t, d["fault"], where="post", label="fault_code")
     ax.step(t, d["flags"], where="post", alpha=0.6, label="flags")
     ax.set_ylabel("code")
-    ax.set_xlabel(x_label)
     ax.legend(loc="upper left")
     ax.set_title("Fault code / flags")
+
+    # Current sampling state: sector 1..6, and which phase was reconstructed
+    # (phase_used 0..2 = A/B/C derived from the other two, 3 = all measured).
+    ax = axes[6]
+    ax.step(t, d["sector"], where="post", label="SVM sector")
+    ax.step(t, d["phase_used"], where="post", alpha=0.7, label="reconstructed phase")
+    ax.set_ylabel("code")
+    ax.legend(loc="upper left")
+    ax.set_title("Current sampling: SVM sector / reconstructed phase")
+
+    ax = axes[7]
+    ax.step(t, d["ccr_max_pct"], where="post", label="CCR max")
+    ax.step(t, d["ccr_min_pct"], where="post", label="CCR min")
+    ax.set_ylabel("% of ARR")
+    ax.set_xlabel(x_label)
+    ax.legend(loc="upper left")
+    ax.set_title("Modulation window at sample instant (shunt pick threshold is "
+                 "ARR-900)")
 
     if t_fault is not None:
         for ax in axes:

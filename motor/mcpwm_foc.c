@@ -3060,6 +3060,15 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	bool full_clarke = false;
 #endif
 
+	// Index of the phase whose current is reconstructed from the other two
+	// (set by the shunt-pick logic below). 3 = all three currents measured.
+#ifdef HW_HAS_3_SHUNTS
+	uint8_t samp_phase = 3;
+#else
+	// Two-shunt hardware: ic is always derived from ia + ib.
+	uint8_t samp_phase = 2;
+#endif
+
 	// Use the best current samples depending on the modulation state.
 #ifdef HW_HAS_3_SHUNTS
 	if (conf_now->foc_current_sample_mode == FOC_CURRENT_SAMPLE_MODE_HIGH_CURRENT) {
@@ -3073,10 +3082,13 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 		if (i0_abs > i1_abs && i0_abs > i2_abs) {
 			curr0 = -(curr1 + curr2);
+			samp_phase = 0;
 		} else if (i1_abs > i0_abs && i1_abs > i2_abs) {
 			curr1 = -(curr0 + curr2);
+			samp_phase = 1;
 		} else if (i2_abs > i0_abs && i2_abs > i1_abs) {
 			curr2 = -(curr0 + curr1);
+			samp_phase = 2;
 		}
 	} else if (conf_now->foc_current_sample_mode == FOC_CURRENT_SAMPLE_MODE_LONGEST_ZERO) {
 #ifdef HW_HAS_PHASE_SHUNTS
@@ -3088,10 +3100,13 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 				if (tim->CCR1 < tim->CCR2 && tim->CCR1 < tim->CCR3) {
 					curr0 = -(curr1 + curr2);
+					samp_phase = 0;
 				} else if (tim->CCR2 < tim->CCR1 && tim->CCR2 < tim->CCR3) {
 					curr1 = -(curr0 + curr2);
+					samp_phase = 1;
 				} else if (tim->CCR3 < tim->CCR1 && tim->CCR3 < tim->CCR2) {
 					curr2 = -(curr0 + curr1);
+					samp_phase = 2;
 				}
 			}
 		} else {
@@ -3102,10 +3117,13 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 				if (tim->CCR1 > tim->CCR2 && tim->CCR1 > tim->CCR3) {
 					curr0 = -(curr1 + curr2);
+					samp_phase = 0;
 				} else if (tim->CCR2 > tim->CCR1 && tim->CCR2 > tim->CCR3) {
 					curr1 = -(curr0 + curr2);
+					samp_phase = 1;
 				} else if (tim->CCR3 > tim->CCR1 && tim->CCR3 > tim->CCR2) {
 					curr2 = -(curr0 + curr1);
+					samp_phase = 2;
 				}
 			}
 		}
@@ -3117,10 +3135,13 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 			if (tim->CCR1 > tim->CCR2 && tim->CCR1 > tim->CCR3) {
 				curr0 = -(curr1 + curr2);
+				samp_phase = 0;
 			} else if (tim->CCR2 > tim->CCR1 && tim->CCR2 > tim->CCR3) {
 				curr1 = -(curr0 + curr2);
+				samp_phase = 1;
 			} else if (tim->CCR3 > tim->CCR1 && tim->CCR3 > tim->CCR2) {
 				curr2 = -(curr0 + curr1);
+				samp_phase = 2;
 			}
 		}
 #endif
@@ -3840,6 +3861,32 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 			bb->phase_obs = motor_now->m_phase_now_observer;
 			bb->state = (uint8_t)motor_now->m_state;
 			bb->control_mode = (uint8_t)motor_now->m_control_mode;
+
+			// Current-sampling state. svm_sector is the sector of the
+			// modulation that is currently applied (written by foc_svm() when
+			// the duty of this period was set up), which is the one the sampled
+			// currents belong to. CCRx/ARR show how close the modulation was to
+			// the shunt pick threshold.
+			bb->samp_sector = (uint8_t)motor_now->m_motor_state.svm_sector;
+			bb->samp_phase = samp_phase;
+#ifdef HW_HAS_3_SHUNTS
+			{
+				uint32_t arr = tim->ARR;
+				uint32_t c1 = tim->CCR1;
+				uint32_t c2 = tim->CCR2;
+				uint32_t c3 = tim->CCR3;
+				uint32_t c_max = c1 > c2 ? (c1 > c3 ? c1 : c3) : (c2 > c3 ? c2 : c3);
+				uint32_t c_min = c1 < c2 ? (c1 < c3 ? c1 : c3) : (c2 < c3 ? c2 : c3);
+
+				bb->samp_ccr_max = arr ? (uint8_t)((c_max * 100U) / arr) : 0;
+				bb->samp_ccr_min = arr ? (uint8_t)((c_min * 100U) / arr) : 0;
+			}
+#else
+			// No CCR window information on hardware without 3 shunts.
+			bb->samp_ccr_max = 0;
+			bb->samp_ccr_min = 0;
+#endif
+
 			blackbox_commit_isr();
 		}
 	}
