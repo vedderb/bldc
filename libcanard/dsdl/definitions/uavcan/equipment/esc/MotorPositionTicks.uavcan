@@ -1,0 +1,11 @@
+# Exact cumulative signed motor-shaft position in source-native ticks.
+# A positive delta denotes forward rotation as in RPMCommand.
+# ticks_per_revolution is the exact number of ticks per mechanical motor-shaft
+# revolution, NOT the number of electrical or wheel revolutions.
+# It MUST be nonzero and remain unchanged within one origin_id. Senders must
+# change origin_id if the source resolution or interpretation changes.
+# The int32 counter wraps modulo 2^32. Receivers may unwrap ONLY continuous,
+# physically plausible increments; otherwise they MUST re-baseline.
+
+int32 ticks
+uint16 ticks_per_revolution

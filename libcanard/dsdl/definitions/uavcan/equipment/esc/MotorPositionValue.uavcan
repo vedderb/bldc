@@ -1,0 +1,11 @@
+# One of two representations of cumulative mechanical motor-shaft position.
+# Tick mode preserves exact native counter increments; float32 mode is for
+# sources whose native output is mechanical revolutions. Float32 precision
+# degrades as the absolute revolution count grows. Publishers should prefer
+# ticks when they have an exact native integer counter.
+# Union tag (1 bit): 0 = ticks; 1 = revolutions.
+
+@union
+
+MotorPositionTicks ticks
+float32 revolutions

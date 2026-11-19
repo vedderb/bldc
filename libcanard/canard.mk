@@ -1,6 +1,10 @@
 CANARDSRC =	libcanard/canard.c \
 			libcanard/canard_driver.c \
 			libcanard/dsdl/uavcan/equipment/esc/esc_Status.c \
+			libcanard/dsdl/motor_position/src/uavcan.equipment.esc.MotorPositionTicks.c \
+			libcanard/dsdl/motor_position/src/uavcan.equipment.esc.MotorPositionValue.c \
+			libcanard/dsdl/motor_position/src/uavcan.equipment.esc.MotorPosition.c \
+			libcanard/dsdl/motor_speed/src/com.mowglinext.esc.MotorSpeed.c \
 			libcanard/dsdl/uavcan/equipment/esc/esc_RawCommand.c \
 			libcanard/dsdl/uavcan/equipment/esc/esc_RPMCommand.c \
 			libcanard/dsdl/uavcan/protocol/protocol_GetNodeInfo.c \
@@ -17,4 +21,6 @@ CANARDSRC =	libcanard/canard.c \
 			libcanard/dsdl/vesc/vesc_RTData.c 
 
 CANARDINC = libcanard \
-			libcanard/dsdl
+			libcanard/dsdl \
+			libcanard/dsdl/motor_position/include \
+			libcanard/dsdl/motor_speed/include

@@ -1,0 +1,33 @@
+# PROVISIONAL DroneCAN v0 MowgliNext vendor message; not a standard type.
+# Primary purpose: fractional-precision replacement telemetry for the signed
+# INTEGER rpm field in uavcan.equipment.esc.Status. That existing standard
+# field and message MUST remain unchanged for backward compatibility.
+# Prefer this signed float32 when its values are valid and fresh; in particular
+# low-speed robots otherwise lose fractional RPM through integer quantization.
+# A future standard DroneCAN fractional-RPM revision may supersede this type.
+# Signed mechanical shaft speed (not wheel speed; not a commanded setpoint).
+# Works with sensorless estimated RPM, Hall or encoder feedback when available.
+# Positive rpm follows uavcan.equipment.esc.RPMCommand and MotorPosition ticks.
+# Negative rpm represents reverse shaft rotation; stopped motor may report 0.0.
+# Never infer wheel radius, gear ratio or physical speed accuracy from this value.
+#
+# esc_index: the same zero-based ESC channel as uavcan.equipment.esc.Status.
+# Identify streams by (CAN interface, source node ID, esc_index).
+# valid=false means the RPM cannot be used; rpm is then unspecified and ignored.
+# valid=true means finite numerical RPM during an internally consistent sample,
+# NOT independently verified sensor health or zero-speed observability.
+#
+# sample_seq increments modulo 256 for each sampling instant for this channel,
+# even invalid samples. Detect missed/reordered samples, stale timeouts and
+# node-ID changes. A speed-only receiver must not bridge large time gaps.
+# sample_seq is independent from MotorPosition.sample_seq and the transport TID.
+# Receiver should integrate real acquisition/arrival time differences, never
+# round partial rotations, and only use RPM for fallback if position is absent.
+#
+# Payload = 5 + 1 + 8 + 32 = 46 bits = 6 bytes; one classic CAN frame + tail.
+# DTID 20990 is an EXPERIMENTAL vendor-specific assignment, subject to change.
+
+uint5 esc_index
+bool valid
+uint8 sample_seq
+float32 rpm
