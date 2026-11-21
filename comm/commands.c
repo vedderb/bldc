@@ -910,7 +910,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		if (divide_by_controllers) {
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
-				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 0.1) {
+				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 1.0) {
 					controller_num += 1.0;
 				}
 			}
@@ -1008,7 +1008,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			// TODO: Maybe broadcast on CAN-bus?
 			for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 				can_status_msg *msg = comm_can_get_status_msg_index(i);
-				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 0.1) {
+				if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 1.0) {
 					comm_can_send_buffer(msg->id, data - 1, len + 1, 2);
 				}
 			}

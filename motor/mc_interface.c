@@ -1686,25 +1686,25 @@ setup_values mc_interface_get_setup_values(void) {
 
 	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
 		can_status_msg *msg = comm_can_get_status_msg_index(i);
-		if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 0.1) {
+		if (msg->id >= 0 && UTILS_AGE_S(msg->rx_time) < 1.0) {
 			val.current_tot += msg->current;
 			val.num_vescs++;
 		}
 
 		can_status_msg_2 *msg2 = comm_can_get_status_msg_2_index(i);
-		if (msg2->id >= 0 && UTILS_AGE_S(msg2->rx_time) < 0.1) {
+		if (msg2->id >= 0 && UTILS_AGE_S(msg2->rx_time) < 1.0) {
 			val.ah_tot += msg2->amp_hours;
 			val.ah_charge_tot += msg2->amp_hours_charged;
 		}
 
 		can_status_msg_3 *msg3 = comm_can_get_status_msg_3_index(i);
-		if (msg3->id >= 0 && UTILS_AGE_S(msg3->rx_time) < 0.1) {
+		if (msg3->id >= 0 && UTILS_AGE_S(msg3->rx_time) < 1.0) {
 			val.wh_tot += msg3->watt_hours;
 			val.wh_charge_tot += msg3->watt_hours_charged;
 		}
 
 		can_status_msg_4 *msg4 = comm_can_get_status_msg_4_index(i);
-		if (msg4->id >= 0 && UTILS_AGE_S(msg4->rx_time) < 0.1) {
+		if (msg4->id >= 0 && UTILS_AGE_S(msg4->rx_time) < 1.0) {
 			val.current_in_tot += msg4->current_in;
 		}
 	}
