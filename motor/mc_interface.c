@@ -1873,6 +1873,12 @@ void mc_interface_set_fault_info(const char *str, int argn, float arg0, float ar
 }
 
 void mc_interface_fault_stop(mc_fault_code fault, bool is_second_motor, bool is_isr) {
+	// Interrupts can raise faults before mc_interface_init() starts the fault stop
+	// thread (e.g. the PVD early in boot), when there is no motor to stop yet
+	if (!fault_stop_tp) {
+		return;
+	}
+
 	m_fault_data.fault_code = fault;
 	m_fault_data.is_second_motor = is_second_motor;
 

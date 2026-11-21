@@ -102,6 +102,8 @@ CH_IRQ_HANDLER(TIM2_IRQHandler) {
 }
 
 CH_IRQ_HANDLER(PVD_IRQHandler) {
+	CH_IRQ_PROLOGUE();
+
 	if (EXTI_GetITStatus(EXTI_Line16) != RESET) {
 		// Log the fault. Supply voltage dropped below 2.9V,
 		// could corrupt an ongoing flash programming
@@ -119,6 +121,8 @@ CH_IRQ_HANDLER(PVD_IRQHandler) {
 		EXTI_ClearITPendingBit(EXTI_Line16);
 		EXTI_ClearFlag(EXTI_Line16);
 	}
+
+	CH_IRQ_EPILOGUE();
 }
 
 CH_IRQ_HANDLER(NMI_Handler) {
