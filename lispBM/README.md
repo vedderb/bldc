@@ -1066,6 +1066,20 @@ Sets the override value
 
 ---
 
+#### app-adc-override-dec
+
+| Platforms | Firmware |
+|---|---|
+| ESC | 7.01+ |
+
+```clj
+(app-adc-override-dec thr brake)
+```
+
+Override the decoded and mapped ADC values, range 0.0 to 1.0. Set to -1 to disable. This is applied after the raw value override, so if both are used this one will have priority. This can also be combined with redundant throttles to provide a separate brake input.
+
+---
+
 #### app-adc-range-ok
 
 | Platforms | Firmware |

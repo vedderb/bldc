@@ -50,6 +50,7 @@ void app_adc_adc2_override(float val);
 void app_adc_detach_buttons(bool state);
 void app_adc_rev_override(bool state);
 void app_adc_cc_override(bool state);
+void app_adc_override_dec(float thr, float brake);
 bool app_adc_range_ok(void);
 
 typedef enum {

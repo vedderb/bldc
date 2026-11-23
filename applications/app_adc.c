@@ -59,16 +59,20 @@ static volatile float decoded_level = 0.0;
 static volatile float read_voltage = 0.0;
 static volatile float decoded_level2 = 0.0;
 static volatile float read_voltage2 = 0.0;
-static volatile float adc1_override = 0.0;
-static volatile float adc2_override = 0.0;
 static volatile bool use_rx_tx_as_buttons = false;
 static volatile bool stop_now = true;
 static volatile bool is_running = false;
+static volatile bool range_ok = true;
+
+// LispBM Overrides
 static volatile int adc_detached = 0;
+static volatile float adc1_override = 0.0;
+static volatile float adc2_override = 0.0;
 static volatile bool buttons_detached = false;
 static volatile bool rev_override = false;
 static volatile bool cc_override = false;
-static volatile bool range_ok = true;
+static volatile float thr_override_dec = -1.0;
+static volatile float brake_override_dec = -1.0;
 
 void app_adc_configure(adc_config *conf) {
 	if (!buttons_detached && (((conf->buttons >> 0) & 1) || CTRL_USES_BUTTON(conf->ctrl_type))) {
@@ -157,6 +161,19 @@ void app_adc_cc_override(bool state) {
 	timeout_reset();
 }
 
+void app_adc_override_dec(float thr, float brake) {
+	if (thr > 1.0) {
+		thr = 1.0;
+	}
+
+	if (brake > 1.0) {
+		brake = 1.0;
+	}
+
+	thr_override_dec = thr;
+	brake_override_dec = brake;
+}
+
 bool app_adc_range_ok(void) {
 	return range_ok;
 }
@@ -187,25 +204,68 @@ static THD_FUNCTION(adc_thread, arg) {
 			ms_without_power = 0;
 		}
 
-		// Read the external ADC pin voltage
 		float pwr = ADC_VOLTS(ADC_IND_EXT);
+#ifdef ADC_IND_EXT2
+		float brake = ADC_VOLTS(ADC_IND_EXT2);
+#else
+		float brake = 0.0;
+#endif
+
+#ifdef HW_HAS_BRAKE_OVERRIDE
+		hw_brake_override(&brake);
+#endif
 
 		// Override pwr value, when used from LISP
 		if (adc_detached == 1 || adc_detached == 2) {
 			pwr = adc1_override;
 		}
 
-		// Read voltage and range check
-		static float read_filter = 0.0;
-		ema_step(&read_filter, pwr, ema_alpha_samples(FILTER_SAMPLES));
-
-		if (config.use_filter) {
-			read_voltage = read_filter;
-		} else {
-			read_voltage = pwr;
+		// Override brake value, when used from LISP
+		if (adc_detached == 1 || adc_detached == 3) {
+			brake = adc2_override;
 		}
 
+		{
+			static float filter = 0.0;
+			ema_step(&filter, pwr, ema_alpha_samples(FILTER_SAMPLES));
+
+			if (config.use_filter) {
+				pwr = filter;
+			}
+		}
+
+		read_voltage = pwr;
+
+		{
+			static float filter = 0.0;
+			ema_step(&filter, brake, ema_alpha_samples(FILTER_SAMPLES));
+
+			if (config.use_filter) {
+				brake = filter;
+			}
+		}
+
+		read_voltage2 = brake;
+
 		range_ok = read_voltage >= config.voltage_min && read_voltage <= config.voltage_max;
+
+		// Dual redundant throttle when enabled
+		if (config.redundant_throttle_diff > 0.001) {
+			float map_pwr = utils_map(pwr, config.voltage_start, config.voltage_end, 0.0, 1.0);
+			float map_brake = utils_map(brake, config.voltage2_start, config.voltage2_end, 0.0, 1.0);
+
+			if (config.voltage_inverted) {
+				map_pwr = 1.0 - map_pwr;
+			}
+
+			if (config.voltage2_inverted) {
+				map_brake = 1.0 - map_brake;
+			}
+
+			if (fabsf(map_pwr - map_brake) > config.redundant_throttle_diff) {
+				range_ok = false;
+			}
+		}
 
 		// Map the read voltage
 		switch (config.ctrl_type) {
@@ -230,14 +290,6 @@ static THD_FUNCTION(adc_thread, arg) {
 			break;
 		}
 
-		// Optionally apply a filter
-		static float pwr_filter = 0.0;
-		ema_step(&pwr_filter, pwr, ema_alpha_samples(FILTER_SAMPLES));
-
-		if (config.use_filter) {
-			pwr = pwr_filter;
-		}
-
 		// Truncate the read voltage
 		utils_truncate_number(&pwr, 0.0, 1.0);
 
@@ -246,33 +298,12 @@ static THD_FUNCTION(adc_thread, arg) {
 			pwr = 1.0 - pwr;
 		}
 
+		if (thr_override_dec > -0.1) {
+			pwr = thr_override_dec;
+			utils_truncate_number(&pwr, 0.0, 1.0);
+		}
+
 		decoded_level = pwr;
-
-		// Read the external ADC pin and convert the value to a voltage.
-#ifdef ADC_IND_EXT2
-		float brake = ADC_VOLTS(ADC_IND_EXT2);
-#else
-		float brake = 0.0;
-#endif
-
-#ifdef HW_HAS_BRAKE_OVERRIDE
-		hw_brake_override(&brake);
-#endif
-
-		// Override brake value, when used from LISP
-		if (adc_detached == 1 || adc_detached == 3) {
-			brake = adc2_override;
-		}
-
-		read_voltage2 = brake;
-
-		// Optionally apply a filter
-		static float filter_val_2 = 0.0;
-		ema_step(&filter_val_2, brake, ema_alpha_samples(FILTER_SAMPLES));
-
-		if (config.use_filter) {
-			brake = filter_val_2;
-		}
 
 		// Map and truncate the read voltage
 		brake = utils_map(brake, config.voltage2_start, config.voltage2_end, 0.0, 1.0);
@@ -281,6 +312,11 @@ static THD_FUNCTION(adc_thread, arg) {
 		// Optionally invert the read voltage
 		if (config.voltage2_inverted) {
 			brake = 1.0 - brake;
+		}
+
+		if (brake_override_dec > -0.1) {
+			brake = brake_override_dec;
+			utils_truncate_number(&brake, 0.0, 1.0);
 		}
 
 		decoded_level2 = brake;
@@ -510,6 +546,10 @@ static THD_FUNCTION(adc_thread, arg) {
 
 		default:
 			continue;
+		}
+
+		if (!range_ok) {
+			mc_interface_fault_stop(FAULT_CODE_THROTTLE_RANGE, false, false);
 		}
 
 		// If safe start is enabled and the output has not been zero for long enough

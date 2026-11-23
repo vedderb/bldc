@@ -529,6 +529,7 @@ const char* mc_interface_fault_to_string(mc_fault_code fault) {
 	case FAULT_CODE_OVERSPEED: return "FAULT_CODE_OVERSPEED";
 	case FAULT_CODE_UNDERSPEED: return "FAULT_CODE_UNDERSPEED";
 	case FAULT_CODE_ABS_OVERSPEED: return "FAULT_CODE_ABS_OVERSPEED";
+	case FAULT_CODE_THROTTLE_RANGE: return "FAULT_CODE_THROTTLE_RANGE";
 	}
 
 	return "Unknown fault";

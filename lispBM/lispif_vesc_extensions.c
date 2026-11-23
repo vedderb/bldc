@@ -1851,6 +1851,12 @@ static lbm_value ext_app_adc_override(lbm_value *args, lbm_uint argn) {
 	return ENC_SYM_TRUE;
 }
 
+static lbm_value ext_app_adc_override_dec(lbm_value *args, lbm_uint argn) {
+	LBM_CHECK_ARGN_NUMBER(2);
+	app_adc_override_dec(lbm_dec_as_float(args[0]), lbm_dec_as_float(args[1]));
+	return ENC_SYM_TRUE;
+}
+
 static lbm_value ext_app_adc_range_ok(lbm_value *args, lbm_uint argn) {
 	(void)args; (void)argn;
 	return app_adc_range_ok() ? ENC_SYM_TRUE : ENC_SYM_NIL;
@@ -6797,6 +6803,7 @@ void lispif_load_vesc_extensions(bool main_found) {
 		// APP commands
 		lbm_add_extension("app-adc-detach", ext_app_adc_detach);
 		lbm_add_extension("app-adc-override", ext_app_adc_override);
+		lbm_add_extension("app-adc-override-dec", ext_app_adc_override_dec);
 		lbm_add_extension("app-adc-range-ok", ext_app_adc_range_ok);
 		lbm_add_extension("app-ppm-detach", ext_app_ppm_detach);
 		lbm_add_extension("app-ppm-override", ext_app_ppm_override);

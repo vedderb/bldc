@@ -175,7 +175,8 @@ typedef enum {
 	FAULT_CODE_ENCODER_SLIP,
 	FAULT_CODE_OVERSPEED,
 	FAULT_CODE_UNDERSPEED,
-	FAULT_CODE_ABS_OVERSPEED
+	FAULT_CODE_ABS_OVERSPEED,
+	FAULT_CODE_THROTTLE_RANGE
 } mc_fault_code;
 
 typedef enum {
@@ -723,6 +724,7 @@ typedef struct {
 	uint32_t update_rate_hz;
 	float coast_brake_level;
 	float coast_brake_ramp_time;
+	float redundant_throttle_diff;
 } adc_config;
 
 // Nunchuk control types
