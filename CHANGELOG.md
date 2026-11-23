@@ -9,6 +9,7 @@
 	* Many new extensions and access to more configuration parameters.
 * Added PWM + ABI Inverted encoder mode.
 * App ADC coasting brake support.
+* App ADC reduntant dual throttle support.
 
 ### 7.00
 #### 2026-05-15
