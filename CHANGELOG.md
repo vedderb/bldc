@@ -1,4 +1,4 @@
-### 7.01
+### 8.00
 #### TBD
 * Major IMU refactor, IMU DRDY support. See https://github.com/vedderb/bldc/pull/917
 * MT6835 encoder support: https://github.com/vedderb/bldc/pull/916
