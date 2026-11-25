@@ -76,6 +76,9 @@ float mc_interface_get_tot_current_in(void);
 float mc_interface_get_tot_current_in_filtered(void);
 float mc_interface_get_input_voltage_filtered(void);
 int mc_interface_get_tachometer_value(bool reset);
+// VESC MOTORPOSITION LOT2: changes whenever the signed tachometer origin changes.
+uint32_t mc_interface_get_tachometer_generation(void);
+bool mc_interface_tachometer_change_active(void);
 int mc_interface_get_tachometer_abs_value(bool reset);
 float mc_interface_get_last_inj_adc_isr_duration(void);
 float mc_interface_read_reset_avg_motor_current(void);
