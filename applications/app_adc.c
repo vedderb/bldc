@@ -75,6 +75,15 @@ static volatile float thr_override_dec = -1.0;
 static volatile float brake_override_dec = -1.0;
 
 void app_adc_configure(adc_config *conf) {
+
+#ifdef HW_HARDWARE_ADC_APP_PINS
+	if (!buttons_detached) {
+		palSetPadMode(HW_REVERSE_SWITCH_PORT, HW_REVERSE_SWITCH_PIN, PAL_MODE_INPUT_PULLUP);
+		if ((conf->buttons >> 0) & 1) {
+			palSetPadMode(HW_CRUISE_SWITCH_PORT, HW_CRUISE_SWITCH_PIN, PAL_MODE_INPUT_PULLUP);
+		}
+	}
+#else
 	if (!buttons_detached && (((conf->buttons >> 0) & 1) || CTRL_USES_BUTTON(conf->ctrl_type))) {
 		if (use_rx_tx_as_buttons) {
 			palSetPadMode(HW_UART_TX_PORT, HW_UART_TX_PIN, PAL_MODE_INPUT_PULLUP);
@@ -83,6 +92,7 @@ void app_adc_configure(adc_config *conf) {
 			palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT_PULLUP);
 		}
 	}
+#endif
 
 	config = *conf;
 	ms_without_power = 0.0;
@@ -324,6 +334,17 @@ static THD_FUNCTION(adc_thread, arg) {
 		// Read the button pins
 		bool cc_button = false;
 		bool rev_button = false;
+
+#ifdef HW_HARDWARE_ADC_APP_PINS
+		rev_button = !palReadPad(HW_REVERSE_SWITCH_PORT, HW_REVERSE_SWITCH_PIN);
+		if ((config.buttons >> 2) & 1) {
+			rev_button = !rev_button;
+		}
+		cc_button = !palReadPad(HW_CRUISE_SWITCH_PORT, HW_CRUISE_SWITCH_PIN);
+		if ((config.buttons >> 1) & 1) {
+			cc_button = !cc_button;
+		}
+#else
 		if (use_rx_tx_as_buttons) {
 			cc_button = !palReadPad(HW_UART_TX_PORT, HW_UART_TX_PIN);
 			if ((config.buttons >> 1) & 1) {
@@ -351,6 +372,7 @@ static THD_FUNCTION(adc_thread, arg) {
 				}
 			}
 		}
+#endif
 
 		// Override button values, when used from LISP
 		if (buttons_detached) {
