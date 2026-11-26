@@ -1078,6 +1078,11 @@ lbm_value ext_load_native_lib(lbm_value *args, lbm_uint argn) {
 		// 7.00
 		cif.cif.foc_set_fw_override = mcpwm_foc_set_fw_override;
 
+		// 7.01
+		cif.cif.mc_disable = mc_interface_disable;
+		cif.cif.mc_enable = mc_interface_enable;
+		cif.cif.mc_is_disabled = mc_interface_is_disabled;
+
 		lib_init_done = true;
 	}
 
