@@ -1,0 +1,7 @@
+# VESC firmware uses tab indentation and is NOT clang-formatted upstream
+# (vedderb/bldc). DisableFormat makes clang-format leave files untouched, so
+# editors with "format on save" stop churning whitespace in shared files -
+# which otherwise produces huge noisy diffs and constant merge conflicts.
+#
+# Remove this file only if you deliberately want to reformat the whole tree.
+DisableFormat: true
