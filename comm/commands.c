@@ -321,7 +321,13 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		if (nrf_driver_ext_nrf_running()) {
 			nrf_driver_pause(6000);
 		}
-		uint16_t flash_res = flash_helper_erase_new_app(buffer_get_uint32(data, &ind));
+		uint16_t flash_res = 100;
+		if (!REJECT_FLASH_LOADING) {
+			flash_res = flash_helper_erase_new_app(buffer_get_uint32(data, &ind));
+		}
+		else {
+			commands_printf("Firmware loading rejected by the controller.");
+		}
 
 		ind = 0;
 		uint8_t send_buffer[50];
